@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import {
-  FaApple, FaGlobe, FaUsers, FaComment, FaBolt, FaChevronRight,
+  FaGlobe, FaUsers, FaComment, FaBolt, FaChevronRight,
 } from 'react-icons/fa';
 import { useTranslations, useLocale } from 'next-intl';
 import { useLocalizedHref } from '@/lib/i18n/use-localized-href';
@@ -91,12 +91,13 @@ export function AboutContent() {
             {t('sub')}
           </motion.p>
 
-          <motion.span variants={fadeUp} aria-disabled="true"
+          <motion.div variants={fadeUp}>
+          <Link href={L('/')}
             className="inline-flex items-center gap-2.5 h-[52px] px-8 rounded-2xl text-white/90 font-semibold cursor-default select-none"
             style={{ background: 'linear-gradient(135deg, #7B72F8, #6B63E8)', opacity: 0.9, boxShadow: '0 0 40px rgba(123,114,248,0.4)' }}>
-            <FaApple size={18} aria-hidden="true" /> {t('download')}
-            <span className="ml-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20">{t('soon')}</span>
-          </motion.span>
+            <FaGlobe size={18} aria-hidden="true" /> {t('download')}
+          </Link>
+          </motion.div>
         </motion.div>
       </section>
 
@@ -184,12 +185,11 @@ export function AboutContent() {
         <div className="relative z-10 max-w-xl mx-auto">
           <h2 className="font-display uppercase text-white mb-4" style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)' }}>{t('ctaTitle')}</h2>
           <p className="text-zinc-400 mb-9">{t('ctaSub')}</p>
-          <span aria-disabled="true"
+          <Link href={L('/')}
             className="inline-flex items-center gap-2.5 h-[54px] px-9 rounded-2xl text-white/90 font-semibold cursor-default select-none"
             style={{ background: 'linear-gradient(135deg, #7B72F8, #6B63E8)', opacity: 0.9, boxShadow: '0 0 44px rgba(123,114,248,0.45)' }}>
-            <FaApple size={19} aria-hidden="true" /> {t('download')}
-            <span className="ml-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20">{t('soon')}</span>
-          </span>
+            <FaGlobe size={19} aria-hidden="true" /> {t('download')}
+          </Link>
         </div>
       </section>
     </div>

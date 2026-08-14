@@ -1,15 +1,8 @@
 'use client';
 
-import { QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { NextIntlClientProvider } from 'next-intl';
-import { queryClient } from '@/lib/query-client';
+import { NextIntlClientProvider, type AbstractIntlMessages } from 'next-intl';
 import { Toaster } from '@/components/common/Toaster';
-import uzMessages from '../../../messages/uz.json';
-import ruMessages from '../../../messages/ru.json';
-import enMessages from '../../../messages/en.json';
-
-const messages = { uz: uzMessages, ru: ruMessages, en: enMessages };
+import { Analytics } from '@/components/common/Analytics';
 
 type Locale = 'uz' | 'ru' | 'en';
 
@@ -29,17 +22,17 @@ type Locale = 'uz' | 'ru' | 'en';
 export function Providers({
   children,
   initialLocale = 'ru',
+  messages,
 }: {
   children: React.ReactNode;
   initialLocale?: Locale;
+  messages: AbstractIntlMessages;
 }) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <NextIntlClientProvider locale={initialLocale} messages={messages[initialLocale]}>
-        {children}
-        <Toaster />
-        {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
-      </NextIntlClientProvider>
-    </QueryClientProvider>
+    <NextIntlClientProvider locale={initialLocale} messages={messages}>
+      {children}
+      <Toaster />
+      <Analytics />
+    </NextIntlClientProvider>
   );
 }

@@ -9,7 +9,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 const PATH = '/en/use-cases/online-date';
 
 export const metadata: Metadata = {
-  title: 'Online Date: A Movie Night for Two — WeWatch',
+  title: 'Online Date: A Movie Night for Two',
   description:
     'Not sure what to do on an online date? Put one film on for the two of you. WeWatch keeps playback in sync, and chat and emoji stand in for sitting side by side.',
   keywords: [
@@ -31,17 +31,6 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'Article',
-  headline: 'Online date: a movie night for two',
-  description: 'How to set up a romantic online date by watching a film together in WeWatch.',
-  author: { '@type': 'Organization', name: 'WeWatch', url: APP_URL },
-  publisher: { '@type': 'Organization', name: 'WeWatch', url: APP_URL },
-  datePublished: '2026-07-28',
-  inLanguage: 'en',
-  mainEntityOfPage: `${APP_URL}${PATH}`,
-};
 
 const IDEAS = [
   { t: 'Romantic comedy', d: 'The first-date classic — an easy film and reactions in the chat.' },
@@ -53,7 +42,6 @@ const IDEAS = [
 export default function OnlineDatePage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="en" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -87,8 +75,8 @@ export default function OnlineDatePage() {
           <section className="mb-10">
             <h2 className="text-2xl font-bold mb-4">Setting it up in a minute</h2>
             <p className="text-zinc-400 leading-relaxed">
-              Install WeWatch, open the film in the app&apos;s browser, create a room and send the link.
-              Your partner taps it — and you are watching in sync. Works between iPhone, Android and a
+              Open WeWatch in a browser, choose a film, create a room and send the link. Native mobile apps are in development.
+              Your partner taps it — and you are watching in sync through browsers on iPhone, Android and a
               desktop computer.
             </p>
           </section>
@@ -107,7 +95,7 @@ export default function OnlineDatePage() {
           </div>
         </div>
       </main>
-      <GuideFooter locale="en" />
+      <GuideFooter locale="en" currentPath={PATH} />
     </>
   );
 }

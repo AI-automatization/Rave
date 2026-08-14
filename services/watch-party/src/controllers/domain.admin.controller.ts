@@ -41,6 +41,31 @@ export const STATIC_BLOCKED_DOMAINS = [
   'alt.com','swinglifestyle.com','fetlife.com',
 ];
 
+// The admin blocklist (STATIC_BLOCKED_DOMAINS seeded here + anything added via addDomain/
+// blockDomain) lives in Redis, but nothing on the actual media-open paths (VB_START,
+// CHANGE_MEDIA, playlist add) ever read it — an admin blocking a domain had no effect on the
+// server-side virtual browser at all, only on the admin-ui's own listing view. Checks the exact
+// hostname and every parent domain (sub.pornhub.com must match a 'pornhub.com' entry) via one
+// pipelined round-trip rather than SMEMBERS + a client-side loop.
+export async function isDomainBlocked(redis: Redis, url: string): Promise<boolean> {
+  let hostname: string;
+  try {
+    hostname = new URL(url).hostname.toLowerCase().replace(/^www\./, '');
+  } catch {
+    return false;
+  }
+  const parts = hostname.split('.');
+  const candidates: string[] = [];
+  for (let i = 0; i < parts.length - 1; i++) candidates.push(parts.slice(i).join('.'));
+  if (candidates.length === 0) return false;
+
+  const pipeline = redis.pipeline();
+  for (const candidate of candidates) pipeline.sismember(BLOCKED_DOMAINS_KEY, candidate);
+  const results = await pipeline.exec();
+  if (!results) return false;
+  return results.some(([err, isMember]) => !err && isMember === 1);
+}
+
 export async function seedStaticBlockedDomains(redis: Redis): Promise<void> {
   try {
     const alreadySeeded = await redis.exists(SEEDED_KEY);

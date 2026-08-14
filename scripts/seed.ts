@@ -271,10 +271,10 @@ async function seed(): Promise<void> {
 
   console.log('\n✨ Seed muvaffaqiyatli tugadi!\n');
   console.log('📋 Kirish ma\'lumotlari:');
-  console.log('   admin@cinesync.app     : Admin123!  (superadmin)');
-  console.log('   operator@cinesync.app  : Operator123! (operator)');
-  console.log('   test1@cinesync.app     : Test123!   (user)');
-  console.log('   test2@cinesync.app     : Test123!   (user)');
+  console.log('   admin@cinesync.app     : $SEED_ADMIN_PASSWORD  (superadmin)');
+  console.log('   operator@cinesync.app  : $SEED_USER_PASSWORD   (operator)');
+  console.log('   test1@cinesync.app     : $SEED_USER_PASSWORD   (user)');
+  console.log('   test2@cinesync.app     : $SEED_USER_PASSWORD   (user)');
 }
 
 seed().catch((error) => {

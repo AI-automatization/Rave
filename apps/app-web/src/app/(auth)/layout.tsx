@@ -3,9 +3,6 @@ import { WeWatchLogo } from '@/components/common/WeWatchLogo';
 import { AuthHero } from './AuthHero';
 import { AuthFooter } from './AuthFooter';
 
-// Auth sahifalari (login, register) qidiruvda indekslanmasligi kerak — aks holda
-// Google ularni brend so'roviga ("wewatch") bosh sahifa o'rniga chiqaradi.
-// follow:true — havolalar orqali bosh sahifaga link-equity o'tishi uchun.
 export const metadata: Metadata = {
   robots: { index: false, follow: true },
 };

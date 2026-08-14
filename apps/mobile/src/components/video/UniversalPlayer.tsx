@@ -42,13 +42,21 @@ interface Props {
   onStreamResolved?: (info: { isLive: boolean; title: string }) => void;
   onReady?: () => void;
   extractedUrl?: string;
-  extractedType?: 'mp4' | 'hls';
+  extractedType?: 'mp4' | 'hls' | 'dash';
   isExtracting?: boolean;
   referer?: string;
   httpHeaders?: Record<string, string>;
   proxyUrl?: string;
   mode?: 'extracted' | 'webview-session';
   onCdnUrlSniffed?: (url: string) => void;
+  /** Fires once, the moment we give up on this URL entirely (direct attempt AND proxy fallback
+   * both failed — see the `setVideoError(true)` branch below). This is the server having said
+   * "extraction succeeded" for a URL that then can't actually be fetched — a file-host mirror
+   * (e.g. vikingfile.com) returning 403 on our proxy's request is the real case this covers
+   * (found via a live test 2026-08-03: asilmedia → vikingfile link, extraction reported success,
+   * playback never worked). The room owner can react by starting a Virtual Browser session on
+   * the original page instead of leaving the room stuck on a permanently broken player. */
+  onFatalError?: () => void;
 }
 
 export type EmbedPlatform = 'twitch' | 'vk' | 'rutube' | 'vimeo' | 'dailymotion' | 'tiktok' | 'peertube' | 'trovo' | null;
@@ -96,7 +104,7 @@ function buildEmbedHtml(url: string, embed: EmbedPlatform): { html: string; base
 
 export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
   ({ url, isOwner, onPlay, onPause, onSeek, onPlaybackStatusUpdate, onProgress, onBuffering, onReady,
-     extractedUrl, extractedType, isExtracting, referer, httpHeaders, proxyUrl, mode, onCdnUrlSniffed }, ref) => {
+     extractedUrl, extractedType, isExtracting, referer, httpHeaders, proxyUrl, mode, onCdnUrlSniffed, onFatalError }, ref) => {
     const { t } = useT();
     const webviewRef = useRef<WebViewPlayerRef>(null);
     const platform = detectVideoPlatform(url);
@@ -136,6 +144,8 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
 
     const onCdnUrlSniffedRef = useRef(onCdnUrlSniffed);
     onCdnUrlSniffedRef.current = onCdnUrlSniffed;
+    const onFatalErrorRef = useRef(onFatalError);
+    onFatalErrorRef.current = onFatalError;
 
     // Diagnostic: log VK/Rutube sniff decision once per state change
     useEffect(() => {
@@ -298,6 +308,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
         readyFiredRef.current = false;
       } else {
         setVideoError(true);
+        onFatalErrorRef.current?.();
       }
     }, [evStatus, useWebview, usingProxy, proxyUrl, isDashSource]); // eslint-disable-line react-hooks/exhaustive-deps
 

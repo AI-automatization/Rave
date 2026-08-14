@@ -18,8 +18,19 @@ export const videoStyles = StyleSheet.create({
 
   loadingBox: {
     ...StyleSheet.absoluteFill,
-    alignItems: 'center', justifyContent: 'center', gap: 12,
+    alignItems: 'center', justifyContent: 'center', gap: 14,
   },
+  loadingIconWrap: {
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: 'rgba(123,114,248,0.12)',
+    borderWidth: 1, borderColor: 'rgba(123,114,248,0.3)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  loadingGlow: {
+    position: 'absolute', width: 56, height: 56, borderRadius: 28,
+    backgroundColor: 'rgba(123,114,248,0.35)',
+  },
+  loadingTitle: { fontSize: 14, fontWeight: '700', color: 'rgba(255,255,255,0.92)', letterSpacing: 0.2 },
   loadingText: { fontSize: 12, color: 'rgba(255,255,255,0.38)', letterSpacing: 0.5 },
 
   gradientTop: {
@@ -34,7 +45,7 @@ export const videoStyles = StyleSheet.create({
   topBar: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 54,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 12, paddingTop: Platform.OS === 'ios' ? 4 : 0,
+    paddingHorizontal: 14, paddingTop: Platform.OS === 'ios' ? 4 : 0,
   },
   topRight: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   topIconBtn: {
@@ -45,7 +56,7 @@ export const videoStyles = StyleSheet.create({
   },
 
   liveBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
+    flexDirection: 'row', alignItems: 'center', gap: 7,
     backgroundColor: 'rgba(0,0,0,0.52)',
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20,
     borderWidth: 1, borderColor: 'rgba(74,222,128,0.25)',
@@ -59,7 +70,7 @@ export const videoStyles = StyleSheet.create({
   liveTxt: { fontSize: 10, fontWeight: '800', color: '#4ADE80', letterSpacing: 1.2 },
 
   syncBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
+    flexDirection: 'row', alignItems: 'center', gap: 7,
     backgroundColor: 'rgba(0,0,0,0.48)',
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20,
     borderWidth: 1, borderColor: 'rgba(123,114,248,0.22)',
@@ -85,7 +96,7 @@ export const videoStyles = StyleSheet.create({
   seekBtn: {
     width: 60, height: 60, borderRadius: 30,
     backgroundColor: 'rgba(0,0,0,0.42)',
-    alignItems: 'center', justifyContent: 'center', gap: 2,
+    alignItems: 'center', justifyContent: 'center', gap: 4,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
   },
   seekLabel: { fontSize: 9, fontWeight: '700', color: 'rgba(255,255,255,0.62)', letterSpacing: 0.3 },

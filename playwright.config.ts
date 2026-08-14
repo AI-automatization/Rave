@@ -65,7 +65,7 @@ export default defineConfig({
       testDir: './tests/admin-ui',
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: process.env.TEST_ADMIN_UI_URL ?? 'https://admin-ui-production-702c.up.railway.app',
+        baseURL: process.env.TEST_ADMIN_UI_URL ?? 'http://localhost:5173',
         viewport: { width: 1440, height: 900 },
         screenshot: 'on',
         video: 'retain-on-failure',

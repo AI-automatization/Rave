@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useWatchPartyStore } from '@store/watchParty.store';
 import { useAuthStore } from '@store/auth.store';
 import { connectSocket, disconnectSocket, getSocket, SERVER_EVENTS, CLIENT_EVENTS } from '@socket/client';
-import { SyncState, IWatchPartyRoom, VideoPlatform, IUserPublic } from '@app-types/index';
+import { SyncState, IWatchPartyRoom, VideoPlatform, IUserPublic, VideoCandidate } from '@app-types/index';
 import { SyncBroadcaster } from '@services/mesh/SyncBroadcaster';
 import type { SyncMessage } from '@services/mesh/types';
 
@@ -51,6 +51,8 @@ export interface HeartbeatData {
 // T-E106: Reaction broadcast from any room member
 export interface ReactionBroadcast {
   userId: string;
+  username?: string;
+  avatar?: string;
   emoji: string;
   timestamp: number;
 }
@@ -74,6 +76,13 @@ export function useWatchParty(roomId: string) {
   const [heartbeat, setHeartbeat] = useState<HeartbeatData | null>(null);
   const [bufferingUsers, setBufferingUsers] = useState<Set<string>>(new Set());
   const [lastReaction, setLastReaction] = useState<ReactionBroadcast | null>(null);
+  // Owner-only video-candidate picker (T-S190) — null = not requested yet / awaiting server
+  // response (Redis lookup, fast but async), [] = server answered with none found. requestCandidates
+  // resets to null so re-opening the picker always shows a fresh loading state, not a stale list.
+  const [candidates, setCandidates] = useState<VideoCandidate[] | null>(null);
+  // Server-driven burst-lockout countdown (REACTION_COOLDOWN) — 0 = picker enabled.
+  const [reactionCooldownSec, setReactionCooldownSec] = useState(0);
+  const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Mesh sync (P2P/TURN) — owner broadcasts here, members apply. Socket stays as fallback.
   const broadcasterRef = useRef<SyncBroadcaster | null>(null);
@@ -261,6 +270,28 @@ export function useWatchParty(roomId: string) {
     // T-E106: Reaction broadcast from other members
     socket.on(SERVER_EVENTS.REACTION_BROADCAST, (data: ReactionBroadcast) => setLastReaction(data));
 
+    // Sender-only: burst limit hit (20+ reactions in the trailing 60s window) — drive a visible
+    // countdown so the picker can disable itself instead of taps just going nowhere.
+    socket.on(SERVER_EVENTS.REACTION_COOLDOWN, (data: { retryAfterSec: number }) => {
+      if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
+      setReactionCooldownSec(data.retryAfterSec);
+      cooldownIntervalRef.current = setInterval(() => {
+        setReactionCooldownSec(prev => {
+          if (prev <= 1) {
+            if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    });
+
+    // Owner-only: video-candidate picker response (T-S190) — answers REQUEST_CANDIDATES,
+    // emitted from the player's "Это не то видео" gear-row entry.
+    socket.on(SERVER_EVENTS.VIDEO_CANDIDATES, (data: { candidates: VideoCandidate[] }) => {
+      setCandidates(data.candidates ?? []);
+    });
+
     // Admin monitoring events
     socket.on('admin:joined', () => setAdminMonitoring(true));
     socket.on('admin:left', () => setAdminMonitoring(false));
@@ -292,6 +323,9 @@ export function useWatchParty(roomId: string) {
       socket.off(VIDEO_HEARTBEAT_EVENT);
       socket.off(SERVER_EVENTS.PLAYLIST_UPDATED);
       socket.off(SERVER_EVENTS.REACTION_BROADCAST);
+      socket.off(SERVER_EVENTS.REACTION_COOLDOWN);
+      if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
+      socket.off(SERVER_EVENTS.VIDEO_CANDIDATES);
       socket.off('admin:joined');
       socket.off('admin:left');
     };
@@ -423,6 +457,16 @@ export function useWatchParty(roomId: string) {
     [roomId, updateRoomMedia],
   );
 
+  /**
+   * Owner-only: "show me what other video candidates were found for the current source"
+   * (T-S190). Resets to null (loading) first so the picker doesn't briefly flash a stale
+   * list from a previous open before the fresh response lands.
+   */
+  const requestCandidates = useCallback(() => {
+    setCandidates(null);
+    getSocket()?.emit(CLIENT_EVENTS.REQUEST_CANDIDATES);
+  }, []);
+
   // ─── Voice chat helpers ────────────────────────────────────────────────────
 
   const emitVoiceJoin = useCallback(() => {
@@ -433,5 +477,5 @@ export function useWatchParty(roomId: string) {
     getSocket()?.emit(CLIENT_EVENTS.VOICE_LEAVE);
   }, []);
 
-  return { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction, activeTransport, getTransportSnapshot, emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji, emitMediaChange, emitVoiceJoin, emitVoiceLeave };
+  return { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction, reactionCooldownSec, activeTransport, getTransportSnapshot, candidates, requestCandidates, emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji, emitMediaChange, emitVoiceJoin, emitVoiceLeave };
 }

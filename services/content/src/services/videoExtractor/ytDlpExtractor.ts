@@ -216,6 +216,23 @@ export async function ytDlpExtractor(
 
     const child = spawn('yt-dlp', args);
 
+    // Real prod finding 2026-08-08: SIGTERM alone doesn't reliably kill yt-dlp — a Python
+    // process blocked in a C-extension syscall (e.g. an SSL handshake stuck mid-read) can defer
+    // signal delivery until that syscall itself unblocks, which isn't bounded by anything we
+    // control. Confirmed live: a yt-dlp call that should have died at the 20s mark was still
+    // running 92s later (--dump-json's own generic-URL probe apparently doesn't respect
+    // --socket-timeout the way per-request options imply). Left unfixed, every timed-out call
+    // leaks an orphaned process that keeps burning CPU/network indefinitely — after hours of
+    // repeated extraction attempts, that adds up to real resource contention degrading the
+    // whole container, which is what made later requests progressively slower/more likely to
+    // hit content-service's own request timeout. SIGKILL after a grace period is unconditional —
+    // a process cannot defer or ignore it — so this bounds the leak no matter what yt-dlp (or
+    // whatever it shells out to internally) is doing.
+    const KILL_GRACE_MS = 3_000;
+    let closed = false;
+    const killTimer = setTimeout(() => {
+      if (!closed) child.kill('SIGKILL');
+    }, YTDLP_TIMEOUT_MS + KILL_GRACE_MS);
     const timer = setTimeout(() => {
       child.kill('SIGTERM');
       resolve(null);
@@ -225,7 +242,9 @@ export async function ytDlpExtractor(
     child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
 
     child.on('close', (code) => {
+      closed = true;
       clearTimeout(timer);
+      clearTimeout(killTimer);
 
       if (code !== 0 || !stdout.trim()) {
         if (DRM_RE.test(stderr)) {
@@ -288,7 +307,9 @@ export async function ytDlpExtractor(
     });
 
     child.on('error', () => {
+      closed = true;
       clearTimeout(timer);
+      clearTimeout(killTimer);
       resolve(null);
     });
   });

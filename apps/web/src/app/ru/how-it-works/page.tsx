@@ -3,13 +3,14 @@ import Link from 'next/link';
 import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { appUrl } from '@/lib/app-url';
+import { SynchronizationFacts } from '@/components/common/SynchronizationFacts';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
 export const metadata: Metadata = {
   title: 'Как работает WeWatch — совместный просмотр видео за 4 шага',
   description:
-    'Как смотреть видео вместе с друзьями через WeWatch: скачать приложение, открыть видео, создать комнату, поделиться ссылкой. Синхронизация iOS, Android и веб.',
+    'Как смотреть видео вместе с друзьями через веб-версию WeWatch: открыть видео, создать комнату и поделиться ссылкой. Приложения iOS и Android в разработке.',
   keywords: [
     'как работает watch party', 'как смотреть видео вместе', 'как создать комнату для просмотра',
     'как смотреть фильм с друзьями онлайн', 'watch party как пользоваться', 'wewatch инструкция',
@@ -29,8 +30,8 @@ export const metadata: Metadata = {
 };
 
 const steps = [
-  { n: 1, title: 'Скачайте приложение', desc: 'WeWatch бесплатен в App Store и Google Play. Регистрация занимает 30 секунд.' },
-  { n: 2, title: 'Откройте любое видео', desc: 'Встроенный браузер открывает YouTube, VK Видео, Rutube и другие сайты. Найдите фильм, сериал или клип.' },
+  { n: 1, title: 'Откройте WeWatch', desc: 'Откройте wewatch.uz в браузере. Приложения для iOS и Android находятся в разработке.' },
+  { n: 2, title: 'Добавьте видео', desc: 'Вставьте ссылку YouTube, VK Видео, Rutube или прямую MP4-ссылку.' },
   { n: 3, title: 'Создайте комнату', desc: 'Нажмите «Создать комнату» — WeWatch выдаст ссылку-приглашение. Отправьте её друзьям в любом мессенджере.' },
   { n: 4, title: 'Смотрите синхронно', desc: 'Друг переходит по ссылке — и просмотр синхронизируется. Пауза, перемотка, скорость — всё применяется для всех сразу.' },
 ];
@@ -64,7 +65,7 @@ export default function HowItWorksPage() {
             </span>
             <h1 className="text-4xl md:text-5xl font-bold mb-5 leading-tight tracking-tight">Как работает WeWatch</h1>
             <p className="text-xl text-zinc-400 leading-relaxed max-w-2xl">
-              Совместный просмотр видео с друзьями — за 4 шага. Один ставит паузу — у всех пауза. Работает между iPhone, Android и браузером одновременно.
+              Совместный просмотр видео с друзьями — за 4 шага. Веб-версия работает в браузерах на телефонах и компьютерах; приложения iOS и Android разрабатываются.
             </p>
           </div>
         </div>
@@ -73,7 +74,7 @@ export default function HowItWorksPage() {
           <section className="mb-14">
             <ol className="relative space-y-4 before:absolute before:left-5 before:top-6 before:bottom-6 before:w-px before:bg-gradient-to-b before:from-[#7B72F8]/50 before:to-transparent">
               {steps.map(({ n, title, desc }) => (
-                <li key={n} className="relative flex gap-5 rounded-2xl border border-zinc-800/60 bg-[#0E0E14] p-5 hover:border-[#7B72F8]/40 transition-colors">
+                <li key={n} data-howto-step className="relative flex gap-5 rounded-2xl border border-zinc-800/60 bg-[#0E0E14] p-5 hover:border-[#7B72F8]/40 transition-colors">
                   <span className="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-[#7B72F8] flex items-center justify-center text-base font-bold shadow-lg shadow-[#7B72F8]/30">{n}</span>
                   <div>
                     <h2 className="text-lg font-semibold text-white mb-1">{title}</h2>
@@ -84,33 +85,16 @@ export default function HowItWorksPage() {
             </ol>
           </section>
 
-          <section className="mb-14 rounded-2xl border border-zinc-800/60 bg-[#0E0E14] p-6 sm:p-8">
-            <h2 className="text-2xl font-bold mb-4">Как работает синхронизация</h2>
-            {/*
-              500 мс — это SYNC_DRIFT_WINDOW_MS из shared/src/constants, реальный
-              порог автокоррекции. Здесь раньше стояло «менее 300 мс» — числа с
-              таким смыслом в проекте нет; узбекская и английская версии страницы
-              называют ту же цифру, что и код.
-            */}
-            <p className="text-zinc-400 leading-relaxed mb-4">
-              WeWatch держит одно и то же время воспроизведения у всех участников. Когда кто-то ставит паузу, перематывает или меняет скорость — команда не просто пересылается остальным, а планируется на общую метку времени в будущем: быстрое и медленное соединение срабатывают в один и тот же реальный момент. Каждое устройство знает смещение своих часов относительно сервера — оно измеряется по принципу NTP через WebSocket-соединение.
-            </p>
-            <p className="text-zinc-400 leading-relaxed mb-4">
-              Расхождение всё равно случается — буферизация, реклама, медленный телефон. Периодическая проверка сравнивает каждое устройство с позицией комнаты и автоматически исправляет отклонение больше 500 мс, так что перезапускать видео никому не нужно.
-            </p>
-            <p className="text-zinc-400 leading-relaxed">
-              Работает без VPN. Если видео недоступно в регионе — это ограничение сайта-источника, а не WeWatch.
-            </p>
-          </section>
+          <SynchronizationFacts locale="ru" />
 
           <section className="mb-14">
             <h2 className="text-2xl font-bold mb-5">Частые вопросы</h2>
             <div className="space-y-3">
               {[
-                { q: 'Это бесплатно?', a: 'Да, полностью. Без ограничений по времени и количеству комнат.' },
+                { q: 'Это бесплатно?', a: 'Основные функции совместного просмотра бесплатны. Дополнительные функции перечислены в отдельном Pro-плане.' },
                 { q: 'Нужно ли гостю регистрироваться?', a: 'Создатель комнаты регистрируется, гость входит по ссылке-приглашению.' },
-                { q: 'На чём работает?', a: 'iOS, Android и веб-браузер. Участники могут быть на разных платформах одновременно.' },
-                { q: 'Какие сайты поддерживает?', a: 'YouTube, VK Видео, Rutube, прямые .mp4 ссылки и другие через встроенный браузер.' },
+                { q: 'На чём работает?', a: 'Сейчас доступна веб-версия для браузеров на телефонах и компьютерах. Приложения iOS и Android находятся в разработке.' },
+                { q: 'Какие источники поддерживаются?', a: 'YouTube, VK Видео, Rutube и прямые .mp4 ссылки.' },
               ].map(({ q, a }) => (
                 <details key={q} className="group border border-zinc-800/60 bg-[#0E0E14] rounded-xl px-5 py-4 open:border-[#7B72F8]/40 transition-colors">
                   <summary className="flex items-center justify-between gap-4 text-white font-medium cursor-pointer list-none select-none">
@@ -127,7 +111,7 @@ export default function HowItWorksPage() {
             <div aria-hidden className="pointer-events-none absolute -bottom-24 left-1/2 h-56 w-96 -translate-x-1/2 rounded-full bg-[#7B72F8]/20 blur-[90px]" />
             <div className="relative">
               <h2 className="text-2xl font-bold mb-3">Готовы попробовать?</h2>
-              <p className="text-zinc-400 mb-6">Скачайте WeWatch и создайте первую комнату за минуту</p>
+              <p className="text-zinc-400 mb-6">Откройте WeWatch в браузере и создайте первую комнату</p>
               <a href={appUrl('/register')} className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-6 py-3 rounded-xl transition-colors shadow-lg shadow-[#7B72F8]/25">
                 Начать бесплатно
               </a>

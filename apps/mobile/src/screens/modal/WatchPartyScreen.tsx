@@ -1,6 +1,7 @@
 // WeWatch Mobile — WatchPartyScreen
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, Platform, StyleSheet, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { ReportRoomModal } from '@components/common/ReportRoomModal';
@@ -19,6 +20,7 @@ import { RoomInfoBar } from '@components/watchParty/RoomInfoBar';
 import { InviteCard } from '@components/watchParty/InviteCard';
 import { QualityMenu } from '@components/watchParty/QualityMenu';
 import { EpisodeMenu } from '@components/watchParty/EpisodeMenu';
+import { VideoCandidatePicker } from '@components/watchParty/VideoCandidatePicker';
 import { PlaylistPanel } from '@components/watchParty/PlaylistPanel';
 import { BlockedDomainView } from '@components/common/BlockedDomainView';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,12 +44,59 @@ type NavProp = NativeStackNavigationProp<ModalStackParamList, 'WatchParty'>;
 
 type RouteType = RouteProp<ModalStackParamList, 'WatchParty'>;
 
+// vbSession.helper.ts (services/watch-party) wraps whatever media VB finds into
+// `<watchPartyServiceUrl>/api/v1/watch-party/vb-media-proxy/stream.<ext>?url=<encoded original>`
+// (proxiedMediaUrl()) and broadcasts that as the new room.videoUrl. Feeding that wrapped URL back
+// into vb.start() as-is — e.g. VB relaunches and its sniffer catches media again — makes the
+// helper wrap it a SECOND time, nesting one level deeper on every further round:
+// `...?url=<proxy>?url=<proxy>?url=...`. Confirmed in production 2026-08-04 (web side of this same
+// bug): nested 13 levels deep, 133 requests, all 502 — the fix that shipped as ed7e5c22/1fb1b330
+// and had to be rolled back. Recovering the ORIGINAL url from the proxy's own `?url=` param —
+// instead of just refusing to retry on a proxied URL at all — means a genuinely-failing proxied
+// stream can still retry VB against the real source page. Returns the input unchanged if it isn't
+// a proxy URL, and `null` if it IS a proxy URL but no valid original can be recovered (caller
+// should skip the VB fallback rather than guess). Mirrors apps/app-web's RoomContent.tsx.
+//
+// Unwraps REPEATEDLY, not just once: rooms created during the broken deploy still hold
+// multi-level-nested URLs in Mongo, and a single unwrap would hand back a still-proxied URL —
+// re-creating the exact nesting loop this exists to prevent. The iteration cap is a cheap
+// guarantee of termination regardless of how deep a stored URL happens to be.
+const MAX_PROXY_UNWRAP_DEPTH = 16;
+function unwrapVbProxyUrl(url: string): string | null {
+  let current = url;
+  for (let depth = 0; depth < MAX_PROXY_UNWRAP_DEPTH; depth++) {
+    let parsed: URL;
+    try {
+      parsed = new URL(current);
+    } catch {
+      return null;
+    }
+    // /vb-capture/ (the raw byte-buffer endpoint, vbSession.helper.ts's other own-URL kind
+    // besides vb-media-proxy) carries no `?url=` — there is no original page to recover, unlike
+    // vb-media-proxy below. Real prod bug 2026-08-11 (yummyani.me): falling through to the
+    // `!includes('/vb-media-proxy/') → return current` branch made THIS look like "not a proxy
+    // URL, must be the real source page" — originalSourceUrlRef then got overwritten with our own
+    // vb-capture URL, and the next fatal-error retry called vb.start() on it: VB navigated to its
+    // own (already-dead once the feeding session got torn down) endpoint instead of the actual
+    // page, so nothing could ever be found again. Must return null here, same contract as an
+    // unrecoverable vb-media-proxy nesting — caller skips the VB fallback rather than loop on it.
+    // Mirrors apps/app-web's RoomContent.tsx.
+    if (parsed.pathname.includes('/vb-capture/')) return null;
+    if (!parsed.pathname.includes('/vb-media-proxy/')) return current;
+    const original = parsed.searchParams.get('url'); // URLSearchParams already decodes the value
+    if (!original) return null;
+    current = original;
+  }
+  return null; // nested deeper than any legitimate URL would be — refuse rather than guess
+}
+
 export function WatchPartyScreen() {
   const { params } = useRoute<RouteType>();
   const { colors } = useTheme();
   const { t } = useT();
   const navigation = useNavigation<NavProp>();
   const { height: winHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
 
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [showReport, setShowReport] = useState(false);
@@ -129,9 +178,9 @@ export function WatchPartyScreen() {
   const {
     playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout, activeTransport,
     showChat, showInvite, isPlaying, isFullscreen, videoIsLive,
-    videoCurrentTime, videoDuration, pendingSkipSecs, floatingEmojis, showQualityMenu, showEpisodeMenu,
+    videoCurrentTime, videoDuration, pendingSkipSecs, floatingEmojis, reactionCooldownSec, showQualityMenu, showEpisodeMenu,
     extractQualities, extractEpisodes, currentVideoUrl, extractionError,
-    originalVideoUrl, extractedVideoUrl, extractedVideoHeaders, extractedVideoProxyUrl, isWebViewMode, isYouTubeWebViewMode, isExtracting,
+    originalVideoUrl, extractedVideoUrl, extractedVideoHeaders, extractedVideoProxyUrl, isWebViewMode, isYouTubeWebViewMode, isExtracting, extractFallback,
     playlist, handleAddToQueue, handlePlaylistRemove, handlePlaylistNext,
     setShowChat, setShowInvite, setShowQualityMenu, setShowEpisodeMenu, setVideoIsLive,
     sendMessage,
@@ -140,6 +189,7 @@ export function WatchPartyScreen() {
     handleToggleFullscreen, handleSeekDirection, handleEmojiSelect, handleRemoveEmoji,
     handleChangeMedia, handleQualitySelect, handleEpisodeSelect, handleLeave, handlePlayerReady,
     handleCdnUrlSniffed,
+    candidates, showCandidatePicker, setShowCandidatePicker, handleOpenCandidatePicker, handleCandidateSelect,
   } = useWatchPartyRoom(params.roomId, params.videoReferer);
 
   // Voice connection lifted to screen level — stays alive across panel switches.
@@ -150,7 +200,52 @@ export function WatchPartyScreen() {
   // pipeline can't produce a playable result (services/watch-party roomEvents.handler.ts). No
   // manual "open browser" trigger on mobile (out of scope) — vb.active flips on/off purely from
   // the server-driven VB_STARTED/VB_STOPPED broadcast, same as web's automatic fallback path.
-  const vb = useVirtualBrowser(isOwner);
+  // VB never auto-commits what it finds (2026-08-06) — reusing handleOpenCandidatePicker here
+  // gets the exact same owner-only guard + requestCandidates() it already does for the manual
+  // gear-row "Это не то видео" entry, just fired automatically instead of waiting for a tap.
+  const vb = useVirtualBrowser(isOwner, handleOpenCandidatePicker);
+
+  // Owner-only auto-recovery: the server's extraction pipeline said a URL was playable (found
+  // SOME video URL), but UniversalPlayer then couldn't actually fetch it (direct attempt AND
+  // our proxy both failed) — a real case is a file-host mirror like vikingfile.com returning
+  // 403 on our proxy's request (extraction reporting "success" doesn't guarantee OUR server can
+  // actually retrieve the link; found via a live test 2026-08-03, asilmedia → vikingfile). Rather
+  // than leave the room stuck on a permanently broken player, the owner falls back to the shared
+  // Virtual Browser on the original page — same recovery path CHANGE_MEDIA already uses when
+  // extraction fails outright, just triggered from a playback failure instead.
+  //
+  // Guard is keyed by URL (via unwrapVbProxyUrl above), not a single boolean: a boolean reset on
+  // every `room?.videoUrl` change (the original, since-rolled-back implementation) self-defeats,
+  // because VB mutates room.videoUrl every time it finds new media — the very event the guard
+  // needs to survive. Tracking the set of URLs already attempted means each distinct source gets
+  // at most one VB attempt, and the reset can never fire mid-loop because there IS no reset. The
+  // size cap is a second, independent backstop.
+  const vbAttemptedUrlsRef = useRef<Set<string>>(new Set());
+  const VB_MAX_ATTEMPTS_PER_SESSION = 3;
+
+  // Tracks the last genuine owner-submitted SOURCE PAGE (never a vb-media-proxy rewrite) so a
+  // fatal-error retry can re-open VB on the actual page instead of the raw sniffed media file.
+  // unwrapVbProxyUrl(url) === url is how the function itself signals "not a proxy URL" (per its
+  // own contract above) — reused here rather than re-deriving the same check. Mirrors web's
+  // RoomContent.tsx fix — real prod bug 2026-08-04: retrying on the unwrapped CDN file URL made
+  // VB call page.goto() on a media file, not a page (downloads the file, or ERR_CONNECTION_RESET
+  // on CDNs that reject direct manifest requests outside their normal referrer/session context),
+  // never re-triggering the sniffer.
+  const originalSourceUrlRef = useRef<string | null>(null);
+  useEffect(() => {
+    const url = room?.videoUrl ?? originalVideoUrl;
+    if (url && unwrapVbProxyUrl(url) === url) originalSourceUrlRef.current = url;
+  }, [room?.videoUrl, originalVideoUrl]);
+
+  const handleVideoFatalError = useCallback(() => {
+    if (!isOwner || vb.active) return;
+    const targetUrl = originalSourceUrlRef.current;
+    if (!targetUrl) return; // no known source page to retry (e.g. fatal error before any CHANGE_MEDIA)
+    if (vbAttemptedUrlsRef.current.has(targetUrl)) return; // this exact source was already tried
+    if (vbAttemptedUrlsRef.current.size >= VB_MAX_ATTEMPTS_PER_SESSION) return; // hard cap backstop
+    vbAttemptedUrlsRef.current.add(targetUrl);
+    vb.start(targetUrl);
+  }, [isOwner, vb]);
 
   // T-S189: room was created with a raw, unverified URL (user forced it via "try current
   // page anyway" — no client/server detection confirmed it beforehand). Mirrors web's
@@ -225,7 +320,12 @@ export function WatchPartyScreen() {
   const showMembers = !isFullscreen && !!room && !showChat;
 
   return (
-    <View style={s.root}>
+    // root previously had no top inset at all — on devices where the status bar isn't fully
+    // transparent/overlaid, the video/VB player (the very first stacked element) rendered right
+    // under it, reading as "player pressed to the top, covered by the clock/signal/battery icons"
+    // (real report 2026-08-03). Skipped in fullscreen — that mode is meant to be edge-to-edge,
+    // landscape, and already locks orientation away from the notch/status-bar area.
+    <View style={[s.root, !isFullscreen && { paddingTop: insets.top }]}>
 
       {/* Expired source banner */}
       {extractionError === 'video_source_expired' && (
@@ -275,7 +375,15 @@ export function WatchPartyScreen() {
         videoProxyUrl={extractionError === 'video_source_expired' ? undefined : extractedVideoProxyUrl}
         isWebView={extractionError === 'video_source_expired' ? false : isWebViewMode}
         isYouTubeEmbed={extractionError === 'video_source_expired' ? false : isYouTubeWebViewMode}
-        isReady={extractionError === 'video_source_expired' ? true : !!room && (!isExtracting || isWebViewMode)}
+        // extractFallback means the extraction attempt gave up with nothing to play — for a
+        // known embed platform (isWebViewMode true) that's fine, UniversalPlayer's own embed
+        // WebView takes over. For everything else it's the gap before the server-side VB
+        // auto-fallback kicks in (vb.active flips true and swaps this whole component out) —
+        // staying "not ready" here keeps the loading box up instead of letting UniversalPlayer
+        // mount with nothing extracted, which used to fall back to rendering the raw source
+        // page (uncontrollable, no sync — see T-S189 follow-up).
+        isReady={extractionError === 'video_source_expired' ? true : !!room && !isExtracting && (isWebViewMode || !extractFallback)}
+        loadingStage={extractFallback && !isWebViewMode ? 'vb' : 'extracting'}
         isOwner={isOwner}
         isPlaying={isPlaying}
         isFullscreen={isFullscreen}
@@ -289,6 +397,7 @@ export function WatchPartyScreen() {
         onBuffering={handleWebViewBuffering}
         onStreamResolved={({ isLive }) => setVideoIsLive(isLive)}
         onReady={handlePlayerReady}
+        onFatalError={handleVideoFatalError}
         onPlayPause={handlePlayPause}
         currentTime={videoCurrentTime}
         duration={videoDuration}
@@ -338,7 +447,7 @@ export function WatchPartyScreen() {
 
           {/* Bottom action bar */}
           <View style={s.fsBar}>
-            <EmojiPickerBar onSelect={handleEmojiSelect} />
+            <EmojiPickerBar onSelect={handleEmojiSelect} cooldownSec={reactionCooldownSec} />
             <View style={s.fsBarActions}>
               <TrackedTouchable
                 trackId="watchparty:fs_toggle_chat"
@@ -386,6 +495,8 @@ export function WatchPartyScreen() {
           <RoomInfoBar
             roomName={room?.videoTitle ?? room?.name ?? 'Watch Party'}
             memberCount={activeMembers.length}
+            participantsLabel={t('watchParty', 'participantsSuffix')}
+            ownerLabel={t('watchParty', 'ownerBadge')}
             activeTransport={activeTransport}
             isOwner={isOwner}
             hasMessages={messages.length > 0}
@@ -397,8 +508,8 @@ export function WatchPartyScreen() {
             onLeave={handleLeave}
           />
 
-          {/* Quality / Episode gear row */}
-          {isOwner && !showPlaylist && (extractQualities.length > 0 || extractEpisodes.length > 0) && (
+          {/* Quality / Episode / candidate-picker gear row */}
+          {isOwner && !showPlaylist && (
             <View style={s.gearRow}>
               {extractQualities.length > 0 && (
                 <TrackedTouchable trackId="watchparty:open_quality_menu" style={s.gearChip} onPress={() => setShowQualityMenu(true)} activeOpacity={0.75}>
@@ -412,6 +523,12 @@ export function WatchPartyScreen() {
                   <Text style={s.gearChipText}>{t('watchParty', 'episodes')}</Text>
                 </TrackedTouchable>
               )}
+              {/* T-S190: owner-only video-candidate picker — "the extractor might have grabbed
+                  a banner ad next to the real video, here's everything else it found". */}
+              <TrackedTouchable trackId="watchparty:open_candidate_picker" style={s.gearChip} onPress={handleOpenCandidatePicker} activeOpacity={0.75}>
+                <Ionicons name="film-outline" size={13} color="rgba(255,255,255,0.5)" />
+                <Text style={s.gearChipText}>{t('watchParty', 'wrongVideoChip')}</Text>
+              </TrackedTouchable>
             </View>
           )}
 
@@ -434,7 +551,7 @@ export function WatchPartyScreen() {
 
           {/* Emoji reaction bar */}
           <View style={[s.emojiBar, Platform.OS !== 'ios' && s.emojiBarAndroid]}>
-            <EmojiPickerBar onSelect={handleEmojiSelect} />
+            <EmojiPickerBar onSelect={handleEmojiSelect} cooldownSec={reactionCooldownSec} />
           </View>
 
           {/* Chat panel — voice strip (T-S167, variant C) always renders above it now, replacing
@@ -514,6 +631,12 @@ export function WatchPartyScreen() {
             currentUrl={currentVideoUrl || room?.videoUrl || ''}
             onSelect={handleEpisodeSelect}
             onClose={() => setShowEpisodeMenu(false)}
+          />
+          <VideoCandidatePicker
+            visible={showCandidatePicker}
+            candidates={candidates}
+            onSelect={handleCandidateSelect}
+            onClose={() => setShowCandidatePicker(false)}
           />
           {room && (
             <ReportRoomModal
@@ -640,9 +763,9 @@ const s = StyleSheet.create({
   // ── Gear row ────────────────────────────────────────────────────
   gearRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 11,
     backgroundColor: '#0D0D1A',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.04)',
@@ -650,9 +773,9 @@ const s = StyleSheet.create({
   gearChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 7,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 8,
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: 20,
     borderWidth: 1,
@@ -669,9 +792,9 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 7,
     backgroundColor: 'rgba(245,158,11,0.08)',
-    paddingVertical: 7,
+    paddingVertical: 9,
     paddingHorizontal: 14,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(245,158,11,0.12)',
@@ -789,7 +912,7 @@ const s = StyleSheet.create({
     borderTopColor: 'rgba(255,255,255,0.07)',
     paddingTop: 8,
     paddingBottom: Platform.OS === 'ios' ? 28 : 14,
-    gap: 6,
+    gap: 8,
   },
   fsBarActions: {
     flexDirection: 'row',

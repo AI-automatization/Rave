@@ -56,11 +56,11 @@ const jsonLd = {
   makesOffer: {
     '@type': 'Offer',
     itemOffered: {
-      '@type': 'MobileApplication',
+      '@type': 'SoftwareApplication',
       name: 'WeWatch',
       url: APP_URL,
       applicationCategory: 'EntertainmentApplication',
-      operatingSystem: 'iOS, Android',
+      operatingSystem: 'Web',
     },
   },
 };

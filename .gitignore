@@ -17,11 +17,12 @@ yarn-debug.log*
 yarn-error.log*
 
 # Environment variables — NEVER commit
-.env
-.env.dev
-.env.test
-.env.local
-.env.*.local
+# Catch-all first: previous pattern set (.env / .env.local / .env.*.local) only
+# matched suffixes ending in ".local" — a file like ".env.local.railway-backup"
+# (real Railway secrets, found untracked in apps/app-web/ during a 2026-08-01
+# harness audit) fell through every one of those patterns. ".env*" covers any
+# name starting with .env regardless of what comes after.
+.env*
 !.env.example
 !.env.dev.example
 

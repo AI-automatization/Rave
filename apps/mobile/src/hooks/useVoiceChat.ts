@@ -203,9 +203,11 @@ export function useVoiceChat(active: boolean) {
         if (!track?.enabled) getSocket()?.emit(CLIENT_EVENTS.VOICE_SPEAKING, { speaking: false });
       }, 3000);
       getSocket()?.emit(CLIENT_EVENTS.VOICE_JOIN);
-    } catch (err: unknown) {
+    } catch {
+      // Never surface the raw native DOMException message (e.g. "The request is not allowed
+      // by the user agent...") — it's untranslated English regardless of app locale.
       setIsLoading(false);
-      setErrorMsg((err as { message?: string })?.message ?? t('watchParty', 'micError'));
+      setErrorMsg(t('watchParty', 'micError'));
     }
   }, [isMuted]);
 

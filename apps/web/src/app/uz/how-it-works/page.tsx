@@ -4,6 +4,7 @@ import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { appUrl } from '@/lib/app-url';
 import { socialMeta } from '@/lib/i18n/metadata';
+import { SynchronizationFacts } from '@/components/common/SynchronizationFacts';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 const PATH = '/uz/how-it-works';
@@ -11,7 +12,7 @@ const PATH = '/uz/how-it-works';
 export const metadata: Metadata = {
   title: "WeWatch qanday ishlaydi — 4 qadamda birga video ko'rish",
   description:
-    "WeWatch bilan do'stlar bilan birga video ko'rish: ilovani o'rnatingiz, videoni ochingiz, xona yaratingiz, havolani yuboringiz. iOS, Android va vebda sinxron ishlaydi.",
+    "WeWatch veb-versiyasi bilan do'stlar bilan birga video ko'rish: videoni oching, xona yarating va havolani yuboring. iOS va Android ilovalari ishlab chiqilmoqda.",
   keywords: [
     'watch party qanday ishlaydi', "birgalikda video ko'rish qanday",
     'xona qanday yaratiladi', "do'stlar bilan kino ko'rish qanday",
@@ -35,12 +36,12 @@ const steps = [
   {
     n: 1,
     title: "WeWatch'ni oling",
-    desc: "wewatch.uz'ni har qanday brauzerda ochingiz yoki App Store'dan bepul ilovani o'rnatingiz. Ro'yxatdan o'tish taxminan 30 soniya oladi.",
+    desc: "wewatch.uz'ni har qanday brauzerda oching. iOS va Android ilovalari ishlab chiqilmoqda.",
   },
   {
     n: 2,
-    title: 'Istalgan videoni ochingiz',
-    desc: "YouTube, VK Video yoki Rutube havolasini qo'yingiz. Mobil ilovadagi ichki brauzer boshqa video saytlarni ham ochadi — kino, serial yoki klip topingiz.",
+    title: "Videoni qo'shing",
+    desc: "YouTube, VK Video, Rutube yoki to'g'ridan-to'g'ri MP4 havolasini veb-versiyaga kiriting.",
   },
   {
     n: 3,
@@ -69,10 +70,10 @@ const howToLd = {
 };
 
 const FAQS = [
-  { q: 'Bepulmi?', a: "Ha, to'liq bepul. Vaqt cheklovi yo'q, yaratadigan xonalar soniga ham cheklov yo'q." },
+  { q: 'Bepulmi?', a: "Asosiy birgalikda ko'rish funksiyalari bepul. Qo'shimcha funksiyalar uchun Pro tarif interfeysda ko'rsatilgan, production to'lovi esa hali tasdiqlanishi kerak." },
   { q: 'Mehmonga akkaunt kerakmi?', a: "Xona yaratgan odam ro'yxatdan o'tadi; mehmonlar taklif havolasi orqali akkauntsiz qo'shiladi." },
-  { q: 'Nimada ishlaydi?', a: "iOS, Android va har qanday veb-brauzer. Bitta xonada ishtirokchilar turli platformalarda bo'lishi mumkin." },
-  { q: "Qaysi saytlar qo'llab-quvvatlanadi?", a: "YouTube, VK Video, Rutube, to'g'ridan-to'g'ri .mp4 havolalari va mobil ichki brauzer orqali boshqalar." },
+  { q: 'Nimada ishlaydi?', a: "Hozir veb-versiya telefon va kompyuter brauzerlarida ishlaydi. iOS va Android ilovalari ishlab chiqilmoqda." },
+  { q: "Qaysi manbalar qo'llab-quvvatlanadi?", a: "YouTube, VK Video, Rutube va to'g'ridan-to'g'ri .mp4 havolalari." },
 ];
 
 export default function UzHowItWorksPage() {
@@ -96,7 +97,7 @@ export default function UzHowItWorksPage() {
             <h1 className="text-4xl md:text-5xl font-bold mb-5 leading-tight tracking-tight">WeWatch qanday ishlaydi</h1>
             <p className="text-xl text-zinc-400 leading-relaxed max-w-2xl">
               Do&apos;stlar bilan video ko&apos;rish — to&apos;rt qadamda. Biri pauza bosadi — hammada pauza.
-              iPhone, Android va kompyuter brauzeri o&apos;rtasida bir vaqtda ishlaydi.
+              Veb-versiya iPhone, Android va kompyuter brauzerlarida ishlaydi; mobil ilovalar ishlab chiqilmoqda.
             </p>
           </div>
         </div>
@@ -105,7 +106,7 @@ export default function UzHowItWorksPage() {
           <section className="mb-14">
             <ol className="relative space-y-4 before:absolute before:left-5 before:top-6 before:bottom-6 before:w-px before:bg-gradient-to-b before:from-[#7B72F8]/50 before:to-transparent">
               {steps.map(({ n, title, desc }) => (
-                <li key={n} className="relative flex gap-5 rounded-2xl border border-zinc-800/60 bg-[#0E0E14] p-5 hover:border-[#7B72F8]/40 transition-colors">
+                <li key={n} data-howto-step className="relative flex gap-5 rounded-2xl border border-zinc-800/60 bg-[#0E0E14] p-5 hover:border-[#7B72F8]/40 transition-colors">
                   <span className="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-[#7B72F8] flex items-center justify-center text-base font-bold shadow-lg shadow-[#7B72F8]/30">{n}</span>
                   <div>
                     <h2 className="text-lg font-semibold text-white mb-1">{title}</h2>
@@ -116,25 +117,7 @@ export default function UzHowItWorksPage() {
             </ol>
           </section>
 
-          <section className="mb-14 rounded-2xl border border-zinc-800/60 bg-[#0E0E14] p-6 sm:p-8">
-            <h2 className="text-2xl font-bold mb-4">Sinxronizatsiya qanday ishlaydi</h2>
-            <p className="text-zinc-400 leading-relaxed mb-4">
-              Har bir ishtirokchi bitta ko&apos;rish pozitsiyasini bo&apos;lishadi. Kimdir pauza bosganda,
-              oldinga o&apos;tganda yoki tezlikni o&apos;zgartirganda, buyruq shunchaki uzatilmaydi — u umumiy
-              kelajak vaqt belgisiga rejalashtiriladi, shuning uchun tez va sekin ulanish ham bir xil
-              real vaqtda harakat qiladi. Har bir qurilma o&apos;z soatining serverdan farqini biladi — u
-              WebSocket ulanishi orqali NTP uslubida o&apos;lchanadi.
-            </p>
-            <p className="text-zinc-400 leading-relaxed mb-4">
-              Siljish baribir bo&apos;ladi — buferlanish, reklama, sekin telefon. Davriy tekshiruv har bir
-              qurilmani xona pozitsiyasi bilan solishtiradi va 500 ms dan ortiq har qanday farqni
-              avtomatik to&apos;g&apos;rilaydi — hech kim videoni qaytadan boshlashi kerak emas.
-            </p>
-            <p className="text-zinc-400 leading-relaxed">
-              VPN kerak emas. Agar video sizning mintaqangizda mavjud bo&apos;lmasa — bu manba saytning
-              cheklovi, WeWatch&apos;ning emas.
-            </p>
-          </section>
+          <SynchronizationFacts locale="uz" />
 
           <section className="mb-14">
             <h2 className="text-2xl font-bold mb-5">Ko&apos;p beriladigan savollar</h2>
@@ -149,7 +132,7 @@ export default function UzHowItWorksPage() {
                 </details>
               ))}
             </div>
-            <p className="text-zinc-500 text-sm mt-5">
+            <p className="text-zinc-400 text-sm mt-5">
               Boshqa javoblar{' '}
               <Link href="/uz/faq" className="text-[#7B72F8] hover:text-[#9B92FF] underline underline-offset-4 transition-colors">
                 to&apos;liq FAQ

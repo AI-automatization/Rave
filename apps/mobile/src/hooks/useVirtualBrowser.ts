@@ -3,7 +3,7 @@
 // (services/watch-party/src/services/virtualBrowser.service.ts), same socket event names, only
 // the transport differs (getSocket() here vs. useSocket() on web). VirtualBrowserPlayer.tsx owns
 // rendering + input capture; this hook only tracks state and exposes start/stop/sendInput.
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getSocket, SERVER_EVENTS, CLIENT_EVENTS } from '@socket/client';
 
 export type VBInput =
@@ -15,7 +15,7 @@ export type VBInput =
   | { type: 'keyup'; key: string }
   | { type: 'type'; text: string };
 
-export function useVirtualBrowser(isOwner: boolean) {
+export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation?: () => void) {
   const [frame, setFrame] = useState<string | null>(null);
   const [active, setActive] = useState(false);
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
@@ -24,6 +24,8 @@ export function useVirtualBrowser(isOwner: boolean) {
   // every mousemove input — lets viewers see a synced cursor even though the JPEG screencast
   // itself never contains an OS cursor.
   const [remoteCursor, setRemoteCursor] = useState<{ x: number; y: number } | null>(null);
+  const onCandidateNeedsConfirmationRef = useRef(onCandidateNeedsConfirmation);
+  onCandidateNeedsConfirmationRef.current = onCandidateNeedsConfirmation;
 
   useEffect(() => {
     const socket = getSocket();
@@ -35,19 +37,35 @@ export function useVirtualBrowser(isOwner: boolean) {
       setError(null);
     };
     const onFrame = (data: { data: string }) => setFrame(data.data);
-    const onStopped = () => {
+    const onStopped = (data?: { reason?: string; needsConfirmation?: boolean }) => {
       setActive(false);
       setFrame(null);
       setRemoteCursor(null);
-      // ROOM_UPDATED (with the intercepted videoUrl) fires separately and flips the room back
-      // to the normal player — nothing else to do here.
+      // needsConfirmation: true — VB found candidate(s) but, unlike a normal extraction result,
+      // never auto-commits to the room (services/watch-party vbSession.helper.ts) — same picker
+      // as the gear-row "Это не то видео" (VideoCandidatePicker.tsx, T-S190), just opened for the
+      // owner automatically instead of waiting for them to find the menu entry themselves.
+      if (data?.reason === 'media_found' && data.needsConfirmation) {
+        onCandidateNeedsConfirmationRef.current?.();
+      }
     };
     const onError = (data: { message: string }) => setError(data.message);
 
     // Catch-up: ROOM_JOINED carries a `vb` snapshot (services/watch-party getSessionSnapshot)
     // for whoever joins/reconnects AFTER the owner already started a session — the one-shot
     // VB_STARTED broadcast at start time never reaches them otherwise.
-    const onRoomJoined = (data: { vb?: { url: string; width: number; height: number } | null }) => {
+    //
+    // `vb.paused` (2026-08-13 root-cause trace, web equivalent of this same bug): once the
+    // collection window closes on a 'capture' candidate, the server stops the screencast for
+    // good (no resumeScreencast()) and waits for the owner to confirm/reject via the candidate
+    // picker — no more VB_FRAME will ever arrive. Setting active=true here for a paused session
+    // leaves the VB view spinning forever with nothing that would ever resolve it. A
+    // reconnect during this window must reopen the picker instead of "loading".
+    const onRoomJoined = (data: { vb?: { url: string; width: number; height: number; paused: boolean } | null }) => {
+      if (data.vb?.paused) {
+        onCandidateNeedsConfirmationRef.current?.();
+        return;
+      }
       if (data.vb) {
         setActive(true);
         setDimensions({ width: data.vb.width, height: data.vb.height });

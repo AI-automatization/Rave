@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { Server as SocketServer } from 'socket.io';
+import Redis from 'ioredis';
 import { WatchPartyService } from '../services/watchParty.service';
 import { apiResponse, buildPaginationMeta } from '@shared/utils/apiResponse';
 import { AuthenticatedRequest, VideoPlatform } from '@shared/types';
@@ -8,13 +9,15 @@ import { SERVER_EVENTS } from '@shared/constants/socketEvents';
 import { WatchPartyRoom } from '../models/watchPartyRoom.model';
 import { logger } from '@shared/utils/logger';
 import { getAppSetting } from '@shared/utils/appSettings';
-import { ForbiddenError } from '@shared/utils/errors';
+import { ForbiddenError, NotFoundError } from '@shared/utils/errors';
 import { startVBForRoom } from '../socket/vbSession.helper';
+import { isOfficialEmbedHost, isOwnVbUrl } from '../services/extractionClient';
 
 export class WatchPartyController {
   constructor(
     private watchPartyService: WatchPartyService,
     private io: SocketServer,
+    private redis: Redis,
   ) {}
 
   createRoom = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -65,6 +68,23 @@ export class WatchPartyController {
         maxMembers, isPrivate, password, startTime, videoReferer,
       });
       res.status(201).json(apiResponse.success(room, 'Room created'));
+
+      // Real prod bug 2026-08-10 (uzmovi.net): createRoom used to just store videoUrl as-is —
+      // no extraction, no VB, nothing. The only fix was a fragile client-side workaround
+      // (app-web's CreateRoomDialog appended ?verify=1, RoomContent re-submitted the same URL
+      // through CHANGE_MEDIA once the socket connected) that mobile never had at all. VB is now
+      // the sole extraction mechanism (Saidazim's call, 2026-08-10) — start it here, server-side,
+      // right at creation, same as CHANGE_MEDIA does. Fired after the response for the same
+      // reason as playNextFromPlaylist below: launching Chromium takes seconds, room creation
+      // should not hang on it. Official-embed hosts (YouTube/VK/Rutube/...) are skipped — they
+      // already play instantly client-side via their own iframe.
+      if (videoUrl && !isOfficialEmbedHost(videoUrl) && !isOwnVbUrl(videoUrl)) {
+        const roomId = String(room._id);
+        void startVBForRoom(this.io, this.redis, roomId, userId, videoUrl)
+          .catch((e) => logger.warn('createRoom: VB auto-start failed', {
+            roomId, url: videoUrl, error: (e as Error).message,
+          }));
+      }
     } catch (error) {
       // Handled here rather than by the shared error middleware because the client needs the
       // existing room's id to navigate to it, and that middleware only forwards code/reason —
@@ -106,6 +126,14 @@ export class WatchPartyController {
   getRoom = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const room = await this.watchPartyService.getRoom(req.params.id);
+      // Private rooms were fully readable by any authenticated user who had the room ID —
+      // verifyToken only checks "logged in", not "belongs to this room". Membership/ownership
+      // is required for a private room; 404 (not 403) so a non-member can't even confirm the
+      // room exists — same reasoning as the join flow already uses for a bad invite code.
+      const { userId } = (req as AuthenticatedRequest).user;
+      if (room.isPrivate && room.ownerId !== userId && !room.members.includes(userId)) {
+        throw new NotFoundError('Room not found');
+      }
       res.json(apiResponse.success(room));
     } catch (error) {
       next(error);
@@ -230,7 +258,7 @@ export class WatchPartyController {
       // advancing the queue did not, which is the gap this closes.
       if (room.videoUrl && (room as { nextNeedsVirtualBrowser?: boolean }).nextNeedsVirtualBrowser) {
         const videoUrl = room.videoUrl;
-        void startVBForRoom(this.io, this.watchPartyService, roomId, userId, videoUrl)
+        void startVBForRoom(this.io, this.redis, roomId, userId, videoUrl)
           .catch((e) => logger.warn('playNext: VB fallback failed to start', {
             roomId, url: videoUrl, error: (e as Error).message,
           }));

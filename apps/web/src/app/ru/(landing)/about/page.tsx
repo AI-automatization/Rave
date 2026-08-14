@@ -5,16 +5,16 @@ import { hreflangFor } from '@/lib/i18n/routes';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
 export const metadata: Metadata = {
-  title: { absolute: 'О WeWatch — бесплатное приложение для совместного просмотра видео' },
+  title: { absolute: 'О WeWatch — совместный просмотр видео онлайн' },
   description:
-    'WeWatch — бесплатное приложение для совместного просмотра YouTube, VK и Rutube с друзьями онлайн. iOS, Android и Web. Создано tezcode.dev в Ташкенте.',
+    'WeWatch — веб-сервис для совместного просмотра YouTube, VK и Rutube с друзьями онлайн. Приложения для iOS и Android находятся в разработке.',
   alternates: {
     canonical: `${APP_URL}/ru/about`,
     languages: hreflangFor('/ru/about', APP_URL),
   },
   openGraph: {
     title: 'О WeWatch',
-    description: 'WeWatch — бесплатный watch party для iOS, Android и Web. Смотри видео синхронно с друзьями.',
+    description: 'WeWatch — бесплатный веб watch party. Приложения для iOS и Android находятся в разработке.',
     url: `${APP_URL}/ru/about`,
     type: 'website',
   },
@@ -28,11 +28,11 @@ const jsonLd = {
   url: `${APP_URL}/ru/about`,
   name: 'О WeWatch',
   about: {
-    '@type': 'MobileApplication',
+    '@type': 'SoftwareApplication',
     name: 'WeWatch',
     url: APP_URL,
     applicationCategory: 'EntertainmentApplication',
-    operatingSystem: 'iOS, Android',
+    operatingSystem: 'Web',
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     author: {
       '@type': 'Organization',

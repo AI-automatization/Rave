@@ -9,6 +9,20 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction,
 ): void => {
+  // Real prod incident 2026-08-07 (watch-party createRoom): the shared timeout() middleware can
+  // already have sent a 503 to the client (request took >30s, e.g. content-service's extraction
+  // call running slow) by the time a handler's own await finally rejects and lands here — every
+  // branch below unconditionally called res.status().json(), which crashed the whole process with
+  // ERR_HTTP_HEADERS_SENT instead of just failing the one request. This guard makes that a no-op.
+  if (res.headersSent) {
+    logger.error('errorHandler called after headers already sent', {
+      message: error.message,
+      path: req.path,
+      method: req.method,
+    });
+    return;
+  }
+
   if (error instanceof AppError) {
     if (error.statusCode >= 500) {
       logger.error('Operational error', {

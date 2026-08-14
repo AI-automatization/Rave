@@ -1,10 +1,39 @@
 // WeWatch — server-to-server call into content-service's extraction pipeline, used by
 // roomEvents.handler.ts's CHANGE_MEDIA to decide whether a submitted URL will play normally
 // or needs to fall back to the shared virtual browser (see videoResolver flow in vbEvents.handler.ts).
-import { axios, contentServiceUrl } from '@shared/utils/serviceConfig';
+import { axios, contentServiceUrl, vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { logger } from '@shared/utils/logger';
+import type { VideoCandidate } from '@shared/types';
 
-const EXTRACT_TIMEOUT_MS = 60_000; // generic(10s) + yt-dlp(20s) + Playwright(~30s) stacked worst case
+// A confirmed VB candidate's url is one of OUR OWN endpoints (vb-capture's raw buffer, or
+// vb-media-proxy's signed passthrough — see vbSession.helper.ts's proxiedMediaUrl) — running that
+// back through content-service's tryExtract would be nonsensical (it's not a page to scrape, it's
+// already-resolved media) and, worse, a 422 there would auto-fall-back to VB again, pointed at our
+// own service's URL — a pointless loop. Same skip treatment as isOfficialEmbedHost below.
+// Checked against vbStreamPublicUrl (not watchPartyServiceUrl directly) so this stays correct
+// whichever one actually produced the URL — vbStreamPublicUrl already falls back to
+// watchPartyServiceUrl itself when the Cloudflare-CDN env var isn't set (see serviceConfig.ts).
+// Moved here from roomEvents.handler.ts (2026-08-10) so watchParty.controller.ts's createRoom can
+// use the same check when starting VB server-side at room creation, not just at CHANGE_MEDIA.
+export function isOwnVbUrl(url: string): boolean {
+  return url.startsWith(`${vbStreamPublicUrl}/api/v1/watch-party/vb-capture/`)
+      || url.startsWith(`${vbStreamPublicUrl}/api/v1/watch-party/vb-media-proxy/`)
+      // Real prod bug 2026-08-10 found live: a confirmed mp4 candidate now sometimes points at
+      // the Bunny Edge Script fetch path (vbSession.helper.ts's proxiedMediaUrl, VB_EDGE_FETCH_URL)
+      // instead of this service's own vb-media-proxy route — same "already-resolved, not a page"
+      // case, just a different host. Without this, CHANGE_MEDIA tried to extract/re-VB its own
+      // edge-fetch URL, a self-referential loop (VB navigating to a URL that IS its own output).
+      || url.includes('/vb-edge-fetch');
+}
+
+// Real prod incident 2026-08-07: content-service's OWN request timeout is 70s (its extraction
+// chain's deterministic worst case incl. yt-dlp's one retry is 66s — see content-service's
+// app.ts) — 60s here meant axios gave up client-side before content-service could ever finish
+// or return its own timeout error, so every slow-but-legitimate extraction was reported here as
+// a hard network failure instead of the real "unsupported/too slow" answer. 75s gives content-
+// service's 70s a chance to respond first with a clean result.
+const EXTRACT_TIMEOUT_MS = 75_000;
+const CANDIDATES_TIMEOUT_MS = 12_000; // just one HTML fetch + regex (genericExtractorCandidates) — cheap
 
 // Only worth pre-checking non-official-embed URLs — YouTube/VK/Rutube/Twitch/Vimeo/Dailymotion/
 // TikTok/Trovo already render instantly client-side via their own iframe embed (VideoPlayer.tsx's
@@ -34,6 +63,20 @@ export function isOfficialEmbedHost(url: string): boolean {
   }
 }
 
+// SSRF guard — same pattern already enforced at room CREATION (watchParty.service.ts) and on
+// PLAYLIST adds (watchPartyPlaylist.service.ts), but CHANGE_MEDIA and the manual VB_START socket
+// event never re-checked it: only the very first videoUrl a room was created with was gated,
+// every later media change (playlist "Play Now", the owner's VB button, the fatal-error auto-
+// retry) could point our server-side headless Chromium at localhost/internal-network/cloud-
+// metadata addresses with no check at all. Centralized here (not re-duplicated a third time)
+// since extractionClient.ts is already the shared home for isOwnVbUrl/isOfficialEmbedHost, and
+// both CHANGE_MEDIA and VB_START already import from this file.
+const PRIVATE_URL = /^https?:\/\/(localhost|127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.)/i;
+
+export function isPrivateUrl(url: string): boolean {
+  return PRIVATE_URL.test(url);
+}
+
 // Returns true if content-service's pipeline can produce a playable result for this URL
 // (categories 1+2 of the extraction flow — playerjs/yt-dlp/genericExtractor/blind Playwright
 // sniff). Never throws — any failure (422 unsupported_site, 504 timeout, network error) just
@@ -52,5 +95,32 @@ export async function tryExtract(url: string, userToken: string): Promise<boolea
       url, error: (err as Error).message,
     });
     return false;
+  }
+}
+
+// Best-effort, fire-and-forget from the caller's perspective (roomEvents.handler.ts doesn't
+// await this before broadcasting CHANGE_MEDIA — candidates are a nice-to-have for the picker,
+// not on the critical path for playback). Only worth calling for non-embed URLs, same as
+// tryExtract — official embeds don't go through genericExtractor at all.
+export async function fetchCandidates(url: string, userToken: string): Promise<VideoCandidate[]> {
+  try {
+    const res = await axios.post<{ data?: { candidates?: Array<{ videoUrl: string; type: string; poster?: string; duration?: number }> } }>(
+      `${contentServiceUrl}/api/v1/content/extract-candidates`,
+      { url },
+      { headers: { Authorization: `Bearer ${userToken}` }, timeout: CANDIDATES_TIMEOUT_MS },
+    );
+    const raw = res.data?.data?.candidates ?? [];
+    return raw.map((c) => ({
+      url: c.videoUrl,
+      type: c.type as VideoCandidate['type'],
+      poster: c.poster,
+      duration: c.duration,
+      source: 'extract' as const,
+    }));
+  } catch (err) {
+    logger.info('extractionClient: candidates fetch failed, ignoring', {
+      url, error: (err as Error).message,
+    });
+    return [];
   }
 }

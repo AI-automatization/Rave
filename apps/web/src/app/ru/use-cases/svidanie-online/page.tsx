@@ -1,12 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { hreflangFor } from '@/lib/i18n/routes';
+import { ArticleMetadata } from '@/components/common/ArticleMetadata';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 const PATH = '/ru/use-cases/svidanie-online';
 
 export const metadata: Metadata = {
-  title: 'Свидание онлайн — киновечер вдвоём через интернет | WeWatch',
+  title: 'Свидание онлайн — киновечер вдвоём через интернет',
   description:
     'Идея для свидания онлайн: смотрите фильм вместе через WeWatch — синхронно, с чатом и реакциями. Романтический вечер вдвоём, даже если вы в разных местах.',
   keywords: [
@@ -28,22 +29,10 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'Article',
-  headline: 'Свидание онлайн: киновечер вдвоём',
-  description: 'Как устроить романтическое свидание онлайн через совместный просмотр фильма в WeWatch.',
-  author: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  publisher: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  datePublished: '2026-07-02',
-  inLanguage: 'ru',
-  mainEntityOfPage: 'https://wewatch.uz/ru/use-cases/svidanie-online',
-};
 
 export default function SvidanieOnlinePage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
           <nav className="text-sm text-zinc-500 mb-8">
@@ -79,20 +68,21 @@ export default function SvidanieOnlinePage() {
           <section className="mb-10">
             <h2 className="text-2xl font-bold mb-4">Как настроить за минуту</h2>
             <p className="text-zinc-400 leading-relaxed">
-              Скачайте WeWatch, откройте фильм в браузере приложения, создайте комнату и отправьте ссылку. Партнёр переходит — и вы смотрите синхронно. Работает между iPhone, Android и компьютером.
+              Откройте WeWatch в браузере, выберите видео, создайте комнату и отправьте ссылку. Партнёр переходит — и вы смотрите синхронно. Приложения для iOS и Android находятся в разработке.
             </p>
           </section>
 
           <div className="bg-[#7B72F8]/10 border border-[#7B72F8]/30 rounded-2xl p-8 text-center">
             <h2 className="text-2xl font-bold mb-3">Устройте свидание сегодня</h2>
-            <p className="text-zinc-400 mb-6">WeWatch бесплатен — начните за минуту</p>
+            <p className="text-zinc-400 mb-6">Основные функции совместного просмотра бесплатны</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link href="/ru" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-6 py-3 rounded-xl transition-colors">Скачать WeWatch</Link>
+              <Link href="/ru" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-6 py-3 rounded-xl transition-colors">Открыть WeWatch</Link>
               <Link href="/ru/use-cases/dalnie-otnosheniya" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 font-medium px-6 py-3 rounded-xl transition-colors">Отношения на расстоянии →</Link>
             </div>
           </div>
         </div>
       </main>
+      <ArticleMetadata currentPath={PATH} />
     </>
   );
 }

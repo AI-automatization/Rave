@@ -9,7 +9,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 const PATH = '/uz/use-cases/onlayn-uchrashuv';
 
 export const metadata: Metadata = {
-  title: "Onlayn uchrashuv: ikki kishilik kino kechasi — WeWatch",
+  title: 'Onlayn uchrashuv: ikki kishilik kino kechasi',
   description:
     "Onlayn uchrashuvda nima qilishni bilmayapsizmi? Ikki kishiga bitta kinoni qo'yingiz. WeWatch ko'rishni sinxronlaydi, chat va emoji «yonma-yon o'tirish»ni almashtiradi.",
   keywords: [
@@ -31,17 +31,6 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'Article',
-  headline: 'Onlayn uchrashuv: ikki kishilik kino kechasi',
-  description: "WeWatch'da kinoni birga ko'rish orqali romantik onlayn uchrashuvni qanday uyushtirish.",
-  author: { '@type': 'Organization', name: 'WeWatch', url: APP_URL },
-  publisher: { '@type': 'Organization', name: 'WeWatch', url: APP_URL },
-  datePublished: '2026-07-28',
-  inLanguage: 'uz',
-  mainEntityOfPage: `${APP_URL}${PATH}`,
-};
 
 const IDEAS = [
   { t: 'Romantik komediya', d: "Birinchi uchrashuvning klassikasi — yengil kino va chatdagi fikrlar." },
@@ -53,7 +42,6 @@ const IDEAS = [
 export default function OnlaynUchrashuvPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="uz" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -87,9 +75,8 @@ export default function OnlaynUchrashuvPage() {
           <section className="mb-10">
             <h2 className="text-2xl font-bold mb-4">Bir daqiqada qanday sozlash</h2>
             <p className="text-zinc-400 leading-relaxed">
-              WeWatch&apos;ni yuklab olingiz, kinoni ilova brauzerida ochingiz, xona yaratingiz va havolani
-              yuboringiz. Yaringiz havolani bosadi — va siz sinxron ko&apos;rasiz. iPhone, Android va
-              kompyuter o&apos;rtasida ishlaydi.
+              WeWatch veb-versiyasini brauzerda oching, kino tanlang, xona yarating va havolani
+              yuboring. Yaringiz havolani bosadi — va siz sinxron ko&apos;rasiz. iOS va Android ilovalari ishlab chiqilmoqda.
             </p>
           </section>
 
@@ -107,7 +94,7 @@ export default function OnlaynUchrashuvPage() {
           </div>
         </div>
       </main>
-      <GuideFooter locale="uz" />
+      <GuideFooter locale="uz" currentPath={PATH} />
     </>
   );
 }

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { submitToIndexNow } from '@/lib/indexnow';
-import { sitemapUrls } from '../../sitemap';
+import { sitemapUrls } from '@/lib/seo/sitemap-entries';
 
 export const dynamic = 'force-dynamic';
 

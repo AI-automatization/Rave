@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   ...socialMeta({
     locale: 'uz',
     title: "FAQ — Ko'p so'raladigan savollar | WeWatch",
-    description: "WeWatch haqida hammasi: sinxronizatsiya, qo'llab-quvvatlanadigan platformalar, bepul tarif, iOS va Android.",
+    description: "WeWatch haqida: veb-sinxronizatsiya, bepul tarif va ishlab chiqilayotgan iOS/Android ilovalari.",
     url: `${APP_URL}${PATH}`,
   }),
   robots: { index: true, follow: true },
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
 const faqs = [
   {
     q: "YouTube'ni do'st bilan onlayn qanday birga ko'raman?",
-    a: "Brauzerda wewatch.uz'ni ochingiz yoki iOS'da WeWatch'ni o'rnatingiz. «Xona yaratish»ni bosib, YouTube havolasini qo'yingiz va xona havolasini do'stingizga yuboringiz. U qo'shilgan zahoti ko'rish sinxronlanadi — siz pauza bossangiz, video hammada bir vaqtda to'xtaydi.",
+    a: "Brauzerda wewatch.uz'ni oching. «Xona yaratish»ni bosib, YouTube havolasini qo'ying va xona havolasini do'stingizga yuboring. iOS va Android ilovalari ishlab chiqilmoqda.",
   },
   {
     q: 'Watch party nima?',
@@ -42,19 +42,19 @@ const faqs = [
   },
   {
     q: "WeWatch qaysi video xizmatlarni qo'llab-quvvatlaydi?",
-    a: "WeWatch YouTube, VK Video, Rutube va to'g'ridan-to'g'ri .mp4 havolalarini qo'llab-quvvatlaydi. Mobil ilovada ichki brauzer ham bor — boshqa video saytlarni ochib, ularni ham sinxron ko'rish mumkin.",
+    a: "WeWatch veb-versiyada YouTube, VK Video, Rutube va to'g'ridan-to'g'ri .mp4 havolalarini qo'llab-quvvatlaydi.",
   },
   {
     q: 'WeWatch bepulmi?',
-    a: "Ha. Bepul tarifda vaqt cheklovi yo'q — xona yaratingiz, do'stlarni chaqiringiz va xohlagancha birga ko'ringiz. Qo'shimcha imkoniyatlar bilan Pro tarif ham bor, lekin sinxron ko'rish uning ortida yashirilmagan.",
+    a: "Asosiy birgalikda ko'rish funksiyalari bepul. Qo'shimcha funksiyalar uchun Pro tarif ko'rsatilgan; production to'lovi hali tasdiqlanishi kerak.",
   },
   {
     q: 'WeWatch Android’da ishlaydimi?',
-    a: "iOS ilovasi App Store'da hozir mavjud. Android ilovasi faol ishlab chiqilmoqda. Veb-versiya (wewatch.uz) esa bugun har qanday brauzerda, Android'da ham ishlaydi.",
+    a: "WeWatch'ning iOS va Android ilovalari faol ishlab chiqilmoqda. Hozir wewatch.uz veb-versiyasi telefon va kompyuter brauzerlarida ishlaydi.",
   },
   {
     q: "Biri telefondan, biri kompyuterdan ko'rsa bo'ladimi?",
-    a: "Ha — bu asosiy imkoniyatlardan biri. Bir ishtirokchi iPhone'da, ikkinchisi Android'da, uchinchisi kompyuter brauzerida: hammasi bitta xonada, barcha platformalar o'rtasida real vaqtda sinxron.",
+    a: "Ha. Ishtirokchilar veb-versiyani iPhone, Android va kompyuter brauzerlarida ochib, bitta sinxron xonaga qo'shila oladi. Mobil ilovalar ishlab chiqilmoqda.",
   },
   {
     q: 'Video sinxronizatsiyasi qanday ishlaydi?',
@@ -70,7 +70,7 @@ const faqs = [
   },
   {
     q: 'Brauzer kengaytmasi kerakmi?',
-    a: "Yo'q. WeWatch veb-ilova va mahalliy mobil ilovalar sifatida ishlaydi — brauzeringizga hech narsa o'rnatish shart emas, havola bilan qo'shilgan do'stingizga ham.",
+    a: "Yo'q. Hozir WeWatch veb-versiyasi brauzerda ishlaydi va kengaytma o'rnatishni talab qilmaydi. iOS va Android ilovalari ishlab chiqilmoqda.",
   },
   {
     q: "Turli davlatlardan birga ko'rsa bo'ladimi?",

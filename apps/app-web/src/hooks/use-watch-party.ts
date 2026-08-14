@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useQueryClient } from '@tanstack/react-query';
@@ -9,7 +9,7 @@ import { useSocket } from '@/hooks/use-socket';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { toast } from '@/store/toast.store';
-import type { IWatchPartyRoom, IChatReplyTo } from '@/types';
+import type { IWatchPartyRoom, IChatReplyTo, VideoCandidate } from '@/types';
 
 // Room membership (room.members / MEMBER_JOINED) only carries user IDs — the actual
 // username/avatar has to be resolved separately via GET /api/user/[id]. Cached through
@@ -83,6 +83,23 @@ export function useWatchParty(roomId: string) {
   // Subtract it from any server wall-clock timestamp to get the equivalent local-clock instant.
   const serverClockOffsetRef = useRef(0);
 
+  // Floating emoji reactions (rendered over the video by the caller) — ephemeral, not part of
+  // useWatchPartyStore's persisted room state, so plain useState is enough here.
+  const [reactions, setReactions] = useState<{ id: string; emoji: string; userId: string; username?: string; avatar?: string }[]>([]);
+  const reactionIdRef = useRef(0);
+
+  // Burst-lockout countdown (server-driven — REACTION_COOLDOWN). 0 = picker enabled.
+  const [reactionCooldownSec, setReactionCooldownSec] = useState(0);
+  const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Video-candidate picker (T-S189 follow-up) — `null` means no response has come back yet
+  // (request in flight, or never requested this session); an empty array is a real "server
+  // looked and found nothing extra" answer, distinct from "still waiting". Populated by
+  // VIDEO_CANDIDATES, which the server sends in reply to REQUEST_CANDIDATES from Redis (no
+  // re-extraction — candidates are collected proactively as a side effect of CHANGE_MEDIA / VB
+  // sniffing on the backend, see roomEvents.handler.ts).
+  const [videoCandidates, setVideoCandidates] = useState<VideoCandidate[] | null>(null);
+
   // Join room
   useEffect(() => {
     if (!socket || !isConnected) return;
@@ -150,6 +167,36 @@ export function useWatchParty(roomId: string) {
       });
     });
 
+    // REACTION_BROADCAST (reactionEvents.handler.ts, same event mobile uses via SEND_REACTION) —
+    // broadcast to everyone including the sender. Previously this client sent/listened on the
+    // legacy room:emoji pair instead, which mobile never spoke — reactions never crossed
+    // platforms in either direction (real report 2026-08-03). reactionIdRef keeps keys unique
+    // even if two reactions land in the same millisecond.
+    socket.on(SERVER_EVENTS.REACTION_BROADCAST, (data: { userId: string; username?: string; avatar?: string; emoji: string; timestamp: number }) => {
+      const id = `${data.timestamp}-${reactionIdRef.current++}`;
+      setReactions((prev) => [...prev, { id, emoji: data.emoji, userId: data.userId, username: data.username, avatar: data.avatar }]);
+      // Auto-clear — these are a transient floating-over-video effect, not a persisted log.
+      setTimeout(() => {
+        setReactions((prev) => prev.filter((r) => r.id !== id));
+      }, 2600);
+    });
+
+    // Sender-only: burst limit hit — drive a visible countdown so EmojiReactions can disable
+    // itself instead of taps just silently going nowhere.
+    socket.on(SERVER_EVENTS.REACTION_COOLDOWN, (data: { retryAfterSec: number }) => {
+      if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
+      setReactionCooldownSec(data.retryAfterSec);
+      cooldownIntervalRef.current = setInterval(() => {
+        setReactionCooldownSec((prev) => {
+          if (prev <= 1) {
+            if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    });
+
     // Server sends syncState directly as payload (match mobile pattern). serverTimestamp is
     // normalised to the local clock so the player can compensate for delivery latency on resume.
     socket.on(SERVER_EVENTS.VIDEO_PLAY, (state: ServerSyncPayload) => {
@@ -208,6 +255,13 @@ export function useWatchParty(roomId: string) {
       }
     });
 
+    // Owner-only: video-candidate picker response — server answers REQUEST_CANDIDATES (or pushes
+    // proactively in a future iteration) with whatever it currently has cached for this room's
+    // video session. `candidates` may legitimately be empty — that's a real answer, not "no data".
+    socket.on(SERVER_EVENTS.VIDEO_CANDIDATES, (data: { candidates: VideoCandidate[] }) => {
+      setVideoCandidates(data.candidates ?? []);
+    });
+
     // Server error — handle mid-session account ban
     socket.on(SERVER_EVENTS.ERROR, (data: { code?: string; message?: string }) => {
       if (data.code === 'ACCOUNT_BLOCKED') {
@@ -219,13 +273,29 @@ export function useWatchParty(roomId: string) {
     });
 
     return () => {
-      socket.emit(CLIENT_EVENTS.LEAVE_ROOM, { roomId });
+      // Real bug (live 2026-08-14, 2-device test): this cleanup re-runs on EVERY isConnected
+      // flip, not just a genuine navigate-away — a transient network drop set isConnected=false,
+      // which re-ran this effect and unconditionally emitted LEAVE_ROOM here. socket.io-client
+      // buffers that emit (the transport is down) and flushes it the instant the reconnect
+      // completes — BEFORE this hook's own 'connect' listener (use-socket.ts) fires and re-runs
+      // the effect to re-JOIN_ROOM. Server processed a real leave in between: removed the user
+      // from room.members and transferred/closed ownership (roomEvents.handler.ts →
+      // watchParty.service.ts leaveRoom()) — exactly the "lost host status, play/pause/seek stop
+      // reaching anyone" reports. The server ALREADY has a correct 20s grace period for a raw
+      // transport disconnect (scheduleDisconnectLeave, roomEvents.handler.ts) — this explicit
+      // LEAVE_ROOM was shortcutting past it. Only emit it for a genuine leave (roomId change or
+      // real unmount while still connected); skip it when the socket is already disconnected, so
+      // a mere reconnect blip falls through to the server's own grace-period handling instead.
+      if (socket.connected) socket.emit(CLIENT_EVENTS.LEAVE_ROOM, { roomId });
       clearInterval(clockResyncInterval);
       socket.off(SERVER_EVENTS.CLOCK_PONG);
       socket.off(SERVER_EVENTS.ROOM_JOINED);
       socket.off(SERVER_EVENTS.MEMBER_JOINED);
       socket.off(SERVER_EVENTS.MEMBER_LEFT);
       socket.off(SERVER_EVENTS.ROOM_MESSAGE);
+      socket.off(SERVER_EVENTS.REACTION_BROADCAST);
+      socket.off(SERVER_EVENTS.REACTION_COOLDOWN);
+      if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
       socket.off(SERVER_EVENTS.VIDEO_PLAY);
       socket.off(SERVER_EVENTS.VIDEO_PAUSE);
       socket.off(SERVER_EVENTS.VIDEO_SEEK);
@@ -236,6 +306,7 @@ export function useWatchParty(roomId: string) {
       socket.off(SERVER_EVENTS.PLAYLIST_UPDATED);
       socket.off(SERVER_EVENTS.OWNER_TRANSFERRED);
       socket.off(SERVER_EVENTS.MEMBER_KICKED);
+      socket.off(SERVER_EVENTS.VIDEO_CANDIDATES);
       socket.off(SERVER_EVENTS.ERROR);
       setConnected(false);
       setRoomJoined(false);
@@ -262,8 +333,23 @@ export function useWatchParty(roomId: string) {
   }, [socket, roomId]);
 
   const sendEmoji = useCallback((emoji: string) => {
-    socket?.emit(CLIENT_EVENTS.SEND_EMOJI, { roomId, emoji });
+    socket?.emit(CLIENT_EVENTS.SEND_REACTION, { roomId, emoji });
   }, [socket, roomId]);
+
+  // Owner moderation — backend (roomEvents.handler.ts) already enforced owner-only + validated
+  // membership server-side for all three; this client just needed to actually send them. No UI
+  // called KICK_MEMBER/MUTE_MEMBER on any platform before this.
+  const kickMember = useCallback((targetUserId: string) => {
+    socket?.emit(CLIENT_EVENTS.KICK_MEMBER, { targetUserId });
+  }, [socket]);
+
+  const muteMember = useCallback((targetUserId: string) => {
+    socket?.emit(CLIENT_EVENTS.MUTE_MEMBER, { targetUserId });
+  }, [socket]);
+
+  const unmuteMember = useCallback((targetUserId: string) => {
+    socket?.emit(CLIENT_EVENTS.UNMUTE_MEMBER, { targetUserId });
+  }, [socket]);
 
   const sendHeartbeat = useCallback((currentTime: number) => {
     socket?.emit(CLIENT_EVENTS.HEARTBEAT, { roomId, currentTime });
@@ -283,8 +369,23 @@ export function useWatchParty(roomId: string) {
     socket?.emit(CLIENT_EVENTS.CHANGE_MEDIA, { roomId, videoUrl, videoTitle, videoPlatform });
   }, [socket, roomId]);
 
+  // Owner-only room rename — server broadcasts ROOM_UPDATED (same as sendMediaChange), which
+  // already patches room.name via the listener above.
+  const renameRoom = useCallback((name: string) => {
+    socket?.emit(CLIENT_EVENTS.RENAME_ROOM, { name });
+  }, [socket]);
+
+  // Owner-only: "show me what candidates you've found so far" — no payload, server answers from
+  // Redis via VIDEO_CANDIDATES (listener above). Fired when the picker UI opens.
+  const requestCandidates = useCallback(() => {
+    socket?.emit(CLIENT_EVENTS.REQUEST_CANDIDATES);
+  }, [socket]);
+
   return {
     isConnected,
+    reactions,
+    reactionCooldownSec,
+    videoCandidates,
     sendMessage,
     sendPlay,
     sendPause,
@@ -294,5 +395,10 @@ export function useWatchParty(roomId: string) {
     sendBufferStart,
     sendBufferEnd,
     sendMediaChange,
+    kickMember,
+    muteMember,
+    unmuteMember,
+    renameRoom,
+    requestCandidates,
   };
 }

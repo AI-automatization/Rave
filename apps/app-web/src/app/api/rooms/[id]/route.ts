@@ -14,8 +14,14 @@ export async function GET(
       return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
 
+    // `req.cookies` (NextRequest's plain property) does NOT trigger Next's dynamic-function
+    // cache opt-out the way `cookies()` from `next/headers` does — without `cache: 'no-store'`
+    // this fetch defaults to `force-cache` in the Data Cache, so a room's ownerId could be
+    // served stale for as long as the cache entry lives. Confirmed root cause of the
+    // intermittent "shows me as a regular member, not host" bug (2026-08-13 root-cause trace).
     const res = await fetch(`${baseUrl()}/watch-party/rooms/${id}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
+      cache: 'no-store',
     });
 
     const data = await res.json() as unknown;

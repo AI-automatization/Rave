@@ -83,7 +83,15 @@ export const createApp = (redis: Redis): { app: express.Application; io: SocketS
   app.use(requestId);
   app.use(mongoSanitize);
   app.use(metricsMiddleware());
-  app.use(timeout());
+  // Real prod incident 2026-08-07: createRoom/CHANGE_MEDIA await extractionClient.tryExtract(),
+  // whose own axios timeout is now 75s (matching content-service's extraction ceiling, see
+  // extractionClient.ts) — the previous 30s default here meant this service's OWN global timeout
+  // fired long before tryExtract could ever finish, on every URL that needed a real extraction
+  // check. That's what surfaced as "createRoom: response already sent (timeout race)" warnings
+  // and a client-side spinner stuck on a request that already failed with 503 well before the
+  // room was actually created (the headersSent guards in watchParty.controller.ts stop this from
+  // crashing the process, but the client still needs a real response window, not just a safe one).
+  app.use(timeout(90_000));
   app.use(maintenanceGuard);
 
   app.get('/health', async (_req, res) => {

@@ -10,8 +10,10 @@ import { getUserRestrictions } from '@shared/utils/serviceClient';
 import { getAppSetting } from '@shared/utils/appSettings';
 import { WatchPartyPlaylistService } from './watchPartyPlaylist.service';
 import { WatchPartyMembersService } from './watchPartyMembers.service';
+import { hasSession } from './virtualBrowser.service';
+import { isPrivateUrl } from './extractionClient';
+import { isDomainBlocked } from '../controllers/domain.admin.controller';
 
-const BLOCKED_DOMAINS_KEY = 'watch_party:blocked_domains';
 const SYNC_THRESHOLD_SECONDS = 2;
 const SYNC_THRESHOLD_WEBVIEW_SECONDS = 2.5;
 // Heartbeat fires every ~2s per room — Redis is updated on every tick (late-join seed needs it fresh),
@@ -114,8 +116,12 @@ export class WatchPartyService {
       if (!/^https?:\/\//i.test(videoUrl)) {
         throw new BadRequestError('videoUrl must start with http:// or https://');
       }
-      const PRIVATE_URL = /^https?:\/\/(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/i;
-      if (PRIVATE_URL.test(videoUrl)) {
+      // Real prod finding 2026-08-12 (multi-agent review): this used to be its own hand-duplicated
+      // regex, out of sync with extractionClient.ts's canonical isPrivateUrl (missing 169.254.x.x —
+      // cloud metadata — entirely). A room created with that as videoUrl would sail past this check
+      // and VB would navigate its real Chromium there. Import the one canonical check instead of
+      // maintaining a second copy that can silently drift.
+      if (isPrivateUrl(videoUrl)) {
         throw new BadRequestError('videoUrl points to a private or internal address');
       }
       // IP-locked CDN URLs cannot be played on mobile clients — store original platform URL
@@ -127,7 +133,9 @@ export class WatchPartyService {
     const url = options.videoUrl ?? '';
     const domain = url ? (() => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return null; } })() : null;
 
-    if (domain && (await this.redis.sismember(BLOCKED_DOMAINS_KEY, domain)) === 1) {
+    // Consolidated onto the shared, parent-domain-aware check (2026-08-13) — same drift risk the
+    // isPrivateUrl consolidation above was already bitten by (2026-08-12 comment on this block).
+    if (url && await isDomainBlocked(this.redis, url)) {
       throw new ForbiddenError('Domain is blocked by platform policy');
     }
 
@@ -247,9 +255,29 @@ export class WatchPartyService {
   }
 
   async getRoom(roomId: string): Promise<IWatchPartyRoomDocument> {
-    const room = await WatchPartyRoom.findById(roomId);
+    // -password: this document was reaching clients with the bcrypt hash still attached —
+    // never actually read anywhere on the client, just an unnecessary leak. Privacy/membership
+    // authorization for isPrivate rooms happens in the controller (needs req.user, not
+    // available here) — this method only owns "don't leak the hash", not "who can see it".
+    const room = await WatchPartyRoom.findById(roomId).select('-password');
     if (!room) throw new NotFoundError('Room not found');
     return room;
+  }
+
+  async renameRoom(ownerId: string, roomId: string, name: string): Promise<IWatchPartyRoomDocument> {
+    const trimmed = name.trim();
+    if (!trimmed || trimmed.length > 80) {
+      throw new BadRequestError('Room name must be 1-80 characters');
+    }
+
+    const updated = await WatchPartyRoom.findOneAndUpdate(
+      { _id: roomId, ownerId },
+      { $set: { name: trimmed } },
+      { new: true },
+    ).select('-password');
+
+    if (!updated) throw new ForbiddenError('Only the room owner can rename this room');
+    return updated;
   }
 
   async getRooms(limit = 50): Promise<Array<IWatchPartyRoomDocument & { memberCount: number }>> {
@@ -323,7 +351,13 @@ export class WatchPartyService {
     }).select('_id');
 
     if (stale.length === 0) return [];
-    const ids = stale.map((r) => r._id.toString());
+    // Real prod case 2026-08-07: a room got swept as "inactive" and its VB session killed
+    // mid-search — lastActivityAt only moves on actual playback sync (play/pause/seek/heartbeat,
+    // see updateRoomMedia/syncState below), which never fires while VB is still hunting for a
+    // video (page navigation, a Cloudflare challenge, clicking through player tabs — all real
+    // time, none of it a "sync" event). A room the owner is actively working through VB on is by
+    // definition not abandoned, whatever this timestamp says.
+    const ids = stale.map((r) => r._id.toString()).filter((id) => !hasSession(id));
     await WatchPartyRoom.updateMany({ _id: { $in: ids } }, { status: 'ended' });
     await Promise.all(ids.map((id) => this.redis.del(REDIS_KEYS.watchPartyRoom(id))));
     ids.forEach((id) => this.lastMongoHeartbeatWrite.delete(id));

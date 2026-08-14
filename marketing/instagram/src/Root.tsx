@@ -47,6 +47,19 @@ import { W1Quote } from './slides/W1Quote';
 import { SatStory1Poll, SatStory2Hook, SatStory3HowTo } from './slides/SaturdayStories';
 import { SundayReel, SUNDAY_REEL_DURATION } from './slides/SundayReel';
 import { AnimeCrossover, ANIME_REEL_DURATION } from './slides/AnimeCrossover';
+import { DecisionTreeDiagram } from './slides/DecisionTreeDiagram';
+import { DecisionTreeReal } from './slides/DecisionTreeReal';
+import { DecisionTreeGuaranteed } from './slides/DecisionTreeGuaranteed';
+import { UnifiedDecisionTree } from './slides/UnifiedDecisionTree';
+import { UnifiedDecisionTreeFlow, UNIFIED_DECISION_TREE_FLOW_HEIGHT } from './slides/UnifiedDecisionTreeFlow';
+import { UnifiedDecisionTreeCompact, UNIFIED_DECISION_TREE_COMPACT_HEIGHT } from './slides/UnifiedDecisionTreeCompact';
+import { Demo3DPhoneFlythrough, DEMO_3D_DURATION } from './slides/Demo3DPhoneFlythrough';
+import { WatchPartyMockReel, WATCH_PARTY_MOCK_DURATION } from './slides/WatchPartyMockReel';
+import { WatchPartyMockReel3D, WATCH_PARTY_MOCK_3D_DURATION } from './slides/WatchPartyMockReel3D';
+import { SpiderPremiereReel, SPIDER_PREMIERE_DURATION } from './slides/SpiderPremiereReel';
+import { FriendsCantDecideReel, FRIENDS_REEL_DURATION } from './slides/FriendsCantDecideReel';
+import { FastDemoReel, FastDemoReelRasskazchik, FastDemoReelAnalitik, FastDemoReelKisy, FAST_DEMO_DURATION } from './slides/FastDemoReel';
+import { FastDemoCover } from './slides/FastDemoCover';
 
 const W = 1080;
 const H = 1080;
@@ -189,6 +202,12 @@ export const RemotionRoot: React.FC = () => (
     {/* Quote post — "Кино — это с кем ты смотришь" */}
     <Composition id="W1-Quote"     component={W1Quote}    width={1080} height={1080} fps={FPS} durationInFrames={SLIDE_DUR} />
 
+    <Composition id="Demo3D-PhoneFlythrough" component={Demo3DPhoneFlythrough} width={1080} height={1920} fps={FPS} durationInFrames={DEMO_3D_DURATION} />
+
+    <Composition id="WatchPartyMockReel" component={WatchPartyMockReel} width={1080} height={1920} fps={FPS} durationInFrames={WATCH_PARTY_MOCK_DURATION} />
+
+    <Composition id="WatchPartyMockReel3D" component={WatchPartyMockReel3D} width={1080} height={1920} fps={FPS} durationInFrames={WATCH_PARTY_MOCK_3D_DURATION} />
+
     {/* ── Instagram Stories 9:16 (1080×1920) — 7 kunlik kontent plan ── */}
     {/* Day 1 — Tanishuv */}
     <Composition id="Story-D1S1-Teaser"  component={StoryD1S1} width={1080} height={1920} fps={FPS} durationInFrames={7 * FPS} />
@@ -231,5 +250,31 @@ export const RemotionRoot: React.FC = () => (
     <Composition id="Sunday-Reel-POV" component={SundayReel} width={1080} height={1920} fps={FPS} durationInFrames={SUNDAY_REEL_DURATION} />
     {/* Anime crossover meme reel */}
     <Composition id="Anime-Crossover" component={AnimeCrossover} width={1080} height={1920} fps={FPS} durationInFrames={ANIME_REEL_DURATION} />
+
+    {/* Spider-Man: Brand New Day premiere tie-in — original spider graphic, no movie footage */}
+    <Composition id="Spider-Premiere-Reel" component={SpiderPremiereReel} width={1080} height={1920} fps={FPS} durationInFrames={SPIDER_PREMIERE_DURATION} />
+    <Composition id="Friends-Cant-Decide-Reel" component={FriendsCantDecideReel} width={1080} height={1920} fps={FPS} durationInFrames={FRIENDS_REEL_DURATION} />
+    <Composition id="Fast-Demo-Reel" component={FastDemoReel} width={1080} height={1920} fps={FPS} durationInFrames={FAST_DEMO_DURATION} />
+    <Composition id="Fast-Demo-Reel-Rasskazchik" component={FastDemoReelRasskazchik} width={1080} height={1920} fps={FPS} durationInFrames={FAST_DEMO_DURATION} />
+    <Composition id="Fast-Demo-Reel-Analitik" component={FastDemoReelAnalitik} width={1080} height={1920} fps={FPS} durationInFrames={FAST_DEMO_DURATION} />
+    <Composition id="Fast-Demo-Reel-Kisy" component={FastDemoReelKisy} width={1080} height={1920} fps={FPS} durationInFrames={FAST_DEMO_DURATION} />
+    <Composition id="Fast-Demo-Cover" component={FastDemoCover} width={1080} height={1920} fps={FPS} durationInFrames={1} />
+
+    {/* Decision Tree — реальное состояние Claude Code harness, poster PNG */}
+    <Composition id="DecisionTree-Current" component={DecisionTreeDiagram} width={1300} height={3050} fps={FPS} durationInFrames={1} />
+
+    {/* Decision Tree v2 — построено с нуля от реального hook lifecycle, не от чужой схемы */}
+    <Composition id="DecisionTree-Real" component={DecisionTreeReal} width={1350} height={3680} fps={FPS} durationInFrames={1} />
+
+    {/* Decision Tree v3 — только то, что гарантированно 100% на каждый промпт, с реальной эмпирикой */}
+    <Composition id="DecisionTree-Guaranteed" component={DecisionTreeGuaranteed} width={1300} height={1650} fps={FPS} durationInFrames={1} />
+    <Composition id="DecisionTree-Unified" component={UnifiedDecisionTree} width={1350} height={6500} fps={FPS} durationInFrames={1} />
+
+    {/* Decision Tree v5 — same verified content as v4, real flowchart geometry: computed
+        branch fan-out/fan-in + curved loop-back edges to the actual target node (not text) */}
+    <Composition id="DecisionTree-Flow" component={UnifiedDecisionTreeFlow} width={1760} height={UNIFIED_DECISION_TREE_FLOW_HEIGHT} fps={FPS} durationInFrames={1} />
+
+    {/* Decision Tree — one-glance summary, 8 stages, fits one photo/message */}
+    <Composition id="DecisionTree-Compact" component={UnifiedDecisionTreeCompact} width={1280} height={UNIFIED_DECISION_TREE_COMPACT_HEIGHT} fps={FPS} durationInFrames={1} />
   </>
 );

@@ -4,6 +4,7 @@ import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { appUrl } from '@/lib/app-url';
 import { socialMeta } from '@/lib/i18n/metadata';
+import { SynchronizationFacts } from '@/components/common/SynchronizationFacts';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 const PATH = '/en/how-it-works';
@@ -11,7 +12,7 @@ const PATH = '/en/how-it-works';
 export const metadata: Metadata = {
   title: 'How WeWatch Works — Watch Videos Together in 4 Steps',
   description:
-    'How to watch videos together with friends using WeWatch: install the app, open a video, create a room, share the link. Syncs across iOS, Android and the web.',
+    'How to watch videos together with friends using the WeWatch web version: open a video, create a room and share the link. Native iOS and Android apps are in development.',
   keywords: [
     'how does watch party work', 'how to watch videos together', 'how to create a watch room',
     'watch movies with friends online how', 'wewatch how to use', 'synced watching explained',
@@ -34,12 +35,12 @@ const steps = [
   {
     n: 1,
     title: 'Get WeWatch',
-    desc: 'Open wewatch.uz in any browser, or install the free app from the App Store. Signing up takes about 30 seconds.',
+    desc: 'Open wewatch.uz in any browser. Native iOS and Android apps are in development.',
   },
   {
     n: 2,
     title: 'Open any video',
-    desc: 'Paste a YouTube, VK Video or Rutube link. On mobile, the built-in browser opens other video sites too — find a film, a series or a clip.',
+    desc: 'Paste a YouTube, VK Video, Rutube or direct MP4 link in the web version.',
   },
   {
     n: 3,
@@ -68,9 +69,9 @@ const howToLd = {
 };
 
 const FAQS = [
-  { q: 'Is it free?', a: 'Yes, completely. No time limit and no cap on how many rooms you create.' },
+  { q: 'Is it free?', a: 'Core watch-party features are free. A separate Pro plan is listed for additional features.' },
   { q: 'Does a guest need an account?', a: 'The person creating the room signs up; guests join through the invite link without an account.' },
-  { q: 'What does it run on?', a: 'iOS, Android and any web browser. Participants can be on different platforms in the same room.' },
+  { q: 'What does it run on?', a: 'The web version currently works in browsers on phones and computers. Native iOS and Android apps are in development.' },
   { q: 'Which sites are supported?', a: 'YouTube, VK Video, Rutube, direct .mp4 links, and others through the built-in mobile browser.' },
 ];
 
@@ -95,7 +96,7 @@ export default function EnHowItWorksPage() {
             <h1 className="text-4xl md:text-5xl font-bold mb-5 leading-tight tracking-tight">How WeWatch works</h1>
             <p className="text-xl text-zinc-400 leading-relaxed max-w-2xl">
               Watching videos with friends, in four steps. One person pauses — everyone pauses.
-              Works between iPhone, Android and a desktop browser at the same time.
+              The web version works in browsers on iPhone, Android and desktop; native mobile apps are in development.
             </p>
           </div>
         </div>
@@ -104,7 +105,7 @@ export default function EnHowItWorksPage() {
           <section className="mb-14">
             <ol className="relative space-y-4 before:absolute before:left-5 before:top-6 before:bottom-6 before:w-px before:bg-gradient-to-b before:from-[#7B72F8]/50 before:to-transparent">
               {steps.map(({ n, title, desc }) => (
-                <li key={n} className="relative flex gap-5 rounded-2xl border border-zinc-800/60 bg-[#0E0E14] p-5 hover:border-[#7B72F8]/40 transition-colors">
+                <li key={n} data-howto-step className="relative flex gap-5 rounded-2xl border border-zinc-800/60 bg-[#0E0E14] p-5 hover:border-[#7B72F8]/40 transition-colors">
                   <span className="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-[#7B72F8] flex items-center justify-center text-base font-bold shadow-lg shadow-[#7B72F8]/30">{n}</span>
                   <div>
                     <h2 className="text-lg font-semibold text-white mb-1">{title}</h2>
@@ -115,25 +116,7 @@ export default function EnHowItWorksPage() {
             </ol>
           </section>
 
-          <section className="mb-14 rounded-2xl border border-zinc-800/60 bg-[#0E0E14] p-6 sm:p-8">
-            <h2 className="text-2xl font-bold mb-4">How the synchronization works</h2>
-            <p className="text-zinc-400 leading-relaxed mb-4">
-              Every participant shares one playback position. When someone pauses, seeks or changes
-              speed, the command does not simply get forwarded — it is scheduled at a shared future
-              timestamp, so a fast connection and a slow one still act at the same real-world
-              moment. Each device knows its own clock offset from the server, measured NTP-style
-              over the WebSocket connection.
-            </p>
-            <p className="text-zinc-400 leading-relaxed mb-4">
-              Drift still happens — buffering, an ad, a slow phone. A periodic heartbeat compares
-              each client against the room’s position and corrects anything beyond 500 ms
-              automatically, so nobody has to restart the video.
-            </p>
-            <p className="text-zinc-400 leading-relaxed">
-              No VPN needed. If a video is unavailable in your region, that is a restriction from
-              the source site, not from WeWatch.
-            </p>
-          </section>
+          <SynchronizationFacts locale="en" />
 
           <section className="mb-14">
             <h2 className="text-2xl font-bold mb-5">Common questions</h2>
