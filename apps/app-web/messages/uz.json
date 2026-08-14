@@ -334,7 +334,10 @@
     "startTitle": "Xona oching va birga tomosha qiling",
     "startSub": "Video havolasini joylashtiring, do‘stlaringizga kod yuboring — hammangiz bir vaqtda, bir xil daqiqada ko‘rasiz.",
     "startSources": "Qo‘llab-quvvatlanadi",
-    "startDirect": "To‘g‘ridan havola"
+    "startDirect": "To‘g‘ridan havola",
+    "step1": "Xona yarating",
+    "step2": "Do‘stlaringizga kod yuboring",
+    "step3": "Birga tomosha qiling"
   },
   "search": {
     "title": "QIDIRISH",

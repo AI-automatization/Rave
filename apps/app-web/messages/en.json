@@ -358,7 +358,10 @@
     "startTitle": "Open a room and watch together",
     "startSub": "Paste a video link, send your friends the code — everyone watches in sync, frame for frame.",
     "startSources": "Supported",
-    "startDirect": "Direct link"
+    "startDirect": "Direct link",
+    "step1": "Create a room",
+    "step2": "Send friends the code",
+    "step3": "Watch together"
   },
   "search": {
     "title": "SEARCH",

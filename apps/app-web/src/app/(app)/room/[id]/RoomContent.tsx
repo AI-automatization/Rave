@@ -408,6 +408,9 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   const { socket } = useSocket();
   const currentUser = useAuthStore((s) => s.user);
   const voice = useVoiceChat(socket, roomJoined, currentUser?._id);
+  // Voice ducking — video volume dips while anyone (including the local user, whose own mic being
+  // hot is exactly when they'd otherwise be fighting the video for attention too) is talking.
+  const anyoneSpeaking = voice.participants.some((p) => p.isSpeaking);
   const isConnected = useWatchPartyStore((s) => s.isConnected);
   const isOwner = !!(room && currentUser && room.ownerId === currentUser._id);
 
@@ -559,6 +562,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                 onBufferEnd={sendBufferEnd}
                 onFatalError={handleVideoFatalError}
                 onPickDifferentVideo={() => setCandidatePickerOpen(true)}
+                duckAudio={anyoneSpeaking}
               />
             )}
             </div>

@@ -156,6 +156,10 @@ interface Props {
    * opens the same video-candidate picker as RoomHeader's "Это не то видео" menu item, so the
    * owner isn't stuck waiting on a VB session that might not find anything either. */
   onPickDifferentVideo?: () => void;
+  /** True while at least one voice-chat participant is speaking — ducks the video's volume down
+   * so the voice call and video audio don't compete. Threaded down to NativeVideoPlayer only;
+   * official embeds (YouTube/etc.) don't expose volume control across the iframe boundary. */
+  duckAudio?: boolean;
 }
 
 interface ExtractResult {
@@ -466,6 +470,9 @@ interface NativeProps {
    * needs a click, not a different source. Mirrors mobile's UniversalPlayer `onFatalError`; the
    * caller (RoomContent) decides what to do with it (owner-only VB fallback). */
   onFatalError?: () => void;
+  /** True while at least one voice-chat participant is speaking — ducks video volume down so the
+   * two audio sources don't compete. See userVolumeRef/isDuckedRef comment above `volume` state. */
+  duckAudio?: boolean;
 }
 
 function NativeVideoPlayer({
@@ -485,6 +492,7 @@ function NativeVideoPlayer({
   onOverlayClick,
   onAutoplayBlocked,
   onFatalError,
+  duckAudio,
 }: NativeProps) {
   const t = useTranslations('party');
   const hlsRef = useRef<import('hls.js').default | null>(null);
@@ -556,6 +564,19 @@ function NativeVideoPlayer({
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
+  // Voice ducking — lower the video's volume while someone is talking in the room's voice chat,
+  // so the two audio sources don't compete. `video.volume` writes fire the native `volumechange`
+  // event (see onVolChange below), which normally mirrors INTO `volume` state to keep the slider
+  // in sync with genuine user changes — without `userVolumeRef` + `isDuckedRef` guarding it, the
+  // ramped-down values a duck animation writes would corrupt that state, and the next duck/undock
+  // cycle would ramp relative to an already-ducked "user" volume instead of their real preference.
+  // iOS Safari ignores `.volume` entirely (see volumeSliderUnusable below) — this silently no-ops
+  // there rather than needing its own platform check.
+  const DUCK_FACTOR = 0.35;
+  const DUCK_RAMP_MS = 250;
+  const userVolumeRef = useRef(1);
+  const isDuckedRef = useRef(false);
+  const duckRafRef = useRef<number | null>(null);
   const [showControls, setShowControls] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   // True from the moment a new src is handed to us until the browser actually has enough data
@@ -705,7 +726,13 @@ function NativeVideoPlayer({
     };
     const onTimeUpdate = () => setCurrentTime(video.currentTime);
     const onMeta = () => { if (isFinite(video.duration)) setDuration(video.duration); };
-    const onVolChange = () => { setVolume(video.volume); setIsMuted(video.muted); };
+    const onVolChange = () => {
+      // Skip mirroring while a duck ramp is actively writing — those are ours, not the user's,
+      // and would otherwise corrupt the slider's displayed value (see userVolumeRef comment above).
+      if (isDuckedRef.current) { setIsMuted(video.muted); return; }
+      setVolume(video.volume);
+      setIsMuted(video.muted);
+    };
     const onFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
     const onWaitingEvt = () => {
       setIsBuffering(true);
@@ -744,6 +771,36 @@ function NativeVideoPlayer({
     };
   }, [videoRef]);
 
+  // Voice ducking ramp — smooth over DUCK_RAMP_MS rather than an instant volume jump, which reads
+  // as a jarring cut. Muted or iOS (where .volume writes are a no-op anyway) skip the animation
+  // work entirely; still tracks isDuckedRef so handleVolume's mid-duck branch stays correct.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    isDuckedRef.current = !!duckAudio;
+    if (video.muted) return;
+
+    if (duckRafRef.current !== null) cancelAnimationFrame(duckRafRef.current);
+    const from = video.volume;
+    const to = duckAudio ? userVolumeRef.current * DUCK_FACTOR : userVolumeRef.current;
+    if (Math.abs(from - to) < 0.01) return;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - start) / DUCK_RAMP_MS);
+      video.volume = from + (to - from) * progress;
+      if (progress < 1) {
+        duckRafRef.current = requestAnimationFrame(tick);
+      } else {
+        duckRafRef.current = null;
+      }
+    };
+    duckRafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (duckRafRef.current !== null) cancelAnimationFrame(duckRafRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- userVolumeRef is a ref, DUCK_FACTOR/DUCK_RAMP_MS are constants
+  }, [duckAudio, videoRef]);
+
   // Show controls temporarily (for mobile tap)
   function revealControls() {
     setShowControls(true);
@@ -771,7 +828,11 @@ function NativeVideoPlayer({
     const v = videoRef.current;
     if (!v) return;
     const val = Number(e.target.value);
-    v.volume = val;
+    userVolumeRef.current = val;
+    // Mid-duck, the slider still shows/sets the TARGET (un-ducked) level the user actually wants —
+    // applying it immediately at full strength would defeat the point of ducking, so land on the
+    // ducked equivalent instead; the ramp back up on undock already reads userVolumeRef fresh.
+    v.volume = isDuckedRef.current ? val * DUCK_FACTOR : val;
     v.muted = val === 0;
     setIsMuted(val === 0);
   }
@@ -1014,6 +1075,7 @@ export function VideoPlayer({
   onBufferEnd,
   onFatalError,
   onPickDifferentVideo,
+  duckAudio,
 }: Props) {
   const t = useTranslations('party');
   const room = useWatchPartyStore((s) => s.room);
@@ -1531,6 +1593,7 @@ export function VideoPlayer({
           onOverlayClick={handleOverlayClick}
           onAutoplayBlocked={() => setAutoplayBlocked(true)}
           onFatalError={reportPlaybackFatal}
+          duckAudio={duckAudio}
         />
       );
     }
