@@ -401,6 +401,153 @@ export async function buildProxyUrl(cdnUrl: string, headers?: Record<string, str
   return `/api/content/proxy-stream?url=${encodeURIComponent(cdnUrl)}&h=${h}`;
 }
 
+interface CaptureMseResult {
+  mediaSource: MediaSource;
+  objectUrl: string;
+  /** Stops the background tail-fetch loop. Idempotent. Does NOT touch mediaSource/objectUrl
+   * lifecycle — the caller (the effect's own cleanup) owns revoking/ending those, since it's the
+   * one that created them and may want to do so in a specific order relative to other cleanup. */
+  teardown: () => void;
+}
+
+// VB capture (categories B/C, vbCapture.service.ts) is a live-growing raw fMP4 byte stream with
+// no independently-fetchable URL of its own — see that file's own header comment. A plain
+// `video.src = captureUrl` works on Safari but not Chrome (confirmed live 2026-08-14: native
+// MEDIA_ERR_SRC_NOT_SUPPORTED, "Format error" — Chrome's progressive-download prober won't commit
+// to a format for a resource whose total size changes between requests the way this one does).
+// This feeds the same bytes to a MediaSource/SourceBuffer instead, which works identically on
+// every browser since the caller (not the browser's own guesswork) controls exactly what gets
+// decoded and when.
+//
+// Returns null if MSE playback isn't attemptable for any reason (no MediaSource support, no/
+// unrecognized codec from the server — see mp4CodecSniff.service.ts's own contract for when that
+// happens, unsupported by THIS browser's MSE implementation, or the initial probe request
+// failed) — the caller's contract is: null means "fall back to plain video.src", never worse than
+// not having this at all.
+async function setupCaptureMse(
+  video: HTMLVideoElement,
+  src: string,
+  cb: { onFatal: () => void; onReady: () => void; isCancelled: () => boolean },
+): Promise<CaptureMseResult | null> {
+  if (typeof MediaSource === 'undefined') return null;
+
+  let codecs: string | null;
+  try {
+    // A tiny range, not a HEAD — vbCapture.controller.ts only sets X-Vb-Codecs on the same
+    // stream() handler a real playback request hits; a HEAD isn't guaranteed to run the same path
+    // depending on how far up the stack (Bunny, Railway's edge) something might intercept it.
+    const probe = await fetch(src, { headers: { Range: 'bytes=0-0' } });
+    codecs = probe.headers.get('X-Vb-Codecs');
+  } catch {
+    return null;
+  }
+  if (!codecs || cb.isCancelled()) return null;
+
+  const mimeType = `video/mp4; codecs="${codecs}"`;
+  if (!MediaSource.isTypeSupported(mimeType)) return null;
+
+  const mediaSource = new MediaSource();
+  const objectUrl = URL.createObjectURL(mediaSource);
+  video.src = objectUrl;
+
+  let stopped = false;
+  const teardown = () => { stopped = true; };
+
+  await new Promise<void>((resolve) => {
+    mediaSource.addEventListener('sourceopen', () => resolve(), { once: true });
+  });
+  if (cb.isCancelled() || stopped) return { mediaSource, objectUrl, teardown };
+
+  let sourceBuffer: SourceBuffer;
+  try {
+    sourceBuffer = mediaSource.addSourceBuffer(mimeType);
+  } catch {
+    // Codec string parsed as valid MIME but the browser's MSE implementation still rejected it
+    // outright (rare, but isTypeSupported isn't a 100% guarantee across all engines) — this is
+    // past the point where falling back to plain video.src still makes sense (video.src is
+    // already the blob: URL), so treat it as a genuine playback failure instead.
+    cb.onFatal();
+    return { mediaSource, objectUrl, teardown };
+  }
+
+  const appendQueue: Uint8Array[] = [];
+  let appending = false;
+  let readySignaled = false;
+
+  function pump() {
+    if (stopped || appending || sourceBuffer.updating || appendQueue.length === 0) return;
+    const chunk = appendQueue.shift();
+    if (!chunk) return;
+    appending = true;
+    try {
+      // fetch's ReadableStream reader types chunks as Uint8Array<ArrayBufferLike> (DOM lib allows
+      // a SharedArrayBuffer-backed view in principle); appendBuffer wants ArrayBuffer specifically.
+      // Never actually SharedArrayBuffer-backed at runtime here — plain type-level mismatch.
+      sourceBuffer.appendBuffer(chunk as BufferSource);
+    } catch (e) {
+      appending = false;
+      // Real, expected failure mode for a long-running capture: the buffered range grows
+      // unbounded otherwise. Trim everything more than 30s behind the current playback position
+      // and let the next tail-fetch cycle re-queue naturally — remove() itself fires its own
+      // updateend, which re-triggers pump() via the listener below.
+      if (e instanceof DOMException && e.name === 'QuotaExceededError' && video.currentTime > 30) {
+        try { sourceBuffer.remove(0, video.currentTime - 30); } catch { /* already removing */ }
+      }
+    }
+  }
+
+  sourceBuffer.addEventListener('updateend', () => {
+    appending = false;
+    if (!readySignaled) { readySignaled = true; cb.onReady(); }
+    pump();
+  });
+
+  const POLL_MS = 1000;
+  let position = 0;
+
+  void (async () => {
+    while (!stopped && !cb.isCancelled()) {
+      let res: Response;
+      try {
+        res = await fetch(src, { headers: { Range: `bytes=${position}-` } });
+      } catch {
+        await new Promise((r) => setTimeout(r, POLL_MS));
+        continue;
+      }
+      if (stopped || cb.isCancelled()) return;
+      if (!res.ok || !res.body) {
+        await new Promise((r) => setTimeout(r, POLL_MS));
+        continue;
+      }
+      // vbCapture.controller.ts clamps `start` down to `totalBytes - 1` when asked for a range
+      // that doesn't exist YET (no new bytes since the last poll) rather than hanging the
+      // request — that response re-serves already-appended bytes, not new ones. Content-Range's
+      // own reported start is the ground truth for what actually came back; only trust the body
+      // as new data when it matches what was requested.
+      const contentRange = res.headers.get('Content-Range');
+      const rangeStart = contentRange ? Number(/bytes (\d+)-/.exec(contentRange)?.[1]) : position;
+      const isStaleReplay = Number.isFinite(rangeStart) && rangeStart < position;
+
+      const reader = res.body.getReader();
+      let gotNewBytes = false;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (stopped || cb.isCancelled()) { void reader.cancel(); return; }
+        if (value && value.length > 0 && !isStaleReplay) {
+          gotNewBytes = true;
+          position += value.length;
+          appendQueue.push(value);
+          pump();
+        }
+      }
+      if (!gotNewBytes) await new Promise((r) => setTimeout(r, POLL_MS));
+    }
+  })();
+
+  return { mediaSource, objectUrl, teardown };
+}
+
 // iOS (every browser engine on it — Chrome/Firefox/Edge for iOS are all WebKit under the hood)
 // hard-ignores `HTMLMediaElement.volume` assignments: Apple restricts in-page volume control to
 // the hardware buttons only, by design. A custom volume slider silently does nothing there —
@@ -637,6 +784,48 @@ function NativeVideoPlayer({
     if (!video || !src) return;
 
     suppressMacOsPlayer();
+
+    // VB capture (categories B/C — a live-growing raw fMP4 byte stream, not a real independently-
+    // fetchable URL, see vbCapture.service.ts) played fine on Safari via a plain `video.src = src`
+    // but failed on Chrome with a native MEDIA_ERR_SRC_NOT_SUPPORTED ("Format error") — confirmed
+    // live 2026-08-14. Root cause: Chrome's own progressive-download prober won't commit to a
+    // format for a resource whose total size (and exact byte availability) changes between
+    // requests the way this one does; Safari's happens to be more forgiving of that. Real fix is
+    // to hand Chrome (and everyone else, it works cross-browser) the bytes explicitly via
+    // MediaSource Extensions instead of letting the browser's own prober guess. Falls straight
+    // through to the existing plain-`video.src` path below on ANY failure (missing/unrecognized
+    // codec header, MSE unsupported, fetch error) — never worse than before this existed, just not
+    // improved for whatever edge case tripped the fallback.
+    if (src.includes('/vb-capture/')) {
+      let cancelled = false;
+      let mediaSource: MediaSource | null = null;
+      let objectUrl: string | null = null;
+      void setupCaptureMse(video, src, {
+        onFatal: reportFatal,
+        onReady: () => { suppressMacOsPlayer(); attemptOwnerAutoplay(video); },
+        isCancelled: () => cancelled,
+      }).then((result) => {
+        if (cancelled) { result?.teardown(); return; }
+        if (result) {
+          mediaSource = result.mediaSource;
+          objectUrl = result.objectUrl;
+        } else {
+          // MSE setup declined (see setupCaptureMse's own contract) — fall back exactly like the
+          // plain-src branch below does for every other source type.
+          video.src = src;
+          attemptOwnerAutoplay(video);
+        }
+      });
+      video.addEventListener('play', suppressMacOsPlayer, { passive: true });
+
+      return () => {
+        cancelled = true;
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        if (mediaSource && mediaSource.readyState === 'open') {
+          try { mediaSource.endOfStream(); } catch { /* already closed */ }
+        }
+      };
+    }
 
     if (isDash) {
       import('dashjs').then((dashjs) => {

@@ -20,6 +20,7 @@
 
 import { logger } from '@shared/utils/logger';
 import { rebaseFmp4Chunk, resetFmp4RebaseState } from './fmp4Rebase.service';
+import { sniffMp4Codecs, hasMoofBox } from './mp4CodecSniff.service';
 
 const MAX_CAPTURE_BYTES = 1_500_000_000; // ~1.5GB per room — generous for one movie, bounds memory
 export const MIN_SWITCH_BYTES = 512 * 1024; // wait for a small initial buffer before switching the room over — enough for the video element to have something to actually play immediately, not just an init segment
@@ -33,6 +34,21 @@ interface CaptureBuffer {
   offsets: number[];
   totalBytes: number;
   done: boolean;
+  // Exact MSE codec string (e.g. "avc1.640028,mp4a.40.2") once confidently sniffed from the init
+  // segment, null if not yet known OR this source's codec isn't one mp4CodecSniff.service.ts
+  // recognizes — the client falls back to plain <video src> in that case, same as before this
+  // existed.
+  codecs: string | null;
+  codecsSniffed: boolean;
+  // Chunks (WebSocket frames, arbitrary byte boundaries — NOT aligned to MP4 box boundaries)
+  // accumulate here until a moof-bearing chunk arrives, matching fmp4Rebase.service.ts's own
+  // "hasMoof means no longer the init segment" check. A single frame is not guaranteed to contain
+  // the complete ftyp+moov — sniffing off just the first chunk would truncate mid-box on any site
+  // whose player splits the init segment across multiple frames, permanently (and wrongly) giving
+  // up on MSE for that room. Concatenated and re-sniffed on every pre-moof chunk instead; cleared
+  // the moment sniffing succeeds or a moof arrives, so this never grows past one init segment's
+  // worth of bytes (tens of KB, not a real memory concern next to MAX_CAPTURE_BYTES).
+  pendingInitChunks: Buffer[];
 }
 
 const captures = new Map<string, CaptureBuffer>(); // roomId -> capture
@@ -42,7 +58,10 @@ export function startCapture(roomId: string): void {
   // per-track tfdt base — otherwise the first chunk of the new capture gets rebased against a
   // stale reference point instead of becoming its own zero.
   resetFmp4RebaseState(roomId);
-  captures.set(roomId, { chunks: [], offsets: [], totalBytes: 0, done: false });
+  captures.set(roomId, {
+    chunks: [], offsets: [], totalBytes: 0, done: false,
+    codecs: null, codecsSniffed: false, pendingInitChunks: [],
+  });
 }
 
 export function hasCapture(roomId: string): boolean {
@@ -53,6 +72,13 @@ export function getCaptureBytes(roomId: string): number {
   return captures.get(roomId)?.totalBytes ?? 0;
 }
 
+// null while not yet known (no chunk received) OR the codec genuinely isn't recognized — callers
+// can't tell those two apart from this alone, but both mean the same thing to them: "don't offer
+// MSE playback yet/at all", so the distinction doesn't matter at this API boundary.
+export function getCaptureCodecs(roomId: string): string | null {
+  return captures.get(roomId)?.codecs ?? null;
+}
+
 // Returns true once this chunk pushed the room over MIN_SWITCH_BYTES for the FIRST time — the
 // caller uses this as the "ok, there's enough to start playback" signal.
 export function appendCapture(roomId: string, chunk: Buffer): boolean {
@@ -60,6 +86,21 @@ export function appendCapture(roomId: string, chunk: Buffer): boolean {
   if (!c || c.done) return false;
   const wasBelowThreshold = c.totalBytes < MIN_SWITCH_BYTES;
   const rebased = rebaseFmp4Chunk(roomId, chunk);
+  // Sniff codecs off the accumulated init segment (ftyp+moov) — chunks are raw WebSocket frames,
+  // not aligned to MP4 box boundaries, so the complete init segment may be split across several
+  // of them. Keep concatenating and re-attempting until it parses, or until a moof-bearing chunk
+  // arrives (the init segment is unambiguously over at that point — fmp4Rebase.service.ts uses
+  // the same signal). Every later moof/mdat fragment has no stsd to read, nothing more to learn.
+  if (!c.codecsSniffed) {
+    c.pendingInitChunks.push(rebased);
+    const candidate = Buffer.concat(c.pendingInitChunks);
+    c.codecs = sniffMp4Codecs(candidate);
+    if (c.codecs || hasMoofBox(rebased)) {
+      c.codecsSniffed = true;
+      c.pendingInitChunks = [];
+      logger.info('VB capture: codec sniff result', { roomId, codecs: c.codecs });
+    }
+  }
   c.offsets.push(c.totalBytes); // this chunk starts where the buffer currently ends
   c.chunks.push(rebased);
   c.totalBytes += rebased.length;
