@@ -2,7 +2,7 @@
 // Range-capable HTTP video resource, so it can go through app-web's existing /api/content/
 // proxy-stream pipeline exactly like any external CDN URL — no changes needed on that side.
 import { Request, Response } from 'express';
-import { readCaptureRange, hasCapture, getCaptureBytes } from '../services/vbCapture.service';
+import { readCaptureRange, hasCapture, getCaptureBytes, getCaptureCodecs } from '../services/vbCapture.service';
 
 export const vbCaptureController = {
   stream(req: Request, res: Response): void {
@@ -54,6 +54,20 @@ export const vbCaptureController = {
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     res.setHeader('Content-Type', 'video/mp4');
     res.setHeader('Accept-Ranges', 'bytes');
+    // Exact MSE codec string (mp4CodecSniff.service.ts), once known — lets the client attempt
+    // proper MediaSource Extensions playback instead of a plain <video src>, which is what a
+    // live-growing capture buffer actually needs on browsers (Chrome) whose native progressive-
+    // download demuxer won't play it. Absent header (not just an empty one — Express drops a
+    // header entirely when the value is null/undefined) means "not known yet, or not a codec we
+    // can build an MSE string for" — the client's own contract for both is identical: don't
+    // attempt MSE, fall back to what already existed.
+    const codecs = getCaptureCodecs(roomId);
+    if (codecs) res.setHeader('X-Vb-Codecs', codecs);
+    // Exposed explicitly — custom X- headers aren't in the CORS default-safelist, so a
+    // cross-origin fetch() can see the header names below via response.headers.get(...) but
+    // needs the server to opt them in here (same story as any other custom response header,
+    // e.g. this codebase's own Content-Range on the same response).
+    res.setHeader('Access-Control-Expose-Headers', 'X-Vb-Codecs, Content-Range, Accept-Ranges, Content-Length');
     // NOT immutable/long-lived: totalBytes (the Content-Range denominator below) grows as capture
     // continues, so the exact same byte range can legitimately get a DIFFERENT total a few seconds
     // later — caching that as permanent would risk teaching a client the wrong final size, the
