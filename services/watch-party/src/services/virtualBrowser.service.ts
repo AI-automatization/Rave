@@ -619,14 +619,26 @@ export async function startSession(
           // subtitle SourceBuffers — falls through to the combined-only path below, same as any
           // SourceBuffer this whole patch never learns about).
           const trackByBuffer = new WeakMap();
+          // Real prod finding 2026-08-14 (architecture review): a normal SINGLE-SourceBuffer muxed
+          // source (the common case — one addSourceBuffer('video/mp4; codecs="avc1...,mp4a..."'))
+          // ALSO starts with 'video/', so naive tagging duplicated every such capture's bytes into
+          // a 'video' track buffer nobody ever reads (the client only queries per-track endpoints
+          // once X-Vb-Tracks reports BOTH video AND audio) — full memory cost, zero benefit, for
+          // the large majority of captures. Gate forwarding on having actually observed distinct
+          // video AND audio SourceBuffer creations on THIS page first — only a genuine dual-
+          // SourceBuffer source ever satisfies both, so single-SourceBuffer sites now cost nothing
+          // extra, exactly as the original combined-only capture did before this feature existed.
+          const seenKinds = new Set();
+          let dualTrackConfirmed = false;
           if (window.MediaSource && window.MediaSource.prototype.addSourceBuffer) {
             const origAddSourceBuffer = window.MediaSource.prototype.addSourceBuffer;
             window.MediaSource.prototype.addSourceBuffer = function (mimeType) {
               const sb = origAddSourceBuffer.apply(this, arguments);
               try {
                 const kind = String(mimeType).toLowerCase();
-                if (kind.indexOf('video/') === 0) trackByBuffer.set(sb, 'video');
-                else if (kind.indexOf('audio/') === 0) trackByBuffer.set(sb, 'audio');
+                if (kind.indexOf('video/') === 0) { trackByBuffer.set(sb, 'video'); seenKinds.add('video'); }
+                else if (kind.indexOf('audio/') === 0) { trackByBuffer.set(sb, 'audio'); seenKinds.add('audio'); }
+                if (seenKinds.has('video') && seenKinds.has('audio')) dualTrackConfirmed = true;
               } catch (e) { /* never break playback */ }
               return sb;
             };
@@ -636,7 +648,7 @@ export async function startSession(
               const b64 = toBase64(data);
               window.__wewatchCaptureChunk(b64);
               const track = trackByBuffer.get(this);
-              if (track) window.__wewatchCaptureTrackChunk(track, b64);
+              if (track && dualTrackConfirmed) window.__wewatchCaptureTrackChunk(track, b64);
             } catch (e) { /* never break playback */ }
             return origAppend.apply(this, arguments);
           };

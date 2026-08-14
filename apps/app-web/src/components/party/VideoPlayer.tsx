@@ -576,8 +576,20 @@ async function setupCaptureMse(
           mediaSource.addEventListener('sourceopen', () => resolve(), { once: true });
         });
         if (!cb.isCancelled() && mediaSource.readyState === 'open') {
-          const videoBuffer = mediaSource.addSourceBuffer(videoMime);
-          const audioBuffer = mediaSource.addSourceBuffer(audioMime);
+          let videoBuffer: SourceBuffer;
+          let audioBuffer: SourceBuffer;
+          try {
+            videoBuffer = mediaSource.addSourceBuffer(videoMime);
+            audioBuffer = mediaSource.addSourceBuffer(audioMime);
+          } catch {
+            // isTypeSupported passing isn't a 100% guarantee the browser will actually accept the
+            // string in addSourceBuffer (same caveat the single-buffer path below already notes).
+            // This MediaSource/objectUrl were never handed off to a running pump — nothing to stop,
+            // just release the blob URL before falling through to the single-buffer attempt, which
+            // creates its own fresh MediaSource and overwrites video.src again.
+            URL.revokeObjectURL(objectUrl);
+            throw new Error('dual-track addSourceBuffer rejected');
+          }
           // Only one onReady() call regardless of which track's first chunk lands first —
           // attemptOwnerAutoplay only needs to fire once.
           let readyFired = false;
@@ -591,7 +603,9 @@ async function setupCaptureMse(
         return { mediaSource, objectUrl, teardown: () => {} };
       }
     } catch {
-      // Per-track probe failed outright — fall through to the single-buffer attempt below.
+      // Either the per-track probe fetch failed outright, or addSourceBuffer rejected the sniffed
+      // codec (its own catch above already released the objectUrl before rethrowing into here) —
+      // either way, fall through to the single-buffer attempt below.
     }
   }
 
