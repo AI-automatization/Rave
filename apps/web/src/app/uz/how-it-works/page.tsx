@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { appUrl } from '@/lib/app-url';
 import { socialMeta } from '@/lib/i18n/metadata';
@@ -80,12 +79,11 @@ export default function UzHowItWorksPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(howToLd) }} />
-      <GuideHeader locale="uz" />
-      <main className="min-h-screen bg-[#060608] text-white">
+      <main className="flex-1 bg-page text-white">
         {/* Hero */}
         <div className="relative overflow-hidden border-b border-zinc-800/50">
           <div aria-hidden className="pointer-events-none absolute -top-40 right-0 h-80 w-[36rem] rounded-full bg-[#7B72F8]/20 blur-[120px]" />
-          <div className="relative max-w-3xl mx-auto px-4 sm:px-6 pt-16 pb-14">
+          <div className="page-hero relative max-w-3xl mx-auto px-4 sm:px-6 pt-16 pb-14">
             <nav aria-label="Yo'l xaritasi" className="text-sm text-zinc-500 mb-6">
               <Link href="/uz" className="hover:text-white transition-colors">WeWatch</Link>
               <span className="mx-2">/</span>
@@ -153,7 +151,6 @@ export default function UzHowItWorksPage() {
           </div>
         </div>
       </main>
-      <GuideFooter locale="uz" />
     </>
   );
 }

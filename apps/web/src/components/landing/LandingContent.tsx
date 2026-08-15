@@ -10,8 +10,6 @@ import {
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
-import { LandingNav } from '@/components/common/LandingNav';
-import { Footer } from '@/components/common/Footer';
 import { StatsWidget } from '@/components/common/StatsWidget';
 import { LONG_DISTANCE, ONLINE_DATE } from '@/data/use-cases';
 import { WIcon, BRAND_PURPLE } from '@/components/common/WeWatchLogo';
@@ -204,7 +202,7 @@ function GlassCard({ children, className = '', glowColor = '#7B72F8', hover = tr
 // ── Bento Features Grid ───────────────────────────────────────────────────
 function BentoFeatures({ t }: { t: TFn }) {
   return (
-    <section className="py-24 px-4 bg-[#0A0A0F] relative overflow-hidden" aria-labelledby="features-heading">
+    <section className="py-24 px-4 bg-page relative overflow-hidden" aria-labelledby="features-heading">
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] rounded-full blur-[130px]"
           style={{ background: 'radial-gradient(ellipse, rgba(123,114,248,0.05) 0%, transparent 70%)' }} />
@@ -443,7 +441,7 @@ function LiveWatchGlobe({ t }: { t: TFn }) {
   };
 
   return (
-    <section className="py-24 px-4 bg-[#0A0A0F] relative overflow-hidden" aria-label="Global watch">
+    <section className="py-24 px-4 bg-page relative overflow-hidden" aria-label="Global watch">
       {/* Background glow */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
         <motion.div
@@ -738,7 +736,7 @@ type TFn = (key: string) => string;
 
 function ScreenHome({ t }: { t: TFn }) {
   return (
-    <div className="h-full flex flex-col bg-[#0A0A0F] select-none">
+    <div className="h-full flex flex-col bg-page select-none">
       <IPhoneStatusBar />
       <div className="flex items-center justify-between px-5 pt-1 pb-3">
         <div className="flex items-center gap-1.5">
@@ -1238,7 +1236,7 @@ const USE_CASE_HREFS: Record<UseCaseKey, Record<'ru' | 'uz' | 'en', string>> = {
 function UseCaseCards({ t, locale }: { t: TFn; locale: 'ru' | 'uz' | 'en' }) {
 
   return (
-    <section className="relative py-24 px-4 bg-[#0A0A0F] overflow-hidden" aria-labelledby="usecases-heading">
+    <section className="relative py-24 px-4 bg-page overflow-hidden" aria-labelledby="usecases-heading">
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] rounded-full blur-[150px]"
           style={{ background: 'radial-gradient(ellipse, rgba(123,114,248,0.06) 0%, transparent 70%)' }} />
@@ -1309,14 +1307,17 @@ export function LandingContent({ locale }: { locale: 'ru' | 'uz' | 'en' }) {
   const SYNC_BULLETS   = [t('syncBullet1'), t('syncBullet2'), t('syncBullet3'), t('syncBullet4'), t('syncBullet5')];
   const APP_FEATURES   = [t('appFeat1'), t('appFeat2'), t('appFeat3'), t('appFeat4'), t('appFeat5'), t('appFeat6')];
 
+  // Nav and footer used to be rendered here, which is why the home page was the
+  // only page that had them for a long time. They now come from the locale
+  // layout (SiteShell) like on every other page, and this component is the page
+  // body alone.
   return (
-    <div className="min-h-dvh flex flex-col bg-[#0A0A0F] overflow-x-hidden">
-      <LandingNav />
+    <>
       <StatsWidget />
-      <main className="flex-1" id="main-content">
+      <main className="flex-1 overflow-x-hidden" id="main-content">
 
         {/* ── HERO ── */}
-        <section className="relative min-h-dvh flex items-start justify-center overflow-hidden bg-[#0A0A0F] bg-[radial-gradient(circle_at_50%_25%,rgba(123,114,248,0.10),transparent_52%)]"
+        <section className="relative min-h-dvh flex items-start justify-center overflow-hidden bg-page bg-[radial-gradient(circle_at_50%_25%,rgba(123,114,248,0.10),transparent_52%)]"
           aria-labelledby="hero-heading">
           <motion.div className="absolute inset-0 pointer-events-none" aria-hidden="true">
             {/* Mesh gradient */}
@@ -1451,7 +1452,7 @@ export function LandingContent({ locale }: { locale: 'ru' | 'uz' | 'en' }) {
                 </div>
 
                 {/* video frame — content types cycle here */}
-                <div className="relative rounded-xl overflow-hidden border border-zinc-800 aspect-video mb-3 bg-[#0A0A0F]">
+                <div className="relative rounded-xl overflow-hidden border border-zinc-800 aspect-video mb-3 bg-page">
                   {/* rotating thumbnail — crossfade + ken-burns */}
                   <AnimatePresence>
                     <motion.div key={movieIdx} className="absolute inset-0 bg-cover bg-center" aria-hidden="true"
@@ -1678,7 +1679,7 @@ export function LandingContent({ locale }: { locale: 'ru' | 'uz' | 'en' }) {
         </section>
 
         {/* ── SYNC ── */}
-        <section className="py-28 px-4 bg-[#0A0A0F] relative overflow-hidden" aria-labelledby="sync-heading">
+        <section className="py-28 px-4 bg-page relative overflow-hidden" aria-labelledby="sync-heading">
           <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <motion.div initial={{ opacity: 0, x: -28 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.55 }} className="relative">
               <GlassCard className="p-6" glowColor="#7B72F8">
@@ -1835,7 +1836,7 @@ export function LandingContent({ locale }: { locale: 'ru' | 'uz' | 'en' }) {
 
         {/* ── CTA ── */}
         {/* ── FAQ ──────────────────────────────────────────────────────────── */}
-        <section id="faq" className="py-24 px-4 relative bg-[#060608]" aria-labelledby="faq-heading">
+        <section id="faq" className="py-24 px-4 relative bg-page" aria-labelledby="faq-heading">
           <div className="max-w-2xl mx-auto">
             <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-14">
               <motion.p variants={fadeUp} className="text-[#7B72F8] text-xs uppercase tracking-widest font-semibold mb-3">{t('faqEyebrow')}</motion.p>
@@ -1847,7 +1848,7 @@ export function LandingContent({ locale }: { locale: 'ru' | 'uz' | 'en' }) {
 
         <section className="py-32 px-4 text-center relative overflow-hidden" aria-labelledby="cta-heading">
           <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-            <div className="absolute inset-0 bg-[#0A0A0F]" />
+            <div className="absolute inset-0 bg-page" />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[500px] rounded-full blur-[150px]"
               style={{ background: 'radial-gradient(ellipse, rgba(123,114,248,0.22) 0%, rgba(168,85,247,0.12) 40%, transparent 70%)' }} />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] rounded-full blur-[80px]"
@@ -1901,7 +1902,6 @@ export function LandingContent({ locale }: { locale: 'ru' | 'uz' | 'en' }) {
         </section>
 
       </main>
-      <Footer />
-    </div>
+    </>
   );
 }

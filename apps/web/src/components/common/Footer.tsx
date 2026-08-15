@@ -57,7 +57,7 @@ export function Footer() {
   const guides = GUIDE_LINKS[locale] ?? GUIDE_LINKS.ru;
 
   return (
-    <footer className="bg-[#0A0A0F] border-t border-zinc-800/60 mt-auto">
+    <footer className="bg-page border-t border-zinc-800/60 mt-auto">
       <div className="max-w-7xl mx-auto px-4 py-10">
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8">
           {/* Brand */}
