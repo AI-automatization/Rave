@@ -151,12 +151,20 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com",
+              // mc.yandex.ru: Yandex Metrica's tag.js. Measured on prod 2026-08-14 — the
+              // counter shipped in RootDocument.tsx and NEXT_PUBLIC_YM_ID reached the build
+              // (#130), yet every hit was still lost: the browser refused tag.js against
+              // this policy before it ever left the machine, so Metrica reported nothing and
+              // the server logs showed nothing either. `img-src`/`connect-src` already allow
+              // it via the blanket `https:`; only script-src and frame-src were missing.
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://mc.yandex.ru",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data: https://fonts.gstatic.com",
               "connect-src 'self' https: wss:",
-              "frame-src https://www.youtube.com https://youtube.com https://vk.com https://rutube.ru",
+              // Metrica's webvisor (enabled in the counter's init) renders into an iframe on
+              // mc.yandex.ru — without it session recording silently records nothing.
+              "frame-src https://www.youtube.com https://youtube.com https://vk.com https://rutube.ru https://mc.yandex.ru",
               "media-src 'self' https: blob:",
               "object-src 'none'",
               "base-uri 'self'",

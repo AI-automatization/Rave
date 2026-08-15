@@ -1,6 +1,6 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-08-14
+# Yangilangan: 2026-08-15
 
 ---
 
@@ -38,6 +38,60 @@
   sahifalarida hamon 2–5 ta link — 64 sahifadan 37 tasi 10 tadan kam. Gaydlar
   tuzatildi, qolganlari alohida vazifa
 
+---
+
+### T-Y206 | P2 | [WEB] | Landing — bitta header/footer butun sayt bo'ylab
+
+- **Mas'ul:** pending[Yakubov]
+- **Beruvchi:** Pokemon (Telegram, 2026-08-14 10:52)
+- **Yaratilgan:** 2026-08-15 09:40
+- **Holat:** 🔄 PR kutilmoqda (`yakubov/unify-landing-chrome` → `dev`)
+- **Tavsiya model:** opus
+- **Model sababi:** 60+ fayl, layout arxitekturasi o'zgaradi (chrome layout'ga ko'chdi)
+- **Sabab:** Saytda **to'rt xil header** bor edi: `LandingNav` (bosh sahifa +
+  `(landing)`), `GuideHeader` (guides/faq/how-it-works/use-cases), legal
+  sahifalarning ichki `<header>` nusxasi va `/delete-account` dagi qo'lda yozilgan
+  logotip. `/ru/use-cases/*`, `/ru/team`, `/ru/tezcode` da header umuman yo'q edi —
+  qidiruvdan kelgan o'quvchi mahsulotga qaytolmasdi. Fon rangi ham ikkiga bo'lingan
+  edi (`#0A0A0F` marketing, `#060608` guides/legal).
+- **Yechim:** `SiteShell` (nav + content + footer) locale layout'iga ko'chdi
+  (`/ru`, `/uz`, `/en` + legal layout'lar). `GuideHeader`/`GuideFooter` o'chirildi,
+  o'rniga `GuideArticleEnd` (faqat maqola metadata + related guides). Fon `bg-page`
+  tokeniga birlashtirildi (`--color-page`, globals.css).
+- **Tekshiruv:** 64 sahifa auditi — har birida bitta header/footer/main;
+  playwright 81 PASS / 0 FAIL; Lighthouse mobil: `/ru` 100/100/100,
+  guide 100/100/100, `/terms` a11y 92 → 96 (kontrast tuzatildi).
+
+---
+
+### T-Y204 | P1 | [SEO] | Yandex Metrica CSP tomonidan bloklangan — hech qanday hit kelmayapti
+
+- **Mas'ul:** pending[Yakubov]
+- **Beruvchi:** Yakubov
+- **Yaratilgan:** 2026-08-14 06:40
+- **Holat:** 🔄 PR ochildi (`yakubov/fix-csp-yandex-metrica` → `dev`)
+- **Tavsiya model:** sonnet
+- **Model sababi:** 2 fayl, sabab aniq, yangi arxitektura yo'q
+- **Sabab:** Counter `RootDocument.tsx` da bor, `NEXT_PUBLIC_YM_ID` esa #130 dan keyin
+  build'ga yetib bordi — lekin prod'da (2026-08-14 o'lchandi) `mc.yandex.ru/metrika/tag.js`
+  **CSP tomonidan bloklanadi**: `script-src` da faqat `googletagmanager.com` bor edi.
+  Brauzer so'rovni mashinadan chiqmasdan tashlaydi — server log'ida ham, Metrica'da ham
+  hech nima ko'rinmaydi, «trafik yo'q» dan farqi yo'q. «Metrica ishlamayapti» uchun ikkita
+  fiks allaqachon chiqarilgan edi, asl sabab shu.
+- **Qilish kerak:**
+  - [x] `next.config.mjs` — `script-src` ga `https://mc.yandex.ru`
+  - [x] `next.config.mjs` — `frame-src` ga `https://mc.yandex.ru` (webvisor iframe ishlatadi)
+  - [x] `tests/seo-geo-aeo.spec.ts` — invariant test: manbada `<Script src>` orqali
+        yuklanadigan **har qanday** host `script-src` da bo'lishi shart (ro'yxat emas —
+        keyin qo'shiladigan teg ham avtomatik qamrab olinadi)
+- **Tekshiruv:** yangi test prod'ga qarshi **FAIL** (aniq xabar bilan) → fiksli mahalliy
+  server'ga qarshi **PASS** · spec typecheck (vaqtinchalik `tests/` kiritilgan config):
+  yangi xato yo'q, `src` dagi 5 ta eski + spec'dagi `TS1501` `main` da ham bor
+- **⚠️ Keyingi qadam:** deploy'dan keyin prod HTML'da emas, brauzer network panelida
+  tekshirish — HTML'da teg bor edi, muammo undan keyin boshlanadi
+- **📌 apps/app-web da ham xuddi shu bo'shliq:** u yerdagi CSP'da ham `mc.yandex.ru` yo'q,
+  lekin `NEXT_PUBLIC_YM_ID` o'sha servisda umuman o'rnatilmagan — counter `app.wewatch.uz`
+  ga ulanadigan bo'lsa, CSP'ni ham o'sha payt tuzatish kerak (bu PR unga tegmaydi)
 ---
 
 ### T-Y203 | P2 | [SEO] | sitemap.xml — sitemap index'ga bo'lish + buzuq priority qiymatlari

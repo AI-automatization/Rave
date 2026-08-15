@@ -1,7 +1,6 @@
-import { LandingShell } from '@/components/common/LandingShell';
-
-// The English locale itself comes from app/en/layout.tsx (LocaleBoundary), which
-// wraps this one. This layout only adds the marketing chrome.
-export default function EnLandingLayout({ children }: { children: React.ReactNode }) {
-  return <LandingShell>{children}</LandingShell>;
+// The marketing pages in this group are the only ones that do not carry their
+// own <main>: they are section lists rendered straight into the page. The nav
+// and footer around them come from the locale layout (SiteShell).
+export default function LandingLayout({ children }: { children: React.ReactNode }) {
+  return <main className="flex-1" id="main-content">{children}</main>;
 }

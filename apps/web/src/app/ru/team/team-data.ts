@@ -15,7 +15,7 @@ export type TeamMember = {
   knowsAbout: string[];  // expertise tags / schema knowsAbout
   focus: FocusArea[];    // "Направления" cards
   sameAs: string[];      // social profiles for Person.sameAs
-  photo: string;         // /team/<slug>.jpg
+  photo: string;         // /team-photos/<slug>.jpg
 };
 
 export const TEZCODE_TEAM_URL = 'https://tezcode.dev/team';
@@ -40,7 +40,7 @@ export const TEAM: TeamMember[] = [
       { title: 'AI-first подход', desc: 'Внедрение AI в процессы и продукты tezcode.' },
     ],
     sameAs: [],
-    photo: '/ru/team/bekzod-mirzaliyev.jpg',
+    photo: '/team-photos/bekzod-mirzaliyev.jpg',
   },
   {
     slug: 'ertan-emirhan',
@@ -60,7 +60,7 @@ export const TEAM: TeamMember[] = [
       { title: 'Производительность', desc: 'Плавность и стабильность на слабых сетях.' },
     ],
     sameAs: [],
-    photo: '/ru/team/ertan-emirhan.jpg',
+    photo: '/team-photos/ertan-emirhan.jpg',
   },
   {
     slug: 'saidazim-buriboyev',
@@ -80,7 +80,7 @@ export const TEAM: TeamMember[] = [
       { title: 'Видео-интеграции', desc: 'Поддержка YouTube, VK Видео, Rutube и прямых MP4-ссылок.' },
     ],
     sameAs: ['https://github.com/Foreger'],
-    photo: '/ru/team/saidazim-buriboyev.jpg',
+    photo: '/team-photos/saidazim-buriboyev.jpg',
   },
   {
     slug: 'abdulaziz-yormatov',
@@ -100,7 +100,7 @@ export const TEAM: TeamMember[] = [
       { title: 'Безопасность', desc: 'Поиск уязвимостей перед релизом.' },
     ],
     sameAs: [],
-    photo: '/ru/team/abdulaziz-yormatov.jpg',
+    photo: '/team-photos/abdulaziz-yormatov.jpg',
   },
 ];
 

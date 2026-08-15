@@ -1,4 +1,5 @@
 import { RootDocument, siteMetadata, siteViewport } from '@/components/common/RootDocument';
+import { SiteShell } from '@/components/common/SiteShell';
 
 // Russian used to live at the root without a prefix. It now has its own prefix
 // like every other language, so all three are addressed the same way and no
@@ -9,6 +10,12 @@ import { RootDocument, siteMetadata, siteViewport } from '@/components/common/Ro
 export const metadata = siteMetadata;
 export const viewport = siteViewport;
 
+// The nav and footer live here rather than in each page: every page under /ru
+// gets the same chrome, and a new one cannot be shipped without it.
 export default function RuLayout({ children }: { children: React.ReactNode }) {
-  return <RootDocument locale="ru">{children}</RootDocument>;
+  return (
+    <RootDocument locale="ru">
+      <SiteShell>{children}</SiteShell>
+    </RootDocument>
+  );
 }

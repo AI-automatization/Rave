@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { guidesFor } from '@/data/guides';
 
 const URL = 'https://wewatch.uz/ru/guides';
@@ -65,11 +64,10 @@ export default function GuidesHubPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <GuideHeader locale="ru" />
-      <main className="min-h-screen bg-[#060608] text-white">
+      <main className="flex-1 bg-page text-white">
         <div className="relative overflow-hidden border-b border-zinc-800/50">
           <div aria-hidden className="pointer-events-none absolute -top-40 left-1/2 h-80 w-[42rem] -translate-x-1/2 rounded-full bg-[#7B72F8]/20 blur-[120px]" />
-          <div className="relative max-w-4xl mx-auto px-4 sm:px-6 pt-16 pb-14">
+          <div className="page-hero relative max-w-4xl mx-auto px-4 sm:px-6 pt-16 pb-14">
             <nav aria-label="Хлебные крошки" className="text-zinc-600 text-xs mb-6">
               <Link href="/ru" className="hover:text-zinc-400 transition-colors">WeWatch</Link>
               <span className="mx-2">/</span>
@@ -113,7 +111,6 @@ export default function GuidesHubPage() {
           </div>
         </div>
       </main>
-      <GuideFooter locale="ru" />
     </>
   );
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
+import { GuideArticleEnd } from '@/components/common/GuideChrome';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { appUrl } from '@/lib/app-url';
 import { socialMeta } from '@/lib/i18n/metadata';
@@ -42,9 +42,8 @@ const IDEAS = [
 export default function OnlineDatePage() {
   return (
     <>
-      <GuideHeader locale="en" />
-      <main className="min-h-screen bg-[#060608] text-white">
-        <div className="max-w-3xl mx-auto px-4 py-16">
+      <main className="flex-1 bg-page text-white">
+        <div className="article max-w-3xl mx-auto px-4 py-16">
           <nav aria-label="Breadcrumb" className="text-sm text-zinc-500 mb-8">
             <Link href="/en" className="hover:text-white transition-colors">WeWatch</Link>
             <span className="mx-2">/</span>
@@ -95,7 +94,7 @@ export default function OnlineDatePage() {
           </div>
         </div>
       </main>
-      <GuideFooter locale="en" currentPath={PATH} />
+      <GuideArticleEnd locale="en" currentPath={PATH} />
     </>
   );
 }

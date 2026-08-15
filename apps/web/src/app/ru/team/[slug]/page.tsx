@@ -74,14 +74,14 @@ export default async function PersonPage({ params }: PersonPageProps) {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <main className="relative min-h-screen bg-[#0A0A0F] text-white overflow-hidden">
+      <main className="relative flex-1 bg-page text-white overflow-hidden">
         {/* mesh ambient */}
         <div aria-hidden className="pointer-events-none absolute inset-0">
           <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[600px] rounded-full blur-[160px]"
             style={{ background: 'radial-gradient(ellipse, rgba(123,114,248,0.16) 0%, rgba(168,85,247,0.06) 50%, transparent 72%)' }} />
         </div>
 
-        <div className="relative max-w-5xl mx-auto px-4 py-12 md:py-16">
+        <div className="page-hero relative max-w-5xl mx-auto px-4 py-12 md:py-16">
           <nav className="text-sm text-zinc-500 mb-10">
             <Link href="/ru" className="hover:text-white transition-colors">WeWatch</Link>
             <span className="mx-2 text-zinc-700">/</span>
