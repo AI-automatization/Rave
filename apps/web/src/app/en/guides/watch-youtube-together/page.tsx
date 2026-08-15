@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { FaPlay, FaYoutube } from 'react-icons/fa';
-import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
+import { GuideArticleEnd } from '@/components/common/GuideChrome';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { socialMeta } from '@/lib/i18n/metadata';
 
@@ -114,8 +114,7 @@ export default function WatchYouTubeTogetherEnPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <div className="min-h-screen bg-[#060608] text-zinc-300">
-        <GuideHeader locale="en" />
+      <div className="flex-1 bg-page text-zinc-300">
 
         <main className="max-w-4xl mx-auto px-4 sm:px-6 py-14">
           <div className="mb-10">
@@ -211,7 +210,7 @@ export default function WatchYouTubeTogetherEnPage() {
           </div>
         </main>
 
-        <GuideFooter locale="en" currentPath={PATH} />
+        <GuideArticleEnd locale="en" currentPath={PATH} />
       </div>
     </>
   );

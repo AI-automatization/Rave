@@ -278,8 +278,27 @@ export function guideGroupFor(path: string): { ru: string; uz?: string; en?: str
 export const guidesFor = (locale: GuideLocale): Guide[] =>
   GUIDES.filter((g) => g.locale === locale);
 
-/** Guides to link from the bottom of `currentPath`, same language, excluding itself. */
-export const relatedGuides = (currentPath: string, locale: GuideLocale, limit = 4): Guide[] =>
-  guidesFor(locale)
-    .filter((g) => g.path !== currentPath)
-    .slice(0, limit);
+/**
+ * Guides to link from the bottom of `currentPath`, same language, excluding itself.
+ *
+ * The window slides: it starts at the guide *after* `currentPath` and wraps around
+ * the locale's list. That is what makes the inbound links even — every guide is
+ * linked from exactly `limit` others, whatever its position in `GUIDES`.
+ *
+ * The previous implementation took `.slice(0, limit)` — the first four guides of the
+ * locale, identical on every page. Measured on prod 2026-08-14: six of the ten RU
+ * guides had never received a single related link, `kino-s-drugom-onlayn` (the film
+ * hub, T-Y202) among them, while `/terms` and `/privacy-policy` collected 55 each
+ * from the sitewide footer. That is the classic broken internal-link power curve:
+ * the linking rule itself was skewed to a subset, not the content.
+ */
+export const relatedGuides = (currentPath: string, locale: GuideLocale, limit = 6): Guide[] => {
+  const all = guidesFor(locale);
+  const start = all.findIndex((g) => g.path === currentPath);
+  // A caller that is not itself a guide (e.g. a use-case page) has no position in the
+  // ring; it gets the head of the list rather than nothing.
+  if (start === -1) return all.slice(0, limit);
+
+  const take = Math.min(limit, all.length - 1);
+  return Array.from({ length: take }, (_, i) => all[(start + 1 + i) % all.length]);
+};

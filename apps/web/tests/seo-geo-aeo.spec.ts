@@ -1,5 +1,7 @@
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { expect, test, type APIRequestContext } from '@playwright/test';
-import { GUIDES } from '../src/data/guides';
+import { GUIDES, guidesFor, relatedGuides } from '../src/data/guides';
 import { ARTICLES } from '../src/data/articles';
 import { PRODUCT_FACTS } from '../src/data/product-facts';
 import { pageContextFor } from '../src/lib/analytics/page-context';
@@ -53,6 +55,37 @@ async function allPageUrls(request: APIRequestContext): Promise<string[]> {
     urls.push(...sitemapUrls(childXml));
   }
   return urls;
+}
+
+/**
+ * Every host the source loads a `<Script src>` from.
+ *
+ * Read from the files rather than from the rendered HTML on purpose: Next injects
+ * `afterInteractive`/`lazyOnload` tags client-side, so they never appear as a
+ * `<script src>` attribute in the server HTML a test can fetch — the very tags most
+ * likely to be a third party are the ones invisible to an HTML assertion.
+ */
+function thirdPartyScriptHosts(dir: string): string[] {
+  const hosts = new Set<string>();
+
+  const walk = (current: string): void => {
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      const full = join(current, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+        continue;
+      }
+      if (!/\.tsx?$/.test(entry.name)) continue;
+
+      for (const [tag] of readFileSync(full, 'utf8').matchAll(/<Script\b[^>]*\/?>/g)) {
+        const host = /\bsrc=\{?[`'"]https:\/\/([a-z0-9.-]+)/i.exec(tag)?.[1];
+        if (host) hosts.add(host);
+      }
+    }
+  };
+
+  walk(dir);
+  return [...hosts];
 }
 
 function visibleHtmlText(html: string): string {
@@ -128,6 +161,79 @@ test.describe('SEO / GEO / AEO regression checks', () => {
     // A blocked host must not advertise the canonical sitemap either — that is an
     // invitation to crawl the duplicate copy of every URL it lists.
     expect(body).not.toContain('Sitemap:');
+  });
+
+  /**
+   * Internal links are the only ranking lever that works without external authority,
+   * and the failure mode is silent: the linking *rule* skews to a subset of pages and
+   * the rest quietly receive nothing. Nothing else in this suite notices — every page
+   * still renders, still validates, still carries its schema.
+   *
+   * Measured on prod 2026-08-14, before the fix: `relatedGuides` returned
+   * `.slice(0, 4)`, the same first four guides on every page, so six of the ten RU
+   * guides had zero inbound related links — `kino-s-drugom-onlayn` among them, which
+   * T-Y202 had just made the film-cluster hub.
+   *
+   * The assertion is symmetry, not a count: with a sliding window every guide is
+   * linked from exactly as many pages as it links to, so a future edit that
+   * reintroduces a fixed slice fails here rather than on prod three weeks later.
+   */
+  test('related links are spread evenly — no guide is left without inbound links', () => {
+    for (const locale of LOCALES) {
+      const guides = guidesFor(locale);
+      if (guides.length < 2) continue;
+
+      const inbound = new Map(guides.map((g) => [g.path, 0]));
+      for (const guide of guides) {
+        for (const related of relatedGuides(guide.path, locale)) {
+          expect(related.path, `${guide.path} must not link to itself`).not.toBe(guide.path);
+          inbound.set(related.path, (inbound.get(related.path) ?? 0) + 1);
+        }
+      }
+
+      const counts = [...inbound.values()];
+      const expected = counts[0];
+      for (const [path, count] of inbound) {
+        expect(count, `${path} gets ${count} inbound related links, others get ${expected}`).toBe(expected);
+      }
+      expect(expected, `${locale}: every guide needs inbound links`).toBeGreaterThan(0);
+    }
+  });
+
+  /**
+   * A script the app loads but the policy forbids fails in the one place nobody
+   * watches: the browser drops the request before it leaves the machine, so our logs
+   * show nothing, the third party reports nothing, and the result is indistinguishable
+   * from "no traffic yet".
+   *
+   * Measured on prod 2026-08-14 (T-Y204): Yandex Metrica was in the HTML and
+   * `NEXT_PUBLIC_YM_ID` had reached the build, yet `mc.yandex.ru/metrika/tag.js` was
+   * blocked by this header and every hit was lost — visible only in a browser's network
+   * panel. Two separate fixes had already been shipped for "Metrica is dead" before the
+   * real cause was found.
+   *
+   * The assertion is the invariant, not a list of hosts: whatever the source loads,
+   * the policy must allow. A tag added later is covered without anyone remembering
+   * this test exists.
+   */
+  test('every third-party script host in the source is allowed by script-src', async ({ request }) => {
+    const hosts = thirdPartyScriptHosts(join(__dirname, '..', 'src'));
+    expect(hosts.length, 'the source should load at least one third-party script').toBeGreaterThan(0);
+
+    const response = await request.get('/ru');
+    const csp = response.headers()['content-security-policy'] ?? '';
+    const scriptSrc = csp
+      .split(';')
+      .map((directive) => directive.trim())
+      .find((directive) => directive.startsWith('script-src'));
+    expect(scriptSrc, 'responses must carry a CSP with a script-src directive').toBeTruthy();
+
+    for (const host of hosts) {
+      expect(
+        scriptSrc,
+        `<Script src="https://${host}/…"> is loaded by the app but script-src forbids it`,
+      ).toContain(host);
+    }
   });
 
   test('every guide owns one unique primary search intent per locale', () => {

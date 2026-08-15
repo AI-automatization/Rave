@@ -40,10 +40,10 @@ export default function TeamPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <main className="min-h-screen bg-[#060608] text-white">
+      <main className="flex-1 bg-page text-white">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(60%_100%_at_50%_0%,rgba(123,114,248,0.15),transparent)]" />
 
-        <div className="relative max-w-5xl mx-auto px-4 py-12 md:py-16">
+        <div className="page-hero relative max-w-5xl mx-auto px-4 py-12 md:py-16">
           <nav className="text-sm text-zinc-500 mb-10">
             <Link href="/ru" className="hover:text-white transition-colors">WeWatch</Link>
             <span className="mx-2">/</span>
