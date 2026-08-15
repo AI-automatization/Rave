@@ -1,6 +1,30 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-08-14
+# Yangilangan: 2026-08-15
+
+---
+
+### T-Y206 | P2 | [WEB] | Landing — bitta header/footer butun sayt bo'ylab
+
+- **Mas'ul:** pending[Yakubov]
+- **Beruvchi:** Pokemon (Telegram, 2026-08-14 10:52)
+- **Yaratilgan:** 2026-08-15 09:40
+- **Holat:** 🔄 PR kutilmoqda (`yakubov/unify-landing-chrome` → `dev`)
+- **Tavsiya model:** opus
+- **Model sababi:** 60+ fayl, layout arxitekturasi o'zgaradi (chrome layout'ga ko'chdi)
+- **Sabab:** Saytda **to'rt xil header** bor edi: `LandingNav` (bosh sahifa +
+  `(landing)`), `GuideHeader` (guides/faq/how-it-works/use-cases), legal
+  sahifalarning ichki `<header>` nusxasi va `/delete-account` dagi qo'lda yozilgan
+  logotip. `/ru/use-cases/*`, `/ru/team`, `/ru/tezcode` da header umuman yo'q edi —
+  qidiruvdan kelgan o'quvchi mahsulotga qaytolmasdi. Fon rangi ham ikkiga bo'lingan
+  edi (`#0A0A0F` marketing, `#060608` guides/legal).
+- **Yechim:** `SiteShell` (nav + content + footer) locale layout'iga ko'chdi
+  (`/ru`, `/uz`, `/en` + legal layout'lar). `GuideHeader`/`GuideFooter` o'chirildi,
+  o'rniga `GuideArticleEnd` (faqat maqola metadata + related guides). Fon `bg-page`
+  tokeniga birlashtirildi (`--color-page`, globals.css).
+- **Tekshiruv:** 64 sahifa auditi — har birida bitta header/footer/main;
+  playwright 81 PASS / 0 FAIL; Lighthouse mobil: `/ru` 100/100/100,
+  guide 100/100/100, `/terms` a11y 92 → 96 (kontrast tuzatildi).
 
 ---
 
@@ -32,7 +56,6 @@
 - **📌 apps/app-web da ham xuddi shu bo'shliq:** u yerdagi CSP'da ham `mc.yandex.ru` yo'q,
   lekin `NEXT_PUBLIC_YM_ID` o'sha servisda umuman o'rnatilmagan — counter `app.wewatch.uz`
   ga ulanadigan bo'lsa, CSP'ni ham o'sha payt tuzatish kerak (bu PR unga tegmaydi)
-
 ---
 
 ### T-Y203 | P2 | [SEO] | sitemap.xml — sitemap index'ga bo'lish + buzuq priority qiymatlari

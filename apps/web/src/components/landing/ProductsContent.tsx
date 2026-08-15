@@ -22,7 +22,7 @@ export function ProductsContent() {
   const locale = useLocale();
 
   return (
-    <div className="bg-[#0A0A0F] text-white overflow-x-hidden">
+    <div className="bg-page text-white overflow-x-hidden">
       {/* ── HERO ── */}
       <section className="relative overflow-hidden px-4 pt-32 pb-16">
         <div className="absolute inset-0 pointer-events-none" aria-hidden="true">

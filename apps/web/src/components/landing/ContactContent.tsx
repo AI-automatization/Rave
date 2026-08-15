@@ -41,7 +41,7 @@ export function ContactContent() {
   };
 
   return (
-    <div className="bg-[#0A0A0F] text-white overflow-x-hidden">
+    <div className="bg-page text-white overflow-x-hidden">
       <section className="relative px-4 pt-32 pb-28 overflow-hidden">
         {/* ambient background */}
         <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
