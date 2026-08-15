@@ -45,13 +45,13 @@ export const GUIDES: Guide[] = [
   // ── Русские гайды ──────────────────────────────────────────────────────────
   {
     path: '/ru/guides/smotret-vmeste-onlayn',
-    headline: 'Смотреть вместе онлайн бесплатно',
+    headline: 'Смотреть видео вместе онлайн бесплатно',
     title: 'Смотреть вместе онлайн',
     summary: 'Как начать синхронный просмотр с друзьями — базовый гайд.',
     primaryIntent: 'смотреть вместе онлайн',
     secondaryIntents: ['смотреть видео вместе'],
     locale: 'ru',
-    lastModified: '2026-08-13',
+    lastModified: '2026-08-15',
     datePublished: '2026-06-15',
     priority: 0.9,
   },

@@ -4,6 +4,41 @@
 
 ---
 
+### T-Y207 | P1 | [SEO] | `смотреть видео вместе` faqat H2 da edi — title va H1 da yo'q
+
+- **Mas'ul:** pending[Yakubov]
+- **Beruvchi:** Yakubov
+- **Yaratilgan:** 2026-08-15 18:20
+- **Holat:** 🔄 PR ochildi (`yakubov/fix-video-vmeste-title-h1` → `dev`)
+- **Tavsiya model:** sonnet
+- **Model sababi:** 3 fayl, kontent qayta yozilmaydi — faqat title/H1/lead
+- **Sabab:** T-Y202 `/ru/guides/smotret-vmeste-onlayn` ni `смотреть видео вместе`
+  egasi qilib belgilagan (`secondaryIntents`), lekin bu ibora **faqat H2 da** turadi.
+  Title va H1 da «видео» so'zi umuman yo'q edi: title `Смотреть вместе онлайн
+  бесплатно…`, H1 `Смотреть вместе онлайн бесплатно`. Prod'da o'lchandi (2026-08-15,
+  curl). SERP'da (UZ lokali, 2026-08-15) shu so'rov bo'yicha **20-o'rin** — va
+  egasi bo'lgan sahifa emas, **`kino-s-drugom-onlayn`** (film hub) chiqadi:
+  Google ikki sahifadan o'zi tanlagan, chunki ikkalasining ham title'ida ibora yo'q.
+  Yuqoridagilarda esa ibora aynan **title** da: `Watch2Gether - Смотрите видео
+  вместе` (1-o'rin), `BlaTube - смотреть видео вместе онлайн` (6-o'rin).
+- **Qilish kerak:**
+  - [x] `page.tsx` — `metadata.title` va `openGraph.title` iborani boshiga oladi;
+        `keywords` da ham birinchi o'ringa ko'chdi
+  - [x] `page.tsx` — H1 `Смотреть видео вместе онлайн бесплатно`; lead paragraf
+        aynan shu ibora bilan boshlanadi
+  - [x] `data/guides.ts` — `headline` H1 bilan sinxron (izohda «Visible H1 and
+        Article.headline» deb yozilgan, schema sahifadan ajralmasligi kerak) +
+        `lastModified` 2026-08-15 (sitemap lastmod)
+- **`primaryIntent` o'zgarmadi:** `смотреть вместе онлайн` hamon shu sahifada —
+  breadcrumb, `Как смотреть вместе онлайн — 4 шага` H2 va matn ichida saqlanib qoldi.
+  Registry'dagi da'vo o'zgartirilmadi, faqat da'vo kuchli slotga ko'chirildi.
+- **Tekshiruv:** `seo-geo-aeo.spec.ts` ikkita invariantni himoya qiladi — H1 lokal
+  ichida unikal (`:384`) va **boshqa** gayd egalik qilingan so'rovni heading'da
+  ko'tarmasligi (`:291`). Yangi title/H1 qolgan 9 ta RU intent'ining hech birini
+  o'z ichiga olmaydi (tekshirildi, `vk видео` ≠ `видео`)
+
+---
+
 ### T-Y205 | P1 | [SEO] | Ichki linklar: `relatedGuides` har doim bir xil 4 ta gaydga link berardi
 
 - **Mas'ul:** pending[Yakubov]
