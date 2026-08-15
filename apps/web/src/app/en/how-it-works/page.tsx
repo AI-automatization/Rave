@@ -82,7 +82,7 @@ export default function EnHowItWorksPage() {
         {/* Hero */}
         <div className="relative overflow-hidden border-b border-zinc-800/50">
           <div aria-hidden className="pointer-events-none absolute -top-40 right-0 h-80 w-[36rem] rounded-full bg-[#7B72F8]/20 blur-[120px]" />
-          <div className="relative max-w-3xl mx-auto px-4 sm:px-6 pt-16 pb-14">
+          <div className="page-hero relative max-w-3xl mx-auto px-4 sm:px-6 pt-16 pb-14">
             <nav aria-label="Breadcrumb" className="text-sm text-zinc-500 mb-6">
               <Link href="/en" className="hover:text-white transition-colors">WeWatch</Link>
               <span className="mx-2">/</span>

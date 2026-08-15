@@ -16,7 +16,7 @@ const SUPPORT_EMAIL = 'support@wewatch.app';
 export default function DmcaPage() {
   return (
     <div className="flex-1 bg-page text-zinc-300">
-      <main className="max-w-4xl mx-auto px-6 py-16">
+      <main className="article max-w-4xl mx-auto px-6 py-16">
         <nav aria-label="Breadcrumb" className="text-zinc-400 text-xs mb-6">
           <Link href="/en" className="hover:text-zinc-400 transition-colors">WeWatch</Link>
           <span className="mx-2">/</span>

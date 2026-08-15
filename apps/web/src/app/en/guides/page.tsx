@@ -64,7 +64,7 @@ export default function EnGuidesHubPage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <main className="flex-1 bg-page text-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-14">
+        <div className="page-hero max-w-4xl mx-auto px-4 sm:px-6 py-14">
           <nav aria-label="Breadcrumb" className="text-zinc-600 text-xs mb-6">
             <Link href="/en" className="hover:text-zinc-400 transition-colors">WeWatch</Link>
             <span className="mx-2">/</span>

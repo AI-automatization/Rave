@@ -18,7 +18,7 @@ const SUPPORT_EMAIL = 'support@wewatch.app';
 export default function DeleteAccountPage() {
   return (
     <div className="flex-1 bg-page text-zinc-300">
-      <main className="max-w-4xl mx-auto px-6 py-16">
+      <main className="article max-w-4xl mx-auto px-6 py-16">
         <h1 className="text-4xl font-bold text-white mb-2">Delete Your Account</h1>
         <p className="text-zinc-400 text-sm mb-12">Last updated: {EFFECTIVE_DATE}</p>
 

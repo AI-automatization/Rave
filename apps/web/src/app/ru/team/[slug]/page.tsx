@@ -81,7 +81,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
             style={{ background: 'radial-gradient(ellipse, rgba(123,114,248,0.16) 0%, rgba(168,85,247,0.06) 50%, transparent 72%)' }} />
         </div>
 
-        <div className="relative max-w-5xl mx-auto px-4 py-12 md:py-16">
+        <div className="page-hero relative max-w-5xl mx-auto px-4 py-12 md:py-16">
           <nav className="text-sm text-zinc-500 mb-10">
             <Link href="/ru" className="hover:text-white transition-colors">WeWatch</Link>
             <span className="mx-2 text-zinc-700">/</span>

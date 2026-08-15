@@ -49,7 +49,7 @@ export default function LongDistancePage() {
   return (
     <>
       <main className="flex-1 bg-page text-white">
-        <div className="max-w-3xl mx-auto px-4 py-16">
+        <div className="article max-w-3xl mx-auto px-4 py-16">
           <nav aria-label="Breadcrumb" className="text-sm text-zinc-500 mb-8">
             <Link href="/en" className="hover:text-white transition-colors">WeWatch</Link>
             <span className="mx-2">/</span>

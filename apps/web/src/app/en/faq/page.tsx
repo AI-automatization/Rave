@@ -101,7 +101,7 @@ export default function EnFaqPage() {
         {/* Hero with a soft brand-purple glow behind the heading */}
         <div className="relative overflow-hidden border-b border-zinc-800/50">
           <div aria-hidden className="pointer-events-none absolute -top-40 left-1/2 h-80 w-[42rem] -translate-x-1/2 rounded-full bg-[#7B72F8]/20 blur-[120px]" />
-          <div className="relative max-w-4xl mx-auto px-6 pt-16 pb-14">
+          <div className="page-hero relative max-w-4xl mx-auto px-6 pt-16 pb-14">
             <nav aria-label="Breadcrumb" className="text-zinc-600 text-xs mb-6">
               <Link href="/en" className="hover:text-zinc-400 transition-colors">WeWatch</Link>
               <span className="mx-2">/</span>
