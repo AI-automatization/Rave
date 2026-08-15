@@ -4,6 +4,42 @@
 
 ---
 
+### T-Y205 | P1 | [SEO] | Ichki linklar: `relatedGuides` har doim bir xil 4 ta gaydga link berardi
+
+- **Mas'ul:** pending[Yakubov]
+- **Beruvchi:** Yakubov
+- **Yaratilgan:** 2026-08-14 08:10
+- **Holat:** 🔄 PR ochildi (`yakubov/fix-related-guides-ring` → `dev`)
+- **Tavsiya model:** sonnet
+- **Model sababi:** 3 fayl, sabab aniq, kontent yozilmaydi
+- **Sabab:** `relatedGuides()` `.slice(0, 4)` qaytarardi — ya'ni **har bir sahifada
+  o'sha bir xil dastlabki 4 ta gayd**. Natijada RU dagi 10 ta gayddan 6 tasi hech qachon
+  bironta ham related-link olmagan, ular orasida **`kino-s-drugom-onlayn`** —
+  T-Y202 da egasi film-klaster hub'i qilib tayinlagan sahifa. Prod'da o'lchandi
+  (2026-08-14): VK va Rutube gaydlarida butun sayt bo'yicha atigi **2 ta** kiruvchi
+  link, `/terms` va `/privacy-policy` da esa footer orqali **55 tadan**. Bu — ichki
+  linklarning klassik «power curve» buzilishi: aybdor kontent emas, linklash qoidasi.
+- **Qilish kerak:**
+  - [x] `data/guides.ts` — `.slice()` o'rniga **aylanma oyna** (joriy gayddan keyingi
+        N ta, ro'yxat oxiridan boshiga o'raladi) → har bir gayd bir xil sonda kiruvchi
+        link oladi, `GUIDES` dagi o'rnidan qat'i nazar; `limit` 4 → 6
+  - [x] `GuideChrome.tsx` — related blok `<nav>` emas, `<section aria-labelledby>`:
+        bu maqola ichidagi kontekstli linklar, navigatsiya emas (qidiruv tizimlari
+        navigatsiya landmark'idagi linklarni pastroq baholaydi)
+  - [x] `tests/seo-geo-aeo.spec.ts` — invariant test: locale ichida **har bir gayd
+        bir xil sonda** kiruvchi related-link olishi shart (simmetriya, sanoq emas)
+- **Natija (o'lchandi, body ichidagi linklar):** VK 2→8 · Rutube 2→7 ·
+  `watch-party-besplatno` 3→9 · `smotret-film-vdvoem` 4→8 · film hub 5→10 ·
+  EN gaydlar 3–4→7–8. Body-linki umuman yo'q sahifalar: 3→2
+- **Tekshiruv:** yangi test eski `.slice()` bilan **FAIL**, fiks bilan **PASS** ·
+  `npm run test:seo` **28/28** (production build'ga qarshi, `next start`) ·
+  spec typecheck: yangi xato yo'q
+- **📌 Keyingi qadam (bu PR emas):** `use-cases`, `team`, `company`, `contact`
+  sahifalarida hamon 2–5 ta link — 64 sahifadan 37 tasi 10 tadan kam. Gaydlar
+  tuzatildi, qolganlari alohida vazifa
+
+---
+
 ### T-Y206 | P2 | [WEB] | Landing — bitta header/footer butun sayt bo'ylab
 
 - **Mas'ul:** pending[Yakubov]
