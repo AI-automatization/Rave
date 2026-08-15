@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { guidesFor } from '@/data/guides';
 import { socialMeta } from '@/lib/i18n/metadata';
 
@@ -65,8 +64,7 @@ export default function UzGuidesHubPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <GuideHeader locale="uz" />
-      <main className="min-h-screen bg-[#060608] text-white">
+      <main className="flex-1 bg-page text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-14">
           <nav aria-label="Yo'l xaritasi" className="text-zinc-600 text-xs mb-6">
             <Link href="/uz" className="hover:text-zinc-400 transition-colors">WeWatch</Link>
@@ -133,7 +131,6 @@ export default function UzGuidesHubPage() {
           </div>
         </div>
       </main>
-      <GuideFooter locale="uz" />
     </>
   );
 }

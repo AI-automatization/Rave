@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { appUrl } from '@/lib/app-url';
 import { socialMeta } from '@/lib/i18n/metadata';
@@ -79,8 +78,7 @@ export default function EnHowItWorksPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(howToLd) }} />
-      <GuideHeader locale="en" />
-      <main className="min-h-screen bg-[#060608] text-white">
+      <main className="flex-1 bg-page text-white">
         {/* Hero */}
         <div className="relative overflow-hidden border-b border-zinc-800/50">
           <div aria-hidden className="pointer-events-none absolute -top-40 right-0 h-80 w-[36rem] rounded-full bg-[#7B72F8]/20 blur-[120px]" />
@@ -152,7 +150,6 @@ export default function EnHowItWorksPage() {
           </div>
         </div>
       </main>
-      <GuideFooter locale="en" />
     </>
   );
 }

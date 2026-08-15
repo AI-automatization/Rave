@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
+import { GuideArticleEnd } from '@/components/common/GuideChrome';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { appUrl } from '@/lib/app-url';
 import { socialMeta } from '@/lib/i18n/metadata';
@@ -48,8 +48,7 @@ const FAQS = [
 export default function MasofadagiJuftlikPage() {
   return (
     <>
-      <GuideHeader locale="uz" />
-      <main className="min-h-screen bg-[#060608] text-white">
+      <main className="flex-1 bg-page text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
           <nav aria-label="Yo'l xaritasi" className="text-sm text-zinc-500 mb-8">
             <Link href="/uz" className="hover:text-white transition-colors">WeWatch</Link>
@@ -125,7 +124,7 @@ export default function MasofadagiJuftlikPage() {
           </div>
         </div>
       </main>
-      <GuideFooter locale="uz" currentPath={PATH} />
+      <GuideArticleEnd locale="uz" currentPath={PATH} />
     </>
   );
 }

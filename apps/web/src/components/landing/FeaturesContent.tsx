@@ -237,7 +237,7 @@ export function FeaturesContent() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] relative">
+    <div className="min-h-screen bg-page relative">
 
       {/* ── Full-page star particles ── */}
       <PageStarField />

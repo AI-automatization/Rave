@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { socialMeta } from '@/lib/i18n/metadata';
 
@@ -98,8 +97,7 @@ export default function UzFaqPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <GuideHeader locale="uz" />
-      <div className="min-h-screen bg-[#060608] text-zinc-300">
+      <div className="flex-1 bg-page text-zinc-300">
         {/* Hero with a soft brand-purple glow behind the heading */}
         <div className="relative overflow-hidden border-b border-zinc-800/50">
           <div aria-hidden className="pointer-events-none absolute -top-40 left-1/2 h-80 w-[42rem] -translate-x-1/2 rounded-full bg-[#7B72F8]/20 blur-[120px]" />
@@ -162,7 +160,6 @@ export default function UzFaqPage() {
             </div>
           </div>
         </main>
-        <GuideFooter locale="uz" />
       </div>
     </>
   );

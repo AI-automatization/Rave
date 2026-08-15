@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
+import { GuideArticleEnd } from '@/components/common/GuideChrome';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { appUrl } from '@/lib/app-url';
 import { socialMeta } from '@/lib/i18n/metadata';
@@ -85,8 +85,7 @@ export default function KinoBirgalikdaPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <GuideHeader locale="uz" />
-      <main className="min-h-screen bg-[#060608] text-white">
+      <main className="flex-1 bg-page text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
           <nav className="text-sm text-zinc-500 mb-8">
             <Link href="/uz" className="hover:text-white transition-colors">WeWatch</Link>
@@ -184,7 +183,7 @@ export default function KinoBirgalikdaPage() {
           </div>
         </div>
       </main>
-      <GuideFooter locale="uz" currentPath="/uz/guides/kino-birgalikda" />
+      <GuideArticleEnd locale="uz" currentPath="/uz/guides/kino-birgalikda" />
     </>
   );
 }

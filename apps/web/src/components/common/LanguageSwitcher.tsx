@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LOCALES, LOCALE_LABEL, localeFromPath } from '@/lib/i18n/config';
+import { useLocale } from 'next-intl';
+import { LOCALES, LOCALE_LABEL, localeFromPath, isLocale } from '@/lib/i18n/config';
 import { switchLocalePath, translatedPath } from '@/lib/i18n/routes';
 
 /**
@@ -18,9 +19,15 @@ import { switchLocalePath, translatedPath } from '@/lib/i18n/routes';
  */
 export function LanguageSwitcher() {
   const pathname = usePathname();
+  const documentLocale = useLocale();
 
-  // The URL is the only source of truth for what is on screen.
-  const current = localeFromPath(pathname) ?? 'ru';
+  // The URL is the source of truth wherever it carries a locale prefix. The
+  // legal pages (/terms, /privacy-policy, /dmca, /delete-account) have none —
+  // one English copy serves all three languages — so there the layout's locale
+  // is what the page is actually written in. Falling back to 'ru' labelled
+  // those English pages "Русский", which became visible the moment they started
+  // rendering the sitewide nav instead of their own bare header.
+  const current = localeFromPath(pathname) ?? (isLocale(documentLocale) ? documentLocale : 'ru');
 
   return (
     <div className="relative group">

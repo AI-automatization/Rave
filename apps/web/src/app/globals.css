@@ -4,6 +4,11 @@
 @theme {
   --font-body: var(--font-dm-sans), "Segoe UI", sans-serif;
   --font-display: var(--font-oswald), "Arial Narrow", sans-serif;
+  /* The page background, as `bg-page`. There used to be two near-identical
+     blacks — #0A0A0F on the home and marketing pages, #060608 on the guides,
+     FAQ and legal pages — so the seam showed wherever one template linked to
+     the other. One token means a future page cannot invent a third. */
+  --color-page: #0A0A0F;
   --color-bg-base: oklch(16% 0.02 264);
   --color-bg-surface: oklch(20% 0.02 264);
   --color-bg-elevated: oklch(24% 0.02 264);
@@ -277,7 +282,7 @@
 }
 
 /* Breadcrumbs on the near-black editorial template need one brighter step. */
-main.bg-\[\#060608\] nav.text-zinc-500 {
+main.bg-page nav.text-zinc-500 {
   color: #a1a1aa;
 }
 

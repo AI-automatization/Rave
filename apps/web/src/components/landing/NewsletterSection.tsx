@@ -57,7 +57,7 @@ export function NewsletterSection() {
   };
 
   return (
-    <section className="relative bg-[#0A0A0F] px-4 py-20" aria-label={t('newsletterEyebrow')}>
+    <section className="relative bg-page px-4 py-20" aria-label={t('newsletterEyebrow')}>
       <div className="mx-auto max-w-3xl">
         <div className="mb-12 text-center">
           <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-[#7B72F8]">{t('newsletterEyebrow')}</p>

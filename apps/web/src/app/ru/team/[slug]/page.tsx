@@ -74,7 +74,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <main className="relative min-h-screen bg-[#0A0A0F] text-white overflow-hidden">
+      <main className="relative flex-1 bg-page text-white overflow-hidden">
         {/* mesh ambient */}
         <div aria-hidden className="pointer-events-none absolute inset-0">
           <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[600px] rounded-full blur-[160px]"

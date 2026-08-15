@@ -1,4 +1,5 @@
 import { RootDocument, siteMetadata, siteViewport } from '@/components/common/RootDocument';
+import { SiteShell } from '@/components/common/SiteShell';
 
 // No layout-level alternates: hreflang is page-specific. Inheriting the old
 // home-page pair here made every nested URL (for example /uz/faq) advertise the
@@ -9,5 +10,9 @@ export const metadata = siteMetadata;
 export const viewport = siteViewport;
 
 export default function UzLayout({ children }: { children: React.ReactNode }) {
-  return <RootDocument locale="uz">{children}</RootDocument>;
+  return (
+    <RootDocument locale="uz">
+      <SiteShell>{children}</SiteShell>
+    </RootDocument>
+  );
 }

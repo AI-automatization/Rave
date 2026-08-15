@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
+import { GuideArticleEnd } from '@/components/common/GuideChrome';
 import { hreflangFor } from '@/lib/i18n/routes';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
@@ -59,8 +59,7 @@ export default function SmotretYoutubeVmestePage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <GuideHeader locale="ru" />
-      <main className="min-h-screen bg-[#060608] text-white">
+      <main className="flex-1 bg-page text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
           <nav className="text-sm text-zinc-500 mb-8">
             <Link href="/ru" className="hover:text-white transition-colors">WeWatch</Link>
@@ -151,7 +150,7 @@ export default function SmotretYoutubeVmestePage() {
           </div>
         </div>
       </main>
-      <GuideFooter locale="ru" currentPath="/ru/guides/smotret-youtube-vmeste" />
+      <GuideArticleEnd locale="ru" currentPath="/ru/guides/smotret-youtube-vmeste" />
     </>
   );
 }

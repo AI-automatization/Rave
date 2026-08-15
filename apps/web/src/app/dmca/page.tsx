@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { WeWatchLogo } from '@/components/common/WeWatchLogo';
 
 export const metadata: Metadata = {
   title: 'DMCA Policy',
@@ -16,25 +15,15 @@ const SUPPORT_EMAIL = 'support@wewatch.app';
 
 export default function DmcaPage() {
   return (
-    <div className="min-h-screen bg-[#060608] text-zinc-300">
-      <header className="sticky top-0 z-50 bg-[#060608]/90 backdrop-blur-md border-b border-zinc-800/60">
-        <div className="max-w-4xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
-          <WeWatchLogo variant="horizontal" iconSize={26} href="/en" />
-          <div className="flex gap-5 text-sm text-zinc-400">
-            <Link href="/privacy-policy" className="hover:text-white transition-colors">Privacy</Link>
-            <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
-          </div>
-        </div>
-      </header>
-
+    <div className="flex-1 bg-page text-zinc-300">
       <main className="max-w-4xl mx-auto px-6 py-16">
-        <nav aria-label="Breadcrumb" className="text-zinc-600 text-xs mb-6">
+        <nav aria-label="Breadcrumb" className="text-zinc-400 text-xs mb-6">
           <Link href="/en" className="hover:text-zinc-400 transition-colors">WeWatch</Link>
           <span className="mx-2">/</span>
-          <span className="text-zinc-500">DMCA</span>
+          <span className="text-zinc-400">DMCA</span>
         </nav>
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-2 tracking-tight">DMCA &amp; Copyright Policy</h1>
-        <p className="text-zinc-500 text-sm mb-12">
+        <p className="text-zinc-400 text-sm mb-12">
           Last updated: {EFFECTIVE_DATE}
         </p>
 
@@ -224,7 +213,7 @@ export default function DmcaPage() {
             a direct financial benefit attributable to infringing activity. We have designated a
             copyright agent and maintain a repeat infringer policy, as required by § 512(i).
           </p>
-          <p className="mt-2 text-xs text-zinc-500">
+          <p className="mt-2 text-xs text-zinc-400">
             Note: Because WeWatch does not host, store, or proxy video content — it only stores
             URLs pointing to externally hosted content — copyright takedown actions must ultimately
             be directed to the platform hosting the video (YouTube, Vimeo, etc.) to achieve full
@@ -271,16 +260,6 @@ export default function DmcaPage() {
         </Section>
       </main>
 
-      <footer className="border-t border-zinc-800/60 py-6 mt-8">
-        <div className="max-w-4xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-zinc-600 text-xs">© {new Date().getFullYear()} {COMPANY}. All rights reserved.</p>
-          <div className="flex gap-4 text-zinc-600 text-xs">
-            <Link href="/privacy-policy" className="hover:text-zinc-400 transition-colors">Privacy</Link>
-            <Link href="/terms" className="hover:text-zinc-400 transition-colors">Terms</Link>
-            <Link href="/en" className="hover:text-zinc-400 transition-colors">← Home</Link>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

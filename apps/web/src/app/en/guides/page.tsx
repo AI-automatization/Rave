@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { guidesFor } from '@/data/guides';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { socialMeta } from '@/lib/i18n/metadata';
@@ -64,8 +63,7 @@ export default function EnGuidesHubPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <GuideHeader locale="en" />
-      <main className="min-h-screen bg-[#060608] text-white">
+      <main className="flex-1 bg-page text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-14">
           <nav aria-label="Breadcrumb" className="text-zinc-600 text-xs mb-6">
             <Link href="/en" className="hover:text-zinc-400 transition-colors">WeWatch</Link>
@@ -106,7 +104,6 @@ export default function EnGuidesHubPage() {
           </div>
         </div>
       </main>
-      <GuideFooter locale="en" />
     </>
   );
 }

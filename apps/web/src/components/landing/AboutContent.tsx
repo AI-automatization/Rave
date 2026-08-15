@@ -42,7 +42,7 @@ export function AboutContent() {
   ];
 
   return (
-    <div className="bg-[#0A0A0F] text-white overflow-x-hidden">
+    <div className="bg-page text-white overflow-x-hidden">
       {/* HERO */}
       <section className="relative min-h-[72vh] flex items-center justify-center px-4 pt-32 pb-20 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none" aria-hidden="true">

@@ -34,7 +34,9 @@ export default function GlobalError({
     <html>
       <body
         style={{
-          background: '#060608',
+          // Literal rather than the `bg-page` token: this screen replaces the
+          // whole document, stylesheet included, when rendering fails.
+          background: '#0A0A0F',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

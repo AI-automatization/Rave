@@ -35,7 +35,7 @@ export const metadata: Metadata = {
 export default function DalnieOtnosheniyaPage() {
   return (
     <>
-      <main className="min-h-screen bg-[#060608] text-white">
+      <main className="flex-1 bg-page text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
           <nav className="text-sm text-zinc-500 mb-8">
             <Link href="/ru" className="hover:text-white transition-colors">WeWatch</Link>
