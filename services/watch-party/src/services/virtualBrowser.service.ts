@@ -643,6 +643,39 @@ export async function startSession(
         if (track !== 'video' && track !== 'audio') return;
         appendCaptureTrack(roomId, track, Buffer.from(base64Chunk, 'base64'));
       });
+      // Real prod finding 2026-08-16 (uzmovi.net, live-tested): sites using videojs-contrib-ads +
+      // a VAST plugin (videojsx.vast.js) play the pre-/mid-roll ad creative through the SAME
+      // Video.js instance and, on at least this site, the SAME MediaSource/SourceBuffer pipeline
+      // as the real content -- our appendBuffer hook below has no way to tell an ad chunk from a
+      // content chunk, so whichever one crosses MIN_SWITCH_BYTES first gets confirmed to the room.
+      // If that's the ad, the room gets stuck on it (ad is short/finite, buffer stops growing in a
+      // way that looks like playable content) even though the real movie starts flowing seconds
+      // later on the SAME owner browser. videojs-contrib-ads' internal `.ads.state` turned out to
+      // be a version-specific class-based state machine on this site's bundled copy (no stable
+      // 'content-playback' string to compare against, confirmed by fetching and inspecting the
+      // actual minified bundle live) -- using it directly would have been guesswork. `.ads` DOES
+      // expose a small set of documented public boolean methods for exactly this
+      // (isAdPlaying/inAdBreak/isInAdMode), stable across versions since they're the plugin's own
+      // public API surface, not internals. Fail-open on purpose: `.ads` missing, `isAdPlaying`
+      // missing/throwing, or no videojs at all (the large majority of sites) all fall through to
+      // `false` (capture proceeds exactly as before this existed) -- this must never be able to
+      // wedge capture off entirely, that would be a worse regression than the ad-poisoning bug it
+      // fixes. Shared by both the appendBuffer hook and the real-playback-confirmation script below.
+      await page.addInitScript(/* js */ `
+        window.__wewatchIsAdPlaying = function () {
+          try {
+            if (!window.videojs || !window.videojs.getPlayers) return false;
+            var players = window.videojs.getPlayers();
+            for (var id in players) {
+              var p = players[id];
+              if (p && p.ads && typeof p.ads.isAdPlaying === 'function' && p.ads.isAdPlaying()) {
+                return true;
+              }
+            }
+          } catch (e) { /* never break playback */ }
+          return false;
+        };
+      `);
       await page.addInitScript(/* js */ `
         (function () {
           if (!window.SourceBuffer || !window.SourceBuffer.prototype.appendBuffer) return;
@@ -686,10 +719,12 @@ export async function startSession(
           }
           window.SourceBuffer.prototype.appendBuffer = function (data) {
             try {
-              const b64 = toBase64(data);
-              window.__wewatchCaptureChunk(b64);
-              const track = trackByBuffer.get(this);
-              if (track && dualTrackConfirmed) window.__wewatchCaptureTrackChunk(track, b64);
+              if (!window.__wewatchIsAdPlaying || !window.__wewatchIsAdPlaying()) {
+                const b64 = toBase64(data);
+                window.__wewatchCaptureChunk(b64);
+                const track = trackByBuffer.get(this);
+                if (track && dualTrackConfirmed) window.__wewatchCaptureTrackChunk(track, b64);
+              }
             } catch (e) { /* never break playback */ }
             return origAppend.apply(this, arguments);
           };
@@ -712,6 +747,7 @@ export async function startSession(
             const reported = new WeakSet();
             function reportIfPlaying(el) {
               if (reported.has(el) || !el.currentSrc || el.paused || el.currentTime < 0.25) return;
+              if (window.__wewatchIsAdPlaying && window.__wewatchIsAdPlaying()) return;
               reported.add(el);
               try { window.__wewatchRealPlayback(el.currentSrc); } catch (e) { /* never break playback */ }
             }
