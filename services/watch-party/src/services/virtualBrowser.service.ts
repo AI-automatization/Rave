@@ -13,6 +13,35 @@ import { isPrivateUrl, isOwnVbUrl } from './extractionClient';
 
 export const VB_VIEWPORT = { width: 1280, height: 720 } as const;
 
+// Some sites reject the VB browser's page load itself (e.g. hdrezka.ag: connection reset before
+// any HTML is served, direct AND via a datacenter proxy in a different country -- looks like an
+// ASN/hosting-IP block, not a geo-IP one, same family as the fayllar1.ru datacenter block this
+// week; see F-291-adjacent Bunny Edge fix, which only covers the byte-fetch of an ALREADY
+// resolved media URL, not the page navigation itself). Unlike that fix, this needs the whole
+// browser context routed through a proxy, so it's wired at newContext() instead. Off by default
+// (no env vars set = no proxy, current behavior unchanged) and scoped to a domain allowlist so
+// sites that don't need it aren't slowed down / don't burn proxy bandwidth for nothing.
+const VB_PROXY_SERVER = process.env.VB_PROXY_SERVER;
+const VB_PROXY_USERNAME = process.env.VB_PROXY_USERNAME;
+const VB_PROXY_PASSWORD = process.env.VB_PROXY_PASSWORD;
+const VB_PROXY_DOMAINS = (process.env.VB_PROXY_DOMAINS ?? '')
+  .split(',')
+  .map((d) => d.trim().toLowerCase())
+  .filter(Boolean);
+
+function getProxyForUrl(url: string): { server: string; username?: string; password?: string } | undefined {
+  if (!VB_PROXY_SERVER || VB_PROXY_DOMAINS.length === 0) return undefined;
+  let hostname: string;
+  try {
+    hostname = new URL(url).hostname.toLowerCase();
+  } catch {
+    return undefined;
+  }
+  const needsProxy = VB_PROXY_DOMAINS.some((d) => hostname === d || hostname.endsWith(`.${d}`));
+  if (!needsProxy) return undefined;
+  return { server: VB_PROXY_SERVER, username: VB_PROXY_USERNAME, password: VB_PROXY_PASSWORD };
+}
+
 const MAX_CONCURRENT = 3;
 
 // Anti-detection — the plain launch config below had zero stealth measures; real prod logs
@@ -485,7 +514,7 @@ export async function startSession(
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', ...STEALTH_LAUNCH_ARGS, ...ANTI_THROTTLE_LAUNCH_ARGS],
     });
-    const context = await browser.newContext({ viewport: VB_VIEWPORT, userAgent: STEALTH_USER_AGENT });
+    const context = await browser.newContext({ viewport: VB_VIEWPORT, userAgent: STEALTH_USER_AGENT, proxy: getProxyForUrl(url) });
     await applyStealthPatches(context);
     const page = await context.newPage();
     const cdp = await context.newCDPSession(page);
@@ -794,7 +823,7 @@ export async function probeUrl(url: string): Promise<{ mediaUrl: string; type: M
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', ...STEALTH_LAUNCH_ARGS, ...ANTI_THROTTLE_LAUNCH_ARGS],
     });
-    const context = await browser.newContext({ viewport: VB_VIEWPORT, userAgent: STEALTH_USER_AGENT });
+    const context = await browser.newContext({ viewport: VB_VIEWPORT, userAgent: STEALTH_USER_AGENT, proxy: getProxyForUrl(url) });
     await applyStealthPatches(context);
     const page = await context.newPage();
 
