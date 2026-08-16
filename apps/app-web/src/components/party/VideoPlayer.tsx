@@ -85,6 +85,31 @@ function VideoLoading({ label }: { label?: string }) {
   );
 }
 
+// Shown to the OWNER when playback has genuinely failed. The silent VB auto-fallback (RoomContent's
+// handleVideoFatalError → vbStart) is already running in the background — this used to be the
+// owner's ONLY option, a bare "Opening virtual browser..." spinner with no escape hatch if VB also
+// comes up empty. The badge gives the owner a direct way to jump straight to the candidate picker
+// (same one "Это не то видео" already opens) instead of waiting out a VB session that might not
+// find anything either.
+function OwnerVideoStuckOverlay({ onPickDifferentVideo }: { onPickDifferentVideo?: () => void }) {
+  const t = useTranslations('party');
+  return (
+    <div className="relative">
+      <VideoLoading label={t('playerOpeningVB')} />
+      {onPickDifferentVideo && (
+        <button
+          type="button"
+          onClick={() => { trackClick('video:stuck_pick_different'); onPickDifferentVideo(); }}
+          className="absolute bottom-4 flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 text-[12px] font-medium text-white/80 backdrop-blur-sm cursor-pointer transition-colors hover:bg-black/85 hover:text-white"
+        >
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-400" />
+          {t('playerVideoStuck')} — {t('playerPickAnother')}
+        </button>
+      )}
+    </div>
+  );
+}
+
 // Shown to a NON-owner viewer when playback has genuinely failed. The owner-only VB auto-fallback
 // (RoomContent's handleVideoFatalError → vbStart) is what actually recovers this room — a non-
 // owner can never trigger that themselves (vbStart is gated on isOwner), so leaving them on the
@@ -127,6 +152,14 @@ interface Props {
    * etc.) don't report through this — they're not part of the extraction-vs-playback gap this
    * closes, same scope mobile's version has. */
   onFatalError?: () => void;
+  /** Owner-only escape hatch shown alongside the fatal-error "Opening virtual browser..." state —
+   * opens the same video-candidate picker as RoomHeader's "Это не то видео" menu item, so the
+   * owner isn't stuck waiting on a VB session that might not find anything either. */
+  onPickDifferentVideo?: () => void;
+  /** True while at least one voice-chat participant is speaking — ducks the video's volume down
+   * so the voice call and video audio don't compete. Threaded down to NativeVideoPlayer only;
+   * official embeds (YouTube/etc.) don't expose volume control across the iframe boundary. */
+  duckAudio?: boolean;
 }
 
 interface ExtractResult {
@@ -368,6 +401,246 @@ export async function buildProxyUrl(cdnUrl: string, headers?: Record<string, str
   return `/api/content/proxy-stream?url=${encodeURIComponent(cdnUrl)}&h=${h}`;
 }
 
+interface CaptureMseResult {
+  mediaSource: MediaSource;
+  objectUrl: string;
+  /** Stops all background tail-fetch loops (one or two, single- vs dual-track). Idempotent. Does
+   * NOT touch mediaSource/objectUrl lifecycle — the caller (the effect's own cleanup) owns
+   * revoking/ending those, since it's the one that created them and may want to do so in a
+   * specific order relative to other cleanup. */
+  teardown: () => void;
+}
+
+async function probeCodecs(url: string): Promise<{ codecs: string | null; tracks: string[] }> {
+  // A tiny range, not a HEAD — vbCapture.controller.ts only sets X-Vb-Codecs/X-Vb-Tracks on the
+  // same stream()/streamTrack() handler a real playback request hits; a HEAD isn't guaranteed to
+  // run the same path depending on how far up the stack (Bunny, Railway's edge) something might
+  // intercept it.
+  const res = await fetch(url, { headers: { Range: 'bytes=0-0' } });
+  const tracksHeader = res.headers.get('X-Vb-Tracks');
+  return {
+    codecs: res.headers.get('X-Vb-Codecs'),
+    tracks: tracksHeader ? tracksHeader.split(',').map((t) => t.trim()).filter(Boolean) : [],
+  };
+}
+
+// Repeatedly range-fetches `url` from wherever it left off and appends each new chunk to
+// `sourceBuffer`, serialized through `updateend` (never calls appendBuffer while `.updating` is
+// true). One instance of this loop per SourceBuffer — single-track capture runs one, dual-track
+// (see vbCapture.service.ts) runs two independently, one per track URL.
+function runCaptureTailPump(
+  video: HTMLVideoElement,
+  url: string,
+  sourceBuffer: SourceBuffer,
+  cb: { onFatal: () => void; onFirstAppend: () => void; isCancelled: () => boolean },
+): () => void {
+  let stopped = false;
+  const appendQueue: Uint8Array[] = [];
+  let appending = false;
+  let readySignaled = false;
+
+  function pump() {
+    if (stopped || appending || sourceBuffer.updating || appendQueue.length === 0) return;
+    const chunk = appendQueue.shift();
+    if (!chunk) return;
+    appending = true;
+    try {
+      // fetch's ReadableStream reader types chunks as Uint8Array<ArrayBufferLike> (DOM lib allows
+      // a SharedArrayBuffer-backed view in principle); appendBuffer wants ArrayBuffer specifically.
+      // Never actually SharedArrayBuffer-backed at runtime here — plain type-level mismatch.
+      sourceBuffer.appendBuffer(chunk as BufferSource);
+    } catch (e) {
+      appending = false;
+      // Real, expected failure mode for a long-running capture: the buffered range grows
+      // unbounded otherwise. Trim everything more than 30s behind the current playback position
+      // and let the next tail-fetch cycle re-queue naturally — remove() itself fires its own
+      // updateend, which re-triggers pump() via the listener below.
+      if (e instanceof DOMException && e.name === 'QuotaExceededError' && video.currentTime > 30) {
+        try { sourceBuffer.remove(0, video.currentTime - 30); } catch { /* already removing */ }
+      }
+    }
+  }
+
+  sourceBuffer.addEventListener('updateend', () => {
+    appending = false;
+    if (!readySignaled) { readySignaled = true; cb.onFirstAppend(); }
+    pump();
+  });
+
+  const POLL_MS = 1000;
+  let position = 0;
+
+  void (async () => {
+    while (!stopped && !cb.isCancelled()) {
+      let res: Response;
+      try {
+        res = await fetch(url, { headers: { Range: `bytes=${position}-` } });
+      } catch {
+        await new Promise((r) => setTimeout(r, POLL_MS));
+        continue;
+      }
+      if (stopped || cb.isCancelled()) return;
+      if (!res.ok || !res.body) {
+        await new Promise((r) => setTimeout(r, POLL_MS));
+        continue;
+      }
+      // vbCapture.controller.ts clamps `start` down to `totalBytes - 1` when asked for a range
+      // that doesn't exist YET (no new bytes since the last poll) rather than hanging the
+      // request — that response re-serves already-appended bytes, not new ones. Content-Range's
+      // own reported start is the ground truth for what actually came back; only trust the body
+      // as new data when it matches what was requested.
+      const contentRange = res.headers.get('Content-Range');
+      const rangeStart = contentRange ? Number(/bytes (\d+)-/.exec(contentRange)?.[1]) : position;
+      const isStaleReplay = Number.isFinite(rangeStart) && rangeStart < position;
+
+      const reader = res.body.getReader();
+      let gotNewBytes = false;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (stopped || cb.isCancelled()) { void reader.cancel(); return; }
+        if (value && value.length > 0 && !isStaleReplay) {
+          gotNewBytes = true;
+          position += value.length;
+          appendQueue.push(value);
+          pump();
+        }
+      }
+      if (!gotNewBytes) await new Promise((r) => setTimeout(r, POLL_MS));
+    }
+  })();
+
+  return () => { stopped = true; };
+}
+
+// VB capture (categories B/C, vbCapture.service.ts) is a live-growing raw fMP4 byte stream with
+// no independently-fetchable URL of its own — see that file's own header comment. A plain
+// `video.src = captureUrl` works on Safari but not Chrome (confirmed live 2026-08-14: native
+// MEDIA_ERR_SRC_NOT_SUPPORTED, "Format error" — Chrome's progressive-download prober won't commit
+// to a format for a resource whose total size changes between requests the way this one does).
+// This feeds the same bytes to a MediaSource/SourceBuffer instead, which works identically on
+// every browser since the caller (not the browser's own guesswork) controls exactly what gets
+// decoded and when.
+//
+// Dual-track (2026-08-14): some sources feed the source page's player through TWO independent
+// SourceBuffers (separate video/audio), which the ORIGINAL single combined vb-capture buffer
+// stores interleaved — not a valid single MP4 stream. vbCapture.service.ts's per-track buffers
+// (X-Vb-Tracks header, /vb-capture/:roomId/:track endpoints) give each track its own clean byte
+// stream; when both are available this creates TWO real SourceBuffers instead of one. Falls back
+// to the original single-buffer path when only the combined buffer exists (X-Vb-Tracks absent —
+// WebSocket-sourced captures, or a page using only one SourceBuffer to begin with).
+//
+// Returns null if MSE playback isn't attemptable for any reason (no MediaSource support, no/
+// unrecognized codec from the server — see mp4CodecSniff.service.ts's own contract for when that
+// happens, unsupported by THIS browser's MSE implementation, or the initial probe request
+// failed) — the caller's contract is: null means "fall back to plain video.src", never worse than
+// not having this at all.
+async function setupCaptureMse(
+  video: HTMLVideoElement,
+  src: string,
+  cb: { onFatal: () => void; onReady: () => void; isCancelled: () => boolean },
+): Promise<CaptureMseResult | null> {
+  if (typeof MediaSource === 'undefined') return null;
+
+  let probe: { codecs: string | null; tracks: string[] };
+  try {
+    probe = await probeCodecs(src);
+  } catch {
+    return null;
+  }
+  if (cb.isCancelled()) return null;
+
+  const dualTrack = probe.tracks.includes('video') && probe.tracks.includes('audio');
+
+  // Dual-track setup: probe each track's own endpoint for its own codec, verify both are usable
+  // BEFORE creating anything — same all-or-nothing contract as the single-buffer path, just
+  // checked twice. Any failure here falls through to the single-buffer attempt below rather than
+  // giving up outright, since the combined buffer might still work fine on its own.
+  if (dualTrack && !cb.isCancelled()) {
+    try {
+      const [videoProbe, audioProbe] = await Promise.all([
+        probeCodecs(`${src}/video`),
+        probeCodecs(`${src}/audio`),
+      ]);
+      const videoMime = videoProbe.codecs ? `video/mp4; codecs="${videoProbe.codecs}"` : null;
+      const audioMime = audioProbe.codecs ? `audio/mp4; codecs="${audioProbe.codecs}"` : null;
+      if (
+        videoMime && audioMime && !cb.isCancelled()
+        && MediaSource.isTypeSupported(videoMime) && MediaSource.isTypeSupported(audioMime)
+      ) {
+        const mediaSource = new MediaSource();
+        const objectUrl = URL.createObjectURL(mediaSource);
+        video.src = objectUrl;
+
+        await new Promise<void>((resolve) => {
+          mediaSource.addEventListener('sourceopen', () => resolve(), { once: true });
+        });
+        if (!cb.isCancelled() && mediaSource.readyState === 'open') {
+          let videoBuffer: SourceBuffer;
+          let audioBuffer: SourceBuffer;
+          try {
+            videoBuffer = mediaSource.addSourceBuffer(videoMime);
+            audioBuffer = mediaSource.addSourceBuffer(audioMime);
+          } catch {
+            // isTypeSupported passing isn't a 100% guarantee the browser will actually accept the
+            // string in addSourceBuffer (same caveat the single-buffer path below already notes).
+            // This MediaSource/objectUrl were never handed off to a running pump — nothing to stop,
+            // just release the blob URL before falling through to the single-buffer attempt, which
+            // creates its own fresh MediaSource and overwrites video.src again.
+            URL.revokeObjectURL(objectUrl);
+            throw new Error('dual-track addSourceBuffer rejected');
+          }
+          // Only one onReady() call regardless of which track's first chunk lands first —
+          // attemptOwnerAutoplay only needs to fire once.
+          let readyFired = false;
+          const fireReadyOnce = () => { if (!readyFired) { readyFired = true; cb.onReady(); } };
+          const stopVideo = runCaptureTailPump(video, `${src}/video`, videoBuffer, { onFatal: cb.onFatal, onFirstAppend: fireReadyOnce, isCancelled: cb.isCancelled });
+          const stopAudio = runCaptureTailPump(video, `${src}/audio`, audioBuffer, { onFatal: cb.onFatal, onFirstAppend: fireReadyOnce, isCancelled: cb.isCancelled });
+          return { mediaSource, objectUrl, teardown: () => { stopVideo(); stopAudio(); } };
+        }
+        // Cancelled or the source closed itself while awaiting sourceopen — still return a real
+        // result so the caller's cleanup can revoke/close it, matching the single-buffer path.
+        return { mediaSource, objectUrl, teardown: () => {} };
+      }
+    } catch {
+      // Either the per-track probe fetch failed outright, or addSourceBuffer rejected the sniffed
+      // codec (its own catch above already released the objectUrl before rethrowing into here) —
+      // either way, fall through to the single-buffer attempt below.
+    }
+  }
+
+  if (cb.isCancelled()) return null;
+  const codecs = probe.codecs;
+  if (!codecs) return null;
+
+  const mimeType = `video/mp4; codecs="${codecs}"`;
+  if (!MediaSource.isTypeSupported(mimeType)) return null;
+
+  const mediaSource = new MediaSource();
+  const objectUrl = URL.createObjectURL(mediaSource);
+  video.src = objectUrl;
+
+  await new Promise<void>((resolve) => {
+    mediaSource.addEventListener('sourceopen', () => resolve(), { once: true });
+  });
+  if (cb.isCancelled() || mediaSource.readyState !== 'open') return { mediaSource, objectUrl, teardown: () => {} };
+
+  let sourceBuffer: SourceBuffer;
+  try {
+    sourceBuffer = mediaSource.addSourceBuffer(mimeType);
+  } catch {
+    // Codec string parsed as valid MIME but the browser's MSE implementation still rejected it
+    // outright (rare, but isTypeSupported isn't a 100% guarantee across all engines) — this is
+    // past the point where falling back to plain video.src still makes sense (video.src is
+    // already the blob: URL), so treat it as a genuine playback failure instead.
+    cb.onFatal();
+    return { mediaSource, objectUrl, teardown: () => {} };
+  }
+
+  const stop = runCaptureTailPump(video, src, sourceBuffer, { onFatal: cb.onFatal, onFirstAppend: cb.onReady, isCancelled: cb.isCancelled });
+  return { mediaSource, objectUrl, teardown: stop };
+}
+
 // iOS (every browser engine on it — Chrome/Firefox/Edge for iOS are all WebKit under the hood)
 // hard-ignores `HTMLMediaElement.volume` assignments: Apple restricts in-page volume control to
 // the hardware buttons only, by design. A custom volume slider silently does nothing there —
@@ -437,6 +710,9 @@ interface NativeProps {
    * needs a click, not a different source. Mirrors mobile's UniversalPlayer `onFatalError`; the
    * caller (RoomContent) decides what to do with it (owner-only VB fallback). */
   onFatalError?: () => void;
+  /** True while at least one voice-chat participant is speaking — ducks video volume down so the
+   * two audio sources don't compete. See userVolumeRef/isDuckedRef comment above `volume` state. */
+  duckAudio?: boolean;
 }
 
 function NativeVideoPlayer({
@@ -456,6 +732,7 @@ function NativeVideoPlayer({
   onOverlayClick,
   onAutoplayBlocked,
   onFatalError,
+  duckAudio,
 }: NativeProps) {
   const t = useTranslations('party');
   const hlsRef = useRef<import('hls.js').default | null>(null);
@@ -527,6 +804,19 @@ function NativeVideoPlayer({
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
+  // Voice ducking — lower the video's volume while someone is talking in the room's voice chat,
+  // so the two audio sources don't compete. `video.volume` writes fire the native `volumechange`
+  // event (see onVolChange below), which normally mirrors INTO `volume` state to keep the slider
+  // in sync with genuine user changes — without `userVolumeRef` + `isDuckedRef` guarding it, the
+  // ramped-down values a duck animation writes would corrupt that state, and the next duck/undock
+  // cycle would ramp relative to an already-ducked "user" volume instead of their real preference.
+  // iOS Safari ignores `.volume` entirely (see volumeSliderUnusable below) — this silently no-ops
+  // there rather than needing its own platform check.
+  const DUCK_FACTOR = 0.35;
+  const DUCK_RAMP_MS = 250;
+  const userVolumeRef = useRef(1);
+  const isDuckedRef = useRef(false);
+  const duckRafRef = useRef<number | null>(null);
   const [showControls, setShowControls] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   // True from the moment a new src is handed to us until the browser actually has enough data
@@ -534,13 +824,33 @@ function NativeVideoPlayer({
   // frame at 0:00 with no feedback while the browser silently buffers, reading as "broken".
   const [isBuffering, setIsBuffering] = useState(true);
   const bufferingLabel = useCyclingLoadingLabel(isBuffering);
+  // "Плохой интернет" badge — a SINGLE rebuffer is normal (seek, a fresh src, a brief stall) and
+  // already covered by the full-screen buffering spinner above; this is about a PATTERN of them,
+  // which is what actually signals a bad connection rather than a one-off blip. Tracks rebuffer
+  // timestamps in a sliding window; crossing the threshold shows a small persistent badge (not
+  // gated on `isBuffering` itself, since the point is "you may keep having problems", not just
+  // "buffering right now") that clears itself after a cooldown once rebuffers stop recurring.
+  const REBUFFER_WINDOW_MS = 30_000;
+  const REBUFFER_THRESHOLD = 3;
+  const POOR_CONNECTION_COOLDOWN_MS = 20_000;
+  const rebufferTimestampsRef = useRef<number[]>([]);
+  const poorConnectionClearTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [poorConnection, setPoorConnection] = useState(false);
   // Starts false (assume controllable) so SSR/first client render match — corrected right after
   // mount, before the user could plausibly touch the slider.
   const [volumeSliderUnusable, setVolumeSliderUnusable] = useState(false);
   useEffect(() => { setVolumeSliderUnusable(isVolumeSliderUnusable()); }, []);
 
   // Fresh src → back to "loading", until canplay/playing says otherwise (mirror-state effect below).
-  useEffect(() => { setIsBuffering(true); }, [src]);
+  // Also resets the rebuffer-frequency tracker — a new source (video change, VB handoff) starting
+  // slow isn't evidence of a bad connection, it's just a cold start.
+  useEffect(() => {
+    setIsBuffering(true);
+    rebufferTimestampsRef.current = [];
+    setPoorConnection(false);
+    clearTimeout(poorConnectionClearTimerRef.current);
+  }, [src]);
+  useEffect(() => () => clearTimeout(poorConnectionClearTimerRef.current), []);
 
   // Only the owner's own action should decide whether the room starts playing — members follow
   // via the sync effect below once the owner's play event round-trips through the server. A
@@ -567,6 +877,48 @@ function NativeVideoPlayer({
     if (!video || !src) return;
 
     suppressMacOsPlayer();
+
+    // VB capture (categories B/C — a live-growing raw fMP4 byte stream, not a real independently-
+    // fetchable URL, see vbCapture.service.ts) played fine on Safari via a plain `video.src = src`
+    // but failed on Chrome with a native MEDIA_ERR_SRC_NOT_SUPPORTED ("Format error") — confirmed
+    // live 2026-08-14. Root cause: Chrome's own progressive-download prober won't commit to a
+    // format for a resource whose total size (and exact byte availability) changes between
+    // requests the way this one does; Safari's happens to be more forgiving of that. Real fix is
+    // to hand Chrome (and everyone else, it works cross-browser) the bytes explicitly via
+    // MediaSource Extensions instead of letting the browser's own prober guess. Falls straight
+    // through to the existing plain-`video.src` path below on ANY failure (missing/unrecognized
+    // codec header, MSE unsupported, fetch error) — never worse than before this existed, just not
+    // improved for whatever edge case tripped the fallback.
+    if (src.includes('/vb-capture/')) {
+      let cancelled = false;
+      let mediaSource: MediaSource | null = null;
+      let objectUrl: string | null = null;
+      void setupCaptureMse(video, src, {
+        onFatal: reportFatal,
+        onReady: () => { suppressMacOsPlayer(); attemptOwnerAutoplay(video); },
+        isCancelled: () => cancelled,
+      }).then((result) => {
+        if (cancelled) { result?.teardown(); return; }
+        if (result) {
+          mediaSource = result.mediaSource;
+          objectUrl = result.objectUrl;
+        } else {
+          // MSE setup declined (see setupCaptureMse's own contract) — fall back exactly like the
+          // plain-src branch below does for every other source type.
+          video.src = src;
+          attemptOwnerAutoplay(video);
+        }
+      });
+      video.addEventListener('play', suppressMacOsPlayer, { passive: true });
+
+      return () => {
+        cancelled = true;
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        if (mediaSource && mediaSource.readyState === 'open') {
+          try { mediaSource.endOfStream(); } catch { /* already closed */ }
+        }
+      };
+    }
 
     if (isDash) {
       import('dashjs').then((dashjs) => {
@@ -656,9 +1008,26 @@ function NativeVideoPlayer({
     };
     const onTimeUpdate = () => setCurrentTime(video.currentTime);
     const onMeta = () => { if (isFinite(video.duration)) setDuration(video.duration); };
-    const onVolChange = () => { setVolume(video.volume); setIsMuted(video.muted); };
+    const onVolChange = () => {
+      // Skip mirroring while a duck ramp is actively writing — those are ours, not the user's,
+      // and would otherwise corrupt the slider's displayed value (see userVolumeRef comment above).
+      if (isDuckedRef.current) { setIsMuted(video.muted); return; }
+      setVolume(video.volume);
+      setIsMuted(video.muted);
+    };
     const onFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
-    const onWaitingEvt = () => setIsBuffering(true);
+    const onWaitingEvt = () => {
+      setIsBuffering(true);
+      const now = Date.now();
+      const recent = rebufferTimestampsRef.current.filter((ts) => now - ts < REBUFFER_WINDOW_MS);
+      recent.push(now);
+      rebufferTimestampsRef.current = recent;
+      if (recent.length >= REBUFFER_THRESHOLD) {
+        setPoorConnection(true);
+        clearTimeout(poorConnectionClearTimerRef.current);
+        poorConnectionClearTimerRef.current = setTimeout(() => setPoorConnection(false), POOR_CONNECTION_COOLDOWN_MS);
+      }
+    };
     const onReadyEvt = () => setIsBuffering(false);
     document.addEventListener('fullscreenchange', onFullscreenChange);
     video.addEventListener('play', onPlayEvt);
@@ -683,6 +1052,36 @@ function NativeVideoPlayer({
       document.removeEventListener('fullscreenchange', onFullscreenChange);
     };
   }, [videoRef]);
+
+  // Voice ducking ramp — smooth over DUCK_RAMP_MS rather than an instant volume jump, which reads
+  // as a jarring cut. Muted or iOS (where .volume writes are a no-op anyway) skip the animation
+  // work entirely; still tracks isDuckedRef so handleVolume's mid-duck branch stays correct.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    isDuckedRef.current = !!duckAudio;
+    if (video.muted) return;
+
+    if (duckRafRef.current !== null) cancelAnimationFrame(duckRafRef.current);
+    const from = video.volume;
+    const to = duckAudio ? userVolumeRef.current * DUCK_FACTOR : userVolumeRef.current;
+    if (Math.abs(from - to) < 0.01) return;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - start) / DUCK_RAMP_MS);
+      video.volume = from + (to - from) * progress;
+      if (progress < 1) {
+        duckRafRef.current = requestAnimationFrame(tick);
+      } else {
+        duckRafRef.current = null;
+      }
+    };
+    duckRafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (duckRafRef.current !== null) cancelAnimationFrame(duckRafRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- userVolumeRef is a ref, DUCK_FACTOR/DUCK_RAMP_MS are constants
+  }, [duckAudio, videoRef]);
 
   // Show controls temporarily (for mobile tap)
   function revealControls() {
@@ -711,7 +1110,11 @@ function NativeVideoPlayer({
     const v = videoRef.current;
     if (!v) return;
     const val = Number(e.target.value);
-    v.volume = val;
+    userVolumeRef.current = val;
+    // Mid-duck, the slider still shows/sets the TARGET (un-ducked) level the user actually wants —
+    // applying it immediately at full strength would defeat the point of ducking, so land on the
+    // ducked equivalent instead; the ramp back up on undock already reads userVolumeRef fresh.
+    v.volume = isDuckedRef.current ? val * DUCK_FACTOR : val;
     v.muted = val === 0;
     setIsMuted(val === 0);
   }
@@ -797,6 +1200,16 @@ function NativeVideoPlayer({
           >
             {bufferingLabel}
           </p>
+        </div>
+      )}
+
+      {/* Плохое соединение — persists independently of `isBuffering` (which only reflects the
+          CURRENT stall) since the point is "this connection is likely to keep having problems",
+          not just "buffering right now". Small corner pill, never blocks the video/controls. */}
+      {poorConnection && (
+        <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-medium text-amber-300 backdrop-blur-sm pointer-events-none">
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
+          {t('playerPoorConnection')}
         </div>
       )}
 
@@ -943,6 +1356,8 @@ export function VideoPlayer({
   onBufferStart,
   onBufferEnd,
   onFatalError,
+  onPickDifferentVideo,
+  duckAudio,
 }: Props) {
   const t = useTranslations('party');
   const room = useWatchPartyStore((s) => s.room);
@@ -1108,14 +1523,11 @@ export function VideoPlayer({
         if (position > 30) {
           const fmtTime = (s: number) =>
             `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
-          toast({
-            title: `Continue from ${fmtTime(position)}?`,
-            description: 'You watched this before',
-            action: {
-              altText: 'Resume',
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } as any,
-          });
+          // The `action` this used to carry was an empty object cast through `as any` — it
+          // rendered no button and did nothing. The seek happens unconditionally just below, so
+          // the toast is purely an explanation of what is about to happen; it now says so, and
+          // in the user's language (it was hardcoded English).
+          toast({ title: t('resumedFrom', { time: fmtTime(position) }) });
           // Expose seek via a brief delay so videoRef is attached to src
           setTimeout(() => {
             if (videoRef.current) videoRef.current.currentTime = position;
@@ -1441,7 +1853,7 @@ export function VideoPlayer({
     // moves on.
     if (fatalPlaybackError) {
       return isOwner
-        ? <VideoLoading label={t('playerOpeningVB')} />
+        ? <OwnerVideoStuckOverlay onPickDifferentVideo={onPickDifferentVideo} />
         : <FatalErrorRetryOverlay onRetry={() => setFatalPlaybackError(false)} />;
     }
     if (directSrc) {
@@ -1463,6 +1875,7 @@ export function VideoPlayer({
           onOverlayClick={handleOverlayClick}
           onAutoplayBlocked={() => setAutoplayBlocked(true)}
           onFatalError={reportPlaybackFatal}
+          duckAudio={duckAudio}
         />
       );
     }

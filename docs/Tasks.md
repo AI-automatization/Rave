@@ -364,7 +364,18 @@
 - **Mas'ul:** pending[Jasur]
 - **Beruvchi:** Jasur (2026-08-01, prod brauzer auditi)
 - **Yaratilgan:** 2026-08-01 20:45
-- **Holat:** 🔄 Bajarilmoqda
+- **Holat:** 🔄 Bajarilmoqda — **redesign qismi TUGADI (2026-08-05)**, backend tomonidagi
+  P0 lar ochiq (pastda)
+- **Redesign progressi:** barcha 15 sahifa WW v2 ("Kinematik dark") ga ko'chirildi —
+  auth oqimi + `/home` (`eed5578b`), room + notifications (`414649cc`), friends + profile
+  (`4ee6df7a`), settings + support (`3ccf3fcc`), messages (`3506169a`), oxirgi 3 komponent
+  (`e1a171d9`). `src/` da eski `.liquid-glass`/`glass-input` ishlatilishi qolmadi.
+  Har bosqichda `tsc --noEmit` toza va `next build` o'tgan.
+  **Qolgan qadam:** `globals.css` dagi eski `@layer components` blokini o'chirish —
+  jonli brauzer tekshiruvidan keyin (hozir hech kim ishlatmaydi, lekin ko'r-ko'rona
+  o'chirilmadi).
+- **⚠️ Tekshirilmagan:** vizual/brauzer sinovi o'tkazilmadi — sahifalar auth talab qiladi,
+  sessiyada test hisobi ma'lumotlari yo'q edi. Dalil faqat `tsc` + `next build`.
 - **Tavsiya model:** opus
 - **Model sababi:** 15 sahifa, 60+ komponent, ~17k qator; dizayn tizimi darajasidagi qaror
 - **Sabab:** `app.wewatch.uz` prod'da to'liq aylanib chiqildi (hisob `jasur_qa01` yaratildi,

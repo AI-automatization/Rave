@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
-import { MessageCircle, Users as UsersIcon, ListVideo, X, ChevronRight, Loader2, Play, Globe } from 'lucide-react';
+import { MessageCircle, Users as UsersIcon, ListVideo, X, ChevronRight, Loader2, Play, Plus, Globe } from 'lucide-react';
 import type { IChatReplyTo, VideoCandidate } from '@/types';
 import { useWatchParty } from '@/hooks/use-watch-party';
 import { useVirtualBrowser } from '@/hooks/use-virtual-browser';
@@ -41,9 +41,9 @@ function QueueStatusDot({ status, labels }: {
   labels: { pending: string; ready: string; needsVb: string };
 }) {
   const map = {
-    pending:  { color: 'bg-slate-500 animate-pulse', title: labels.pending },
-    ready:    { color: 'bg-emerald-500',             title: labels.ready },
-    needs_vb: { color: 'bg-amber-500',               title: labels.needsVb },
+    pending:  { color: 'bg-[var(--ww-text-4)] animate-pulse', title: labels.pending },
+    ready:    { color: 'bg-[var(--ww-online)]',               title: labels.ready },
+    needs_vb: { color: 'bg-[var(--ww-streak)]',               title: labels.needsVb },
   } as const;
   // `pending` also covers a missing value: an item queued before the feature existed was never
   // probed, and claiming it is "ready" would be a guess.
@@ -185,28 +185,27 @@ function PlaylistPanel({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {playlist.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
-          <div
-            className="w-12 h-12 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)' }}
-          >
-            <ListVideo size={18} className="text-violet-400/70" />
-          </div>
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--ww-line)] bg-[var(--ww-accent-soft)]">
+            <ListVideo size={18} aria-hidden="true" className="text-[var(--ww-accent-hi)]" />
+          </span>
           <div>
-            <p className="text-slate-400 text-xs font-medium">{t('queueEmpty')}</p>
-            <p className="text-slate-600 text-[11px] mt-0.5">
+            <p className="text-[12.5px] font-medium text-[var(--ww-text-2)]">{t('queueEmpty')}</p>
+            <p className="mt-0.5 text-[11.5px] text-[var(--ww-text-4)]">
               {isOwner ? t('queueEmptyHint') : t('queueEmptyHintMember')}
             </p>
           </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto px-3 py-2 flex flex-col gap-1.5">
+        <div className="flex flex-1 flex-col gap-1.5 overflow-y-auto px-3 py-2">
           {playlist.map((item, i) => (
             <div
               key={i}
-              className="flex items-center gap-2 bg-white/[0.03] rounded-lg px-2 py-1.5 group"
+              className="group flex items-center gap-2 rounded-[var(--ww-r-sm)] bg-[var(--ww-surface-1)] px-2 py-1.5"
             >
-              <span className="text-slate-600 text-[10px] w-4 shrink-0">{i + 1}</span>
+              <span className="w-4 shrink-0 text-[10.5px] tabular-nums text-[var(--ww-text-4)]">
+                {i + 1}
+              </span>
               <QueueStatusDot
                 status={item.resolveStatus}
                 labels={{
@@ -215,15 +214,20 @@ function PlaylistPanel({
                   needsVb: t('queueStatusNeedsVb'),
                 }}
               />
-              <p className="flex-1 text-xs text-slate-300 truncate">
+              <p className="flex-1 truncate text-[12.5px] text-[var(--ww-text-2)]">
                 {item.videoTitle ?? item.videoUrl}
               </p>
               {isOwner && (
                 <button
+                  type="button"
                   onClick={() => handleRemove(i)}
-                  className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition-all cursor-pointer"
+                  aria-label={t('removeFromQueue')}
+                  /* Sichqonchasiz qurilmada hover yo'q — u yerda tugma doim
+                     ko'rinadi (`opacity-100`), faqat kattaroq ekranda
+                     yashiriladi */
+                  className="cursor-pointer p-1 text-[var(--ww-text-4)] transition-all hover:text-[var(--ww-danger)] sm:opacity-0 sm:group-hover:opacity-100"
                 >
-                  <X size={12} />
+                  <X size={13} aria-hidden="true" />
                 </button>
               )}
             </div>
@@ -232,16 +236,20 @@ function PlaylistPanel({
       )}
 
       {isOwner && (
-        <div className="border-t border-white/[0.06] p-2 flex flex-col gap-2">
+        /* Boshqaruv 32px balandlikda edi — barmoq uchun juda kichik.
+           Hammasi 40px ga ko'tarildi (WCAG 2.2 minimumi 24px, qulay chegara
+           44px; bu yerda tor ustunga sig'adigan eng kattasi). */
+        <div className="flex flex-col gap-2 border-t border-[var(--ww-line)] p-2">
           {playlist.length > 0 && (
             <button
+              type="button"
               onClick={handleNext}
               disabled={nextLoading}
-              className="h-8 w-full rounded-lg text-xs font-medium text-white bg-violet-600 hover:bg-violet-500 transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="ww-btn-accent flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-[var(--ww-r-sm)] text-[12.5px] font-semibold text-white"
             >
               {nextLoading
-                ? <Loader2 size={12} className="animate-spin" />
-                : <><ChevronRight size={12} /> {t('next')}</>}
+                ? <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+                : <><ChevronRight size={14} aria-hidden="true" /> {t('next')}</>}
             </button>
           )}
           <div className="flex gap-1.5">
@@ -250,23 +258,30 @@ function PlaylistPanel({
               onChange={(e) => setUrlInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
               placeholder={t('videoUrlPlaceholder')}
-              className="flex-1 h-8 px-2 rounded-lg text-xs bg-white/[0.06] border border-white/[0.08] text-white placeholder-slate-500 outline-none focus:border-violet-500/50"
+              aria-label={t('videoUrlPlaceholder')}
+              className="ww-field !h-10 min-w-0 flex-1 px-2.5 text-[12.5px]"
             />
             <button
+              type="button"
               onClick={handlePlayNow}
               disabled={!urlInput.trim()}
               title={t('playNow')}
-              className="h-8 w-8 shrink-0 rounded-lg text-white bg-emerald-600 hover:bg-emerald-500 transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center"
+              aria-label={t('playNow')}
+              className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-[var(--ww-r-sm)] bg-[rgba(61,220,132,0.16)] text-[var(--ww-online)] transition-colors hover:bg-[rgba(61,220,132,0.26)] disabled:opacity-40"
             >
-              <Play size={12} fill="currentColor" />
+              <Play size={13} fill="currentColor" aria-hidden="true" />
             </button>
             <button
+              type="button"
               onClick={handleAdd}
               disabled={adding || !urlInput.trim()}
               title={t('addToQueue')}
-              className="h-8 px-3 rounded-lg text-xs font-medium text-white bg-violet-600 hover:bg-violet-500 transition-colors cursor-pointer disabled:opacity-50"
+              aria-label={t('addToQueue')}
+              className="ww-btn-subtle flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-[var(--ww-r-sm)] text-[var(--ww-text)]"
             >
-              {adding ? <Loader2 size={12} className="animate-spin" /> : '+'}
+              {adding
+                ? <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+                : <Plus size={15} aria-hidden="true" />}
             </button>
           </div>
         </div>
@@ -277,9 +292,10 @@ function PlaylistPanel({
 
 type RightTab = 'chat' | 'members' | 'playlist';
 
-// Tab bar + VoiceStrip + active tab content — shared between the desktop persistent sidebar and
-// the mobile bottom sheet (T-S-mobile-room-panel, 2026-08-02) so there's exactly one copy of this
-// logic, not two drifting implementations.
+/** Tab strip + voice control + active tab body. Rendered twice — as the desktop right rail and
+ *  as the mobile panel under the video. Until 2026-08-01 this markup lived inline inside a
+ *  `hidden md:flex` wrapper with no mobile counterpart, so under 768px the room shipped with no
+ *  chat, no member list and no queue at all (found in the prod audit, confirmed at 390px). */
 function RoomSidePanel({
   rightTab, setRightTab, isOwner, voice, roomId, sendMessage, setProfileUserId, sendMediaChange,
   kickMember, muteMember, unmuteMember,
@@ -297,41 +313,41 @@ function RoomSidePanel({
   unmuteMember: (targetUserId: string) => void;
 }) {
   const t = useTranslations('party');
+
+  const tabs = [
+    { id: 'chat' as const, icon: MessageCircle, label: t('chat'), show: true },
+    { id: 'members' as const, icon: UsersIcon, label: t('members'), show: true },
+    { id: 'playlist' as const, icon: ListVideo, label: t('queue'), show: isOwner },
+  ].filter((tab) => tab.show);
+
   return (
     <>
-      {/* Active tab now gets a background pill, not just an underline — spec feedback called
-          out that the active state wasn't obvious enough at a glance. Bar itself sits on
-          transparent (no border-b) since the pill already separates it from the content below. */}
-      <div className="flex gap-1.5 p-2 shrink-0">
-        <button
-          onClick={() => { trackClick('room:tab_chat'); setRightTab('chat'); }}
-          className={`flex-1 h-9 rounded-lg flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
-            rightTab === 'chat' ? 'bg-violet-500/[0.14] text-white' : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.04]'
-          }`}
-        >
-          <MessageCircle size={13} />
-          {t('chat')}
-        </button>
-        <button
-          onClick={() => { trackClick('room:tab_members'); setRightTab('members'); }}
-          className={`flex-1 h-9 rounded-lg flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
-            rightTab === 'members' ? 'bg-violet-500/[0.14] text-white' : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.04]'
-          }`}
-        >
-          <UsersIcon size={13} />
-          {t('members')}
-        </button>
-        {isOwner && (
+      {/* role="tablist" yo'q edi — ekran o'quvchi uchta alohida tugmani
+          ko'rardi, ular bitta guruh ekani bilinmasdi */}
+      <div role="tablist" className="flex shrink-0 border-b border-[var(--ww-line)]">
+        {tabs.map(({ id, icon: Icon, label }) => (
           <button
-            onClick={() => { trackClick('room:tab_playlist'); setRightTab('playlist'); }}
-            className={`flex-1 h-9 rounded-lg flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
-              rightTab === 'playlist' ? 'bg-violet-500/[0.14] text-white' : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.04]'
+            key={id}
+            type="button"
+            role="tab"
+            onClick={() => { trackClick(`room:tab_${id}`); setRightTab(id); }}
+            aria-selected={rightTab === id}
+            className={`relative flex h-12 flex-1 cursor-pointer items-center justify-center gap-1.5 text-[12.5px] font-medium transition-colors ${
+              rightTab === id
+                ? 'text-[var(--ww-text)]'
+                : 'text-[var(--ww-text-3)] hover:text-[var(--ww-text-2)]'
             }`}
           >
-            <ListVideo size={13} />
-            {t('queue')}
+            <Icon size={14} aria-hidden="true" />
+            {label}
+            {rightTab === id && (
+              <span
+                aria-hidden="true"
+                className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-[var(--ww-accent-hi)]"
+              />
+            )}
           </button>
-        )}
+        ))}
       </div>
 
       {/* Above the tab content, not inside it: the mic control has to stay reachable no
@@ -392,6 +408,12 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   const { socket } = useSocket();
   const currentUser = useAuthStore((s) => s.user);
   const voice = useVoiceChat(socket, roomJoined, currentUser?._id);
+  // Voice ducking — video volume dips while anyone is talking, including the LOCAL user:
+  // `voice.participants` only ever holds remote peers (the server's onVoiceJoined `members` list
+  // is "everyone already in the call", never yourself — see use-voice-chat.ts), so without
+  // `voice.isSpeaking` here this only ducked when listening to someone else talk, never on your
+  // own screen while you were the one talking (confirmed live 2026-08-14).
+  const anyoneSpeaking = voice.isSpeaking || voice.participants.some((p) => p.isSpeaking);
   const isConnected = useWatchPartyStore((s) => s.isConnected);
   const isOwner = !!(room && currentUser && room.ownerId === currentUser._id);
 
@@ -467,11 +489,13 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   // (watchParty.controller.ts createRoom, 2026-08-10), so there is nothing left for the client to
   // re-verify.
 
+  // ww-grain (design-system grain overlay): deep black + ONE soft violet halo, replacing the old
+  // three-radial-gradient "breathing" background. No -m-4/md:-m-6/lg:-m-8 or `100vh-3rem` height
+  // math needed — the room route no longer sits inside (app)/layout.tsx's padded `main` or under
+  // the global AppNav (both are hidden for /room/* — see (app)/layout.tsx's `inRoom` check — so
+  // this component owns the full viewport itself).
   return (
-    // No -m-4/md:-m-6/lg:-m-8 or `100vh-3rem` height math needed anymore — the room route no
-    // longer sits inside (app)/layout.tsx's padded `main` or under the global AppNav (both are
-    // hidden for /room/* so this component owns the full viewport itself).
-    <div className="relative flex flex-col h-screen overflow-hidden">
+    <div className="ww-grain relative flex h-screen flex-col overflow-hidden">
       {/* Ambient depth — real-user feedback (2026-07-28): the room "feels like a brick", too dark,
           doesn't feel alive. Root cause was that this glow sat at 6-12% opacity — a fraction of
           what /home's own background actually uses (see globals.css body{} — 48%/22%/10%). Panels
@@ -479,15 +503,12 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
           tint, so almost none of this ever showed through. Matched to /home's real intensity, plus
           a slow drift so the glow itself reads as motion, not a static poster behind the UI. */}
       <motion.div
-        className="absolute inset-0 z-0 pointer-events-none"
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-0"
         style={{
           background:
-            'radial-gradient(ellipse 75% 55% at 25% -5%, rgba(124,58,237,0.32), transparent 62%), ' +
-            'radial-gradient(ellipse 55% 45% at 100% 105%, rgba(34,211,238,0.16), transparent 60%), ' +
-            'radial-gradient(ellipse 40% 35% at 90% 0%, rgba(124,58,237,0.18), transparent 55%)',
+            'radial-gradient(ellipse 90% 60% at 30% -10%, rgba(124,58,237,0.20), transparent 65%)',
         }}
-        animate={{ opacity: [0.85, 1, 0.85] }}
-        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
       />
 
       <div className="relative z-10 flex flex-col h-full">
@@ -515,8 +536,12 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                 signals "this is the live, active surface of the room" instead of the video sitting
                 as a bare black rectangle indistinguishable from a broken embed. */}
             <div
-              className="relative rounded-xl"
-              style={{ boxShadow: isConnected ? '0 0 0 1px rgba(124,58,237,0.35), 0 0 32px rgba(124,58,237,0.12)' : 'none' }}
+              className="relative rounded-[var(--ww-r-lg)]"
+              style={{
+                boxShadow: isConnected
+                  ? '0 0 0 1px rgba(124,58,237,0.32), 0 0 32px rgba(124,58,237,0.12)'
+                  : '0 0 0 1px var(--ww-line)',
+              }}
             >
             <ReactionOverlay reactions={reactions} />
             {showVB ? (
@@ -539,6 +564,8 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                 onBufferStart={sendBufferStart}
                 onBufferEnd={sendBufferEnd}
                 onFatalError={handleVideoFatalError}
+                onPickDifferentVideo={() => setCandidatePickerOpen(true)}
+                duckAudio={anyoneSpeaking}
               />
             )}
             </div>
@@ -546,9 +573,10 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
             {isOwner && !showVB && (
               <button
                 onClick={() => { trackClick('room:open_vb_panel'); setShowVBPanel(true); }}
-                className="self-start flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-medium text-zinc-400 hover:text-white border border-white/[0.08] hover:border-white/[0.16] transition-colors cursor-pointer"
+                type="button"
+                className="ww-btn-subtle flex h-9 cursor-pointer items-center gap-1.5 self-start rounded-[var(--ww-r-sm)] px-3 text-[12.5px] font-medium text-[var(--ww-text-2)]"
               >
-                <Globe size={13} />
+                <Globe size={14} aria-hidden="true" />
                 {t('virtualBrowser')}
               </button>
             )}
@@ -556,19 +584,18 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
             <EmojiReactions onSend={sendEmoji} cooldownSec={reactionCooldownSec} />
           </div>
 
-          {/* Right: Chat / Members / Playlist / Voice — glass-panel matches the violet-tinted
-              surface every other page already uses (see globals.css); the flat neutral rgba this
-              replaced is exactly why the sidebar read as dead weight next to a colorful room.
-              Redesigned 2026-08-04: used to be `hidden md:flex`, reachable on mobile only through
-              a bottom sheet that covered ~75% of the screen (video peeking out above it) — real
-              report: "нужно чтобы пользователь мог одновременно нормально смотреть видео и писать
-              в чат и разговаривать" (watch video, chat, and talk AT THE SAME TIME, not one modal
-              at a time). Below md this now stacks directly under the video instead — video keeps
-              its natural aspect-ratio height (no longer stretched by a `flex-1` fighting an empty
-              sidebar), panel takes the rest via its own `flex-1`. Row layout only from md up. */}
-          <div
-            className="glass-panel flex flex-col flex-1 min-h-0 md:flex-none md:w-80 rounded-none border-t border-white/[0.06] md:border-t-0 md:!border-y-0 md:!border-r-0"
-          >
+          {/* Chat / A'zolar / Navbat — desktopda o'ng ustun, mobilda video ostidagi panel. Sirt
+              endi WW v2 tokenida: fondan bir pog'ona yorqinroq + yupqa chegara. Ilgari
+              `glass-panel` (binafsha rangli blur) edi — u eski tizimning klassi va yangi tekis
+              fon ustida o'zini oqlamaydi.
+              Redesigned 2026-08-04 (mobile stacking): used to be `hidden md:flex`, reachable on
+              mobile only through a bottom sheet covering ~75% of the screen (video peeking out
+              above it) — real report: "нужно чтобы пользователь мог одновременно нормально
+              смотреть видео и писать в чат и разговаривать" (watch, chat, and talk AT THE SAME
+              TIME). Below md this stacks directly under the video instead — video keeps its
+              natural aspect-ratio height, panel takes the rest via its own `min-h-0 flex-1`. Row
+              layout only from md up. */}
+          <aside className="flex min-h-0 flex-1 flex-col border-t border-[var(--ww-line)] bg-[var(--ww-surface-1)] backdrop-blur-xl md:flex-none md:w-80 md:border-l md:border-t-0">
             <RoomSidePanel
               rightTab={rightTab}
               setRightTab={setRightTab}
@@ -582,7 +609,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
               muteMember={muteMember}
               unmuteMember={unmuteMember}
             />
-          </div>
+          </aside>
         </div>
         </div>
 
@@ -595,7 +622,15 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
           onOpenChange={setCandidatePickerOpen}
           candidates={videoCandidates}
           onRequestCandidates={requestCandidates}
-          onConfirm={(candidate: VideoCandidate) => sendMediaChange(candidate.url, candidate.title, detectVideoPlatform(candidate.url))}
+          onConfirm={(candidate: VideoCandidate) => {
+            // Real bug (live 2026-08-14): confirming a candidate while VB's fatal-error
+            // auto-fallback was already running never stopped that VB session — `showVB`
+            // (vbActive || …) stayed true, so the room kept showing "Opening virtual
+            // browser..." forever instead of switching to the newly confirmed video, no
+            // matter which candidate was picked. sendMediaChange alone was never enough.
+            if (showVB) handleVBStop();
+            sendMediaChange(candidate.url, candidate.title, detectVideoPlatform(candidate.url));
+          }}
         />
       )}
 

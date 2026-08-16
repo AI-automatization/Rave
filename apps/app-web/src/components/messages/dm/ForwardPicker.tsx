@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Loader2, Send, Search } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/field';
 import { useConversations, useForwardMessage } from '@/hooks/use-dm';
 import type { DmMessage } from '@/lib/api/user.api';
 import { memberColor } from '@/lib/dm/dm-format';
@@ -45,27 +46,26 @@ export function ForwardPicker({ message, currentPeerId, onClose }: Props) {
 
   return (
     <Dialog open={!!message} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="bg-[#0C0B18] border-white/[0.07] text-white max-w-[380px] p-0 overflow-hidden rounded-2xl gap-0">
-        <DialogHeader className="px-4 pt-4 pb-2">
-          <DialogTitle className="text-white text-base">{t('forward')}</DialogTitle>
+      <DialogContent className="max-w-[380px] gap-0 overflow-hidden rounded-[var(--ww-r-xl)] border-[var(--ww-line)] bg-[var(--ww-panel-solid)] p-0 text-[var(--ww-text)]">
+        <DialogHeader className="px-4 pb-2 pt-4">
+          <DialogTitle className="text-[16px] font-semibold text-[var(--ww-text)]">{t('forward')}</DialogTitle>
         </DialogHeader>
 
-        <div className="px-4 pb-2">
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t('selectChat')}
-              className="glass-input w-full h-9 rounded-xl pl-9 pr-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-violet-500/60 transition-all"
-            />
-          </div>
+        <div className="px-4 pb-3">
+          {/* Qidiruv maydoni /friends bilan bir xil `Input` primitivida */}
+          <Input
+            type="search"
+            icon={Search}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t('searchChat')}
+            aria-label={t('searchChat')}
+          />
         </div>
 
-        <div className="flex flex-col divide-y divide-white/[0.05] max-h-[360px] overflow-y-auto">
+        <div className="max-h-[360px] overflow-y-auto">
           {candidates.length === 0 ? (
-            <p className="text-[13px] text-white/30 text-center py-8">{t('empty')}</p>
+            <p className="py-8 text-center text-[13px] text-[var(--ww-text-4)]">{t('empty')}</p>
           ) : (
             candidates.map((c) => {
               const color = memberColor(c.peerId);
@@ -73,25 +73,26 @@ export function ForwardPicker({ message, currentPeerId, onClose }: Props) {
               return (
                 <button
                   key={c.peerId}
+                  type="button"
                   onClick={() => handleForward(c.peerId)}
                   disabled={forward.isPending}
-                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.04] transition-colors cursor-pointer disabled:opacity-40 w-full text-left"
+                  className="flex w-full cursor-pointer items-center gap-3 border-b border-[var(--ww-line)] px-4 py-3 text-left transition-colors last:border-0 hover:bg-[var(--ww-surface-1)] disabled:cursor-default disabled:opacity-40"
                 >
-                  <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white overflow-hidden shrink-0"
-                    style={{ backgroundColor: `${color}33` }}
+                  <span
+                    className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full text-[12.5px] font-semibold"
+                    style={{ background: `${color}2E`, border: `1px solid ${color}59`, color }}
                   >
                     {c.peerAvatar ? (
-                      <img src={c.peerAvatar} alt="" className="w-full h-full object-cover" />
+                      <img src={c.peerAvatar} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      <span style={{ color }}>{initials}</span>
+                      initials
                     )}
-                  </div>
-                  <span className="flex-1 text-sm text-white truncate">{c.peerUsername}</span>
+                  </span>
+                  <span className="flex-1 truncate text-[14px] text-[var(--ww-text)]">{c.peerUsername}</span>
                   {forward.isPending ? (
-                    <Loader2 size={15} className="animate-spin text-violet-400 shrink-0" />
+                    <Loader2 size={15} aria-hidden="true" className="shrink-0 animate-spin text-[var(--ww-accent-hi)]" />
                   ) : (
-                    <Send size={15} className="text-violet-400 shrink-0" />
+                    <Send size={15} aria-hidden="true" className="shrink-0 text-[var(--ww-accent-hi)]" />
                   )}
                 </button>
               );

@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import type { IWatchPartyRoom, IChatMessage, IUser } from '@/types';
+import type { IWatchPartyRoom, IChatMessage } from '@/types';
 
 export interface WatchPartyMember {
   _id: string;

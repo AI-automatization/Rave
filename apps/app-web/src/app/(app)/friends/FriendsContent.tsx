@@ -1,8 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+/**
+ * Do'stlar sahifasi — WW v2 ("Kinematik dark") ga ko'chirilgan (T-S195).
+ *
+ * Tuzilma /notifications bilan bir xil: sahifa sarlavhasi panel ichida emas,
+ * ro'yxat esa bitta `.ww-card` ichidagi chegara bilan ajratilgan qatorlar.
+ */
+
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, Bell } from 'lucide-react';
+import { Users, Inbox, type LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useFriends, useFriendRequests } from '@/hooks/use-friends';
 import { useAuthStore } from '@/store/auth.store';
@@ -12,16 +19,28 @@ import { FriendSearch } from '@/components/friends/FriendSearch';
 import { trackClick } from '@/lib/analytics';
 
 type Tab = 'friends' | 'requests' | 'search';
+const TABS: Tab[] = ['friends', 'requests', 'search'];
 
-// Shaped like FriendCard/RequestCard rows — no layout shift once real data lands.
+/** Haqiqiy qator shaklidagi skeleton — ma'lumot kelganda tartib siljimaydi */
 function RowSkeleton() {
   return (
-    <div className="flex items-center gap-3 px-4 py-3" aria-busy="true">
-      <div className="skeleton w-9 h-9 rounded-full shrink-0" />
-      <div className="flex-1 flex flex-col gap-1.5">
+    <div className="flex items-center gap-3 border-b border-[var(--ww-line)] px-4 py-3.5 last:border-0">
+      <div className="skeleton h-10 w-10 shrink-0 rounded-full" />
+      <div className="flex flex-1 flex-col gap-2">
         <div className="skeleton h-3 w-1/3 rounded" />
         <div className="skeleton h-2.5 w-1/5 rounded" />
       </div>
+    </div>
+  );
+}
+
+function EmptyState({ icon: Icon, text }: { icon: LucideIcon; text: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 py-16">
+      <span className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--ww-line)] bg-[var(--ww-surface-1)]">
+        <Icon size={20} aria-hidden="true" className="text-[var(--ww-text-4)]" />
+      </span>
+      <p className="text-[13px] text-[var(--ww-text-3)]">{text}</p>
     </div>
   );
 }
@@ -31,56 +50,114 @@ export function FriendsContent() {
   const router = useRouter();
   const currentUser = useAuthStore((s) => s.user);
   const [tab, setTab] = useState<Tab>('friends');
+  const tabRefs = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({});
 
   const { data: friends, isLoading: loadingFriends } = useFriends();
   const { data: requests, isLoading: loadingRequests } = useFriendRequests();
 
-  const tabs: { key: Tab; label: string; count?: number }[] = [
-    { key: 'friends', label: t('tabFriends'), count: friends?.length },
-    { key: 'requests', label: t('tabRequests'), count: requests?.length },
-    { key: 'search', label: t('tabSearch') },
-  ];
+  const labels: Record<Tab, string> = {
+    friends: t('tabFriends'),
+    requests: t('tabRequests'),
+    search: t('tabSearch'),
+  };
+  const counts: Partial<Record<Tab, number | undefined>> = {
+    friends: friends?.length,
+    requests: requests?.length,
+  };
+
+  function select(next: Tab) {
+    trackClick('friends:tab', { tab: next });
+    setTab(next);
+  }
+
+  /* WAI-ARIA tab naqshi: o'q tugmalari bilan almashish + roving tabindex.
+     Ilgari bular bir-biriga bog'liqligi belgilanmagan oddiy tugmalar edi —
+     ekran o'quvchi ularni guruh sifatida ko'rmasdi. */
+  function onTabKeyDown(e: React.KeyboardEvent) {
+    const i = TABS.indexOf(tab);
+    let next: Tab | null = null;
+    if (e.key === 'ArrowRight') next = TABS[(i + 1) % TABS.length];
+    else if (e.key === 'ArrowLeft') next = TABS[(i - 1 + TABS.length) % TABS.length];
+    else if (e.key === 'Home') next = TABS[0];
+    else if (e.key === 'End') next = TABS[TABS.length - 1];
+    if (!next) return;
+    e.preventDefault();
+    select(next);
+    tabRefs.current[next]?.focus();
+  }
 
   return (
-    <div className="max-w-xl mx-auto flex flex-col gap-5">
-      <h1 className="text-xl font-semibold text-white">{t('title')}</h1>
+    <div className="mx-auto flex max-w-2xl flex-col gap-6">
+      <header>
+        <h1 className="text-[26px] font-semibold tracking-[-0.025em] text-[var(--ww-text)] sm:text-[30px]">
+          {t('title')}
+        </h1>
+        {friends && friends.length > 0 && (
+          <p className="mt-1 text-[13px] text-[var(--ww-text-3)]">
+            {t('friendCount', { count: friends.length })}
+          </p>
+        )}
+      </header>
 
-      {/* Tabs — pill style */}
-      <div className="liquid-glass-sm p-1 flex gap-1">
-        {tabs.map(({ key, label, count }) => (
-          <button
-            key={key}
-            onClick={() => { trackClick('friends:tab', { tab: key }); setTab(key); }}
-            className={`flex-1 h-8 rounded-md flex items-center justify-center gap-1.5 text-sm font-medium transition-colors cursor-pointer ${
-              tab === key
-                ? 'bg-violet-600/20 text-violet-300'
-                : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04]'
-            }`}
-          >
-            {label}
-            {count !== undefined && count > 0 && (
-              <span className={`text-[11px] ${tab === key ? 'text-violet-400' : 'text-zinc-600'}`}>{count}</span>
-            )}
-          </button>
-        ))}
+      {/* Segment boshqaruvi. `.ww-card` emas — uning `--ww-r-lg` radiusi qatlamsiz
+          CSS bo'lgani uchun Tailwind bilan kichraytirib bo'lmaydi (globals.css
+          dagi `.ww-otp` izohiga qarang), shuning uchun sirt bu yerda to'g'ridan
+          tokenlardan yig'ilgan. */}
+      <div
+        role="tablist"
+        aria-label={t('title')}
+        onKeyDown={onTabKeyDown}
+        className="flex gap-1 rounded-[var(--ww-r-md)] border border-[var(--ww-line)] bg-[var(--ww-surface-1)] p-1"
+      >
+        {TABS.map((key) => {
+          const active = tab === key;
+          const count = counts[key];
+          return (
+            <button
+              key={key}
+              ref={(el) => { tabRefs.current[key] = el; }}
+              type="button"
+              role="tab"
+              id={`friends-tab-${key}`}
+              aria-selected={active}
+              aria-controls={`friends-panel-${key}`}
+              tabIndex={active ? 0 : -1}
+              onClick={() => select(key)}
+              className={`flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-[var(--ww-r-sm)] text-[13px] font-medium transition-colors ${
+                active
+                  ? 'bg-[var(--ww-surface-3)] text-[var(--ww-text)]'
+                  : 'text-[var(--ww-text-3)] hover:bg-[var(--ww-surface-1)] hover:text-[var(--ww-text-2)]'
+              }`}
+            >
+              {labels[key]}
+              {count !== undefined && count > 0 && (
+                <span
+                  className={`text-[11.5px] tabular-nums ${
+                    active ? 'text-[var(--ww-accent-hi)]' : 'text-[var(--ww-text-4)]'
+                  }`}
+                >
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Content */}
       {tab === 'friends' && (
-        <div className="liquid-glass overflow-hidden">
+        <div role="tabpanel" id="friends-panel-friends" aria-labelledby="friends-tab-friends">
           {loadingFriends && (
-            <div className="flex flex-col divide-y divide-white/[0.05]">
+            <div className="ww-card overflow-hidden" aria-busy="true">
               {[0, 1, 2].map((i) => <RowSkeleton key={i} />)}
             </div>
           )}
           {!loadingFriends && (!friends || friends.length === 0) && (
-            <div className="flex flex-col items-center gap-3 py-16">
-              <Users size={24} className="text-zinc-700" />
-              <p className="text-sm text-zinc-500">{t('empty')}</p>
+            <div className="ww-card">
+              <EmptyState icon={Users} text={t('empty')} />
             </div>
           )}
           {!loadingFriends && friends && friends.length > 0 && (
-            <div className="flex flex-col divide-y divide-white/[0.05] animate-fade-slide-in">
+            <ul className="ww-card ww-rise overflow-hidden">
               {friends.map((f) => (
                 <FriendCard
                   key={f._id}
@@ -88,35 +165,38 @@ export function FriendsContent() {
                   onMessage={() => { trackClick('friends:message'); router.push(`/messages?peer=${f._id}`); }}
                 />
               ))}
-            </div>
+            </ul>
           )}
         </div>
       )}
 
       {tab === 'requests' && (
-        <div className="liquid-glass overflow-hidden">
+        <div role="tabpanel" id="friends-panel-requests" aria-labelledby="friends-tab-requests">
           {loadingRequests && (
-            <div className="flex flex-col divide-y divide-white/[0.05]">
+            <div className="ww-card overflow-hidden" aria-busy="true">
               {[0, 1].map((i) => <RowSkeleton key={i} />)}
             </div>
           )}
           {!loadingRequests && (!requests || requests.length === 0) && (
-            <div className="flex flex-col items-center gap-3 py-16">
-              <Bell size={24} className="text-zinc-700" />
-              <p className="text-sm text-zinc-500">{t('noRequests')}</p>
+            <div className="ww-card">
+              <EmptyState icon={Inbox} text={t('noRequests')} />
             </div>
           )}
           {!loadingRequests && requests && requests.length > 0 && (
-            <div className="flex flex-col divide-y divide-white/[0.05] animate-fade-slide-in">
+            <ul className="ww-card ww-rise overflow-hidden">
               {requests.map((req) => (
                 <RequestCard key={req._id} request={req} currentUserId={currentUser?._id ?? ''} />
               ))}
-            </div>
+            </ul>
           )}
         </div>
       )}
 
-      {tab === 'search' && <FriendSearch />}
+      {tab === 'search' && (
+        <div role="tabpanel" id="friends-panel-search" aria-labelledby="friends-tab-search">
+          <FriendSearch />
+        </div>
+      )}
     </div>
   );
 }

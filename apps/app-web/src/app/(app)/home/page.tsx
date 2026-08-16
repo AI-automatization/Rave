@@ -1,7 +1,7 @@
 import { HomeContent } from './HomeContent';
 
 export const metadata = {
-  title: 'Home',
+  title: 'Bosh sahifa',
 };
 
 export default function HomePage() {

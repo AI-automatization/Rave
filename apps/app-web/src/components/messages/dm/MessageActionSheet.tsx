@@ -32,40 +32,46 @@ export function MessageActionSheet({ message, onReply, onForward, onCopy, onTogg
   return (
     <Dialog open={!!message} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent
-        className="bg-[#16162a] border-white/[0.08] text-white p-0 overflow-hidden gap-0
-          w-full max-w-full left-0 right-0 bottom-0 top-auto translate-x-0 translate-y-0 rounded-t-2xl rounded-b-none
-          sm:max-w-[320px] sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:bottom-6 sm:top-auto sm:rounded-2xl"
+        className="gap-0 overflow-hidden border-[var(--ww-line)] bg-[var(--ww-panel-solid)] p-0 text-[var(--ww-text)]
+          w-full max-w-full left-0 right-0 bottom-0 top-auto translate-x-0 translate-y-0 rounded-t-[var(--ww-r-xl)] rounded-b-none
+          sm:max-w-[320px] sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:bottom-6 sm:top-auto sm:rounded-[var(--ww-r-xl)]"
       >
+        {/* 48px qatorlar — barmoq uchun; ilgari py-3 (~44px) edi */}
         <div className="flex flex-col py-1">
           <button
+            type="button"
             onClick={handle((m) => { trackClick('dm:action_reply'); onReply(m); })}
-            className="flex items-center gap-3 px-4 py-3 text-sm text-white/85 hover:bg-white/[0.06] transition-colors cursor-pointer"
+            className="flex h-12 cursor-pointer items-center gap-3 px-4 text-[14px] text-[var(--ww-text-2)] transition-colors hover:bg-[var(--ww-surface-2)] hover:text-[var(--ww-text)]"
           >
-            <Reply size={17} /> {t('reply')}
+            <Reply size={17} aria-hidden="true" /> {t('reply')}
           </button>
           <button
+            type="button"
             onClick={handle((m) => { trackClick('dm:action_forward'); onForward(m); })}
-            className="flex items-center gap-3 px-4 py-3 text-sm text-white/85 hover:bg-white/[0.06] transition-colors cursor-pointer"
+            className="flex h-12 cursor-pointer items-center gap-3 px-4 text-[14px] text-[var(--ww-text-2)] transition-colors hover:bg-[var(--ww-surface-2)] hover:text-[var(--ww-text)]"
           >
-            <Forward size={17} /> {t('forward')}
+            <Forward size={17} aria-hidden="true" /> {t('forward')}
           </button>
           <button
+            type="button"
             onClick={handle((m) => { trackClick('dm:action_pin'); onTogglePin(m); })}
-            className="flex items-center gap-3 px-4 py-3 text-sm text-white/85 hover:bg-white/[0.06] transition-colors cursor-pointer"
+            className="flex h-12 cursor-pointer items-center gap-3 px-4 text-[14px] text-[var(--ww-text-2)] transition-colors hover:bg-[var(--ww-surface-2)] hover:text-[var(--ww-text)]"
           >
-            {message?.pinned ? <PinOff size={17} /> : <Pin size={17} />}
+            {message?.pinned ? <PinOff size={17} aria-hidden="true" /> : <Pin size={17} aria-hidden="true" />}
             {message?.pinned ? t('unpin') : t('pin')}
           </button>
           <button
+            type="button"
             onClick={() => { if (message) { trackClick('dm:action_copy'); onCopy(message); } }}
-            className="flex items-center gap-3 px-4 py-3 text-sm text-white/85 hover:bg-white/[0.06] transition-colors cursor-pointer"
+            className="flex h-12 cursor-pointer items-center gap-3 px-4 text-[14px] text-[var(--ww-text-2)] transition-colors hover:bg-[var(--ww-surface-2)] hover:text-[var(--ww-text)]"
           >
-            <Copy size={17} /> {t('copy')}
+            <Copy size={17} aria-hidden="true" /> {t('copy')}
           </button>
-          <div className="border-t border-white/[0.07]" />
+          <div aria-hidden="true" className="border-t border-[var(--ww-line)]" />
           <button
+            type="button"
             onClick={onClose}
-            className="flex items-center justify-center px-4 py-3 text-sm font-medium text-red-400 hover:bg-white/[0.06] transition-colors cursor-pointer"
+            className="flex h-12 cursor-pointer items-center justify-center px-4 text-[14px] font-medium text-[var(--ww-text-3)] transition-colors hover:bg-[var(--ww-surface-2)] hover:text-[var(--ww-text)]"
           >
             {t('cancel')}
           </button>

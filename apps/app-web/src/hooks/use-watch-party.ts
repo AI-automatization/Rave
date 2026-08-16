@@ -137,7 +137,7 @@ export function useWatchParty(roomId: string) {
       setRoom(data.room);
       // room.members is string[] (user IDs from DB) — map to placeholder member objects for count
       // display immediately, then resolve each one's real username/avatar in the background.
-      const rawMembers = Array.isArray((data.room as any)?.members) ? (data.room as any).members as string[] : [];
+      const rawMembers = Array.isArray(data.room?.members) ? data.room.members : [];
       setMembers(rawMembers.map((id) => ({ _id: id, username: '' })));
       rawMembers.forEach(resolveMemberProfile);
       if (data.syncState) setSyncState(data.syncState);
@@ -273,7 +273,20 @@ export function useWatchParty(roomId: string) {
     });
 
     return () => {
-      socket.emit(CLIENT_EVENTS.LEAVE_ROOM, { roomId });
+      // Real bug (live 2026-08-14, 2-device test): this cleanup re-runs on EVERY isConnected
+      // flip, not just a genuine navigate-away — a transient network drop set isConnected=false,
+      // which re-ran this effect and unconditionally emitted LEAVE_ROOM here. socket.io-client
+      // buffers that emit (the transport is down) and flushes it the instant the reconnect
+      // completes — BEFORE this hook's own 'connect' listener (use-socket.ts) fires and re-runs
+      // the effect to re-JOIN_ROOM. Server processed a real leave in between: removed the user
+      // from room.members and transferred/closed ownership (roomEvents.handler.ts →
+      // watchParty.service.ts leaveRoom()) — exactly the "lost host status, play/pause/seek stop
+      // reaching anyone" reports. The server ALREADY has a correct 20s grace period for a raw
+      // transport disconnect (scheduleDisconnectLeave, roomEvents.handler.ts) — this explicit
+      // LEAVE_ROOM was shortcutting past it. Only emit it for a genuine leave (roomId change or
+      // real unmount while still connected); skip it when the socket is already disconnected, so
+      // a mere reconnect blip falls through to the server's own grace-period handling instead.
+      if (socket.connected) socket.emit(CLIENT_EVENTS.LEAVE_ROOM, { roomId });
       clearInterval(clockResyncInterval);
       socket.off(SERVER_EVENTS.CLOCK_PONG);
       socket.off(SERVER_EVENTS.ROOM_JOINED);

@@ -16,6 +16,26 @@ interface AuthenticatedSocket extends Socket {
   roomOwnerId?: string;
 }
 
+// In-memory map of `${roomId}:${userId}` → VB-owner disconnect grace timer. Mirrors
+// disconnectGraceTimers in roomEvents.handler.ts (same 20s window, same rationale: a raw socket
+// `disconnect` — tab close, back-button navigation, and especially a plain page reload — must not
+// instantly tear down a running VB session. Root cause of the "VB shows infinite loading after
+// reload" bug (2026-08-13 root-cause trace): this handler used to call stopSession() synchronously
+// on disconnect, which always won the race against the reloaded page's own JOIN_ROOM. JOIN_ROOM
+// (roomEvents.handler.ts) cancels this timer on a genuine rejoin via cancelVbDisconnectGrace().
+export const vbDisconnectGraceTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const VB_DISCONNECT_GRACE_MS = 20 * 1000;
+
+export function cancelVbDisconnectGrace(roomId: string, userId: string): void {
+  const key = `${roomId}:${userId}`;
+  const pending = vbDisconnectGraceTimers.get(key);
+  if (pending) {
+    clearTimeout(pending);
+    vbDisconnectGraceTimers.delete(key);
+    logger.info('VB disconnect grace timer cancelled — owner rejoined', { roomId, userId });
+  }
+}
+
 export const registerVBEvents = (
   io: SocketServer,
   socket: Socket,
@@ -116,14 +136,27 @@ export const registerVBEvents = (
     logger.info('VB stopped by owner', { roomId, userId });
   });
 
-  // Owner disconnecting mid-session leaves a running Chromium process with nobody able to
-  // control it — close it rather than leaking the browser process.
-  socket.on('disconnect', async () => {
+  // Owner disconnecting mid-session eventually leaves a running Chromium process with nobody
+  // able to control it — but not INSTANTLY: a raw socket disconnect (tab close, back-button nav,
+  // and especially a plain page reload) must not race-lose against the owner's own reconnect.
+  // Grace timer instead of an immediate stopSession() — see vbDisconnectGraceTimers comment above.
+  socket.on('disconnect', () => {
     if (!authSocket.roomId) return;
     const roomId = authSocket.roomId;
-    if (getSessionOwner(roomId) === userId) {
-      await stopSession(roomId);
-      io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'owner_disconnected' });
-    }
+    if (getSessionOwner(roomId) !== userId) return;
+    const key = `${roomId}:${userId}`;
+    if (vbDisconnectGraceTimers.has(key)) return; // already armed
+    const timer = setTimeout(() => {
+      vbDisconnectGraceTimers.delete(key);
+      void (async () => {
+        // Owner may have started a NEW session (or none at all) during the grace window —
+        // only stop if the session we were guarding is still theirs.
+        if (getSessionOwner(roomId) !== userId) return;
+        await stopSession(roomId);
+        io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'owner_disconnected' });
+        logger.info('VB session stopped — owner disconnect grace expired', { roomId, userId });
+      })();
+    }, VB_DISCONNECT_GRACE_MS);
+    vbDisconnectGraceTimers.set(key, timer);
   });
 };

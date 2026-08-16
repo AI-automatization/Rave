@@ -11,7 +11,11 @@
 
 # next.js
 /.next/
+# Buzilgan keshni chetga surganda `.next` vaqtincha shunday nomlanadi
+# (o'chirish o'rniga rename — xavfsizroq). Ular ham build artefakti.
+/.next-*/
 /out/
+.playwright-mcp/
 
 # production
 /build

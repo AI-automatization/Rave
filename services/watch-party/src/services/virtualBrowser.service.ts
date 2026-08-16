@@ -8,10 +8,39 @@
 import { chromium, Browser, BrowserContext, Page, CDPSession } from 'playwright-chromium';
 import { logger } from '@shared/utils/logger';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
-import { startCapture, appendCapture, stopCapture, clearCapture } from './vbCapture.service';
+import { startCapture, appendCapture, appendCaptureTrack, stopCapture, clearCapture } from './vbCapture.service';
 import { isPrivateUrl, isOwnVbUrl } from './extractionClient';
 
 export const VB_VIEWPORT = { width: 1280, height: 720 } as const;
+
+// Some sites reject the VB browser's page load itself (e.g. hdrezka.ag: connection reset before
+// any HTML is served, direct AND via a datacenter proxy in a different country -- looks like an
+// ASN/hosting-IP block, not a geo-IP one, same family as the fayllar1.ru datacenter block this
+// week; see F-291-adjacent Bunny Edge fix, which only covers the byte-fetch of an ALREADY
+// resolved media URL, not the page navigation itself). Unlike that fix, this needs the whole
+// browser context routed through a proxy, so it's wired at newContext() instead. Off by default
+// (no env vars set = no proxy, current behavior unchanged) and scoped to a domain allowlist so
+// sites that don't need it aren't slowed down / don't burn proxy bandwidth for nothing.
+const VB_PROXY_SERVER = process.env.VB_PROXY_SERVER;
+const VB_PROXY_USERNAME = process.env.VB_PROXY_USERNAME;
+const VB_PROXY_PASSWORD = process.env.VB_PROXY_PASSWORD;
+const VB_PROXY_DOMAINS = (process.env.VB_PROXY_DOMAINS ?? '')
+  .split(',')
+  .map((d) => d.trim().toLowerCase())
+  .filter(Boolean);
+
+function getProxyForUrl(url: string): { server: string; username?: string; password?: string } | undefined {
+  if (!VB_PROXY_SERVER || VB_PROXY_DOMAINS.length === 0) return undefined;
+  let hostname: string;
+  try {
+    hostname = new URL(url).hostname.toLowerCase();
+  } catch {
+    return undefined;
+  }
+  const needsProxy = VB_PROXY_DOMAINS.some((d) => hostname === d || hostname.endsWith(`.${d}`));
+  if (!needsProxy) return undefined;
+  return { server: VB_PROXY_SERVER, username: VB_PROXY_USERNAME, password: VB_PROXY_PASSWORD };
+}
 
 const MAX_CONCURRENT = 3;
 
@@ -108,6 +137,12 @@ interface VBSession {
    * default, since VB (unlike the extraction pipeline) never had any page-metadata capture at
    * all. Set once navigation succeeds; undefined if it never did or the read itself failed. */
   pageTitle?: string;
+  /** Set by pauseScreencast() once the collection window closes on a 'capture' candidate — the
+   * session is kept alive for the ongoing byte capture, but NO MORE VB_FRAME events will ever be
+   * sent until the owner confirms/rejects the candidate (there is no resumeScreencast()). A
+   * client that treats "session exists" as "frames incoming" gets stuck on an infinite loading
+   * spinner here — see getSessionSnapshot's `paused` field, added for exactly this. */
+  paused: boolean;
 }
 
 const sessions = new Map<string, VBSession>(); // roomId -> session
@@ -212,10 +247,10 @@ export function getSessionPageTitle(roomId: string): string | undefined {
 // session — without this, ROOM_JOINED had no way to tell a fresh client "a virtual browser is
 // already running", so anyone who joined/refreshed post-start never received the one-shot
 // VB_STARTED broadcast and just saw the old, now-not-actually-active video player instead.
-export function getSessionSnapshot(roomId: string): { url: string; width: number; height: number; ownerId: string } | null {
+export function getSessionSnapshot(roomId: string): { url: string; width: number; height: number; ownerId: string; paused: boolean } | null {
   const s = sessions.get(roomId);
   if (!s) return null;
-  return { url: s.url, width: VB_VIEWPORT.width, height: VB_VIEWPORT.height, ownerId: s.ownerId };
+  return { url: s.url, width: VB_VIEWPORT.width, height: VB_VIEWPORT.height, ownerId: s.ownerId, paused: s.paused };
 }
 
 // 'url'     — categories A (extension/content-type/magic-bytes on a real HTTP response). The
@@ -362,9 +397,21 @@ function attachResponseSniffer(
       return;
     }
     // mp4
+    // Real prod case 2026-08-14 (asilmedia.org): the source page's own <video> element requests
+    // the file with a Range header (progressive/chunked loading — common even on a first load, not
+    // just seeking), so the response is 206 Partial Content whose Content-Length is the size of
+    // just that RANGE, not the file. A 68-minute movie's first chunk can legitimately be a couple
+    // of MB, well under MIN_MP4_BYTES, and got wrongly rejected as an ad on exactly that basis —
+    // the real file was never actually short. Content-Range's own total (`bytes start-end/TOTAL`)
+    // is the real file size when present; `TOTAL` is `*` for a genuinely unknown/unbounded total
+    // (rare — e.g. a live-growing response), parsed as NaN and treated the same as "can't measure,
+    // accept" below rather than guessed at.
+    const contentRange = response.headers()['content-range'];
+    const rangeTotal = contentRange ? parseInt(/\/(\d+|\*)$/.exec(contentRange)?.[1] ?? '', 10) : NaN;
     const contentLength = parseInt(response.headers()['content-length'] ?? '', 10);
-    if (!Number.isNaN(contentLength) && contentLength < MIN_MP4_BYTES) {
-      rejectAsAd(mediaUrl, type, 'mp4_size', { bytes: contentLength });
+    const measuredBytes = !Number.isNaN(rangeTotal) ? rangeTotal : contentLength;
+    if (!Number.isNaN(measuredBytes) && measuredBytes < MIN_MP4_BYTES) {
+      rejectAsAd(mediaUrl, type, 'mp4_size', { bytes: measuredBytes, viaContentRange: !Number.isNaN(rangeTotal) });
       return;
     }
     hit(mediaUrl, type, how);
@@ -467,7 +514,7 @@ export async function startSession(
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', ...STEALTH_LAUNCH_ARGS, ...ANTI_THROTTLE_LAUNCH_ARGS],
     });
-    const context = await browser.newContext({ viewport: VB_VIEWPORT, userAgent: STEALTH_USER_AGENT });
+    const context = await browser.newContext({ viewport: VB_VIEWPORT, userAgent: STEALTH_USER_AGENT, proxy: getProxyForUrl(url) });
     await applyStealthPatches(context);
     const page = await context.newPage();
     const cdp = await context.newCDPSession(page);
@@ -584,6 +631,18 @@ export async function startSession(
       await page.exposeFunction('__wewatchCaptureChunk', (base64Chunk: string) => {
         onCaptureChunk(Buffer.from(base64Chunk, 'base64'));
       });
+      // Dual-track addition (2026-08-14, vbCapture.service.ts's own header comment has the full
+      // story): ALSO patch MediaSource.addSourceBuffer to learn which real track (video/audio)
+      // each SourceBuffer instance was created for — from the mimeType string the page itself
+      // passes in, e.g. 'video/mp4; codecs="avc1..."' vs 'audio/mp4; codecs="mp4a..."' — and tag
+      // every appendBuffer call from that instance accordingly. Purely additive: every chunk still
+      // goes to __wewatchCaptureChunk exactly as before (zero change to the combined-buffer path
+      // that Safari/mobile already play successfully), tagged chunks ALSO go to this new function
+      // so the server can keep a second, correctly-separated copy per track.
+      await page.exposeFunction('__wewatchCaptureTrackChunk', (track: string, base64Chunk: string) => {
+        if (track !== 'video' && track !== 'audio') return;
+        appendCaptureTrack(roomId, track, Buffer.from(base64Chunk, 'base64'));
+      });
       await page.addInitScript(/* js */ `
         (function () {
           if (!window.SourceBuffer || !window.SourceBuffer.prototype.appendBuffer) return;
@@ -597,8 +656,41 @@ export async function startSession(
             }
             return btoa(binary);
           }
+          // instance -> 'video' | 'audio' | null (tagged but not a track we separate, e.g. text/
+          // subtitle SourceBuffers — falls through to the combined-only path below, same as any
+          // SourceBuffer this whole patch never learns about).
+          const trackByBuffer = new WeakMap();
+          // Real prod finding 2026-08-14 (architecture review): a normal SINGLE-SourceBuffer muxed
+          // source (the common case — one addSourceBuffer('video/mp4; codecs="avc1...,mp4a..."'))
+          // ALSO starts with 'video/', so naive tagging duplicated every such capture's bytes into
+          // a 'video' track buffer nobody ever reads (the client only queries per-track endpoints
+          // once X-Vb-Tracks reports BOTH video AND audio) — full memory cost, zero benefit, for
+          // the large majority of captures. Gate forwarding on having actually observed distinct
+          // video AND audio SourceBuffer creations on THIS page first — only a genuine dual-
+          // SourceBuffer source ever satisfies both, so single-SourceBuffer sites now cost nothing
+          // extra, exactly as the original combined-only capture did before this feature existed.
+          const seenKinds = new Set();
+          let dualTrackConfirmed = false;
+          if (window.MediaSource && window.MediaSource.prototype.addSourceBuffer) {
+            const origAddSourceBuffer = window.MediaSource.prototype.addSourceBuffer;
+            window.MediaSource.prototype.addSourceBuffer = function (mimeType) {
+              const sb = origAddSourceBuffer.apply(this, arguments);
+              try {
+                const kind = String(mimeType).toLowerCase();
+                if (kind.indexOf('video/') === 0) { trackByBuffer.set(sb, 'video'); seenKinds.add('video'); }
+                else if (kind.indexOf('audio/') === 0) { trackByBuffer.set(sb, 'audio'); seenKinds.add('audio'); }
+                if (seenKinds.has('video') && seenKinds.has('audio')) dualTrackConfirmed = true;
+              } catch (e) { /* never break playback */ }
+              return sb;
+            };
+          }
           window.SourceBuffer.prototype.appendBuffer = function (data) {
-            try { window.__wewatchCaptureChunk(toBase64(data)); } catch (e) { /* never break playback */ }
+            try {
+              const b64 = toBase64(data);
+              window.__wewatchCaptureChunk(b64);
+              const track = trackByBuffer.get(this);
+              if (track && dualTrackConfirmed) window.__wewatchCaptureTrackChunk(track, b64);
+            } catch (e) { /* never break playback */ }
             return origAppend.apply(this, arguments);
           };
         })();
@@ -676,7 +768,7 @@ export async function startSession(
       everyNthFrame: 1,
     });
 
-    sessions.set(roomId, { browser, context, page, cdp, ownerId, url });
+    sessions.set(roomId, { browser, context, page, cdp, ownerId, url, paused: false });
 
     try {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 });
@@ -731,7 +823,7 @@ export async function probeUrl(url: string): Promise<{ mediaUrl: string; type: M
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', ...STEALTH_LAUNCH_ARGS, ...ANTI_THROTTLE_LAUNCH_ARGS],
     });
-    const context = await browser.newContext({ viewport: VB_VIEWPORT, userAgent: STEALTH_USER_AGENT });
+    const context = await browser.newContext({ viewport: VB_VIEWPORT, userAgent: STEALTH_USER_AGENT, proxy: getProxyForUrl(url) });
     await applyStealthPatches(context);
     const page = await context.newPage();
 
@@ -780,6 +872,7 @@ export async function pauseScreencast(roomId: string): Promise<void> {
   const s = sessions.get(roomId);
   if (!s) return;
   try { await s.cdp.send('Page.stopScreencast'); } catch { /* already gone */ }
+  s.paused = true;
   logger.info('VB: screencast paused, session kept alive for ongoing capture', { roomId });
 }
 

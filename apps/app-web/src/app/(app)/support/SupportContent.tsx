@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { io, Socket } from 'socket.io-client';
 import { apiClient } from '@/lib/api-client';
+import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { trackClick } from '@/lib/analytics';
 
@@ -33,26 +34,53 @@ function SupportBubble({ msg }: { msg: SupportMessage }) {
   return (
     <div className={`flex items-end gap-2 ${isFromUser ? 'flex-row-reverse' : 'flex-row'}`}>
       {!isFromUser && (
-        <div
-          className="w-[28px] h-[28px] rounded-full flex items-center justify-center shrink-0 mb-0.5"
-          style={{ backgroundColor: '#7B72F8' }}
-        >
-          <Headphones size={13} className="text-white" />
-        </div>
+        <span className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--ww-accent)]">
+          <Headphones size={13} aria-hidden="true" className="text-white" />
+        </span>
       )}
+      {/* Foydalanuvchi pufakchasi — aksent, operator pufakchasi — sirt.
+          Ilgari ikkalasi ham qo'lda yozilgan hex (#7B72F8 / #1C1C2E) edi. */}
       <div
-        className={`max-w-[78%] px-3.5 py-2.5 flex flex-col gap-0.5 ${
+        className={`flex max-w-[78%] flex-col gap-0.5 rounded-[18px] px-3.5 py-2.5 ${
           isFromUser
-            ? 'rounded-[18px] rounded-br-[5px] text-white'
-            : 'rounded-[18px] rounded-bl-[5px] text-white/85 border border-white/[0.06]'
+            ? 'rounded-br-[5px] bg-[var(--ww-accent)] text-white'
+            : 'rounded-bl-[5px] border border-[var(--ww-line)] bg-[var(--ww-surface-2)] text-[var(--ww-text-2)]'
         }`}
-        style={isFromUser ? { backgroundColor: '#7B72F8' } : { backgroundColor: '#1C1C2E' }}
       >
-        <p className="text-sm break-words leading-[1.45]">{msg.text}</p>
-        <p className={`text-[9px] self-end leading-none ${isFromUser ? 'text-white/50' : 'text-white/28'}`}>
+        <p className="break-words text-[13.5px] leading-[1.45]">{msg.text}</p>
+        <time
+          dateTime={msg.createdAt}
+          className={`self-end text-[10px] leading-none ${
+            isFromUser ? 'text-white/60' : 'text-[var(--ww-text-4)]'
+          }`}
+        >
           {time}
-        </p>
+        </time>
       </div>
+    </div>
+  );
+}
+
+/** Bo'sh / xato holatlari bir xil shaklda — faqat matn va ikonka farq qiladi */
+function CenteredState({
+  icon: Icon,
+  title,
+  hint,
+  children,
+}: {
+  icon: typeof Headphones;
+  title: string;
+  hint?: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+      <span className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--ww-line)] bg-[var(--ww-surface-1)]">
+        <Icon size={20} aria-hidden="true" className="text-[var(--ww-text-4)]" />
+      </span>
+      <p className="text-[14px] font-semibold text-[var(--ww-text-2)]">{title}</p>
+      {hint && <p className="max-w-xs text-[12.5px] leading-relaxed text-[var(--ww-text-4)]">{hint}</p>}
+      {children}
     </div>
   );
 }
@@ -66,12 +94,16 @@ export function SupportContent() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
 
-  const { data: conversations, isLoading: convLoading } = useQuery({
+  const { data: conversations, isLoading: convLoading, isError: convError } = useQuery({
     queryKey: ['support-conversations'],
     queryFn: async () => {
       const res = await apiClient<SupportConversation[]>('/api/support/conversations');
       return res.data ?? [];
     },
+    // The list 403s for ordinary users in production ("Access requires one of roles: admin,
+    // superadmin, moderator" — a backend route-auth bug, services/admin). Retrying just multiplies
+    // the failed calls; the error state below is what the user needs to see.
+    retry: false,
   });
 
   // Auto-use active conversation (open first, else latest)
@@ -148,8 +180,16 @@ export function SupportContent() {
         body: { subject: 'Support' },
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['support-conversations'] }),
-    onError: () => toast({ title: 'Error', description: 'Could not start chat', variant: 'destructive' }),
+    onError: () => toast({ title: t('startError'), variant: 'destructive' }),
   });
+
+  // POST succeeds (201) while GET 403s, so the refetch came back empty and the same "start chat"
+  // button was offered again — every click wrote another empty conversation to the database that
+  // the user could never see (prod audit 2026-08-01). One attempt is all we allow: if the list is
+  // still empty afterwards, something is wrong on the server and clicking again cannot fix it.
+  const startFailedSilently =
+    startConvo.isSuccess && !convLoading && (conversations?.length ?? 0) === 0;
+  const unavailable = convError || startFailedSilently;
 
   const sendMessage = useMutation({
     mutationFn: (text: string) =>
@@ -161,7 +201,7 @@ export function SupportContent() {
       qc.invalidateQueries({ queryKey: ['support-messages', activeConv?._id] });
       setInputText('');
     },
-    onError: () => toast({ title: 'Error', description: 'Could not send message', variant: 'destructive' }),
+    onError: () => toast({ title: t('sendError'), variant: 'destructive' }),
   });
 
   const rateConvo = useMutation({
@@ -196,123 +236,114 @@ export function SupportContent() {
 
   const isClosed = activeConv?.status === 'closed';
   const isLoading = convLoading || msgLoading;
+  const currentScore = hoverRating || rating || (activeConv?.rating?.score ?? 0);
 
   return (
-    <div
-      className="h-[calc(100vh-3rem)] flex flex-col rounded-xl border border-white/[0.06] overflow-hidden"
-      style={{ maxWidth: '40rem', margin: '0 auto', backgroundColor: '#0D0D1A' }}
-    >
-      {/* Header */}
-      <div
-        className="flex items-center gap-3 px-4 h-11 border-b border-white/[0.06] shrink-0"
-        style={{ backgroundColor: '#111113' }}
-      >
-        <Headphones size={15} className="text-slate-400" />
-        <div className="flex-1">
-          <p className="text-[13px] font-semibold text-white">{t('title')}</p>
-        </div>
+    // `dvh`, not `vh`: on mobile browsers `vh` is the tallest-possible viewport, so the composer
+    // sat under the URL bar. `6.5rem` clears the layout's own `pb-24` plus the floating dock.
+    <div className="ww-panel mx-auto flex h-[calc(100dvh-6.5rem)] max-w-2xl flex-col overflow-hidden sm:h-[calc(100dvh-3rem)]">
+      <header className="flex h-12 shrink-0 items-center gap-3 border-b border-[var(--ww-line)] px-4">
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--ww-accent-soft)]">
+          <Headphones size={14} aria-hidden="true" className="text-[var(--ww-accent-hi)]" />
+        </span>
+        <h1 className="flex-1 text-[14px] font-semibold text-[var(--ww-text)]">{t('title')}</h1>
         {isClosed && (
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/[0.05] text-white/35 border border-white/[0.06]">
+          <span className="rounded-full border border-[var(--ww-line)] bg-[var(--ww-surface-1)] px-2.5 py-1 text-[10.5px] font-semibold text-[var(--ww-text-3)]">
             {t('closed')}
           </span>
         )}
-      </div>
+      </header>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2 scrollbar-hide">
+      <div className="scrollbar-hide flex flex-1 flex-col gap-2 overflow-y-auto px-4 py-4">
         {isLoading ? (
-          <div className="flex-1 flex items-center justify-center">
-            <Loader2 size={24} className="animate-spin text-violet-400" />
+          <div className="flex flex-1 items-center justify-center">
+            <Loader2 size={22} aria-hidden="true" className="animate-spin text-[var(--ww-accent-hi)]" />
           </div>
+        ) : unavailable ? (
+          <CenteredState icon={Headphones} title={t('unavailableTitle')} hint={t('unavailableHint')} />
         ) : !activeConv ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-4 py-16">
-            <Headphones size={28} className="text-slate-700" />
-            <div className="text-center">
-              <p className="text-sm font-semibold text-slate-400">{t('emptyTitle')}</p>
-              <p className="text-xs text-slate-600 mt-1">{t('emptySub')}</p>
-            </div>
-            <button
+          <CenteredState icon={Headphones} title={t('emptyTitle')} hint={t('emptySub')}>
+            <Button
+              type="button"
+              variant="accent"
+              size="xl"
               onClick={() => { trackClick('support:start_chat'); startConvo.mutate(); }}
-              disabled={startConvo.isPending}
-              className="h-9 px-5 rounded-lg text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 cursor-pointer disabled:opacity-40 transition-colors flex items-center gap-2"
+              disabled={startConvo.isPending || startConvo.isSuccess}
+              className="mt-1 px-6"
             >
-              {startConvo.isPending ? <Loader2 size={14} className="animate-spin" /> : t('startChat')}
-            </button>
-          </div>
+              {startConvo.isPending
+                ? <Loader2 size={16} aria-hidden="true" className="animate-spin" />
+                : t('startChat')}
+            </Button>
+          </CenteredState>
         ) : messages?.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-2 py-16">
-            <MessageCircle size={36} className="text-white/10" />
-            <p className="text-[14px] font-semibold text-white/28">{t('noMessages')}</p>
-          </div>
+          <CenteredState icon={MessageCircle} title={t('noMessages')} />
         ) : (
           messages?.map((msg) => <SupportBubble key={msg._id} msg={msg} />)
         )}
         <div ref={bottomRef} />
       </div>
 
-      {/* Rating (closed) */}
+      {/* Baholash (suhbat yopilgan) */}
       {isClosed && (
-        <div
-          className="px-4 py-3 border-t border-white/[0.06] flex flex-col items-center gap-2"
-          style={{ backgroundColor: '#111120' }}
-        >
-          <p className="text-xs text-white/40">{t('rateTitle')}</p>
-          <div className="flex gap-1.5">
+        <div className="flex shrink-0 flex-col items-center gap-2.5 border-t border-[var(--ww-line)] px-4 py-3">
+          <p className="text-[12.5px] text-[var(--ww-text-3)]">{t('rateTitle')}</p>
+          <div className="flex gap-1.5" onMouseLeave={() => setHoverRating(0)}>
             {[1, 2, 3, 4, 5].map((star) => (
               <button
                 key={star}
+                type="button"
+                aria-label={t('rateStar', { count: star })}
+                aria-pressed={star <= (rating || (activeConv?.rating?.score ?? 0))}
                 onMouseEnter={() => setHoverRating(star)}
-                onMouseLeave={() => setHoverRating(0)}
+                onFocus={() => setHoverRating(star)}
+                onBlur={() => setHoverRating(0)}
                 onClick={() => { trackClick('support:rate', { star }); setRating(star); rateConvo.mutate(star); }}
-                className="cursor-pointer transition-transform hover:scale-110"
+                className="cursor-pointer p-0.5 transition-transform hover:scale-110"
               >
                 <Star
                   size={22}
-                  className={
-                    star <= (hoverRating || rating || (activeConv?.rating?.score ?? 0))
-                      ? 'text-yellow-400 fill-yellow-400'
-                      : 'text-white/15'
-                  }
+                  aria-hidden="true"
+                  className={star <= currentScore ? 'text-[var(--ww-gold)]' : 'text-[var(--ww-text-4)]'}
+                  fill={star <= currentScore ? 'currentColor' : 'none'}
                 />
               </button>
             ))}
           </div>
-          <button
+          <Button
+            type="button"
+            variant="subtle"
+            size="default"
             onClick={() => { trackClick('support:new_chat'); startConvo.mutate(); }}
-            disabled={startConvo.isPending}
-            className="mt-1 h-8 px-5 rounded-lg text-xs font-medium text-white bg-violet-600 hover:bg-violet-500 cursor-pointer disabled:opacity-40 transition-colors"
+            disabled={startConvo.isPending || unavailable}
+            className="mt-1 px-5 text-[13px] text-[var(--ww-text-2)]"
           >
             {t('newChat')}
-          </button>
+          </Button>
         </div>
       )}
 
-      {/* Input */}
+      {/* Yozish maydoni */}
       {activeConv && !isClosed && (
-        <div
-          className="flex items-end gap-2 px-4 pt-2.5 pb-3 border-t border-white/[0.06]"
-          style={{ backgroundColor: '#111120' }}
-        >
+        <div className="flex shrink-0 items-end gap-2 border-t border-[var(--ww-line)] px-4 pb-3 pt-2.5">
           <textarea
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKey}
             placeholder={t('placeholder')}
+            aria-label={t('placeholder')}
             maxLength={500}
             rows={1}
-            className="flex-1 rounded-[22px] px-4 py-2.5 text-sm text-white placeholder:text-white/28 focus:outline-none focus:border-violet-500/45 transition-all resize-none leading-5"
-            style={{
-              backgroundColor: '#1C1C2E',
-              border: '1px solid rgba(255,255,255,0.07)',
-              maxHeight: '120px',
-            }}
+            className="ww-field ww-composer min-w-0 flex-1 text-[13.5px]"
           />
           <button
+            type="button"
             onClick={handleSend}
             disabled={!inputText.trim() || sendMessage.isPending}
-            className="w-9 h-9 rounded-lg flex items-center justify-center text-white transition-colors cursor-pointer shrink-0 disabled:opacity-30 bg-violet-600 hover:bg-violet-500 disabled:bg-white/[0.06]"
+            aria-label={t('send')}
+            className="ww-btn-accent flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-[var(--ww-r-md)] text-white disabled:cursor-default"
           >
-            <Send size={16} />
+            <Send size={17} aria-hidden="true" />
           </button>
         </div>
       )}

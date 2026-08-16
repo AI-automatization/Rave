@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Loader2, Lock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/field';
 import { roomsApi } from '@/lib/api/rooms.api';
 import { useApiError } from '@/hooks/use-api-error';
 import { trackClick } from '@/lib/analytics';
@@ -42,42 +43,43 @@ export function RoomPasswordDialog({ open, inviteCode, onJoined }: Props) {
   return (
     <Dialog open={open}>
       <DialogContent
-        className="max-w-xs liquid-glass border-white/[0.08] p-6"
+        className="max-w-xs rounded-[var(--ww-r-xl)] border-[var(--ww-line)] bg-[var(--ww-panel-solid)] p-6 text-[var(--ww-text)]"
         onEscapeKeyDown={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogTitle className="sr-only">{t('passwordTitle')}</DialogTitle>
 
-        <form onSubmit={handleSubmit} className="flex flex-col items-center gap-4">
-          <div
-            className="w-11 h-11 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(124,58,237,0.25)' }}
-          >
-            <Lock size={17} className="text-violet-400" />
-          </div>
+        <form onSubmit={handleSubmit} className="flex w-full flex-col items-center gap-4">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full border border-[rgba(124,58,237,0.28)] bg-[var(--ww-accent-soft)]">
+            <Lock size={18} aria-hidden="true" className="text-[var(--ww-accent-hi)]" />
+          </span>
 
           <div className="text-center">
-            <p className="text-white text-sm font-semibold">{t('passwordTitle')}</p>
-            <p className="text-zinc-500 text-[11px] mt-1">{t('passwordHint')}</p>
+            <p className="text-[14px] font-semibold text-[var(--ww-text)]">{t('passwordTitle')}</p>
+            <p className="mt-1 text-[12px] text-[var(--ww-text-3)]">{t('passwordHint')}</p>
           </div>
 
-          <input
+          {/* Maydon endi butun ilova bo'ylab bir xil `Input` primitivida (48px) */}
+          <Input
             type="password"
             value={password}
             onChange={(e) => { setPassword(e.target.value); setError(null); }}
             placeholder={t('passwordPlaceholder')}
+            aria-label={t('passwordTitle')}
+            aria-invalid={error ? true : undefined}
             autoFocus
-            className="w-full h-9 bg-white/[0.06] border border-white/[0.1] rounded-lg px-3 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/50 transition-colors"
           />
 
-          {error && <p className="text-[11px] text-red-400 text-center">{error}</p>}
+          {error && (
+            <p role="alert" className="text-center text-[12px] text-[var(--ww-danger)]">{error}</p>
+          )}
 
           <button
             type="submit"
             disabled={!password || pending}
-            className="w-full h-9 rounded-lg flex items-center justify-center gap-2 text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-40 transition-colors cursor-pointer"
+            className="ww-btn-accent flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-[var(--ww-r-md)] text-[14px] font-medium text-white disabled:cursor-default"
           >
-            {pending && <Loader2 size={14} className="animate-spin" />}
+            {pending && <Loader2 size={15} aria-hidden="true" className="animate-spin" />}
             {t('passwordSubmit')}
           </button>
         </form>
