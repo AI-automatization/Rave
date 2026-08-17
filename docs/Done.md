@@ -4,6 +4,18 @@
 
 ---
 
+### F-292 | PR #104 | apps/web lint ishga tushmayotgan edi — tuzatildi, 115 → 0 xato
+
+- **Bajaruvchi:** AbdulazizYormatov (Claude Opus 5)  **Bajarilgan:** 2026-08-17  **Model:** opus
+- **O'zgarishlar:**
+  - `apps/web/.eslintrc.json` (yangi) + `apps/web/eslint.config.mjs` (o'chirildi) — konfig ishlamayotgani sababli lint jim turardi.
+  - `apps/web/src/components/party/RoomHeader.tsx` — `((room as any)?.members as unknown[])?.length` → `room?.members?.length`.
+  - `apps/web/src/hooks/use-watch-party.ts` — `(data.room as any).members as string[]` ×2 → `data.room.members`.
+  - `apps/web/src/components/landing/FeaturesContent.tsx` — ishlatilmagan `import { type Variants }` olib tashlandi.
+  - `apps/web/src/app/delete-account/page.tsx` — ishlatilmagan `const COMPANY` olib tashlandi.
+  - `.claude/scripts/*` (8 fayl), `scripts/backup-mongo.sh` — shell gigiyenasi.
+- **Xulosa:** PR 5 kun konfliktda turgan edi. Ikkita konflikt: (1) `apps/web/package.json` — `main` da `typecheck` allaqachon bor va ustiga `check:clusters` qo'shilgan, `main` versiyasi olindi; (2) 🔴 `RequestCard.tsx` — vetka `avatarColor` importini "o'lik kod" deb o'chirardi, lekin **`main` da u endi ishlatiladi** (25-qator), ya'ni ko'r-ko'rona merge build'ni buzardi — import saqlab qolindi. Keyin qolgan 5 lint xatosi tozalandi: `as any` castlari **umuman kerak emas ekan** — `IWatchPartyRoom` (`shared/src/types`) allaqachon `members: string[]` deb e'lon qilgan, store esa `IWatchPartyRoom | null` saqlaydi. `Array.isArray` ataylab qoldirildi: u tipdan emas, serverdan himoya qiladi. **Tekshiruv:** `npm run lint` (apps/web) exit **0** (avval 1), `tsc --noEmit` exit **0**, qolgani — 11 warning (`<img>` va `exhaustive-deps`, lint'ni yiqitmaydi). ⚠️ Birinchi `tsc` 10 ta `TS2307` bergan edi — `.next/types/**` dagi eski build artefaktlari, `rm -rf .next` dan keyin nol. ⚠️ `apps/app-web` da 4 ta `Cannot find module 'dashjs'` — paket `package.json` da e'lon qilingan (`^4.7.4`), lekin jismonan o'rnatilmagan; bu muhit nuqsoni, PR bunga tegmaydi (CLAUDE.md: "TS ошибки до работы = фон, не блокер").
+
 ### F-291 | T-S201 | VB candidate playback fix — vb-capture o'z-o'ziga qaytish sikli (yummyani.me)
 
 - **Bajaruvchi:** Saidazim (Claude Sonnet 5)  **Bajarilgan:** 2026-08-11 18:16  **Model:** sonnet
