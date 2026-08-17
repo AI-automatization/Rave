@@ -39,7 +39,6 @@ aws s3 ls "s3://${S3_BUCKET}/backups/" \
   ${S3_ENDPOINT_URL:+--endpoint-url "${S3_ENDPOINT_URL}"} \
   | awk '{print $4}' \
   | while read -r KEY; do
-    PREFIX="${KEY%%-[0-9]*}"
     DATE_PART="${KEY#cinesync-backup-}"
     DATE_PART="${DATE_PART%.tar.gz}"
     if [[ "${DATE_PART}" < "${CUTOFF}" ]]; then

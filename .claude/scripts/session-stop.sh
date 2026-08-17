@@ -27,7 +27,7 @@ if [ -f "$ACTIVE_ZONE_FILE" ]; then
 fi
 
 # 3. Git: auto-commit changed zone files (silent)
-cd /Users/saidazim/Desktop/Rave 2>/dev/null
+cd /Users/saidazim/Desktop/Rave 2>/dev/null || exit 0
 if git diff --quiet "$VAULT" 2>/dev/null; then
   : # no changes
 else
