@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { FaPlay } from 'react-icons/fa';
 
 export const metadata: Metadata = {
   title: 'Delete Your Account',
@@ -12,33 +11,15 @@ export const metadata: Metadata = {
 
 const EFFECTIVE_DATE = 'June 12, 2026';
 const APP_NAME = 'WeWatch';
-const COMPANY = 'WeWatch (Rave)';
 const PRIVACY_EMAIL = 'privacy@wewatch.app';
 const SUPPORT_EMAIL = 'support@wewatch.app';
 
 export default function DeleteAccountPage() {
   return (
-    <div className="min-h-screen bg-[#0A0A0F] text-zinc-300">
-      <header className="sticky top-0 z-50 bg-[#0A0A0F]/90 backdrop-blur-md border-b border-zinc-800/60">
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/en" className="inline-flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[#7B72F8] flex items-center justify-center">
-              <FaPlay size={9} className="text-white ml-0.5" />
-            </div>
-            <span className="text-xl font-bold tracking-wider text-white">
-              WE<span className="text-[#7B72F8]">WATCH</span>
-            </span>
-          </Link>
-          <div className="flex gap-4 text-sm text-zinc-500">
-            <Link href="/privacy-policy" className="hover:text-zinc-300 transition-colors">Privacy</Link>
-            <Link href="/terms" className="hover:text-zinc-300 transition-colors">Terms</Link>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-6 py-16">
+    <div className="flex-1 bg-page text-zinc-300">
+      <main className="article max-w-4xl mx-auto px-6 py-16">
         <h1 className="text-4xl font-bold text-white mb-2">Delete Your Account</h1>
-        <p className="text-zinc-500 text-sm mb-12">Last updated: {EFFECTIVE_DATE}</p>
+        <p className="text-zinc-400 text-sm mb-12">Last updated: {EFFECTIVE_DATE}</p>
 
         <div className="bg-[#111118] border-l-4 border-[#7B72F8] rounded-r-xl px-6 py-5 mb-10 text-zinc-400 text-sm leading-7">
           <strong className="text-zinc-200 block mb-1">Your Right to Deletion</strong>
@@ -111,17 +92,6 @@ export default function DeleteAccountPage() {
         </Section>
       </main>
 
-      <footer className="border-t border-zinc-800/60 py-6 mt-8">
-        <div className="max-w-4xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-zinc-600 text-xs">© {new Date().getFullYear()} {COMPANY}. All rights reserved.</p>
-          <div className="flex gap-4 text-zinc-600 text-xs">
-            <Link href="/privacy-policy" className="hover:text-zinc-400 transition-colors">Privacy</Link>
-            <Link href="/terms" className="hover:text-zinc-400 transition-colors">Terms</Link>
-            <Link href="/dmca" className="hover:text-zinc-400 transition-colors">DMCA</Link>
-            <Link href="/en" className="hover:text-zinc-400 transition-colors">← Home</Link>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { WeWatchLogo } from '@/components/common/WeWatchLogo';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
@@ -18,25 +17,15 @@ const APP_URL = 'https://wewatch.uz';
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="min-h-screen bg-[#060608] text-zinc-300">
-      <header className="sticky top-0 z-50 bg-[#060608]/90 backdrop-blur-md border-b border-zinc-800/60">
-        <div className="max-w-4xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
-          <WeWatchLogo variant="horizontal" iconSize={26} href="/en" />
-          <div className="flex gap-5 text-sm text-zinc-400">
-            <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
-            <Link href="/dmca" className="hover:text-white transition-colors">DMCA</Link>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-6 py-16">
-        <nav aria-label="Breadcrumb" className="text-zinc-600 text-xs mb-6">
+    <div className="flex-1 bg-page text-zinc-300">
+      <main className="article max-w-4xl mx-auto px-6 py-16">
+        <nav aria-label="Breadcrumb" className="text-zinc-400 text-xs mb-6">
           <Link href="/en" className="hover:text-zinc-400 transition-colors">WeWatch</Link>
           <span className="mx-2">/</span>
-          <span className="text-zinc-500">Privacy Policy</span>
+          <span className="text-zinc-400">Privacy Policy</span>
         </nav>
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-2 tracking-tight">Privacy Policy</h1>
-        <p className="text-zinc-500 text-sm mb-12">
+        <p className="text-zinc-400 text-sm mb-12">
           Last updated: {EFFECTIVE_DATE} &nbsp;·&nbsp; Effective: {EFFECTIVE_DATE}
         </p>
 
@@ -364,7 +353,7 @@ export default function PrivacyPolicyPage() {
         <Section title="12. Contact">
           <div className="space-y-1">
             <strong className="text-zinc-200 block">{COMPANY}</strong>
-            <p className="text-zinc-500 text-xs">Registered in Tashkent, Republic of Uzbekistan</p>
+            <p className="text-zinc-400 text-xs">Registered in Tashkent, Republic of Uzbekistan</p>
             <p>
               Privacy &amp; support:{' '}
               <a href={`mailto:${PRIVACY_EMAIL}`} className="text-[#7B72F8] hover:underline">{PRIVACY_EMAIL}</a>
@@ -382,17 +371,6 @@ export default function PrivacyPolicyPage() {
           </div>
         </Section>
       </main>
-
-      <footer className="border-t border-zinc-800/60 py-6 mt-8">
-        <div className="max-w-4xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-zinc-600 text-xs">© {new Date().getFullYear()} {COMPANY}. All rights reserved.</p>
-          <div className="flex gap-4 text-zinc-600 text-xs">
-            <Link href="/terms" className="hover:text-zinc-400 transition-colors">Terms</Link>
-            <Link href="/dmca" className="hover:text-zinc-400 transition-colors">DMCA</Link>
-            <Link href="/en" className="hover:text-zinc-400 transition-colors">← Home</Link>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

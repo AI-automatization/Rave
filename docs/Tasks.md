@@ -1,7 +1,132 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-08-13
+# Yangilangan: 2026-08-15
 
+---
+
+### T-Y207 | P1 | [SEO] | `смотреть видео вместе` faqat H2 da edi — title va H1 da yo'q
+
+- **Mas'ul:** pending[Yakubov]
+- **Beruvchi:** Yakubov
+- **Yaratilgan:** 2026-08-15 18:20
+- **Holat:** 🔄 PR ochildi (`yakubov/fix-video-vmeste-title-h1` → `dev`)
+- **Tavsiya model:** sonnet
+- **Model sababi:** 3 fayl, kontent qayta yozilmaydi — faqat title/H1/lead
+- **Sabab:** T-Y202 `/ru/guides/smotret-vmeste-onlayn` ni `смотреть видео вместе`
+  egasi qilib belgilagan (`secondaryIntents`), lekin bu ibora **faqat H2 da** turadi.
+  Title va H1 da «видео» so'zi umuman yo'q edi: title `Смотреть вместе онлайн
+  бесплатно…`, H1 `Смотреть вместе онлайн бесплатно`. Prod'da o'lchandi (2026-08-15,
+  curl). SERP'da (UZ lokali, 2026-08-15) shu so'rov bo'yicha **20-o'rin** — va
+  egasi bo'lgan sahifa emas, **`kino-s-drugom-onlayn`** (film hub) chiqadi:
+  Google ikki sahifadan o'zi tanlagan, chunki ikkalasining ham title'ida ibora yo'q.
+  Yuqoridagilarda esa ibora aynan **title** da: `Watch2Gether - Смотрите видео
+  вместе` (1-o'rin), `BlaTube - смотреть видео вместе онлайн` (6-o'rin).
+- **Qilish kerak:**
+  - [x] `page.tsx` — `metadata.title` va `openGraph.title` iborani boshiga oladi;
+        `keywords` da ham birinchi o'ringa ko'chdi
+  - [x] `page.tsx` — H1 `Смотреть видео вместе онлайн бесплатно`; lead paragraf
+        aynan shu ibora bilan boshlanadi
+  - [x] `data/guides.ts` — `headline` H1 bilan sinxron (izohda «Visible H1 and
+        Article.headline» deb yozilgan, schema sahifadan ajralmasligi kerak) +
+        `lastModified` 2026-08-15 (sitemap lastmod)
+- **`primaryIntent` o'zgarmadi:** `смотреть вместе онлайн` hamon shu sahifada —
+  breadcrumb, `Как смотреть вместе онлайн — 4 шага` H2 va matn ichida saqlanib qoldi.
+  Registry'dagi da'vo o'zgartirilmadi, faqat da'vo kuchli slotga ko'chirildi.
+- **Tekshiruv:** `seo-geo-aeo.spec.ts` ikkita invariantni himoya qiladi — H1 lokal
+  ichida unikal (`:384`) va **boshqa** gayd egalik qilingan so'rovni heading'da
+  ko'tarmasligi (`:291`). Yangi title/H1 qolgan 9 ta RU intent'ining hech birini
+  o'z ichiga olmaydi (tekshirildi, `vk видео` ≠ `видео`)
+
+---
+
+### T-Y205 | P1 | [SEO] | Ichki linklar: `relatedGuides` har doim bir xil 4 ta gaydga link berardi
+
+- **Mas'ul:** pending[Yakubov]
+- **Beruvchi:** Yakubov
+- **Yaratilgan:** 2026-08-14 08:10
+- **Holat:** 🔄 PR ochildi (`yakubov/fix-related-guides-ring` → `dev`)
+- **Tavsiya model:** sonnet
+- **Model sababi:** 3 fayl, sabab aniq, kontent yozilmaydi
+- **Sabab:** `relatedGuides()` `.slice(0, 4)` qaytarardi — ya'ni **har bir sahifada
+  o'sha bir xil dastlabki 4 ta gayd**. Natijada RU dagi 10 ta gayddan 6 tasi hech qachon
+  bironta ham related-link olmagan, ular orasida **`kino-s-drugom-onlayn`** —
+  T-Y202 da egasi film-klaster hub'i qilib tayinlagan sahifa. Prod'da o'lchandi
+  (2026-08-14): VK va Rutube gaydlarida butun sayt bo'yicha atigi **2 ta** kiruvchi
+  link, `/terms` va `/privacy-policy` da esa footer orqali **55 tadan**. Bu — ichki
+  linklarning klassik «power curve» buzilishi: aybdor kontent emas, linklash qoidasi.
+- **Qilish kerak:**
+  - [x] `data/guides.ts` — `.slice()` o'rniga **aylanma oyna** (joriy gayddan keyingi
+        N ta, ro'yxat oxiridan boshiga o'raladi) → har bir gayd bir xil sonda kiruvchi
+        link oladi, `GUIDES` dagi o'rnidan qat'i nazar; `limit` 4 → 6
+  - [x] `GuideChrome.tsx` — related blok `<nav>` emas, `<section aria-labelledby>`:
+        bu maqola ichidagi kontekstli linklar, navigatsiya emas (qidiruv tizimlari
+        navigatsiya landmark'idagi linklarni pastroq baholaydi)
+  - [x] `tests/seo-geo-aeo.spec.ts` — invariant test: locale ichida **har bir gayd
+        bir xil sonda** kiruvchi related-link olishi shart (simmetriya, sanoq emas)
+- **Natija (o'lchandi, body ichidagi linklar):** VK 2→8 · Rutube 2→7 ·
+  `watch-party-besplatno` 3→9 · `smotret-film-vdvoem` 4→8 · film hub 5→10 ·
+  EN gaydlar 3–4→7–8. Body-linki umuman yo'q sahifalar: 3→2
+- **Tekshiruv:** yangi test eski `.slice()` bilan **FAIL**, fiks bilan **PASS** ·
+  `npm run test:seo` **28/28** (production build'ga qarshi, `next start`) ·
+  spec typecheck: yangi xato yo'q
+- **📌 Keyingi qadam (bu PR emas):** `use-cases`, `team`, `company`, `contact`
+  sahifalarida hamon 2–5 ta link — 64 sahifadan 37 tasi 10 tadan kam. Gaydlar
+  tuzatildi, qolganlari alohida vazifa
+
+---
+
+### T-Y206 | P2 | [WEB] | Landing — bitta header/footer butun sayt bo'ylab
+
+- **Mas'ul:** pending[Yakubov]
+- **Beruvchi:** Pokemon (Telegram, 2026-08-14 10:52)
+- **Yaratilgan:** 2026-08-15 09:40
+- **Holat:** 🔄 PR kutilmoqda (`yakubov/unify-landing-chrome` → `dev`)
+- **Tavsiya model:** opus
+- **Model sababi:** 60+ fayl, layout arxitekturasi o'zgaradi (chrome layout'ga ko'chdi)
+- **Sabab:** Saytda **to'rt xil header** bor edi: `LandingNav` (bosh sahifa +
+  `(landing)`), `GuideHeader` (guides/faq/how-it-works/use-cases), legal
+  sahifalarning ichki `<header>` nusxasi va `/delete-account` dagi qo'lda yozilgan
+  logotip. `/ru/use-cases/*`, `/ru/team`, `/ru/tezcode` da header umuman yo'q edi —
+  qidiruvdan kelgan o'quvchi mahsulotga qaytolmasdi. Fon rangi ham ikkiga bo'lingan
+  edi (`#0A0A0F` marketing, `#060608` guides/legal).
+- **Yechim:** `SiteShell` (nav + content + footer) locale layout'iga ko'chdi
+  (`/ru`, `/uz`, `/en` + legal layout'lar). `GuideHeader`/`GuideFooter` o'chirildi,
+  o'rniga `GuideArticleEnd` (faqat maqola metadata + related guides). Fon `bg-page`
+  tokeniga birlashtirildi (`--color-page`, globals.css).
+- **Tekshiruv:** 64 sahifa auditi — har birida bitta header/footer/main;
+  playwright 81 PASS / 0 FAIL; Lighthouse mobil: `/ru` 100/100/100,
+  guide 100/100/100, `/terms` a11y 92 → 96 (kontrast tuzatildi).
+
+---
+
+### T-Y204 | P1 | [SEO] | Yandex Metrica CSP tomonidan bloklangan — hech qanday hit kelmayapti
+
+- **Mas'ul:** pending[Yakubov]
+- **Beruvchi:** Yakubov
+- **Yaratilgan:** 2026-08-14 06:40
+- **Holat:** 🔄 PR ochildi (`yakubov/fix-csp-yandex-metrica` → `dev`)
+- **Tavsiya model:** sonnet
+- **Model sababi:** 2 fayl, sabab aniq, yangi arxitektura yo'q
+- **Sabab:** Counter `RootDocument.tsx` da bor, `NEXT_PUBLIC_YM_ID` esa #130 dan keyin
+  build'ga yetib bordi — lekin prod'da (2026-08-14 o'lchandi) `mc.yandex.ru/metrika/tag.js`
+  **CSP tomonidan bloklanadi**: `script-src` da faqat `googletagmanager.com` bor edi.
+  Brauzer so'rovni mashinadan chiqmasdan tashlaydi — server log'ida ham, Metrica'da ham
+  hech nima ko'rinmaydi, «trafik yo'q» dan farqi yo'q. «Metrica ishlamayapti» uchun ikkita
+  fiks allaqachon chiqarilgan edi, asl sabab shu.
+- **Qilish kerak:**
+  - [x] `next.config.mjs` — `script-src` ga `https://mc.yandex.ru`
+  - [x] `next.config.mjs` — `frame-src` ga `https://mc.yandex.ru` (webvisor iframe ishlatadi)
+  - [x] `tests/seo-geo-aeo.spec.ts` — invariant test: manbada `<Script src>` orqali
+        yuklanadigan **har qanday** host `script-src` da bo'lishi shart (ro'yxat emas —
+        keyin qo'shiladigan teg ham avtomatik qamrab olinadi)
+- **Tekshiruv:** yangi test prod'ga qarshi **FAIL** (aniq xabar bilan) → fiksli mahalliy
+  server'ga qarshi **PASS** · spec typecheck (vaqtinchalik `tests/` kiritilgan config):
+  yangi xato yo'q, `src` dagi 5 ta eski + spec'dagi `TS1501` `main` da ham bor
+- **⚠️ Keyingi qadam:** deploy'dan keyin prod HTML'da emas, brauzer network panelida
+  tekshirish — HTML'da teg bor edi, muammo undan keyin boshlanadi
+- **📌 apps/app-web da ham xuddi shu bo'shliq:** u yerdagi CSP'da ham `mc.yandex.ru` yo'q,
+  lekin `NEXT_PUBLIC_YM_ID` o'sha servisda umuman o'rnatilmagan — counter `app.wewatch.uz`
+  ga ulanadigan bo'lsa, CSP'ni ham o'sha payt tuzatish kerak (bu PR unga tegmaydi)
 ---
 
 ### T-Y203 | P2 | [SEO] | sitemap.xml — sitemap index'ga bo'lish + buzuq priority qiymatlari

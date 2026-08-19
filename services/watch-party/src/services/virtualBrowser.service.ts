@@ -13,6 +13,35 @@ import { isPrivateUrl, isOwnVbUrl } from './extractionClient';
 
 export const VB_VIEWPORT = { width: 1280, height: 720 } as const;
 
+// Some sites reject the VB browser's page load itself (e.g. hdrezka.ag: connection reset before
+// any HTML is served, direct AND via a datacenter proxy in a different country -- looks like an
+// ASN/hosting-IP block, not a geo-IP one, same family as the fayllar1.ru datacenter block this
+// week; see F-291-adjacent Bunny Edge fix, which only covers the byte-fetch of an ALREADY
+// resolved media URL, not the page navigation itself). Unlike that fix, this needs the whole
+// browser context routed through a proxy, so it's wired at newContext() instead. Off by default
+// (no env vars set = no proxy, current behavior unchanged) and scoped to a domain allowlist so
+// sites that don't need it aren't slowed down / don't burn proxy bandwidth for nothing.
+const VB_PROXY_SERVER = process.env.VB_PROXY_SERVER;
+const VB_PROXY_USERNAME = process.env.VB_PROXY_USERNAME;
+const VB_PROXY_PASSWORD = process.env.VB_PROXY_PASSWORD;
+const VB_PROXY_DOMAINS = (process.env.VB_PROXY_DOMAINS ?? '')
+  .split(',')
+  .map((d) => d.trim().toLowerCase())
+  .filter(Boolean);
+
+function getProxyForUrl(url: string): { server: string; username?: string; password?: string } | undefined {
+  if (!VB_PROXY_SERVER || VB_PROXY_DOMAINS.length === 0) return undefined;
+  let hostname: string;
+  try {
+    hostname = new URL(url).hostname.toLowerCase();
+  } catch {
+    return undefined;
+  }
+  const needsProxy = VB_PROXY_DOMAINS.some((d) => hostname === d || hostname.endsWith(`.${d}`));
+  if (!needsProxy) return undefined;
+  return { server: VB_PROXY_SERVER, username: VB_PROXY_USERNAME, password: VB_PROXY_PASSWORD };
+}
+
 const MAX_CONCURRENT = 3;
 
 // Anti-detection — the plain launch config below had zero stealth measures; real prod logs
@@ -368,9 +397,21 @@ function attachResponseSniffer(
       return;
     }
     // mp4
+    // Real prod case 2026-08-14 (asilmedia.org): the source page's own <video> element requests
+    // the file with a Range header (progressive/chunked loading — common even on a first load, not
+    // just seeking), so the response is 206 Partial Content whose Content-Length is the size of
+    // just that RANGE, not the file. A 68-minute movie's first chunk can legitimately be a couple
+    // of MB, well under MIN_MP4_BYTES, and got wrongly rejected as an ad on exactly that basis —
+    // the real file was never actually short. Content-Range's own total (`bytes start-end/TOTAL`)
+    // is the real file size when present; `TOTAL` is `*` for a genuinely unknown/unbounded total
+    // (rare — e.g. a live-growing response), parsed as NaN and treated the same as "can't measure,
+    // accept" below rather than guessed at.
+    const contentRange = response.headers()['content-range'];
+    const rangeTotal = contentRange ? parseInt(/\/(\d+|\*)$/.exec(contentRange)?.[1] ?? '', 10) : NaN;
     const contentLength = parseInt(response.headers()['content-length'] ?? '', 10);
-    if (!Number.isNaN(contentLength) && contentLength < MIN_MP4_BYTES) {
-      rejectAsAd(mediaUrl, type, 'mp4_size', { bytes: contentLength });
+    const measuredBytes = !Number.isNaN(rangeTotal) ? rangeTotal : contentLength;
+    if (!Number.isNaN(measuredBytes) && measuredBytes < MIN_MP4_BYTES) {
+      rejectAsAd(mediaUrl, type, 'mp4_size', { bytes: measuredBytes, viaContentRange: !Number.isNaN(rangeTotal) });
       return;
     }
     hit(mediaUrl, type, how);
@@ -473,7 +514,7 @@ export async function startSession(
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', ...STEALTH_LAUNCH_ARGS, ...ANTI_THROTTLE_LAUNCH_ARGS],
     });
-    const context = await browser.newContext({ viewport: VB_VIEWPORT, userAgent: STEALTH_USER_AGENT });
+    const context = await browser.newContext({ viewport: VB_VIEWPORT, userAgent: STEALTH_USER_AGENT, proxy: getProxyForUrl(url) });
     await applyStealthPatches(context);
     const page = await context.newPage();
     const cdp = await context.newCDPSession(page);
@@ -602,6 +643,39 @@ export async function startSession(
         if (track !== 'video' && track !== 'audio') return;
         appendCaptureTrack(roomId, track, Buffer.from(base64Chunk, 'base64'));
       });
+      // Real prod finding 2026-08-16 (uzmovi.net, live-tested): sites using videojs-contrib-ads +
+      // a VAST plugin (videojsx.vast.js) play the pre-/mid-roll ad creative through the SAME
+      // Video.js instance and, on at least this site, the SAME MediaSource/SourceBuffer pipeline
+      // as the real content -- our appendBuffer hook below has no way to tell an ad chunk from a
+      // content chunk, so whichever one crosses MIN_SWITCH_BYTES first gets confirmed to the room.
+      // If that's the ad, the room gets stuck on it (ad is short/finite, buffer stops growing in a
+      // way that looks like playable content) even though the real movie starts flowing seconds
+      // later on the SAME owner browser. videojs-contrib-ads' internal `.ads.state` turned out to
+      // be a version-specific class-based state machine on this site's bundled copy (no stable
+      // 'content-playback' string to compare against, confirmed by fetching and inspecting the
+      // actual minified bundle live) -- using it directly would have been guesswork. `.ads` DOES
+      // expose a small set of documented public boolean methods for exactly this
+      // (isAdPlaying/inAdBreak/isInAdMode), stable across versions since they're the plugin's own
+      // public API surface, not internals. Fail-open on purpose: `.ads` missing, `isAdPlaying`
+      // missing/throwing, or no videojs at all (the large majority of sites) all fall through to
+      // `false` (capture proceeds exactly as before this existed) -- this must never be able to
+      // wedge capture off entirely, that would be a worse regression than the ad-poisoning bug it
+      // fixes. Shared by both the appendBuffer hook and the real-playback-confirmation script below.
+      await page.addInitScript(/* js */ `
+        window.__wewatchIsAdPlaying = function () {
+          try {
+            if (!window.videojs || !window.videojs.getPlayers) return false;
+            var players = window.videojs.getPlayers();
+            for (var id in players) {
+              var p = players[id];
+              if (p && p.ads && typeof p.ads.isAdPlaying === 'function' && p.ads.isAdPlaying()) {
+                return true;
+              }
+            }
+          } catch (e) { /* never break playback */ }
+          return false;
+        };
+      `);
       await page.addInitScript(/* js */ `
         (function () {
           if (!window.SourceBuffer || !window.SourceBuffer.prototype.appendBuffer) return;
@@ -645,10 +719,12 @@ export async function startSession(
           }
           window.SourceBuffer.prototype.appendBuffer = function (data) {
             try {
-              const b64 = toBase64(data);
-              window.__wewatchCaptureChunk(b64);
-              const track = trackByBuffer.get(this);
-              if (track && dualTrackConfirmed) window.__wewatchCaptureTrackChunk(track, b64);
+              if (!window.__wewatchIsAdPlaying || !window.__wewatchIsAdPlaying()) {
+                const b64 = toBase64(data);
+                window.__wewatchCaptureChunk(b64);
+                const track = trackByBuffer.get(this);
+                if (track && dualTrackConfirmed) window.__wewatchCaptureTrackChunk(track, b64);
+              }
             } catch (e) { /* never break playback */ }
             return origAppend.apply(this, arguments);
           };
@@ -671,6 +747,7 @@ export async function startSession(
             const reported = new WeakSet();
             function reportIfPlaying(el) {
               if (reported.has(el) || !el.currentSrc || el.paused || el.currentTime < 0.25) return;
+              if (window.__wewatchIsAdPlaying && window.__wewatchIsAdPlaying()) return;
               reported.add(el);
               try { window.__wewatchRealPlayback(el.currentSrc); } catch (e) { /* never break playback */ }
             }
@@ -782,7 +859,7 @@ export async function probeUrl(url: string): Promise<{ mediaUrl: string; type: M
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', ...STEALTH_LAUNCH_ARGS, ...ANTI_THROTTLE_LAUNCH_ARGS],
     });
-    const context = await browser.newContext({ viewport: VB_VIEWPORT, userAgent: STEALTH_USER_AGENT });
+    const context = await browser.newContext({ viewport: VB_VIEWPORT, userAgent: STEALTH_USER_AGENT, proxy: getProxyForUrl(url) });
     await applyStealthPatches(context);
     const page = await context.newPage();
 

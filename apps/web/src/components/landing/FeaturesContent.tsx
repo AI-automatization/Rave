@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { type Variants } from 'framer-motion';
 import {
   FaPlay, FaUsers, FaBell,
   FaWifi, FaShieldAlt, FaCheck, FaArrowRight,
@@ -15,11 +14,6 @@ import { useLocalizedHref } from '@/lib/i18n/use-localized-href';
 /* ── Animation configs ─────────────────────────────── */
 const springConfig = { type: 'spring' as const, stiffness: 260, damping: 22 };
 
-const fadeUp: Variants = {
-  hidden:  { opacity: 0, y: 30, scale: 0.96 },
-  visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] } },
-};
-const stagger: Variants = { visible: { transition: { staggerChildren: 0.1 } } };
 
 /* ── Animated Counter ──────────────────────────────── */
 function useCountUp(end: number, duration = 1.8) {
@@ -237,7 +231,7 @@ export function FeaturesContent() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] relative">
+    <div className="min-h-screen bg-page relative">
 
       {/* ── Full-page star particles ── */}
       <PageStarField />

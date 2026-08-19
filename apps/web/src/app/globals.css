@@ -4,6 +4,11 @@
 @theme {
   --font-body: var(--font-dm-sans), "Segoe UI", sans-serif;
   --font-display: var(--font-oswald), "Arial Narrow", sans-serif;
+  /* The page background, as `bg-page`. There used to be two near-identical
+     blacks — #0A0A0F on the home and marketing pages, #060608 on the guides,
+     FAQ and legal pages — so the seam showed wherever one template linked to
+     the other. One token means a future page cannot invent a third. */
+  --color-page: #0A0A0F;
   --color-bg-base: oklch(16% 0.02 264);
   --color-bg-surface: oklch(20% 0.02 264);
   --color-bg-elevated: oklch(24% 0.02 264);
@@ -277,8 +282,240 @@
 }
 
 /* Breadcrumbs on the near-black editorial template need one brighter step. */
-main.bg-\[\#060608\] nav.text-zinc-500 {
+main.bg-page nav.text-zinc-500 {
   color: #a1a1aa;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   .article — the landing page's visual language, applied to the editorial
+   pages (guides, FAQ, how-it-works, use cases, team, tezcode, legal).
+
+   Those pages were plain black-and-white documents while the home page and
+   the marketing pages had a hero glow, Oswald display headings, glass cards
+   and violet accents. Sharing one header did not make them look like one
+   site. This does: the same glow, the same typography ramp, the same card
+   treatment — expressed as styles on the markup those pages already have,
+   so 40 pages change without 40 rewrites.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.article {
+  position: relative;
+  isolation: isolate;
+}
+
+/* Hero glow + grid, the same pair the marketing hero uses. Fixed, so it stays
+   behind the copy while it scrolls, and pointer-events-none so it never eats
+   a click. */
+.article::before,
+.article::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+.article::before {
+  background:
+    radial-gradient(ellipse 70% 45% at 50% -5%, rgba(123, 114, 248, 0.20) 0%, rgba(168, 85, 247, 0.07) 45%, transparent 72%),
+    radial-gradient(ellipse 40% 30% at 88% 12%, rgba(168, 85, 247, 0.07) 0%, transparent 60%);
+}
+.article::after {
+  opacity: 0.025;
+  background-image:
+    linear-gradient(rgba(123, 114, 248, 1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(123, 114, 248, 1) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: linear-gradient(180deg, #000 0%, transparent 55%);
+}
+
+/* `.page-hero` is the header half of the same language, for pages that already
+   have a designed body of their own (FAQ accordion, guide index cards, team
+   grid) and only need their title block to match. `.article` includes it. */
+
+/* ── Breadcrumb → the pill the marketing hero wears above its title ── */
+.article > nav:first-child,
+.page-hero > nav:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.375rem 0.9rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba(123, 114, 248, 0.35);
+  border-radius: 999px;
+  background: rgba(123, 114, 248, 0.10);
+  box-shadow: 0 0 18px rgba(123, 114, 248, 0.18);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #a5a0ff;
+}
+.article > nav:first-child a,
+.page-hero > nav:first-child a { color: #a5a0ff; }
+.article > nav:first-child a:hover,
+.page-hero > nav:first-child a:hover { color: #fff; }
+
+/* ── Display headings ── */
+.article h1,
+.page-hero h1 {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: clamp(2.25rem, 4.2vw, 3.4rem);
+  line-height: 1;
+  letter-spacing: -0.005em;
+  color: #fff;
+  text-shadow: 0 0 80px rgba(123, 114, 248, 0.35);
+  margin-bottom: 1.25rem;
+  text-wrap: balance;
+}
+
+/* The lead paragraph: whatever directly follows the H1. */
+.article h1 + p,
+.page-hero h1 + p {
+  font-size: 1.2rem;
+  line-height: 1.75;
+  color: #d4d4d8;
+  max-width: 46rem;
+  margin-bottom: 3.5rem;
+}
+/* The hero-only variant sits in a block with its own bottom padding. */
+.page-hero h1 + p { margin-bottom: 0; }
+
+.article h2 {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: clamp(1.45rem, 2.4vw, 1.85rem);
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  color: #fff;
+  padding-top: 0.9rem;
+  margin-bottom: 1.1rem;
+  position: relative;
+  text-wrap: balance;
+}
+/* Short violet rule above each section heading — the accent the marketing
+   sections use as an eyebrow, without needing extra markup per page. */
+.article h2::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2.5rem;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #7B72F8, #a855f7);
+  box-shadow: 0 0 14px rgba(123, 114, 248, 0.55);
+}
+
+.article h3 {
+  font-weight: 600;
+  color: #fff;
+  font-size: 1.05rem;
+}
+
+.article section { margin-bottom: 3.5rem; }
+
+/* Body copy: one step larger and lighter than the stock zinc-400, so the pages
+   read like the marketing ones rather than like documentation. */
+.article p { font-size: 1.02rem; line-height: 1.8; }
+.article section p { color: #b6b6c0; }
+
+/* ── Fact / feature lists → chips, the way the marketing sections list them ──
+   Scoped to the spaced lists the guides use. The legal pages inherit
+   `list-disc` from their Section wrapper and stay plain prose: 200 bulleted
+   clauses as cards would be unreadable, and the bullet would sit outside the
+   card anyway. */
+.article ul[class*="space-y"] > li {
+  padding: 0.7rem 1rem;
+  border: 1px solid rgba(63, 63, 70, 0.5);
+  border-radius: 0.75rem;
+  background: rgba(13, 13, 22, 0.75);
+  color: #d4d4d8;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.article ul[class*="space-y"] > li:hover {
+  border-color: rgba(123, 114, 248, 0.35);
+  background: rgba(16, 15, 28, 0.9);
+}
+
+/* ── "Читайте также" link rows → arrow chips ── */
+.article section > div.flex-col > a {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.6rem 1rem;
+  border: 1px solid rgba(123, 114, 248, 0.22);
+  border-radius: 0.75rem;
+  background: rgba(123, 114, 248, 0.06);
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+.article section > div.flex-col > a:hover {
+  border-color: rgba(123, 114, 248, 0.5);
+  background: rgba(123, 114, 248, 0.12);
+  transform: translateX(3px);
+  text-decoration: none;
+}
+
+/* ── Numbered step lists: gradient chips with a glow, not flat circles ── */
+.article ol > li > span:first-child {
+  background: linear-gradient(135deg, #7B72F8, #a855f7) !important;
+  box-shadow: 0 0 18px rgba(123, 114, 248, 0.45);
+  color: #fff;
+}
+
+/* ── FAQ disclosures → glass cards ── */
+.article details {
+  border-color: rgba(63, 63, 70, 0.6);
+  border-radius: 1rem;
+  background: rgba(13, 13, 22, 0.9);
+  padding: 1.1rem 1.25rem;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+.article details:hover {
+  border-color: rgba(123, 114, 248, 0.45);
+  box-shadow: 0 0 30px rgba(123, 114, 248, 0.10);
+}
+.article details[open] {
+  border-color: rgba(123, 114, 248, 0.35);
+  background: rgba(16, 15, 28, 0.95);
+}
+.article details > summary { list-style: none; }
+.article details > summary::-webkit-details-marker { display: none; }
+.article details > summary::after {
+  content: "+";
+  float: right;
+  color: #7B72F8;
+  font-weight: 400;
+  font-size: 1.35rem;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+.article details[open] > summary::after { content: "−"; }
+
+/* ── Closing CTA panel: the marketing gradient card, not a flat tinted box ── */
+.article .bg-\[\#7B72F8\]\/10 {
+  background:
+    radial-gradient(ellipse 80% 120% at 50% 0%, rgba(123, 114, 248, 0.22) 0%, transparent 70%),
+    rgba(13, 13, 22, 0.92) !important;
+  border-color: rgba(123, 114, 248, 0.35) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45), 0 0 50px rgba(123, 114, 248, 0.10);
+  padding: 3rem 2rem;
+}
+.article .bg-\[\#7B72F8\]\/10 h2 { font-size: clamp(1.6rem, 3vw, 2.25rem); }
+.article .bg-\[\#7B72F8\]\/10 h2::before { left: 50%; transform: translateX(-50%); }
+
+/* Solid CTA buttons pick up the brand glow the header's CTA has. */
+.article a.bg-\[\#7B72F8\] {
+  box-shadow: 0 0 24px rgba(123, 114, 248, 0.40);
+  border-radius: 999px;
+}
+.article a.bg-\[\#7B72F8\]:hover {
+  box-shadow: 0 0 38px rgba(123, 114, 248, 0.60);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .article details { transition: none; }
 }
 
 /* ── touch-action on interactive elements ── */

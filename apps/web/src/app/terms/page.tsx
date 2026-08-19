@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { WeWatchLogo } from '@/components/common/WeWatchLogo';
 
 export const metadata: Metadata = {
   title: 'Terms of Service',
@@ -17,25 +16,15 @@ const APP_URL = 'https://wewatch.uz';
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-[#060608] text-zinc-300">
-      <header className="sticky top-0 z-50 bg-[#060608]/90 backdrop-blur-md border-b border-zinc-800/60">
-        <div className="max-w-4xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
-          <WeWatchLogo variant="horizontal" iconSize={26} href="/en" />
-          <div className="flex gap-5 text-sm text-zinc-400">
-            <Link href="/privacy-policy" className="hover:text-white transition-colors">Privacy</Link>
-            <Link href="/dmca" className="hover:text-white transition-colors">DMCA</Link>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-6 py-16">
-        <nav aria-label="Breadcrumb" className="text-zinc-600 text-xs mb-6">
+    <div className="flex-1 bg-page text-zinc-300">
+      <main className="article max-w-4xl mx-auto px-6 py-16">
+        <nav aria-label="Breadcrumb" className="text-zinc-400 text-xs mb-6">
           <Link href="/en" className="hover:text-zinc-400 transition-colors">WeWatch</Link>
           <span className="mx-2">/</span>
-          <span className="text-zinc-500">Terms of Service</span>
+          <span className="text-zinc-400">Terms of Service</span>
         </nav>
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-2 tracking-tight">Terms of Service</h1>
-        <p className="text-zinc-500 text-sm mb-12">
+        <p className="text-zinc-400 text-sm mb-12">
           Last updated: {EFFECTIVE_DATE} &nbsp;·&nbsp; Effective: {EFFECTIVE_DATE}
         </p>
 
@@ -226,7 +215,7 @@ export default function TermsPage() {
             LOSS, OR GOODWILL, ARISING FROM YOUR USE OF OR INABILITY TO USE THE SERVICE. OUR
             TOTAL LIABILITY FOR ANY CLAIM ARISING FROM THESE TERMS SHALL NOT EXCEED USD $100.
           </p>
-          <p className="mt-3 text-xs text-zinc-500">
+          <p className="mt-3 text-xs text-zinc-400">
             Some jurisdictions do not allow certain limitations on liability. In those jurisdictions,
             our liability is limited to the greatest extent permitted by law.
           </p>
@@ -274,16 +263,6 @@ export default function TermsPage() {
         </Section>
       </main>
 
-      <footer className="border-t border-zinc-800/60 py-6 mt-8">
-        <div className="max-w-4xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-zinc-600 text-xs">© {new Date().getFullYear()} {COMPANY}. All rights reserved.</p>
-          <div className="flex gap-4 text-zinc-600 text-xs">
-            <Link href="/privacy-policy" className="hover:text-zinc-400 transition-colors">Privacy</Link>
-            <Link href="/dmca" className="hover:text-zinc-400 transition-colors">DMCA</Link>
-            <Link href="/en" className="hover:text-zinc-400 transition-colors">← Home</Link>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -1,14 +1,14 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
+import { GuideArticleEnd } from '@/components/common/GuideChrome';
 
 export const metadata: Metadata = {
-  title: 'Смотреть вместе онлайн бесплатно — синхронный просмотр с друзьями',
+  title: 'Смотреть видео вместе онлайн бесплатно — синхронно с друзьями',
   description: 'Смотреть видео вместе с друзьями онлайн — синхронно, прямо в браузере: YouTube, VK Видео, Rutube и прямые MP4-ссылки. Приложения iOS и Android в разработке.',
   keywords: [
-    'смотреть вместе онлайн', 'смотреть вместе онлайн бесплатно', 'смотреть вместе',
-    'совместный просмотр онлайн', 'синхронный просмотр', 'смотреть фильм вместе онлайн',
-    'смотреть видео вместе', 'онлайн кинотеатр с друзьями', 'вместе онлайн',
+    'смотреть видео вместе', 'смотреть вместе онлайн', 'смотреть вместе онлайн бесплатно',
+    'смотреть вместе', 'совместный просмотр онлайн', 'синхронный просмотр',
+    'смотреть фильм вместе онлайн', 'онлайн кинотеатр с друзьями', 'вместе онлайн',
   ],
   alternates: {
     canonical: 'https://wewatch.uz/ru/guides/smotret-vmeste-onlayn',
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: 'Смотреть вместе онлайн бесплатно | WeWatch',
+    title: 'Смотреть видео вместе онлайн бесплатно | WeWatch',
     description: 'Смотреть видео вместе с друзьями — синхронно, через веб-версию. Мобильные приложения разрабатываются.',
     url: 'https://wewatch.uz/ru/guides/smotret-vmeste-onlayn',
     type: 'article',
@@ -72,9 +72,8 @@ export default function SmotretVmesteOnlaynPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <GuideHeader locale="ru" />
-      <main className="min-h-screen bg-[#060608] text-white">
-        <div className="max-w-3xl mx-auto px-4 py-16">
+      <main className="flex-1 bg-page text-white">
+        <div className="article max-w-3xl mx-auto px-4 py-16">
           <nav className="text-sm text-zinc-500 mb-8">
             <Link href="/ru" className="hover:text-white transition-colors">WeWatch</Link>
             <span className="mx-2">/</span>
@@ -82,11 +81,11 @@ export default function SmotretVmesteOnlaynPage() {
           </nav>
 
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
-            Смотреть вместе онлайн бесплатно
+            Смотреть видео вместе онлайн бесплатно
           </h1>
 
           <p className="text-xl text-zinc-400 mb-10 leading-relaxed">
-            WeWatch позволяет смотреть фильмы, сериалы и видео вместе с друзьями онлайн — бесплатно, синхронно, без задержек. Один участник ставит паузу — все ставят паузу. Расстояние не важно.
+            WeWatch позволяет смотреть видео вместе с друзьями онлайн — бесплатно, синхронно, без задержек. Фильм, сериал или короткий ролик: один участник ставит паузу — все ставят паузу. Расстояние не важно.
           </p>
 
           <section className="mb-10">
@@ -187,7 +186,7 @@ export default function SmotretVmesteOnlaynPage() {
           </div>
         </div>
       </main>
-      <GuideFooter locale="ru" currentPath="/ru/guides/smotret-vmeste-onlayn" />
+      <GuideArticleEnd locale="ru" currentPath="/ru/guides/smotret-vmeste-onlayn" />
     </>
   );
 }

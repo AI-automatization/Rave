@@ -16,7 +16,8 @@ export function RoomHeader() {
   const isConnected = useWatchPartyStore((s) => s.isConnected);
   const [inviteOpen, setInviteOpen] = useState(false);
 
-  const memberCount = ((room as any)?.members as unknown[])?.length ?? storeMembers.length;
+  // Каст не нужен: store хранит IWatchPartyRoom | null, а в нём members: string[].
+  const memberCount = room?.members?.length ?? storeMembers.length;
 
   return (
     <>
