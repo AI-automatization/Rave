@@ -157,7 +157,10 @@ const jsonLdOrg = {
   name: 'WeWatch',
   url: 'https://wewatch.uz',
   logo: 'https://wewatch.uz/icons/icon-512x512.png',
-  sameAs: ['https://tezcode.dev'],
+  // WeWatch's own profiles — this is what lets a brand search for "wewatch"
+  // surface Instagram/X alongside the site, not just tezcode.dev. Keep in
+  // sync with SOCIAL_LINKS in Footer.tsx.
+  sameAs: ['https://tezcode.dev', 'https://instagram.com/wewatch.tezcode', 'https://x.com/wewattch'],
   parentOrganization: {
     '@type': 'Organization',
     name: 'tezcode',
