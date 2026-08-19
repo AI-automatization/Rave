@@ -79,6 +79,13 @@ const ANTI_THROTTLE_LAUNCH_ARGS = [
 const STEALTH_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
   + '(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
+// newContext() left locale/timezone unset, so Chromium fell back to its en-US/America default —
+// mismatched with our actual users, and a plausible reason some source sites show a "video
+// unavailable in your region" message (real report: kinogo.my, 2026-08-19). This only fixes a
+// client-side locale/timezone check; a real server-side IP-geo block needs VB_PROXY_* instead.
+const VB_LOCALE = 'ru-RU';
+const VB_TIMEZONE_ID = 'Asia/Tashkent';
+
 async function applyStealthPatches(context: BrowserContext): Promise<void> {
   await context.addInitScript(/* js */ `
     (function () {
@@ -514,7 +521,13 @@ export async function startSession(
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', ...STEALTH_LAUNCH_ARGS, ...ANTI_THROTTLE_LAUNCH_ARGS],
     });
-    const context = await browser.newContext({ viewport: VB_VIEWPORT, userAgent: STEALTH_USER_AGENT, proxy: getProxyForUrl(url) });
+    const context = await browser.newContext({
+      viewport: VB_VIEWPORT,
+      userAgent: STEALTH_USER_AGENT,
+      locale: VB_LOCALE,
+      timezoneId: VB_TIMEZONE_ID,
+      proxy: getProxyForUrl(url),
+    });
     await applyStealthPatches(context);
     const page = await context.newPage();
     const cdp = await context.newCDPSession(page);
@@ -859,7 +872,13 @@ export async function probeUrl(url: string): Promise<{ mediaUrl: string; type: M
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', ...STEALTH_LAUNCH_ARGS, ...ANTI_THROTTLE_LAUNCH_ARGS],
     });
-    const context = await browser.newContext({ viewport: VB_VIEWPORT, userAgent: STEALTH_USER_AGENT, proxy: getProxyForUrl(url) });
+    const context = await browser.newContext({
+      viewport: VB_VIEWPORT,
+      userAgent: STEALTH_USER_AGENT,
+      locale: VB_LOCALE,
+      timezoneId: VB_TIMEZONE_ID,
+      proxy: getProxyForUrl(url),
+    });
     await applyStealthPatches(context);
     const page = await context.newPage();
 
