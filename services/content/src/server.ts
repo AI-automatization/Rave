@@ -10,7 +10,6 @@ import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
 import { createApp } from './app';
 import { config } from './config/index';
 import { logger } from '@shared/utils/logger';
-import { initServiceQueues } from '@shared/utils/serviceQueue';
 import { startUrlVisitCron } from './workers/urlVisitCron.worker';
 
 const main = async (): Promise<void> => {
@@ -35,7 +34,6 @@ const main = async (): Promise<void> => {
   const elastic = new ElasticsearchClient({ node: config.elasticsearchUrl });
   logger.info('Elasticsearch client initialized', { url: config.elasticsearchUrl });
 
-  initServiceQueues(config.redisUrl);
   startUrlVisitCron();
 
   const app = createApp(redis, elastic);

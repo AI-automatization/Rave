@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["../../shared/src/*"],
+      "@shared/types": ["../../shared/src/types/index"],
+      "@shared/utils/*": ["../../shared/src/utils/*"],
+      "@shared/middleware/*": ["../../shared/src/middleware/*"],
+      "@shared/constants": ["../../shared/src/constants/index"],
+      "@shared/constants/*": ["../../shared/src/constants/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

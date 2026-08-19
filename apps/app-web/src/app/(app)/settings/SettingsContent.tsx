@@ -1,15 +1,17 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Loader2, LogOut, Trash2 } from 'lucide-react';
+import { Loader2, LogOut, Trash2, Crown } from 'lucide-react';
 import { Field, Input, PasswordInput } from '@/components/ui/field';
 import { Notice } from '@/components/ui/notice';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { trackClick } from '@/lib/analytics';
 import { useLocaleStore } from '@/store/locale.store';
+import { paymentApi, type PlanInfo, type BillingProvider } from '@/lib/api/payment.api';
+import { ApiError } from '@/lib/api-client';
 
 // The app ships uz/ru/en and Providers re-renders on locale change, but the only switcher UI lived
 // in LandingNav — a component this app never renders (the landing moved to apps/web). So the
@@ -36,8 +38,53 @@ function SectionTitle({ children, tone = 'muted' }: { children: React.ReactNode;
 export function SettingsContent() {
   const t = useTranslations('settings');
   const router = useRouter();
+  const searchParams = useSearchParams();
   const locale = useLocaleStore((s) => s.locale);
   const setLocale = useLocaleStore((s) => s.setLocale);
+
+  // Plan / Pro obuna
+  const [plan, setPlan] = useState<PlanInfo | null>(null);
+  const [planLoading, setPlanLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+
+  useEffect(() => {
+    paymentApi.getPlan()
+      .then((res) => setPlan(res.data))
+      .catch(() => setPlan(null))
+      .finally(() => setPlanLoading(false));
+  }, []);
+
+  // tezcode-billing checkout muvaffaqiyatli/bekor bo'lib qaytgandan keyin (services/payment
+  // startCheckout() shu sahifaga ?checkout=success|canceled bilan redirect qiladi)
+  useEffect(() => {
+    const checkoutResult = searchParams.get('checkout');
+    if (checkoutResult === 'success') {
+      toast({ title: t('planUpgraded') });
+      paymentApi.getPlan().then((res) => setPlan(res.data)).catch(() => {});
+    } else if (checkoutResult === 'canceled') {
+      toast({ title: t('planCheckoutCanceled'), variant: 'destructive' });
+    } else {
+      return;
+    }
+    // Strip ?checkout=... once shown — otherwise a refresh or back-navigation replays the
+    // same toast (and re-fetches the plan) every time.
+    router.replace('/settings');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  async function handleUpgrade(provider: BillingProvider) {
+    trackClick('settings:upgrade_to_pro', { provider });
+    setCheckoutLoading(true);
+    try {
+      const res = await paymentApi.startCheckout(provider);
+      if (!res.data) throw new Error('Empty checkout response');
+      window.location.href = res.data.checkoutUrl;
+    } catch (err) {
+      const message = err instanceof ApiError ? (err.data as { message?: string })?.message : undefined;
+      toast({ title: message ?? t('planCheckoutError'), variant: 'destructive' });
+      setCheckoutLoading(false);
+    }
+  }
 
   // Change password state. `show*` bayroqlari yo'q — ko'zni `PasswordInput`
   // o'zi boshqaradi (a11y yorlig'i bilan birga).
@@ -177,6 +224,58 @@ export function SettingsContent() {
             );
           })}
         </div>
+      </section>
+
+      {/* Tarif (Pro obuna) — tezcode-billing orqali, checkout services/payment'ga POST
+          qilinadi, hech qanday billing kaliti bu yerga (client) yetib kelmaydi */}
+      <section className="ww-panel p-6">
+        <SectionTitle>{t('planTitle')}</SectionTitle>
+        {planLoading ? (
+          <Loader2 size={18} aria-hidden="true" className="animate-spin text-[var(--ww-text-3)]" />
+        ) : plan?.plan === 'pro' ? (
+          <div className="flex items-center gap-3">
+            <Crown size={20} aria-hidden="true" className="text-[var(--ww-accent-hi)]" />
+            <div>
+              <p className="text-[14px] font-medium text-[var(--ww-text)]">{t('planPro')}</p>
+              {plan.currentPeriodEnd && (
+                <p className="text-[12.5px] text-[var(--ww-text-3)]">
+                  {t('planRenewsOn', { date: new Date(plan.currentPeriodEnd).toLocaleDateString(locale) })}
+                </p>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <p className="text-[13.5px] leading-relaxed text-[var(--ww-text-2)]">{t('planFreeDesc')}</p>
+            {/* Ikkita alohida tugma — bitta "Upgrade" tugmasi + keyingi provider tanlovi o'rniga,
+                chunki tezcode-billing checkout so'rovi provider'ni oldindan talab qiladi
+                (docs/INTEGRATION.md). UZUM hali onboarding jarayonida — shu sabab ko'rsatilmaydi. */}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="accent"
+                size="xl"
+                onClick={() => { void handleUpgrade('PAYME'); }}
+                disabled={checkoutLoading}
+                className="px-6"
+              >
+                {checkoutLoading && <Loader2 size={16} aria-hidden="true" className="animate-spin" />}
+                <Crown size={16} aria-hidden="true" />
+                {t('planUpgradeCta')} — Payme
+              </Button>
+              <Button
+                type="button"
+                variant="subtle"
+                size="xl"
+                onClick={() => { void handleUpgrade('CLICK'); }}
+                disabled={checkoutLoading}
+                className="px-6"
+              >
+                {t('planUpgradeCta')} — Click
+              </Button>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Parolni almashtirish */}
