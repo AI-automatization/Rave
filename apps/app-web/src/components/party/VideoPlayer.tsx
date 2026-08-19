@@ -7,7 +7,6 @@ import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { toast } from '@/hooks/use-toast';
 import { trackClick } from '@/lib/analytics';
-import { tryRefresh } from '@/lib/api-client';
 import { YouTubePlayer } from './YouTubePlayer';
 import { VKPlayer } from './VKPlayer';
 import { RutubePlayer } from './RutubePlayer';
@@ -18,16 +17,14 @@ import { TikTokPlayer } from './TikTokPlayer';
 import { PeerTubePlayer } from './PeerTubePlayer';
 import { TrovoPlayer } from './TrovoPlayer';
 
-// Shared loading visual for every "video not playable yet" moment (initial room load, extraction
-// in flight, extraction failed but the server may still auto-recover via VB — see extractError
-// usage below). A failed extraction is a normal, silent step of the extraction-then-VB-fallback
-// flow, not a user-facing error: the room either gets a VB session moments later or the video
-// simply changes, so this never resolves into "Не удалось загрузить видео" — it just keeps
-// looking like loading until the room state moves on.
+// Shared loading visual for every "video not playable yet" moment (initial room load, VB still
+// resolving a candidate). Never resolves into a user-facing "Не удалось загрузить видео" — the
+// room either gets a VB session moments later or the video changes, so this just keeps looking
+// like loading until room state moves on.
 // Cycles through playerLoading + playerLoadingCycle1..7 every 2.2s when no explicit `label` is
 // given — the caller-supplied cases (e.g. "Открываем виртуальный браузер...") describe a specific
 // known state and stay static; only the generic "we don't know exactly what's happening yet, just
-// wait" case benefits from rotating through what the extraction pipeline might actually be doing.
+// wait" case benefits from rotating through what VB might actually be doing.
 const LOADING_CYCLE_KEYS = [
   'playerLoading',
   'playerLoadingCycle1',
@@ -160,13 +157,6 @@ interface Props {
    * so the voice call and video audio don't compete. Threaded down to NativeVideoPlayer only;
    * official embeds (YouTube/etc.) don't expose volume control across the iframe boundary. */
   duckAudio?: boolean;
-}
-
-interface ExtractResult {
-  videoUrl: string;
-  type: 'mp4' | 'hls' | 'dash' | 'embed';
-  poster?: string;
-  httpHeaders?: Record<string, string>;
 }
 
 // Mirrors mobile's extractYouTubeVideoId (apps/mobile/src/utils/videoPlayer.ts): matches `v=`
@@ -309,34 +299,6 @@ function getRutubeVideoId(url: string): string | null {
   }
 }
 
-async function extractVideoUrl(url: string): Promise<ExtractResult> {
-  const doFetch = () => fetch('/api/content/extract', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ url }),
-  });
-  let res = await doFetch();
-  // Real prod finding 2026-08-08: this was a raw fetch with no 401 handling at all — a stale
-  // access_token cookie (15min JWT, tab open longer than that) meant every extraction attempt
-  // failed here, permanently, for that videoUrl (the caller's `extractedForUrl` guard means it
-  // never retries the SAME url again even after the token gets refreshed elsewhere) — looked
-  // exactly like a broken video/site, was actually just our own stale cookie. Matches the same
-  // 401->refresh->retry api-client.ts already does for every OTHER endpoint; this one just never
-  // went through it since it needs the raw ExtractResult shape, not ApiResponse<T>.
-  if (res.status === 401) {
-    const refreshed = await tryRefresh();
-    if (refreshed) res = await doFetch();
-  }
-  if (!res.ok) {
-    const err = (await res.json().catch(() => ({}))) as { message?: string };
-    throw new Error(err.message ?? `Extract failed: ${res.status}`);
-  }
-  const data = (await res.json()) as { data?: ExtractResult };
-  if (!data.data?.videoUrl) throw new Error('No video URL returned');
-  return data.data;
-}
-
 // bl.rutube.ru signs its HLS URLs to an IP — confirmed live 2026-08-02 (real VB catch, watch-party
 // service logs) that our own proxy-stream (running on app-web) gets a 403 fetching it, while
 // content-service's existing hls-proxy (services/content/src/controllers/hlsProxy.controller.ts —
@@ -360,9 +322,10 @@ function isIpLockedCdn(cdnUrl: string): boolean {
 // roomEvents.handler.ts's isOwnVbUrl, the server-side twin of this check) — wrapping it through
 // content-service's extraction/proxy-stream AGAIN is nonsensical (it's not a page to scrape, and
 // double-proxying an already-proxied, already-signed URL just adds a failure-prone extra hop) and
-// was the direct cause of a confirmed candidate never actually playing in the room: `needsExtract`
-// below had no exclusion for this, so every VB url got POSTed to /api/content/extract as if it
-// were a raw page, which 502s (it isn't one) and leaves proxySrc permanently null. Path-only match
+// was the direct cause of a confirmed candidate never actually playing in the room: the client-side
+// extraction path this component used to have (removed 2026-08-19, see directSrc below) had no
+// exclusion for this, so every VB url got POSTed to /api/content/extract as if it were a raw page,
+// which 502s (it isn't one). Path-only match
 // (not the full vbStreamPublicUrl host) since the client bundle has no reliable access to that
 // server-side env value, and the path segment alone is already an unambiguous signature — nothing
 // else in the app ever mints a URL containing it.
@@ -1392,18 +1355,17 @@ export function VideoPlayer({
     setFatalPlaybackError(true);
     onFatalError?.();
   }, [onFatalError]);
-
-  const [proxySrc, setProxySrc] = useState<string | null>(null);
   const [isHls, setIsHls] = useState(false);
   const [isDash, setIsDash] = useState(false);
-  const [extractPoster, setExtractPoster] = useState<string | undefined>(undefined);
-  const [extracting, setExtracting] = useState(false);
-  const [extractError, setExtractError] = useState<string | null>(null);
-  const extractedForUrl = useRef<string>('');
   const progressLoadedRef = useRef<string>('');
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const videoUrl = room?.videoUrl ?? '';
+  // Reset once the room moves to a different video — otherwise a fatal error from the previous
+  // video stays stuck true and blocks the new one behind the same stuck-overlay. The old client-
+  // side extraction effect used to do this as a side effect of running on every new videoUrl;
+  // removed with it (see directSrc below), so it needs its own effect now.
+  useEffect(() => setFatalPlaybackError(false), [videoUrl]);
   const ytId = getYouTubeId(videoUrl);
   const vkIds = getVKVideoIds(videoUrl);
   const rutubeId = getRutubeVideoId(videoUrl);
@@ -1414,45 +1376,21 @@ export function VideoPlayer({
   const peertubeIds = getPeerTubeIds(videoUrl);
   const trovoName = getTrovoStreamername(videoUrl);
   const isEmbed = !!ytId || !!vkIds || !!rutubeId || !!twitchIds || !!vimeoId || !!dailymotionId || !!tiktokId || !!peertubeIds || !!trovoName;
-  // Extract everything not handled by an official embed above — content service handles any
-  // other direct/generic URL. VK/Rutube/Twitch/Vimeo/Dailymotion used to fall through here too
-  // (ytDlpExtractor + an authenticated session cookie — ToS-questionable, same risk category as
-  // scraping a pirate site, just against a legitimate platform; Rutube also blocks yt-dlp's
-  // requests from Railway's datacenter IP outright); now routed to their own official embeds
-  // instead.
+  // Every non-embed URL is resolved server-side by VB (services/watch-party/roomEvents.handler.ts,
+  // "Single extraction mechanism", 2026-08-10) — this component used to also run its own client-side
+  // extraction (extractVideoUrl → content-service's yt-dlp/Playwright pipeline) racing that same
+  // resolution. The Playwright fallback branch of that pipeline never returned httpHeaders (no
+  // Referer/Cookie), so any CDN with hotlink/session checks 502'd at proxy-stream — confirmed live
+  // 2026-08-19 against uzmovi.net's uzdown.space mirror. Removed rather than patched: the backend
+  // already treats VB as the only path, so the client should just wait for room.videoUrl to become
+  // an own-VB url instead of racing ahead on the raw source page.
   const isOwnVb = isOwnVbMediaUrl(videoUrl);
-  const needsExtract = !!videoUrl && !isOwnVb && !ytId && !vkIds && !rutubeId && !twitchIds && !vimeoId && !dailymotionId && !tiktokId && !peertubeIds && !trovoName;
-  const directSrc = needsExtract ? proxySrc : (isOwnVb ? videoUrl : null);
+  const directSrc = isOwnVb ? videoUrl : null;
 
-  // Extract → proxy URL for any non-YouTube source
-  useEffect(() => {
-    if (!needsExtract || !videoUrl || extractedForUrl.current === videoUrl) return;
-    extractedForUrl.current = videoUrl;
-    setProxySrc(null);
-    setExtractPoster(undefined);
-    setExtractError(null);
-    setExtracting(true);
-    setFatalPlaybackError(false);
-
-    extractVideoUrl(videoUrl)
-      .then(async (result) => {
-        setProxySrc(await buildProxyUrl(result.videoUrl, result.httpHeaders));
-        setIsHls(result.type === 'hls');
-        setIsDash(result.type === 'dash');
-        setExtractPoster(result.poster);
-      })
-      .catch((err: unknown) => {
-        setExtractError((err as Error).message ?? 'Extraction failed');
-      })
-      .finally(() => setExtracting(false));
-  }, [videoUrl, needsExtract]);
-
-  // Own-VB urls skip extraction entirely (directSrc is already set above), but isHls/isDash still
-  // need to come from SOMEWHERE — normally the extraction effect above sets them from the result's
-  // `type` field. proxiedMediaUrl (vbSession.helper.ts) always mints these with a type-matching
-  // extension (stream.m3u8/.mpd/.mp4), same convention vb-capture's own controller uses — cheap and
-  // reliable to read back off the URL itself instead of threading the candidate's `type` all the
-  // way through room state just for this.
+  // isHls/isDash come from the videoUrl's own extension — proxiedMediaUrl (vbSession.helper.ts)
+  // always mints these with a type-matching one (stream.m3u8/.mpd/.mp4), same convention vb-
+  // capture's own controller uses — cheap and reliable to read back off the URL itself instead of
+  // threading the candidate's `type` all the way through room state just for this.
   useEffect(() => {
     if (!isOwnVb) return;
     setIsHls(videoUrl.includes('.m3u8'));
@@ -1510,7 +1448,7 @@ export function VideoPlayer({
 
   // Load saved progress for owner when a non-YouTube video is ready
   useEffect(() => {
-    if (!isOwner || !videoUrl || !proxySrc || progressLoadedRef.current === videoUrl) return;
+    if (!isOwner || !videoUrl || !directSrc || progressLoadedRef.current === videoUrl) return;
     progressLoadedRef.current = videoUrl;
 
     fetch(`/api/content/watch-progress?url=${encodeURIComponent(videoUrl)}`, {
@@ -1535,11 +1473,11 @@ export function VideoPlayer({
         }
       })
       .catch(() => {});
-  }, [isOwner, videoUrl, proxySrc]);
+  }, [isOwner, videoUrl, directSrc]);
 
   // Save progress every 10s for owner
   useEffect(() => {
-    if (!isOwner || isEmbed || !proxySrc) return;
+    if (!isOwner || isEmbed || !directSrc) return;
 
     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
 
@@ -1567,10 +1505,11 @@ export function VideoPlayer({
         progressIntervalRef.current = null;
       }
     };
-  }, [isOwner, isEmbed, proxySrc, videoUrl]);
+  }, [isOwner, isEmbed, directSrc, videoUrl]);
 
-  // Owner heartbeat every 1s — dep on directSrc so interval starts after extraction completes
-  // and videoRef.current is guaranteed set (NativeVideoPlayer renders when proxySrc is ready)
+  // Owner heartbeat every 1s — dep on directSrc so interval starts once VB has resolved a
+  // playable url and videoRef.current is guaranteed set (NativeVideoPlayer renders when
+  // directSrc is ready)
   useEffect(() => {
     const video = videoRef.current;
     if (!isOwner || isEmbed || !video) return;
@@ -1818,31 +1757,14 @@ export function VideoPlayer({
     );
   }
 
-  // ── Any remaining source (Rutube, direct, etc.) — extract + proxy ───
-  // isOwnVb shares this render path (real prod bug 2026-08-10: this block used to be gated on
-  // needsExtract alone, which today's fix correctly made FALSE for our own vb-media-proxy/
-  // vb-capture urls — but that also skipped the whole block, including the actual <video>
-  // render, falling through to `return null` below. The player vanishing outright ("плеер
-  // исчез") was this, not a data/extraction problem.
-
-  if (needsExtract || isOwnVb) {
-    // extractError is deliberately silent — a failed direct extraction just means the server is
-    // about to (or already did) fall back to the shared virtual browser; showing a scary "failed
-    // to load" error here would be wrong in the common case where VB picks it up moments later.
-    // Real prod bug found live 2026-08-10: `extracting`/`extractError` are only ever set by the
-    // extraction effect above, which only ever runs while needsExtract is true — but they're
-    // ordinary useState, so once true they PERSIST across a later render where the room's
-    // videoUrl has since moved on to an isOwnVb (VB-confirmed) url. The room starts on the raw
-    // source page (needsExtract=true, extracting set true, client-side extractVideoUrl() kicked
-    // off) and if the owner confirms a VB candidate before that stale extraction attempt ever
-    // settles (content-service extraction against a slow site can hang well past a minute — seen
-    // live, matches a >70s pending XHR in the network panel), extracting stays stuck true forever
-    // and this branch shows the generic loading cycle instead of ever rendering the video, even
-    // though directSrc is already valid. Gate on needsExtract too — extracting/extractError are
-    // only ever meaningful in that case.
-    if (needsExtract && (extracting || extractError)) {
-      return <VideoLoading />;
-    }
+  // ── Any remaining source (Rutube, direct, etc.) — VB-resolved or still resolving ───
+  // Real prod bug 2026-08-10: this block used to be gated on needsExtract alone, which was FALSE
+  // for our own vb-media-proxy/vb-capture urls — that also skipped the whole block, including the
+  // actual <video> render, falling through to `return null` below. The player vanishing outright
+  // ("плеер исчез") was this, not a data/extraction problem. Gating on `!isEmbed` covers both the
+  // "VB still resolving" state (directSrc null, videoUrl still the raw source page) and the
+  // "VB resolved" state (directSrc set) with the same condition needsExtract used to represent.
+  if (!isEmbed && videoUrl) {
     // Real playback failure (not just autoplay needing a click) — stop rendering the player (its
     // own "click to start" overlay would just retry the identical doomed play() call). Only the
     // OWNER actually triggers the VB fallback (vbStart is owner-gated in RoomContent), so only
@@ -1862,7 +1784,6 @@ export function VideoPlayer({
           src={directSrc}
           isHls={isHls}
           isDash={isDash}
-          poster={extractPoster}
           videoRef={videoRef}
           autoplayBlocked={autoplayBlocked}
           isOwner={isOwner}
