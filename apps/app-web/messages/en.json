@@ -515,7 +515,15 @@
     "logout": "Logout",
     "loadError": "Error loading settings",
     "saveError": "Error saving settings",
-    "logoutError": "Logout error"
+    "logoutError": "Logout error",
+    "planTitle": "PLAN",
+    "planPro": "Pro",
+    "planRenewsOn": "Renews {date}",
+    "planFreeDesc": "You're on the Free plan. Pro adds 4K, no ads, unlimited history.",
+    "planUpgradeCta": "Upgrade to Pro",
+    "planUpgraded": "Welcome to Pro!",
+    "planCheckoutCanceled": "Checkout canceled",
+    "planCheckoutError": "Couldn't start checkout"
   },
   "footer": {
     "tagline": "The social video watching platform.",

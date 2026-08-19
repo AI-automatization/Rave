@@ -1,6 +1,7 @@
 import Joi from 'joi';
 import { Request, Response, NextFunction } from 'express';
 import { ValidationError } from '@shared/utils/errors';
+import { LIMITS } from '@shared/constants';
 
 export const createRoomSchema = Joi.object({
   name: Joi.string().trim().min(1).max(80).optional(),
@@ -9,7 +10,11 @@ export const createRoomSchema = Joi.object({
   videoTitle: Joi.string().trim().max(200).optional(),
   videoThumbnail: Joi.string().uri().max(2048).optional(),
   videoPlatform: Joi.string().valid('youtube', 'vimeo', 'twitch', 'dailymotion', 'direct', 'webview', 'vk', 'rutube', 'tiktok', 'peertube', 'trovo', 'other').optional(),
-  maxMembers: Joi.number().integer().min(2).max(50).optional(),
+  // Was .max(50) — the Mongoose model (watchPartyRoom.model.ts) has always capped this field at
+  // 10 (matching LIMITS.MAX_WATCH_PARTY_MEMBERS, the Pro-tier ceiling), so a request between 11
+  // and 50 silently got clamped to 10 downstream. Two sources of truth for the same limit,
+  // drifted apart — this makes the validator match the model instead of relying on the clamp.
+  maxMembers: Joi.number().integer().min(2).max(LIMITS.MAX_WATCH_PARTY_MEMBERS).optional(),
   isPrivate: Joi.boolean().optional(),
   password: Joi.string().min(1).max(100).optional(),
   startTime: Joi.number().integer().min(0).optional(),

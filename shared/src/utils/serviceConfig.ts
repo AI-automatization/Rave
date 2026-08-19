@@ -73,3 +73,9 @@ export const adminServiceUrl =
   (process.env.RAILWAY_SERVICE_ADMIN_URL
     ? `https://${process.env.RAILWAY_SERVICE_ADMIN_URL}`
     : 'http://localhost:3008');
+
+export const paymentServiceUrl =
+  process.env.PAYMENT_SERVICE_URL ??
+  (process.env.RAILWAY_SERVICE_PAYMENT_URL
+    ? `https://${process.env.RAILWAY_SERVICE_PAYMENT_URL}`
+    : 'http://localhost:3009');
