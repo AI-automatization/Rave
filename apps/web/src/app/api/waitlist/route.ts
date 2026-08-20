@@ -25,7 +25,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const data = (await upstream.json()) as Record<string, unknown>;
     return NextResponse.json(data, { status: upstream.ok ? 200 : upstream.status });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { success: false, message: 'Service unavailable' },
       { status: 503 },
