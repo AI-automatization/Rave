@@ -963,7 +963,18 @@ export async function sendInput(roomId: string, userId: string, input: VBInput):
         await page.mouse.move(input.x, input.y);
         break;
       case 'mousedown':
-        await page.mouse.move(input.x, input.y);
+        // Real prod finding 2026-08-20: sites gating content behind a reCAPTCHA checkbox kept
+        // re-challenging even though the click visibly landed and toggled the box — CDP-level
+        // automation avoidance (rebrowser-patches/patchright) turned out to be architecturally
+        // incompatible with this file's capture hooks (see git history), so this is the cheap
+        // lever that's actually safe to ship: real humans never land on a coordinate and fire
+        // mousedown in the same tick — `page.mouse.move` with a single jump (the previous
+        // behavior) plus zero delay before `.down()` is exactly the kind of back-to-back timing
+        // heuristics like reCAPTCHA's risk analysis are built to flag. `steps` makes Playwright
+        // dispatch intermediate mousemove events along the path instead of one teleport, and the
+        // randomized pause mimics the hover-then-click gap a real click always has.
+        await page.mouse.move(input.x, input.y, { steps: 8 });
+        await new Promise((resolve) => setTimeout(resolve, 40 + Math.floor(Math.random() * 60)));
         await page.mouse.down({ button: input.button ?? 'left' });
         break;
       case 'mouseup':
