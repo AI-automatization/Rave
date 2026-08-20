@@ -124,6 +124,6 @@ describe('authApi.resendVerification', () => {
   it('calls resend endpoint', async () => {
     mockPost.mockResolvedValueOnce({ data: { success: true } });
     await authApi.resendVerification('test@test.com');
-    expect(mockPost).toHaveBeenCalledWith('/auth/register/resend', { email: 'test@test.com' });
+    expect(mockPost).toHaveBeenCalledWith('/auth/resend-verification', { email: 'test@test.com' });
   });
 });
