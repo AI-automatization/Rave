@@ -5,6 +5,8 @@ const mockSaveTokens = jest.fn();
 const mockGetRefreshToken = jest.fn();
 const mockGetAll = jest.fn();
 const mockClear = jest.fn();
+const mockIsDone = jest.fn();
+const mockMarkDone = jest.fn();
 
 jest.mock('../../utils/storage', () => ({
   tokenStorage: {
@@ -12,6 +14,10 @@ jest.mock('../../utils/storage', () => ({
     getRefreshToken: () => mockGetRefreshToken(),
     getAll: () => mockGetAll(),
     clear: () => mockClear(),
+  },
+  profileSetupStorage: {
+    isDone: (...args: unknown[]) => mockIsDone(...args),
+    markDone: (...args: unknown[]) => mockMarkDone(...args),
   },
 }));
 

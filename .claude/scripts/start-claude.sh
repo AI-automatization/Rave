@@ -3,7 +3,7 @@
 # Использование: bash .claude/scripts/start-claude.sh
 # Вместо прямого: claude CLAUDE.md --channels plugin:telegram@claude-plugins-official --dangerously-skip-permissions
 
-cd ~/Desktop/Rave
+cd ~/Desktop/Rave || exit 1
 
 while true; do
     claude CLAUDE.md --channels plugin:telegram@claude-plugins-official --dangerously-skip-permissions

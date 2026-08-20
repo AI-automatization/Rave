@@ -28,7 +28,9 @@ export function useWatchParty(roomId: string) {
     socket.on(SERVER_EVENTS.ROOM_JOINED, (data: { room: IWatchPartyRoom; syncState: { currentTime: number; isPlaying: boolean } | null }) => {
       setRoom(data.room);
       // room.members is string[] (user IDs from DB) — map to placeholder member objects for count display
-      const rawMembers = Array.isArray((data.room as any)?.members) ? (data.room as any).members as string[] : [];
+      // IWatchPartyRoom.members уже типизирован как string[] — каст не нужен.
+      // Array.isArray оставлен: сервер может прислать поле не массивом.
+      const rawMembers = Array.isArray(data.room.members) ? data.room.members : [];
       setMembers(rawMembers.map((id) => ({ _id: id, username: '' })));
       if (data.syncState) setSyncState(data.syncState);
     });

@@ -55,6 +55,53 @@ jobs:
       - name: Typecheck ${{ matrix.service }}
         run: cd ${{ matrix.path }} && npm run typecheck
 
+  frontend:
+    name: Front-end — ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [mobile, web, app-web, admin-ui]
+        include:
+          - app: mobile
+            workspace: wewatch-mobile
+          - app: web
+            workspace: web
+          - app: app-web
+            workspace: app-web
+          - app: admin-ui
+            workspace: '@cinesync/admin-ui'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install root deps
+        run: npm ci --legacy-peer-deps
+      - name: Build shared (required by services some front-ends import from)
+        run: npm run build --workspace=@cinesync/shared
+      # continue-on-error on the whole job (#81 item 5's actual goal is visibility, not a new
+      # blocking gate): apps/web currently carries real pre-existing findings this job would
+      # otherwise turn into an immediate, permanently-red required check — 6 react-hooks/*
+      # errors (set-state-in-effect, refs-during-render) that need a human verifying behavior
+      # in a browser after each fix, not a blind mechanical edit, plus a dual-@types/react
+      # ReactNode/bigint typecheck error (same class already worked around in
+      # apps/mobile/LanguageTransition.tsx). Once those are cleared this can drop
+      # continue-on-error and become a real required check.
+      - name: Typecheck ${{ matrix.app }}
+        continue-on-error: true
+        run: npm run typecheck --workspace="${{ matrix.workspace }}" --if-present
+      - name: Lint ${{ matrix.app }}
+        continue-on-error: true
+        run: npm run lint --workspace="${{ matrix.workspace }}" --if-present
+      - name: Test ${{ matrix.app }}
+        if: matrix.app == 'mobile'
+        continue-on-error: true
+        run: npm test --workspace=wewatch-mobile
+
   size-report:
     name: Large file report
     runs-on: ubuntu-latest
