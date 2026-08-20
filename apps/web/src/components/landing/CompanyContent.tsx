@@ -14,6 +14,16 @@ import { ContactSection } from './ContactSection';
 import { spring, fadeUp, fadeUpScale, stagger } from './motion';
 import { useLocalizedHref } from '@/lib/i18n/use-localized-href';
 
+// Maps this page's own (smaller, translation-driven) roster to the RU-only SEO
+// bio pages at /ru/team/<slug> — the two rosters share people but not an id, so
+// without this the company page showed the same three faces the bio pages
+// describe and never linked between them.
+const TEAM_BIO_SLUG: Record<string, string> = {
+  Founder: 'bekzod-mirzaliyev',
+  Coo: 'abdulaziz-yormatov',
+  Wewatch: 'ertan-emirhan',
+};
+
 // ── Count-up ────────────────────────────────────────────────────────────────
 function useCountUp(end: number, duration = 1.6) {
   const [count, setCount] = useState(0);
@@ -275,20 +285,34 @@ export function CompanyContent() {
           </motion.div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {TEAM.map((m, i) => (
-              <motion.div
-                key={m.name}
-                variants={fadeUpScale}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.12 }}
-                whileHover={{ y: -8, transition: { type: 'spring', stiffness: 300, damping: 20 } }}
-              >
-                <TeamPortrait name={m.name} role={t(`role${m.key}`)} photo={m.photo} index={i} star={m.tag === 'lead'} />
-                <p className="text-zinc-500 text-sm leading-relaxed mt-5 px-1">{t(`bio${m.key}`)}</p>
-              </motion.div>
-            ))}
+            {TEAM.map((m, i) => {
+              // Bio pages only exist under /ru/team — linking a uz/en reader into a
+              // Russian-only page would be worse than no link, so it's ru-only.
+              const bioSlug = locale === 'ru' ? TEAM_BIO_SLUG[m.key] : undefined;
+              const portrait = (
+                <>
+                  <TeamPortrait name={m.name} role={t(`role${m.key}`)} photo={m.photo} index={i} star={m.tag === 'lead'} />
+                  <p className="text-zinc-500 text-sm leading-relaxed mt-5 px-1">{t(`bio${m.key}`)}</p>
+                </>
+              );
+              return (
+                <motion.div
+                  key={m.name}
+                  variants={fadeUpScale}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.12 }}
+                  whileHover={{ y: -8, transition: { type: 'spring', stiffness: 300, damping: 20 } }}
+                >
+                  {bioSlug ? (
+                    <Link href={`/ru/team/${bioSlug}`} className="block">{portrait}</Link>
+                  ) : (
+                    portrait
+                  )}
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
