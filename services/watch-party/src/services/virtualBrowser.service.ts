@@ -5,6 +5,8 @@
 //
 // One Chromium process per active session — real CPU/RAM cost, hence MAX_CONCURRENT.
 
+import fs from 'node:fs';
+import path from 'node:path';
 import { chromium, Browser, BrowserContext, Page, CDPSession } from 'playwright-chromium';
 import { logger } from '@shared/utils/logger';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
@@ -43,6 +45,21 @@ function getProxyForUrl(url: string): { server: string; username?: string; passw
 }
 
 const MAX_CONCURRENT = 3;
+
+// Real prod finding 2026-08-20: a fresh `browser.newContext()` on every VB open means Google's
+// reCAPTCHA sees a brand-new, history-less Chromium instance every single time — its risk engine
+// downweights that regardless of whether the owner's forwarded click on the checkbox was genuine,
+// so the challenge just resets and re-prompts forever. A persistent context (cookies/localStorage
+// written to disk and reused) lets Google's own trust signals accumulate across a room's repeat VB
+// opens instead of resetting to zero each time — same fix class as "don't clear cookies between
+// logins," no proxy/paid service needed. Scoped per-room (not global) so MAX_CONCURRENT sessions
+// never fight over the same profile directory lock. Persists in /tmp, so it resets on a Railway
+// redeploy — acceptable, this only ever needed to survive between VB opens within a room's life.
+const VB_PROFILES_DIR = process.env.VB_PROFILES_DIR || path.join('/tmp', 'wewatch-vb-profiles');
+
+function vbProfileDir(roomId: string): string {
+  return path.join(VB_PROFILES_DIR, roomId.replace(/[^a-zA-Z0-9_-]/g, '_'));
+}
 
 // Anti-detection — the plain launch config below had zero stealth measures; real prod logs
 // (2026-08-06) showed "HeadlessChrome/149.0.0.0" going out verbatim in the User-Agent on every
@@ -134,7 +151,8 @@ export type VBInput =
   | { type: 'type'; text: string };
 
 interface VBSession {
-  browser: Browser;
+  // No separate Browser handle — launchPersistentContext() (see vbProfileDir above) returns the
+  // BrowserContext directly, there's nothing else to hold or close.
   context: BrowserContext;
   page: Page;
   cdp: CDPSession;
@@ -516,12 +534,12 @@ export async function startSession(
       throw new Error('virtual_browser_limit');
     }
 
-    const browser = await chromium.launch({
+    const profileDir = vbProfileDir(roomId);
+    fs.mkdirSync(profileDir, { recursive: true });
+    const context = await chromium.launchPersistentContext(profileDir, {
       headless: true,
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', ...STEALTH_LAUNCH_ARGS, ...ANTI_THROTTLE_LAUNCH_ARGS],
-    });
-    const context = await browser.newContext({
       viewport: VB_VIEWPORT,
       userAgent: STEALTH_USER_AGENT,
       locale: VB_LOCALE,
@@ -817,7 +835,7 @@ export async function startSession(
       everyNthFrame: 1,
     });
 
-    sessions.set(roomId, { browser, context, page, cdp, ownerId, url, paused: false });
+    sessions.set(roomId, { context, page, cdp, ownerId, url, paused: false });
 
     try {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 });
@@ -909,7 +927,7 @@ export async function stopSession(roomId: string): Promise<void> {
   if (!s) return;
   sessions.delete(roomId);
   try { await s.cdp.send('Page.stopScreencast'); } catch { /* already gone */ }
-  try { await s.browser.close(); } catch { /* already gone */ }
+  try { await s.context.close(); } catch { /* already gone */ }
   stopCapture(roomId);
   clearCapture(roomId);
   logger.info('VB session stopped', { roomId });
