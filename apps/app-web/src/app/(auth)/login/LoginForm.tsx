@@ -216,7 +216,13 @@ export function LoginForm() {
           this ordering: one-tap OAuth first, email/password as the fallback underneath, not the
           other way around. Previously password was first and Google/Telegram were an
           afterthought below the fold-equivalent — backwards from how a majority of users
-          actually want to authenticate. */}
+          actually want to authenticate.
+
+          Tugmada faqat brend nomi — to'liq "Google orqali davom etish" matni bu yerga
+          sig'maydi va Button'dagi `whitespace-nowrap` tufayli o'ralmay tashqariga chiqib
+          ketardi (prod buzilishi, 2026-08-14): panel ichki kengligi 336px → ustun 162px,
+          undan 66px ikonka+padding'ga ketadi, matnga 96px qoladi, "Продолжить с Telegram"
+          esa ~150px. To'liq matn aria-label'da qoldi — skrinrider kontekstni yo'qotmaydi. */}
       <div className="grid grid-cols-2 gap-3">
         <Button
           type="button"
@@ -224,6 +230,7 @@ export function LoginForm() {
           size="xl"
           onClick={handleGoogleLogin}
           disabled={isPending}
+          aria-label={t('continueWithGoogle')}
           className="w-full"
         >
           <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true">
@@ -232,7 +239,7 @@ export function LoginForm() {
             <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
             <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
           </svg>
-          {t('continueWithGoogle')}
+          Google
         </Button>
 
         <Button
@@ -241,13 +248,14 @@ export function LoginForm() {
           size="xl"
           onClick={handleTelegramLogin}
           disabled={isPending}
+          aria-label={t('continueWithTelegram')}
           className="w-full"
         >
           <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="12" cy="12" r="12" fill="#26A5E4"/>
             <path d="M5.5 11.8 17 7.4c.53-.19 1 .13.83.94l-2 9.42c-.14.63-.51.78-1.03.49l-2.85-2.1-1.37 1.32c-.15.15-.28.28-.57.28l.2-2.9 5.3-4.79c.23-.2-.05-.32-.36-.11l-6.55 4.12-2.83-.88c-.61-.19-.62-.61.13-.9z" fill="#fff"/>
           </svg>
-          {t('continueWithTelegram')}
+          Telegram
         </Button>
       </div>
 
