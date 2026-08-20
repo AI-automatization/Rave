@@ -1,57 +1,16 @@
 import { createHash, timingSafeEqual } from 'crypto';
 import { logger } from './logger';
 import { AppError, ConflictError, BadRequestError, ValidationError, InternalServerError } from './errors';
-import { isQueueReady, queueAddPoints, queueTriggerAchievement } from './serviceQueue';
 import {
   axios, AxiosError, INTERNAL_SECRET, internalHeaders,
   userServiceUrl, contentServiceUrl, notificationServiceUrl,
-  watchPartyServiceUrl, authServiceUrl, adminServiceUrl,
+  watchPartyServiceUrl, authServiceUrl, adminServiceUrl, paymentServiceUrl,
 } from './serviceConfig';
 
 // Re-export admin client functions for backwards compatibility
 export * from './adminServiceClient';
 
 // ─── User Service ──────────────────────────────────────────────────────────────
-
-export type AchievementEvent =
-  | 'movie_watched' | 'watch_party' | 'friend'
-  | 'review' | 'streak' | 'rank' | 'watch_time' | 'daily_minutes';
-
-export async function addUserPoints(userId: string, points: number): Promise<void> {
-  if (isQueueReady()) {
-    await queueAddPoints(userId, points);
-    return;
-  }
-  try {
-    await axios.post(
-      `${userServiceUrl}/api/v1/users/internal/add-points`,
-      { userId, points },
-      { headers: internalHeaders, timeout: 5000 },
-    );
-    logger.info('[serviceClient] addUserPoints', { userId, points });
-  } catch (err) {
-    const error = err as AxiosError;
-    logger.error('[serviceClient] addUserPoints failed', { userId, points, status: error.response?.status, message: error.message });
-  }
-}
-
-export async function triggerAchievement(userId: string, event: AchievementEvent, meta?: Record<string, unknown>): Promise<void> {
-  if (isQueueReady()) {
-    await queueTriggerAchievement(userId, event, meta);
-    return;
-  }
-  try {
-    await axios.post(
-      `${userServiceUrl}/api/v1/achievements/internal/trigger`,
-      { userId, event, meta },
-      { headers: internalHeaders, timeout: 5000 },
-    );
-    logger.info('[serviceClient] triggerAchievement', { userId, event });
-  } catch (err) {
-    const error = err as AxiosError;
-    logger.error('[serviceClient] triggerAchievement failed', { userId, event, status: error.response?.status, message: error.message });
-  }
-}
 
 export async function getUserRestrictions(userId: string): Promise<string[]> {
   try {
@@ -222,20 +181,6 @@ export async function isDomainBlocked(domain: string): Promise<boolean> {
   } catch { return false; }
 }
 
-export async function getMovieInfo(movieId: string): Promise<{ title: string; duration: number } | null> {
-  try {
-    const res = await axios.get<{ data: { title: string; duration: number } }>(
-      `${contentServiceUrl}/api/v1/movies/${movieId}`,
-      { headers: internalHeaders, timeout: 5000 },
-    );
-    return res.data.data;
-  } catch (err) {
-    const error = err as AxiosError;
-    logger.error('[serviceClient] getMovieInfo failed', { movieId, message: error.message });
-    return null;
-  }
-}
-
 export async function getUserWatchStats(userId: string): Promise<{
   totalWatched: number; totalMinutes: number; currentStreak: number; longestStreak: number; weeklyActivity: number[];
 } | null> {
@@ -249,6 +194,55 @@ export async function getUserWatchStats(userId: string): Promise<{
     const error = err as AxiosError;
     logger.error('[serviceClient] getUserWatchStats failed', { userId, message: error.message });
     return null;
+  }
+}
+
+// ─── Payment Service ────────────────────────────────────────────────────────────
+
+// getUserPlan is called on hot paths (watch-party room create/join, every profile view) —
+// an in-process TTL cache keeps a plan-tier check from adding a network round-trip to each
+// of those. 30s is short enough that an upgrade/downgrade reaches new room-join checks
+// almost immediately, long enough to absorb realistic call volume. Per-process, not
+// Redis-backed — a few seconds of inconsistency between service instances during that
+// window is an accepted tradeoff, not a correctness requirement here.
+const PLAN_CACHE_TTL_MS = 30_000;
+const planCache = new Map<string, { plan: 'free' | 'pro'; expiresAt: number }>();
+let planCacheOps = 0;
+
+function prunePlanCache(): void {
+  // Sweep occasionally rather than on every call — this cache has no natural eviction
+  // otherwise (a userId queried once and never again would sit in memory forever).
+  if (++planCacheOps % 200 !== 0) return;
+  const now = Date.now();
+  for (const [key, entry] of planCache) {
+    if (entry.expiresAt <= now) planCache.delete(key);
+  }
+}
+
+// Fail-safe on error: an unreachable payment service must never silently grant Pro-tier
+// limits — every caller (room capacity, watch-history retention) treats 'free' as the safe
+// default, so a payment-service outage degrades access, not entitlement. The one exception is
+// a still-fresh-enough cache entry: falling back to a just-expired 'pro' reading is preferable
+// to punishing a paying user for a transient blip, but a cold cache (nothing to fall back to)
+// still fails to 'free', same as before.
+export async function getUserPlan(userId: string): Promise<'free' | 'pro'> {
+  prunePlanCache();
+
+  const cached = planCache.get(userId);
+  if (cached && cached.expiresAt > Date.now()) return cached.plan;
+
+  try {
+    const res = await axios.get<{ data: { plan: 'free' | 'pro' } }>(
+      `${paymentServiceUrl}/api/v1/payment/internal/plan/${userId}`,
+      { headers: internalHeaders, timeout: 3000 },
+    );
+    const plan = res.data.data?.plan ?? 'free';
+    planCache.set(userId, { plan, expiresAt: Date.now() + PLAN_CACHE_TTL_MS });
+    return plan;
+  } catch (err) {
+    const error = err as AxiosError;
+    logger.error('[serviceClient] getUserPlan failed — defaulting to free', { userId, message: error.message });
+    return cached?.plan ?? 'free';
   }
 }
 

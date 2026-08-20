@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Loader2, MailCheck } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
@@ -18,6 +18,7 @@ const CODE_LENGTH = 6;
 export function VerifyEmail({ email }: Props) {
   const t = useTranslations('auth');
   const router = useRouter();
+  const searchParams = useSearchParams();
   const setUser = useAuthStore((s) => s.setUser);
 
   const [digits, setDigits] = useState<string[]>(Array(CODE_LENGTH).fill(''));
@@ -69,7 +70,12 @@ export function VerifyEmail({ email }: Props) {
         try {
           const res = await authApi.confirmEmail({ email, code });
           setUser(res.data?.user ?? null);
-          router.push('/home');
+          // apps/web's pricing page CTA links here with ?plan=pro (appUrl('/register?plan=pro'))
+          // — that param survives the register→verify step since it's the same route the whole
+          // time (RegisterPage just swaps components, no navigation). Land straight on the real
+          // upgrade flow (Settings) instead of /home, which had no reference to "plan" at all —
+          // the funnel used to just drop the visitor's intent on the floor.
+          router.push(searchParams.get('plan') === 'pro' ? '/settings' : '/home');
         } catch (err) {
           if (err instanceof ApiError) {
             const data = err.data as { message?: string };

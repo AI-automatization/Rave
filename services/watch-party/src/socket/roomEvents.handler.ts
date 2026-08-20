@@ -17,6 +17,7 @@ interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
   roomId?: string;
   roomOwnerId?: string; // cached to avoid DB lookup on every video event
+  roomJoinedAt?: number; // Date.now() at JOIN_ROOM — watch-history duration is measured from this, not the room's shared playback position
   rawToken?: string;
 }
 
@@ -178,6 +179,7 @@ export const registerRoomEvents = (
       await socket.join(data.roomId);
       authSocket.roomId = data.roomId;
       authSocket.roomOwnerId = room.ownerId;
+      authSocket.roomJoinedAt = Date.now();
 
       const syncState = await watchPartyService.getSyncState(data.roomId);
 
@@ -203,18 +205,21 @@ export const registerRoomEvents = (
     if (!authSocket.roomId) return;
     const roomId = authSocket.roomId;
     authSocket.roomId = undefined;
+    // Elapsed wall-clock time THIS user was actually in the room — not the room's shared
+    // playback position (a bug this replaces: someone joining a movie already 90 minutes in
+    // and leaving 2 minutes later was previously logged as "watched 90 minutes").
+    const joinedAt = authSocket.roomJoinedAt;
+    authSocket.roomJoinedAt = undefined;
+    const durationWatchedSeconds = joinedAt ? Math.max(0, Math.floor((Date.now() - joinedAt) / 1000)) : 0;
 
-    // Save watch position before leaving (non-blocking)
+    // Save watch history before leaving (non-blocking)
     void (async () => {
       try {
-        const [syncState, room] = await Promise.all([
-          watchPartyService.getSyncState(roomId),
-          watchPartyService.getRoom(roomId).catch(() => null),
-        ]);
-        if (room && syncState && (room.movieId || room.videoUrl)) {
-          const currentTimeSeconds = Math.floor(syncState.currentTime ?? 0);
+        if (durationWatchedSeconds <= 0) return;
+        const room = await watchPartyService.getRoom(roomId).catch(() => null);
+        if (room && (room.movieId || room.videoUrl)) {
           const movieId = room.movieId ?? `ext_${Buffer.from(room.videoUrl ?? '').toString('base64').slice(0, 16)}`;
-          await recordWatchHistoryInternal(userId, movieId, 0, currentTimeSeconds, currentTimeSeconds, room.videoUrl);
+          await recordWatchHistoryInternal(userId, movieId, 0, durationWatchedSeconds, durationWatchedSeconds, room.videoUrl);
         }
       } catch (e) {
         logger.warn('Failed to save watch history on room leave', { userId, roomId, error: e });

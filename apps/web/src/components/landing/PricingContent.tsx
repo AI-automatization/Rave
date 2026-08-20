@@ -1,9 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import { FaCheck, FaTimes, FaBolt, FaGift, FaSyncAlt, FaTag, FaArrowRight } from 'react-icons/fa';
 import { useTranslations } from 'next-intl';
+import { appUrl } from '@/lib/app-url';
 
 const spring = { type: 'spring' as const, stiffness: 280, damping: 24 };
 const fadeUp: Variants = {
@@ -17,10 +17,11 @@ export function PricingContent() {
   const tl = useTranslations('landing');
   const reduce = useReducedMotion();
 
-  // Pro has no published price on purpose: checkout does not exist in production and
-  // the plan's pricing has not been decided yet (owner decision, 2026-08-10). Publishing
-  // a placeholder number would put an unbuyable offer into search results and AI answers,
-  // which is exactly what the claims gate exists to prevent.
+  // Pro's price is now real (29 000 so'm/oy) and checkout exists — services/payment
+  // bridges to tezcode-billing (owner decision, 2026-08-19), superseding the 2026-08-10
+  // "not decided yet" hold this comment used to describe. Checkout itself lives in
+  // apps/app-web (a signed-in account is required to subscribe); this page just sends
+  // the visitor there via appUrl(), same as every other cross-app CTA on this site.
   const PLANS = [
     {
       name: tl('plan1name'),
@@ -28,7 +29,6 @@ export function PricingContent() {
       priceNote: t('plan1desc'),
       features: [
         { label: 'Watch Party', val: t('plan1people'), on: true },
-        { label: t('rowQuality'), val: 'HD 720p', on: true },
         { label: t('rowSearch'), val: '✓', on: true },
         { label: t('rowFriends'), val: '∞', on: true },
         { label: t('rowHistory'), val: t('plan1historyVal'), on: true },
@@ -41,11 +41,10 @@ export function PricingContent() {
     },
     {
       name: tl('plan2name'),
-      price: null,
-      priceNote: t('plan2priceTba'),
+      price: t('plan2price'),
+      priceNote: tl('plan2period'),
       features: [
         { label: 'Watch Party', val: t('plan2people'), on: true },
-        { label: t('rowQuality'), val: '4K 2160p', on: true },
         { label: t('rowSearch'), val: '✓', on: true },
         { label: t('rowFriends'), val: '∞', on: true },
         { label: t('rowHistory'), val: '∞', on: true },
@@ -54,7 +53,7 @@ export function PricingContent() {
       cta: tl('plan2cta'),
       href: '/register?plan=pro',
       highlighted: true,
-      comingSoon: true,
+      comingSoon: false,
     },
   ];
 
@@ -173,8 +172,10 @@ export function PricingContent() {
                   {tl('soon')}
                 </span>
               ) : (
-                <Link
-                  href={p.href}
+                // Plain <a> + appUrl(), not next/link — p.href points at app.wewatch.uz
+                // (a separate deployment), see apps/web/src/lib/app-url.ts for why.
+                <a
+                  href={appUrl(p.href)}
                   className={`group flex items-center justify-center gap-2 h-12 rounded-2xl font-semibold transition-all duration-300 active:scale-[0.98] w-full ${
                     p.highlighted
                       ? 'text-white hover:shadow-[0_0_34px_rgba(123,114,248,0.6)]'
@@ -184,7 +185,7 @@ export function PricingContent() {
                 >
                   {p.cta}
                   <FaArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
-                </Link>
+                </a>
               )}
             </motion.div>
           ))}

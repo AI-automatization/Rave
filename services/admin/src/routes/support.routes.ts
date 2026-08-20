@@ -8,7 +8,13 @@ export const createSupportRouter = (): Router => {
   const controller = new SupportController(new SupportService());
 
   // Internal routes — called from mobile app with JWT Bearer token
+  // Two paths for the same "list this user's conversations" read: apps/mobile calls the bare
+  // path (no /conversations), apps/web and apps/app-web both call the /conversations variant
+  // (matching every sibling route below, which all have it) — that mismatch meant the web BFF
+  // routes 404'd on every GET. Both are wired to the same controller method rather than
+  // picking one and breaking a client that already ships against the other.
   router.get('/internal/support/user/:userId', verifyToken, controller.getUserConversations);
+  router.get('/internal/support/user/:userId/conversations', verifyToken, controller.getUserConversations);
   router.post('/internal/support/user/:userId/conversations', verifyToken, controller.createUserConversation);
   router.post('/internal/support/user/:userId/message', verifyToken, controller.userSendMessage);
   router.get('/internal/support/user/:userId/conversations/:convId/messages', verifyToken, controller.getUserMessages);
