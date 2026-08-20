@@ -55,6 +55,8 @@ const RELATED = [
   { href: '/ru/guides/smotret-film-vdvoem', label: 'Смотреть фильм вдвоём' },
   { href: '/ru/guides/smotret-serial-vmeste', label: 'Смотреть сериал вместе' },
   { href: '/ru/guides/smotret-anime-vmeste', label: 'Смотреть аниме вместе' },
+  { href: '/ru/use-cases/dalnie-otnosheniya', label: 'Смотреть вместе на расстоянии' },
+  { href: '/ru/use-cases/svidanie-online', label: 'Свидание онлайн' },
 ];
 
 const jsonLd = {

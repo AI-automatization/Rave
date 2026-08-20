@@ -2,9 +2,19 @@
 
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
+import { FaInstagram, FaXTwitter, FaTelegram } from 'react-icons/fa6';
 import { WeWatchLogo } from './WeWatchLogo';
 import { type Locale } from '@/lib/i18n/config';
 import { useLocalizedHref } from '@/lib/i18n/use-localized-href';
+
+// Official WeWatch profiles, sitewide — same URLs as jsonLdOrg.sameAs in
+// RootDocument.tsx. Keep both in sync: this row is what a visitor clicks,
+// sameAs is what tells Google these are the same entity as wewatch.uz.
+const SOCIAL_LINKS = [
+  { href: 'https://instagram.com/wewatch.tezcode', label: 'Instagram', Icon: FaInstagram },
+  { href: 'https://x.com/wewattch', label: 'X (Twitter)', Icon: FaXTwitter },
+  { href: 'https://t.me/+6w6lOLm7eJRiMjVi', label: 'Telegram', Icon: FaTelegram },
+] as const;
 
 /** Language roots, in the order they are offered. Fixed targets — see the row below. */
 const LOCALE_ROOTS: readonly { locale: Locale; href: string; label: string }[] = [
@@ -68,6 +78,20 @@ export function Footer() {
             <p className="text-zinc-400 text-sm max-w-[200px] leading-relaxed">
               {t('tagline')}
             </p>
+            <div className="flex items-center gap-4 mt-4">
+              {SOCIAL_LINKS.map(({ href, label, Icon }) => (
+                <a
+                  key={href}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  className="text-zinc-400 hover:text-zinc-200 transition-colors"
+                >
+                  <Icon size={18} />
+                </a>
+              ))}
+            </div>
           </div>
 
           {/* Links */}

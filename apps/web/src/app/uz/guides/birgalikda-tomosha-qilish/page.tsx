@@ -205,6 +205,8 @@ export default function BirgalikdaTomashaPage() {
               <Link href="/uz/guides/youtube-birgalikda" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">YouTube birgalikda →</Link>
               <Link href="/uz/guides/anime-birgalikda" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">Anime birgalikda →</Link>
               <Link href="/uz/guides/serial-birgalikda" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">Serial birgalikda →</Link>
+              <Link href="/uz/use-cases/masofadagi-juftlik" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">Masofadan birga ko'rish →</Link>
+              <Link href="/uz/use-cases/onlayn-uchrashuv" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">Onlayn uchrashuv →</Link>
               <Link href="/ru/guides/smotret-vmeste-onlayn" className="text-sm text-zinc-500 hover:text-zinc-400 transition-colors">На русском →</Link>
             </div>
           </div>

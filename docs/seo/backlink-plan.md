@@ -1,6 +1,32 @@
 # Backlink and mention plan
 
-Written 2026-08-11. Owner: Yakubov (SEO/GEO/AEO).
+Written 2026-08-11, updated 2026-08-19. Owner: Yakubov (SEO/GEO/AEO).
+
+## The five RU roundups — now the primary channel
+
+Between writing this plan and this update, competitor profiling turned up something
+the directory tiers below don't capture: five Russian media roundups already rank for
+our exact intents ("смотреть кино вместе", "смотреть youtube вместе") and list our
+direct competitors, not us. One of them — eldorado.ru/blog — outranks our own hub page
+for "смотреть кино вместе". Getting into these five moves links and AI-answer citation
+at once; nothing in Tier A/B below does that.
+
+| Outlet | Angle | Contact | Sent |
+|---|---|---|---|
+| media.halvacard.ru | only they lack a direct-MP4-sync service | media.halvacard@sovcombank.ru | 2026-08-18 |
+| journal.sovcombank.ru | list has gone stale (Teleparty/Scener need foreign streaming) | feedback form / blog@sovcombank.ru | 2026-08-18 |
+| eldorado.ru/blog | every listed competitor needs an app or account | blog@eldorado.ru | 2026-08-18 |
+| raiffeisen-media.ru | none of their picks sync VK Video or Rutube | feedback form / rmedia@raiffeisen.ru | 2026-08-18 |
+| hi-tech.mail.ru | none of their 10 publish a sync tolerance number | i.ostapenko@corp.mail.ru | 2026-08-18 |
+
+All five pitched 2026-08-18. Checked live 2026-08-19: no reply, no mention yet on any
+of the five pages — expected, one day is too early. Re-check in a few days rather than
+daily. One typo shipped in the halvacard subject line ("совмесного" instead of
+"совместного") — noted, not worth a follow-up over one letter.
+
+Full pitch texts and per-outlet contact verification: Obsidian
+`Claude/Projects/WeWatch Roundup Pitches.md` (not duplicated here — that file is the
+working copy, this file is the standing plan).
 
 ## Why this exists
 
@@ -43,7 +69,13 @@ reads is worth more to us than a `dofollow` link on a site nobody quotes.
 - **One account per platform, owned by the company**, not by a personal profile that
   leaves when its owner does.
 
-## Where to list, in order
+## Directories and entity links — secondary tier
+
+Measured 2026-08-15 across 4 queries × 3 AI engines: G2, Capterra, SaaSHub, Crunchbase
+and Product Hunt produced **zero** AI-answer citations between them. Keep this tier for
+what it actually does — link authority and entity confirmation (the org exists, is who
+it says it is) — not for AI-answer presence. The RU roundups above are what moves that
+number; this tier is the background work that keeps running underneath it.
 
 Effort is one person's time, assuming texts below are copy-pasted.
 
@@ -226,10 +258,12 @@ WeWatch убирает саму проблему рассинхрона. У вс
 
 ## Order of work
 
-1. **This week:** Tier A (#1–4) and Tier C (#9–10). All copy-paste.
-2. **Next:** one Habr or vc.ru article. This is the only item that needs real writing
+1. **Now:** wait on the five RU roundups above — replies and live mentions, checked
+   every few days, not daily.
+2. **In parallel:** Tier A (#1–4) and Tier C (#9–10) below. All copy-paste.
+3. **Next:** one Habr or vc.ru article. This is the only item that needs real writing
    time, and it is also the only one likely to bring a link other people repeat.
-3. **Measure at 30 days:** referring domains in Bing, Copilot citations, and pages
+4. **Measure at 30 days:** referring domains in Bing, Copilot citations, and pages
    indexed by Bing and Yandex. Baseline to compare against is the table at the top of
    this file.
 

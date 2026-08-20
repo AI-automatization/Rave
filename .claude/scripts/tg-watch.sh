@@ -53,7 +53,7 @@ cmd_start() {
 
   nohup "$PYTHON" "$AUTOBOT" --watch > "$HOME/tg_watch.log" 2>&1 &
   echo $! > "$PID_FILE"
-  echo "🚀 tg-watch запущен (PID $(cat $PID_FILE)) — мониторинг tezCode"
+  echo "🚀 tg-watch запущен (PID $(cat "$PID_FILE")) — мониторинг tezCode"
 }
 
 # ── stop ──────────────────────────────────────────────────────────────────────

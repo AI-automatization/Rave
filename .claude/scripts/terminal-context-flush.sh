@@ -21,7 +21,6 @@ set -euo pipefail
 BUFFER="$HOME/.terminal_context_buffer"
 VAULT="${OBSIDIAN_VAULT:-$HOME/Documents/weWatch-obsidian}"
 DEV="${VAULT_DEVELOPER:-Saidazim}"
-PROJECT_ROOT="/Users/muhammad/Desktop/Rave"
 NOW="$(date '+%Y-%m-%d %H:%M')"
 DATE="$(date '+%Y-%m-%d')"
 mkdir -p "$VAULT/DAILY/$DEV"
@@ -55,7 +54,7 @@ fi
 
 # ── Clear ────────────────────────────────────────────────────────────────────
 if [[ "$MODE" == "clear" ]]; then
-    > "$BUFFER"
+    : > "$BUFFER"
     echo "🗑  Buffer очищен"
     exit 0
 fi
@@ -168,7 +167,6 @@ while IFS='|' read -r ts cwd cmd exit_code; do
         "git merge"*|"git rebase"*) CMD_ICON="🔀" ;;
         "git checkout"*|"git switch"*)
             CMD_ICON="🌿"
-            branch="$(echo "$cmd" | awk '{print $NF}')"
             ;;
         "git "*) CMD_ICON="📦" ;;
         "npm run dev"*|"npx expo start"*) CMD_ICON="🟢" ;;
@@ -241,7 +239,7 @@ BLOCK+="\n</details>\n"
 echo -e "$BLOCK" >> "$DAILY"
 
 # ── Очищаем буфер ─────────────────────────────────────────────────────────────
-> "$BUFFER"
+: > "$BUFFER"
 
 echo "✅ Записано ${TOTAL} команд в $DAILY"
 [[ $GIT_COMMITS -gt 0 ]] && echo "   💾 ${GIT_COMMITS} git commits"

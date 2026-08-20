@@ -106,7 +106,7 @@ echo "════════════════════════�
 HOWTO="$VAULT/AI_CONTEXT/how-${DEV_LOWER}-works.md"
 if [[ -f "$HOWTO" ]]; then
   echo ""
-  echo "━━━ 👤 ПРОФИЛЬ: КАК РАБОТАТЬ С $(echo $DEV | tr '[:lower:]' '[:upper:]') ━━━"
+  echo "━━━ 👤 ПРОФИЛЬ: КАК РАБОТАТЬ С $(echo "$DEV" | tr '[:lower:]' '[:upper:]') ━━━"
   tail -n +5 "$HOWTO"
 fi
 
