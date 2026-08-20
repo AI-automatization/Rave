@@ -165,6 +165,16 @@ export default function WhatIsWatchPartyEnPage() {
 
           <VisibleFaqs title="Frequently asked questions" items={FAQS} />
 
+          <section className="mb-14">
+            <h2 className="text-2xl font-bold text-white mb-4">Common scenarios</h2>
+            <p className="text-zinc-400 leading-7">
+              Two write-ups cover the most common reasons people start a watch party:{' '}
+              <Link href="/en/use-cases/long-distance" className="text-[#7B72F8] hover:underline">watching together long distance</Link>{' '}
+              and{' '}
+              <Link href="/en/use-cases/online-date" className="text-[#7B72F8] hover:underline">an online date over a movie</Link>.
+            </p>
+          </section>
+
           <div className="bg-gradient-to-br from-[#7B72F8]/10 to-[#7B72F8]/5 border border-[#7B72F8]/25 rounded-2xl px-8 py-8 text-center">
             <p className="text-zinc-400 text-sm mb-2">Try it yourself</p>
             <p className="text-white font-bold text-2xl mb-4">Start a watch party for free</p>
