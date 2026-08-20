@@ -6,7 +6,7 @@ import { logger } from '@shared/utils/logger';
 import { NotFoundError, ForbiddenError, BadRequestError, UnauthorizedError } from '@shared/utils/errors';
 import { SyncState, VideoPlatform } from '@shared/types';
 import { REDIS_KEYS, TTL, LIMITS, TIMING } from '@shared/constants';
-import { getUserRestrictions, getUserPlan } from '@shared/utils/serviceClient';
+import { getUserRestrictions } from '@shared/utils/serviceClient';
 import { getAppSetting } from '@shared/utils/appSettings';
 import { WatchPartyPlaylistService } from './watchPartyPlaylist.service';
 import { WatchPartyMembersService } from './watchPartyMembers.service';
@@ -146,12 +146,6 @@ export class WatchPartyService {
       passwordHash = await bcrypt.hash(password, 12);
     }
 
-    // The Free/Pro cap (LIMITS.MAX_WATCH_PARTY_MEMBERS_FREE / _MEMBERS) is deliberately NOT
-    // applied here — it's enforced dynamically in joinRoom() against the owner's *current*
-    // plan instead. Baking it in at creation time made an upgrade/downgrade only take effect
-    // on the owner's NEXT room, not the one they're already in — the stored value here is
-    // just "how big this room is nominally allowed to be" (owner's request, admin ceiling,
-    // absolute ceiling), independent of plan tier.
     const room = await WatchPartyRoom.create({
       name:             name ?? null,
       movieId:          movieId ?? null,
@@ -202,22 +196,12 @@ export class WatchPartyService {
       if (!ok) throw new ForbiddenError('Noto\'g\'ri parol');
     }
 
-    // room.maxMembers is the owner's nominal request (createRoom), independent of plan tier —
-    // the Free/Pro cap is applied HERE, against the owner's plan right now, so an upgrade or
-    // downgrade takes effect for the very next join attempt instead of only the owner's next
-    // room. getUserPlan() is cached (~30s) in serviceClient.ts, so this doesn't add real
-    // latency to the common case. Existing members are never evicted by a downgrade — this
-    // only gates new joins.
-    const ownerPlan = await getUserPlan(room.ownerId);
-    const planCap = ownerPlan === 'pro' ? LIMITS.MAX_WATCH_PARTY_MEMBERS : LIMITS.MAX_WATCH_PARTY_MEMBERS_FREE;
-    const effectiveCap = Math.min(room.maxMembers, planCap);
-
     const updated = await WatchPartyRoom.findOneAndUpdate(
       {
         _id: room._id,
         status: { $ne: 'ended' },
         members: { $ne: userId },
-        $expr: { $lt: [{ $size: '$members' }, effectiveCap] },
+        $expr: { $lt: [{ $size: '$members' }, '$maxMembers'] },
       },
       {
         $push: { members: userId },

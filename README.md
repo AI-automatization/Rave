@@ -43,7 +43,6 @@ WeWatch lets you start a room, drop in a video link, and watch it together with 
 | `services/watch-party` | Express + Socket.io + Redis | 3004 |
 | `services/notification` | Express + Firebase FCM + Bull | 3007 |
 | `services/admin` | Express + MongoDB | 3008 |
-| `services/payment` | Express + MongoDB — tezcode-billing bridge | 3009 |
 | `apps/mobile` | React Native + Expo (Android + iOS) | — |
 | `apps/web` | Next.js — marketing site (wewatch.uz) | — |
 | `apps/app-web` | Next.js — web app (app.wewatch.uz) | — |

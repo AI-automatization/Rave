@@ -193,24 +193,6 @@ services:
           memory: 256M
           cpus: '0.5'
 
-  payment:
-    build:
-      context: .
-      dockerfile: services/payment/Dockerfile
-    container_name: cinesync_payment
-    restart: always
-    env_file: ./services/payment/.env
-    depends_on:
-      mongo:
-        condition: service_healthy
-    networks:
-      - cinesync_network
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: '0.5'
-
   admin:
     build:
       context: .

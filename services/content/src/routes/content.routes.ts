@@ -9,7 +9,6 @@ import { verifyToken, requireNotBlocked } from '@shared/middleware/auth.middlewa
 import { apiRateLimiter, userRateLimiter } from '@shared/middleware/rateLimiter.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
 import { UrlVisit } from '../models/urlVisit.model';
-import { watchHistoryService } from '../services/watchHistory.service';
 
 export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient): Router => {
   const router = Router();
@@ -44,23 +43,6 @@ export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient):
       { upsert: true },
     );
     res.json({ ok: true });
-  });
-
-  // ── Watch history (profile stats + pricing page's retention claim) ──────
-  // Called by watch-party (roomEvents.handler.ts, on LEAVE_ROOM) and user (profile.service.ts)
-  // via @shared/utils/serviceClient — see watchHistory.service.ts for the Free/Pro retention.
-  router.post('/internal/history', requireInternalSecret, async (req: Request, res: Response) => {
-    const { userId, movieId, durationWatched, videoUrl } = req.body as {
-      userId: string; movieId: string; durationWatched: number; videoUrl?: string | null;
-    };
-    if (!userId || !movieId) { res.status(400).json({ ok: false }); return; }
-    await watchHistoryService.record(userId, movieId, durationWatched ?? 0, videoUrl ?? null);
-    res.json({ ok: true });
-  });
-
-  router.get('/internal/user-watch-stats/:userId', requireInternalSecret, async (req: Request, res: Response) => {
-    const stats = await watchHistoryService.getStats(req.params.userId);
-    res.json({ success: true, data: stats });
   });
 
   return router;

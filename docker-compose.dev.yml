@@ -170,23 +170,6 @@ services:
       - *shared2
       - ./services/notification/src:/app/services/notification/src
 
-  payment:
-    <<: *backend
-    container_name: cinesync_payment
-    working_dir: /app/services/payment
-    command: npm run dev
-    ports:
-      - '3009:3009'
-    env_file: ./services/payment/.env
-    environment:
-      MONGO_URI: "mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongo:27017/cinesync_payment?authSource=admin"
-    depends_on:
-      - mongo
-    volumes:
-      - *shared1
-      - *shared2
-      - ./services/payment/src:/app/services/payment/src
-
   admin:
     <<: *backend
     container_name: cinesync_admin

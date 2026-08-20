@@ -43,12 +43,6 @@ export const ADMIN_SERVICE_URL = resolve(
   'http://localhost:3008/api/v1',
 );
 
-export const PAYMENT_SERVICE_URL = resolve(
-  process.env.RAILWAY_SERVICE_PAYMENT_URL,
-  process.env.PAYMENT_SERVICE_URL,
-  'http://localhost:3009/api/v1',
-);
-
 /** Ensure URL ends with the given suffix */
 export function ensureSuffix(url: string, suffix: string): string {
   return url.endsWith(suffix) ? url : `${url}${suffix}`;

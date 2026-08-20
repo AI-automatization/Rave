@@ -1,7 +1,8 @@
+import { logger } from './logger';
 import {
-  axios,
+  axios, AxiosError,
   internalHeaders,
-  authServiceUrl, userServiceUrl, notificationServiceUrl,
+  authServiceUrl, userServiceUrl, contentServiceUrl, notificationServiceUrl,
   watchPartyServiceUrl,
 } from './serviceConfig';
 
@@ -56,6 +57,38 @@ export async function adminSetUserRestrictions(userId: string, restrictions: str
 
 // ─── Admin: Content Service ────────────────────────────────────────────────────
 
+export async function adminListMovies(filters: {
+  page?: number; limit?: number; isPublished?: boolean; search?: string; genre?: string;
+}): Promise<{ movies: unknown[]; total: number }> {
+  const params = new URLSearchParams();
+  if (filters.page)                        params.set('page',        String(filters.page));
+  if (filters.limit)                       params.set('limit',       String(filters.limit));
+  if (filters.isPublished !== undefined)   params.set('isPublished', String(filters.isPublished));
+  if (filters.search)                      params.set('search',      filters.search);
+  if (filters.genre)                       params.set('genre',       filters.genre);
+  const res = await axios.get<{ data: { movies: unknown[]; total: number } }>(
+    `${contentServiceUrl}/api/v1/content/internal/admin/movies?${params.toString()}`,
+    { headers: internalHeaders, timeout: 5000 },
+  );
+  return res.data.data;
+}
+
+export async function adminPublishMovie(movieId: string): Promise<void> {
+  await axios.post(`${contentServiceUrl}/api/v1/content/internal/admin/movies/${movieId}/publish`, {}, { headers: internalHeaders, timeout: 5000 });
+}
+
+export async function adminUnpublishMovie(movieId: string): Promise<void> {
+  await axios.post(`${contentServiceUrl}/api/v1/content/internal/admin/movies/${movieId}/unpublish`, {}, { headers: internalHeaders, timeout: 5000 });
+}
+
+export async function adminDeleteMovie(movieId: string): Promise<void> {
+  await axios.delete(`${contentServiceUrl}/api/v1/content/internal/admin/movies/${movieId}`, { headers: internalHeaders, timeout: 5000 });
+}
+
+export async function adminOperatorUpdateMovie(movieId: string, data: Record<string, unknown>): Promise<void> {
+  await axios.patch(`${contentServiceUrl}/api/v1/content/internal/admin/movies/${movieId}`, data, { headers: internalHeaders, timeout: 5000 });
+}
+
 export async function adminListDomains(filters: {
   page?: number; limit?: number; filter?: string; search?: string;
 }): Promise<unknown> {
@@ -83,6 +116,23 @@ export async function adminUnblockDomain(domain: string): Promise<void> {
     `${watchPartyServiceUrl}/api/v1/watch-party/internal/admin/domains/${encodeURIComponent(domain)}/unblock`,
     {}, { headers: internalHeaders, timeout: 5000 },
   );
+}
+
+export async function adminGetContentStats(): Promise<{
+  genreDistribution: Array<{ genre: string; count: number }>;
+  topMovies: Array<{ _id: string; title: string; viewCount: number }>;
+  totalMovies: number;
+  publishedMovies: number;
+}> {
+  try {
+    const res = await axios.get<{ data: { genreDistribution: Array<{ genre: string; count: number }>; topMovies: Array<{ _id: string; title: string; viewCount: number }>; totalMovies: number; publishedMovies: number } }>(
+      `${contentServiceUrl}/api/v1/content/internal/admin/stats`,
+      { headers: internalHeaders, timeout: 5000 },
+    );
+    return res.data.data;
+  } catch {
+    return { genreDistribution: [], topMovies: [], totalMovies: 0, publishedMovies: 0 };
+  }
 }
 
 // ─── Admin: Watch Party Service ────────────────────────────────────────────────
@@ -235,6 +285,20 @@ export async function adminSendNotificationToUser(payload: {
 }
 
 // ─── Admin: Staff Management ───────────────────────────────────────────────────
+
+export async function adminListStaff(): Promise<unknown[]> {
+  try {
+    const res = await axios.get<{ data: unknown[] }>(
+      `${userServiceUrl}/api/v1/users/internal/admin/staff`,
+      { headers: internalHeaders, timeout: 5000 },
+    );
+    return res.data.data ?? [];
+  } catch (err) {
+    const error = err as AxiosError;
+    logger.error('[adminServiceClient] adminListStaff failed', { message: error.message });
+    return [];
+  }
+}
 
 export async function adminSendAppealDecisionEmail(
   userId: string,

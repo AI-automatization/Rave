@@ -2,31 +2,6 @@ import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import { apiResponse } from '@shared/utils/apiResponse';
 
-// This browser reads collections via the raw MongoDB driver (db.collection(name)), not through
-// their Mongoose models — Mongoose's `select: false` field hiding (password hashes, reset
-// tokens, etc. on whichever schemas happen to live in this service's own DB) never applies
-// here. Superadmin-only already, but redact common secret-shaped field names anyway as
-// defense-in-depth — this is a generic collection browser with no per-collection schema
-// awareness, so it's a name-based heuristic, not a real allowlist.
-const SENSITIVE_FIELD_PATTERN = /password|passwordhash|secret|token|otp|apikey|privatekey|refreshtoken/i;
-
-function redactSensitiveFields<T>(doc: T): T {
-  if (!doc || typeof doc !== 'object') return doc;
-  const out = { ...(doc as Record<string, unknown>) };
-  for (const key of Object.keys(out)) {
-    if (SENSITIVE_FIELD_PATTERN.test(key)) out[key] = '[redacted]';
-  }
-  return out as T;
-}
-
-// User-supplied search text goes into a MongoDB $regex — escape regex metacharacters so it's
-// matched literally (a plain substring search, which is what a "search" box implies) instead
-// of being interpreted as a pattern. Closes both a ReDoS vector (attacker-crafted catastrophic
-// backtracking) and unintended matches from stray regex syntax in normal search text.
-function escapeRegex(input: string): string {
-  return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
 export class DatabaseController {
   listCollections = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -71,7 +46,7 @@ export class DatabaseController {
         if (/^[a-f\d]{24}$/i.test(search)) {
           filter = { _id: new mongoose.Types.ObjectId(search) };
         } else {
-          const rx = { $regex: escapeRegex(search), $options: 'i' };
+          const rx = { $regex: search, $options: 'i' };
           filter = { $or: [{ email: rx }, { username: rx }, { name: rx }, { title: rx }, { type: rx }] };
         }
       }
@@ -84,7 +59,7 @@ export class DatabaseController {
       ]);
 
       res.json(apiResponse.success({
-        documents: documents.map(redactSensitiveFields),
+        documents,
         total,
         page,
         limit,
@@ -112,7 +87,7 @@ export class DatabaseController {
       const doc = await db.collection(name).findOne({ _id: new mongoose.Types.ObjectId(id) });
       if (!doc) { res.status(404).json(apiResponse.error('Document not found')); return; }
 
-      res.json(apiResponse.success({ document: redactSensitiveFields(doc) }));
+      res.json(apiResponse.success({ document: doc }));
     } catch (error) {
       next(error);
     }

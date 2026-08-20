@@ -481,15 +481,7 @@
     "logout": "Выйти",
     "loadError": "Ошибка загрузки настроек",
     "saveError": "Ошибка сохранения настроек",
-    "logoutError": "Ошибка выхода",
-    "planTitle": "ТАРИФ",
-    "planPro": "Pro",
-    "planRenewsOn": "Продлится {date}",
-    "planFreeDesc": "Сейчас у вас бесплатный тариф. Pro — 4K, без рекламы, безлимитная история.",
-    "planUpgradeCta": "Перейти на Pro",
-    "planUpgraded": "Добро пожаловать в Pro!",
-    "planCheckoutCanceled": "Оплата отменена",
-    "planCheckoutError": "Не удалось начать оплату"
+    "logoutError": "Ошибка выхода"
   },
   "footer": {
     "tagline": "Социальная платформа для просмотра видео.",

@@ -481,15 +481,7 @@
     "logout": "Chiqish",
     "loadError": "Sozlamalarni yuklashda xato",
     "saveError": "Sozlamalarni saqlashda xato",
-    "logoutError": "Chiqishda xato",
-    "planTitle": "TARIF",
-    "planPro": "Pro",
-    "planRenewsOn": "{date} da yangilanadi",
-    "planFreeDesc": "Hozir sizda bepul tarif. Pro — 4K, reklamasiz, cheksiz tarix.",
-    "planUpgradeCta": "Pro'ga o'tish",
-    "planUpgraded": "Pro'ga xush kelibsiz!",
-    "planCheckoutCanceled": "To'lov bekor qilindi",
-    "planCheckoutError": "To'lovni boshlab bo'lmadi"
+    "logoutError": "Chiqishda xato"
   },
   "footer": {
     "tagline": "Ijtimoiy video tomosha platformasi.",

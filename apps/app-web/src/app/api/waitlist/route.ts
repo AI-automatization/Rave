@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { NOTIFICATION_SERVICE_URL, ensureSuffix } from '@/lib/service-urls';
 
-const baseUrl = () => ensureSuffix(NOTIFICATION_SERVICE_URL, '/api/v1');
+const NOTIFICATION_URL =
+  process.env.NOTIFICATION_SERVICE_URL ??
+  'https://notification-production-9c30.up.railway.app/api/v1';
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       req.headers.get('x-real-ip') ??
       undefined;
 
-    const upstream = await fetch(`${baseUrl()}/notifications/waitlist`, {
+    const upstream = await fetch(`${NOTIFICATION_URL}/notifications/waitlist`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email.toLowerCase(), locale: locale ?? 'ru', ip }),
