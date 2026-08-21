@@ -1,8 +1,14 @@
 # WeWatch — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-08-11
+# Yangilangan: 2026-08-21
 
 ---
+
+### F-293 | PR #165 | WeWatch Pro — tezcode-billing to'lov integratsiyasi (prodda tasdiqlandi)
+
+- **Bajaruvchi:** Jasur (Claude Sonnet 5)  **Bajarilgan (merge):** 2026-08-20  **Prod tasdiq:** 2026-08-21  **Model:** sonnet
+- **O'zgarishlar:** `jasur-payment-tezcode-billing` branch → `main` (PR #165, `f49cdc3a`). Yangi `services/payment` (3009-port) — checkout, webhook receiver (imzo + replay + dedup + tartib), kunlik pull-reconciliation fallback. `apps/app-web` Settings'da "Pro" bo'limi (Payme/Click), `apps/web` narxlar sahifasida haqiqiy narx (29 000 so'm/oy). Plan-gating: Watch Party xona sig'imi (Free=4/Pro=10) va tarix saqlash muddati (Free=30 kun/Pro=cheksiz). To'liq ro'yxat — commit `410e8fdc` (`jasur-payment-tezcode-billing`) tavsifida.
+- **Xulosa:** Jasur prodda jonli tekshirdi — `POST https://pay.tezcode.dev/v1/checkout` 200 qaytardi (checkout havolasi + 29 000 so'm), imzosiz webhook so'rovi 401 "Invalid signature" bilan to'g'ri rad etildi. Ikkita tezcode-billing API "tuzog'i" qayd etildi (kod tomonda allaqachon to'g'ri yozilgan, faqat eslatma sifatida): (1) `provider` FAQAT katta harf bilan yuborilishi kerak ("PAYME"/"CLICK") — kichik harfda yuborilsa billing tomon 500 qaytaradi, xato xabari yolg'on (aslida provider format xatosi); `billingClient.ts:22` buni tip darajasida majburlagan. (2) `productCode` tanadan tushib qolsa 401 "неверный API-ключ продукта" keladi, kalit to'g'ri bo'lsa ham; `billingClient.ts:49-52` uni har doim jo'natadi. Obuna faqat `subscription.activated` webhook event kelganda faollashadi, checkout javobida emas (`payment.service.ts:117-131`); `X-Event-Id` bo'yicha dedup (`payment.service.ts:78-99`, `BillingWebhookEvent` unique index). **Eslatma:** `docs/Tasks.md`/`Done.md`da bu ish oldin T-raqami bilan kuzatilmagan edi (to'g'ridan-to'g'ri PR sifatida bajarilgan) — shu yozuv orqali arxivga kiritildi.
 
 ### F-292 | PR #104 | apps/web lint ishga tushmayotgan edi — tuzatildi, 115 → 0 xato
 
