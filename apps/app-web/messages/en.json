@@ -680,6 +680,7 @@
     "vbOpen": "Open",
     "vbNotOpened": "The room owner hasn't opened the browser yet",
     "vbStartVideo": "Start the video on the site",
+    "vbBlocked": "Can't open this site, try another",
     "vbClose": "Close the virtual browser",
     "queueStatusNeedsVb": "Needs manual start — opens in the browser",
     "playerLoadFailed": "Could not load the video",

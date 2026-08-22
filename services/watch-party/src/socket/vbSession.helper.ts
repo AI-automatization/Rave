@@ -196,6 +196,12 @@ export async function startVBForRoom(
     void redis.setex(REDIS_KEYS.vbSessionCookies(roomId), CANDIDATES_TTL_SEC, cookieHeader).catch((e) => {
       logger.warn('VB: failed to store session cookies for later replay', { roomId, error: (e as Error).message });
     });
+  }, (reason) => {
+    // Best-effort, room-wide (not the requesting socket — this fires from deep inside the async
+    // session, long after the original VB_START request/response round-trip is over). Frontend
+    // shows a corner badge on the live screencast rather than trying to solve/bypass the challenge.
+    io.to(roomId).emit(SERVER_EVENTS.VB_BLOCKED, { reason });
+    logger.info('VB: bot challenge detected, notified room', { roomId, reason });
   });
 
   io.to(roomId).emit(SERVER_EVENTS.VB_STARTED, { url, width: VB_VIEWPORT.width, height: VB_VIEWPORT.height, ownerId });

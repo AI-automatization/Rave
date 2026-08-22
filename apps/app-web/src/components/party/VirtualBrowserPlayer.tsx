@@ -10,10 +10,17 @@ interface Props {
   frame: string | null;
   dimensions: { width: number; height: number } | null;
   error: string | null;
+  /** Page VB is showing is a bot-challenge wall — see use-virtual-browser.ts's `blocked`. Not an
+   * `error` (that's scoped to the pre-session URL-input screen, see the render tree below) — this
+   * needs to show ON TOP of a live, still-streaming frame. */
+  blocked: 'cloudflare' | 'recaptcha' | null;
   remoteCursor: { x: number; y: number } | null;
   start: (url: string) => void;
   stop: () => void;
   sendInput: (input: VBInput) => void;
+  /** Owner-only: opens the same video-candidate picker "Это не то видео" already opens — the
+   * blocked-badge's escape hatch to pick a different source instead of waiting out a dead session. */
+  onPickDifferentVideo?: () => void;
 }
 
 // Kosmi-style shared virtual browser: a real headless Chromium page runs on the server, the
@@ -21,7 +28,7 @@ interface Props {
 // frame stream. See services/watch-party/src/services/virtualBrowser.service.ts for the server
 // side (CDP screencast + input dispatch). State/socket wiring lives in the parent's
 // useVirtualBrowser() call (RoomContent.tsx) — this component is presentational + input capture.
-export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remoteCursor, start, stop, sendInput }: Props) {
+export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocked, remoteCursor, start, stop, sendInput, onPickDifferentVideo }: Props) {
   const t = useTranslations('party');
   const [urlInput, setUrlInput] = useState('');
   const imgRef = useRef<HTMLImageElement>(null);
@@ -291,6 +298,24 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remote
               style={{ left: localCursorCss.x, top: localCursorCss.y, transform: 'translate(-2px,-2px)' }}
               fill="currentColor"
             />
+          )}
+
+          {/* Bot-challenge wall — not solved/bypassed (out of scope on purpose, see
+              virtualBrowser.service.ts), just surfaced. Owner can click straight through to the
+              candidate picker instead of waiting out a screencast that will never resolve on its
+              own; non-owner sees the same badge but it's informational only (picker is owner-gated,
+              same as "Это не то видео"). */}
+          {blocked && (
+            <button
+              type="button"
+              disabled={!isOwner || !onPickDifferentVideo}
+              onClick={() => onPickDifferentVideo?.()}
+              className={`absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 text-[12px] font-medium text-white/80 backdrop-blur-sm transition-colors ${isOwner && onPickDifferentVideo ? 'cursor-pointer hover:bg-black/85 hover:text-white' : 'cursor-default'}`}
+            >
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-400" />
+              {t('vbBlocked')}
+              {isOwner && onPickDifferentVideo && <span className="opacity-70">— {t('playerPickAnother')}</span>}
+            </button>
           )}
 
           {/* Everyone else sees the OWNER's cursor, synced via VB_CURSOR — same reason Kosmi

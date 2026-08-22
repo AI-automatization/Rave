@@ -44,6 +44,28 @@ function getProxyForUrl(url: string): { server: string; username?: string; passw
   return { server: VB_PROXY_SERVER, username: VB_PROXY_USERNAME, password: VB_PROXY_PASSWORD };
 }
 
+// Detects that the page VB just loaded IS a bot-challenge wall — not an attempt to get past one
+// (that stays out of scope, see the anti-detection comment below). `cf-mitigated: challenge` is
+// Cloudflare's own response header for this, most reliable signal when present; the title/content
+// checks are a fallback for challenges that don't set it (or for reCAPTCHA, which isn't Cloudflare
+// at all) and for challenges injected client-side after an already-200 response.
+async function detectBotChallenge(
+  page: Page,
+  response: import('playwright-chromium').Response | null,
+): Promise<'cloudflare' | 'recaptcha' | null> {
+  try {
+    if (response?.headers()['cf-mitigated'] === 'challenge') return 'cloudflare';
+    const title = await page.title().catch(() => '');
+    if (/just a moment/i.test(title)) return 'cloudflare';
+    const html = await page.content().catch(() => '');
+    if (html.includes('challenges.cloudflare.com') || html.includes('cf-turnstile')) return 'cloudflare';
+    if (html.includes('g-recaptcha') || html.includes('recaptcha/api.js')) return 'recaptcha';
+  } catch {
+    // Page navigated away/closed mid-check — not a challenge, just lost the race. Not an error.
+  }
+  return null;
+}
+
 const MAX_CONCURRENT = 3;
 
 // Real prod finding 2026-08-20: a fresh `browser.newContext()` on every VB open means Google's
@@ -507,6 +529,14 @@ export async function startSession(
   // page-load Set-Cookie plus any later XHR-set ones), so this is the most complete snapshot
   // available without re-fetching per candidate.
   onSessionCookies?: (cookieHeader: string) => void,
+  // 2026-08-22: replaces the earlier residential-proxy/anti-detection push (see the VB_PROXY_*
+  // block above and the persistent-context comment) as the answer to "the source site shows a
+  // challenge". That approach tried to keep the challenge from appearing at all; this one accepts
+  // it can still appear and reports it instead of silently sitting on a stuck page — the owner
+  // gets a "can't open this site, try another" badge rather than staring at a frozen screencast.
+  // Fired at most once per navigation (initial goto + each subsequent in-page navigation), never
+  // throws, best-effort only — a failed detection check just means no badge, not a broken session.
+  onBotChallenge?: (reason: 'cloudflare' | 'recaptcha') => void,
 ): Promise<void> {
   if (startingRooms.has(roomId)) {
     throw new Error('virtual_browser_starting');
@@ -549,6 +579,22 @@ export async function startSession(
     await applyStealthPatches(context);
     const page = await context.newPage();
     const cdp = await context.newCDPSession(page);
+
+    // Owner can navigate deeper into the site after the initial load (click a link, follow a
+    // "watch" button) — a challenge can appear on any of those, not just the first goto below.
+    // `response`/`load` fire per-navigation for the whole page lifetime, so this covers all of
+    // them with one pair of listeners instead of re-checking only at session start.
+    if (onBotChallenge) {
+      let lastMainFrameResponse: import('playwright-chromium').Response | null = null;
+      page.on('response', (res) => {
+        if (res.request().resourceType() === 'document') lastMainFrameResponse = res;
+      });
+      page.on('load', () => {
+        void detectBotChallenge(page, lastMainFrameResponse).then((reason) => {
+          if (reason) onBotChallenge(reason);
+        });
+      });
+    }
 
     if (onMediaFound) {
       // Collection window (see COLLECTION_WINDOW_MS above): starts on the FIRST candidate from
