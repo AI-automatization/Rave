@@ -748,10 +748,17 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const proxyHeadersParam = Object.keys(proxyUpstreamHeaders).length > 0
     ? `&h=${encodeURIComponent(JSON.stringify(proxyUpstreamHeaders))}`
     : '';
+  // #84 follow-up: the signature is only valid for the exact URL the server signed
+  // (extractResult.videoUrl) — only attach it when androidPlayUrl IS that URL. When androidPlayUrl
+  // falls back to originalVideoUrl (extraction failed/skipped), there's nothing signed for it and
+  // the proxy still accepts the plain accessToken/token path, same as before this change.
+  const proxySigParam = (androidPlayUrl && androidPlayUrl === extractedVideoUrl && extractResult?.proxyExp && extractResult?.proxySig)
+    ? `&exp=${extractResult.proxyExp}&sig=${extractResult.proxySig}`
+    : '';
   const extractedVideoProxyUrl = (androidPlayUrl && accessToken)
     ? isHlsStream
-      ? `${CONTENT_BASE_URL}/content/hls-proxy?url=${encodeURIComponent(androidPlayUrl)}&referer=${encodeURIComponent(proxyReferer)}`
-      : `${CONTENT_BASE_URL}/content/proxy/stream?url=${encodeURIComponent(androidPlayUrl)}&token=${encodeURIComponent(accessToken)}${proxyHeadersParam}`
+      ? `${CONTENT_BASE_URL}/content/hls-proxy?url=${encodeURIComponent(androidPlayUrl)}&referer=${encodeURIComponent(proxyReferer)}${proxySigParam}`
+      : `${CONTENT_BASE_URL}/content/proxy/stream?url=${encodeURIComponent(androidPlayUrl)}&token=${encodeURIComponent(accessToken)}${proxyHeadersParam}${proxySigParam}`
     : undefined;
   // iOS VK/Rutube: same CDN IP-lock issue as Android — the CDN HLS manifests are served from
   // the Railway extraction server's IP. AVPlayer fetching segments from a different IP gets
