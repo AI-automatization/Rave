@@ -86,8 +86,8 @@ Support URL: https://wewatch.uz/support (or https://t.me/wewatch_support)
 ## APP REVIEW NOTES (paste into App Store Connect)
 ```
 Demo Account:
-Email: reviewer@wewatch.uz
-Password: ReviewDemo2024!
+Email: [see Obsidian vault — do not commit credentials to a public repo]
+Password: [see Obsidian vault — do not commit credentials to a public repo]
 
 The app requires a backend connection to Railway.app servers.
 Watch Party feature requires 2 accounts to demonstrate sync.
