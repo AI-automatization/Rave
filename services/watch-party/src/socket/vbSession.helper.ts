@@ -90,6 +90,9 @@ export async function startVBForRoom(
   roomId: string,
   ownerId: string,
   url: string,
+  // Determined by the caller via getUserPlan(ownerId) — see vbEvents.handler.ts. Threaded straight
+  // through to startSession()'s concurrency check (virtualBrowser.service.ts).
+  tier: 'free' | 'pro' = 'free',
 ): Promise<void> {
   // Real prod case 2026-08-06 (uzmovi.net): VB is a best-effort sniffer — ads, related-content
   // widgets, and (separately) a duration bug on captured streams can all pass its heuristics —
@@ -202,7 +205,7 @@ export async function startVBForRoom(
     // shows a corner badge on the live screencast rather than trying to solve/bypass the challenge.
     io.to(roomId).emit(SERVER_EVENTS.VB_BLOCKED, { reason });
     logger.info('VB: bot challenge detected, notified room', { roomId, reason });
-  });
+  }, tier);
 
   io.to(roomId).emit(SERVER_EVENTS.VB_STARTED, { url, width: VB_VIEWPORT.width, height: VB_VIEWPORT.height, ownerId });
 }

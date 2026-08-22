@@ -75,6 +75,10 @@ export const SERVER_EVENTS = Object.freeze({
   // detectBotChallenge and vbSession.helper.ts's startVBForRoom). Not solved/bypassed — this is
   // purely a "can't get through, pick a different source" signal for the UI.
   VB_BLOCKED: 'vb:blocked',
+  // Free-tier request is waiting for a VB slot instead of failing outright — see
+  // vbQueue.helper.ts. `position` is 1-indexed, re-broadcast to the whole room every time it
+  // changes (another room dequeues ahead of it) so the UI can show "N-я в очереди" live.
+  VB_QUEUED: 'vb:queued',
 
   // Owner-only: the video-candidate picker. Server pushes whatever candidates it currently has
   // for the room's video session (from generic-extraction regex matches and/or VB's sniffer) —

@@ -4,13 +4,14 @@ import Redis from 'ioredis';
 import { WatchPartyService } from '../services/watchParty.service';
 import { apiResponse, buildPaginationMeta } from '@shared/utils/apiResponse';
 import { AuthenticatedRequest, VideoPlatform } from '@shared/types';
-import { sendInternalNotification } from '@shared/utils/serviceClient';
+import { sendInternalNotification, getUserPlan } from '@shared/utils/serviceClient';
 import { SERVER_EVENTS } from '@shared/constants/socketEvents';
 import { WatchPartyRoom } from '../models/watchPartyRoom.model';
 import { logger } from '@shared/utils/logger';
 import { getAppSetting } from '@shared/utils/appSettings';
 import { ForbiddenError, NotFoundError } from '@shared/utils/errors';
 import { startVBForRoom } from '../socket/vbSession.helper';
+import { enqueueVBRequest } from '../socket/vbQueue.helper';
 import { isOfficialEmbedHost, isOwnVbUrl } from '../services/extractionClient';
 
 export class WatchPartyController {
@@ -80,10 +81,19 @@ export class WatchPartyController {
       // already play instantly client-side via their own iframe.
       if (videoUrl && !isOfficialEmbedHost(videoUrl) && !isOwnVbUrl(videoUrl)) {
         const roomId = String(room._id);
-        void startVBForRoom(this.io, this.redis, roomId, userId, videoUrl)
-          .catch((e) => logger.warn('createRoom: VB auto-start failed', {
-            roomId, url: videoUrl, error: (e as Error).message,
-          }));
+        void (async () => {
+          const tier = await getUserPlan(userId);
+          try {
+            await startVBForRoom(this.io, this.redis, roomId, userId, videoUrl, tier);
+          } catch (e) {
+            if ((e as Error).message === 'virtual_browser_limit') {
+              enqueueVBRequest({ roomId, ownerId: userId, url: videoUrl, io: this.io, redis: this.redis });
+              logger.info('createRoom: VB queued — free pool full', { roomId, userId });
+              return;
+            }
+            logger.warn('createRoom: VB auto-start failed', { roomId, url: videoUrl, error: (e as Error).message });
+          }
+        })();
       }
     } catch (error) {
       // Handled here rather than by the shared error middleware because the client needs the
@@ -258,10 +268,19 @@ export class WatchPartyController {
       // advancing the queue did not, which is the gap this closes.
       if (room.videoUrl && (room as { nextNeedsVirtualBrowser?: boolean }).nextNeedsVirtualBrowser) {
         const videoUrl = room.videoUrl;
-        void startVBForRoom(this.io, this.redis, roomId, userId, videoUrl)
-          .catch((e) => logger.warn('playNext: VB fallback failed to start', {
-            roomId, url: videoUrl, error: (e as Error).message,
-          }));
+        void (async () => {
+          const tier = await getUserPlan(userId);
+          try {
+            await startVBForRoom(this.io, this.redis, roomId, userId, videoUrl, tier);
+          } catch (e) {
+            if ((e as Error).message === 'virtual_browser_limit') {
+              enqueueVBRequest({ roomId, ownerId: userId, url: videoUrl, io: this.io, redis: this.redis });
+              logger.info('playNext: VB queued — free pool full', { roomId, userId });
+              return;
+            }
+            logger.warn('playNext: VB fallback failed to start', { roomId, url: videoUrl, error: (e as Error).message });
+          }
+        })();
       }
     } catch (error) {
       next(error);

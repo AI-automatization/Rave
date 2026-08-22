@@ -5,10 +5,11 @@ import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { REDIS_KEYS } from '@shared/constants';
 import { JwtPayload, VideoPlatform } from '@shared/types';
-import { recordWatchHistoryInternal } from '@shared/utils/serviceClient';
+import { recordWatchHistoryInternal, getUserPlan } from '@shared/utils/serviceClient';
 import { bufferTimeouts, resumeBufferedRoom } from './videoEvents.handler';
 import { stopSession, getSessionSnapshot, hasSession } from '../services/virtualBrowser.service';
 import { startVBForRoom } from './vbSession.helper';
+import { enqueueVBRequest } from './vbQueue.helper';
 import { cancelVbDisconnectGrace } from './vbEvents.handler';
 import { isOfficialEmbedHost, isOwnVbUrl, isPrivateUrl } from '../services/extractionClient';
 import { isDomainBlocked } from '../controllers/domain.admin.controller';
@@ -300,14 +301,22 @@ export const registerRoomEvents = (
     // which starts VB server-side directly), so a URL needing VB just showed "failed to load
     // video" with no fallback ever attempted.
     if (!isOfficialEmbedHost(data.videoUrl) && !isOwnVbUrl(data.videoUrl)) {
+      const tier = await getUserPlan(userId);
       try {
-        await startVBForRoom(io, redis, roomId, userId, data.videoUrl);
-        logger.info('CHANGE_MEDIA: VB started (sole extraction mechanism)', { roomId, userId, url: data.videoUrl });
+        await startVBForRoom(io, redis, roomId, userId, data.videoUrl, tier);
+        logger.info('CHANGE_MEDIA: VB started (sole extraction mechanism)', { roomId, userId, url: data.videoUrl, tier });
         return; // room is now watching the live VB stream — don't also broadcast the raw URL
       } catch (e) {
-        // e.g. virtual_browser_limit (MAX_CONCURRENT) — fall through to the normal broadcast so
-        // the owner at least gets today's behavior (a clear load error) instead of the request
-        // silently doing nothing.
+        if ((e as Error).message === 'virtual_browser_limit') {
+          // Free pool full — queue instead of falling through to a raw-URL broadcast that will
+          // just show a load error (Pro never hits this, it's uncapped).
+          const position = enqueueVBRequest({ roomId, ownerId: userId, url: data.videoUrl, io, redis });
+          socket.emit(SERVER_EVENTS.VB_QUEUED, { position });
+          logger.info('CHANGE_MEDIA: VB queued — free pool full', { roomId, userId, position });
+          return;
+        }
+        // Any other failure — fall through to the normal broadcast so the owner at least gets
+        // today's behavior (a clear load error) instead of the request silently doing nothing.
         logger.warn('CHANGE_MEDIA: VB failed to start', { roomId, error: (e as Error).message });
       }
     }

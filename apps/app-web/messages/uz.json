@@ -642,6 +642,7 @@
     "vbNotOpened": "Xona egasi hali brauzerni ochmagan",
     "vbStartVideo": "Saytda videoni ishga tushiring",
     "vbBlocked": "Bu saytni ocha olmaymiz, boshqasini sinab ko'ring",
+    "vbQueued": "Bo'sh joy kutilmoqda — navbatda {position}-o'rin",
     "vbClose": "Virtual brauzerni yopish",
     "queueStatusNeedsVb": "Qo'lda ochish kerak — brauzer orqali ochiladi",
     "playerLoadFailed": "Videoni yuklab bo'lmadi",

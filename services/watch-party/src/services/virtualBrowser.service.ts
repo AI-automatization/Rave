@@ -66,7 +66,23 @@ async function detectBotChallenge(
   return null;
 }
 
-const MAX_CONCURRENT = 3;
+// 2026-08-22 product decision: Pro subscribers get a VB session on demand, no cap, no queue —
+// the whole point of paying is never waiting behind Free traffic. Free is capped and queues past
+// this; see vbQueue.helper.ts for the FIFO that handles the overflow instead of just rejecting it
+// like this used to (single MAX_CONCURRENT for everyone, hard reject past it).
+const MAX_CONCURRENT_FREE = 10;
+// Pro being uncapped is a business decision, not "no limit exists anywhere" — this is the one
+// hard backstop, sized far above any realistic Free+Pro combined load today, that exists purely
+// to stop a genuine bug/runaway (not real usage) from taking the whole container down. Should
+// never fire in practice; if it does, that's a bug to investigate, not a capacity plan to revisit.
+const MAX_TOTAL_SAFETY_CEILING = 60;
+
+// Called after a slot actually frees (stopSession) so the Free queue (vbQueue.helper.ts) can try
+// its next request immediately instead of waiting for the next unrelated VB_START to notice.
+let onSlotFreed: (() => void) | null = null;
+export function setOnSlotFreed(cb: () => void): void {
+  onSlotFreed = cb;
+}
 
 // Real prod finding 2026-08-20: a fresh `browser.newContext()` on every VB open means Google's
 // reCAPTCHA sees a brand-new, history-less Chromium instance every single time — its risk engine
@@ -190,6 +206,10 @@ interface VBSession {
    * client that treats "session exists" as "frames incoming" gets stuck on an infinite loading
    * spinner here — see getSessionSnapshot's `paused` field, added for exactly this. */
   paused: boolean;
+  /** Which concurrency pool this session counts against — see MAX_CONCURRENT_FREE below. Pro has
+   * no cap (a deliberate product decision, not an oversight — see MAX_TOTAL_SAFETY_CEILING for
+   * the one hard backstop that still applies to everyone). */
+  tier: 'free' | 'pro';
 }
 
 const sessions = new Map<string, VBSession>(); // roomId -> session
@@ -537,6 +557,11 @@ export async function startSession(
   // Fired at most once per navigation (initial goto + each subsequent in-page navigation), never
   // throws, best-effort only — a failed detection check just means no badge, not a broken session.
   onBotChallenge?: (reason: 'cloudflare' | 'recaptcha') => void,
+  // 2026-08-22: caller (vbSession.helper.ts, from getUserPlan()) tells us which pool this
+  // request counts against — see MAX_CONCURRENT_FREE/MAX_TOTAL_SAFETY_CEILING above. Defaults to
+  // 'free' so probeUrl() and any other caller that doesn't pass this stays on the safe/capped
+  // side rather than silently getting Pro's uncapped treatment.
+  tier: 'free' | 'pro' = 'free',
 ): Promise<void> {
   if (startingRooms.has(roomId)) {
     throw new Error('virtual_browser_starting');
@@ -560,8 +585,17 @@ export async function startSession(
     if (existing) {
       await stopSession(roomId);
     }
-    if (sessions.size >= MAX_CONCURRENT) {
-      throw new Error('virtual_browser_limit');
+    if (tier === 'pro') {
+      // Uncapped by design — only the shared safety backstop applies.
+      if (sessions.size >= MAX_TOTAL_SAFETY_CEILING) {
+        throw new Error('virtual_browser_safety_limit');
+      }
+    } else {
+      let freeCount = 0;
+      for (const s of sessions.values()) if (s.tier === 'free') freeCount++;
+      if (freeCount >= MAX_CONCURRENT_FREE) {
+        throw new Error('virtual_browser_limit');
+      }
     }
 
     const profileDir = vbProfileDir(roomId);
@@ -881,7 +915,7 @@ export async function startSession(
       everyNthFrame: 1,
     });
 
-    sessions.set(roomId, { context, page, cdp, ownerId, url, paused: false });
+    sessions.set(roomId, { context, page, cdp, ownerId, url, paused: false, tier });
 
     try {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 });
@@ -923,7 +957,7 @@ export async function startSession(
  * only means "we don't know yet", which the caller records as needing the interactive fallback.
  */
 export async function probeUrl(url: string): Promise<{ mediaUrl: string; type: MediaType } | null> {
-  if (activeProbes >= MAX_BACKGROUND_PROBES || sessions.size + activeProbes >= MAX_CONCURRENT) {
+  if (activeProbes >= MAX_BACKGROUND_PROBES || sessions.size + activeProbes >= MAX_TOTAL_SAFETY_CEILING) {
     logger.info('VB probe: skipped, no spare capacity', { url, sessions: sessions.size, activeProbes });
     return null;
   }
@@ -977,6 +1011,7 @@ export async function stopSession(roomId: string): Promise<void> {
   stopCapture(roomId);
   clearCapture(roomId);
   logger.info('VB session stopped', { roomId });
+  onSlotFreed?.();
 }
 
 export async function stopAllSessions(): Promise<void> {
