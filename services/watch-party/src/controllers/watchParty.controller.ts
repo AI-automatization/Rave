@@ -13,6 +13,7 @@ import { ForbiddenError, NotFoundError } from '@shared/utils/errors';
 import { startVBForRoom } from '../socket/vbSession.helper';
 import { enqueueVBRequest } from '../socket/vbQueue.helper';
 import { isOfficialEmbedHost, isOwnVbUrl } from '../services/extractionClient';
+import { isDomainBlocked } from './domain.admin.controller';
 
 export class WatchPartyController {
   constructor(
@@ -82,6 +83,14 @@ export class WatchPartyController {
       if (videoUrl && !isOfficialEmbedHost(videoUrl) && !isOwnVbUrl(videoUrl)) {
         const roomId = String(room._id);
         void (async () => {
+          // #84 follow-up: this VB-start path (room creation) never consulted the admin domain
+          // blocklist — vbEvents.handler.ts's manual button and roomEvents.handler.ts's
+          // CHANGE_MEDIA already did, this one didn't, so a blocked domain could still be reached
+          // by creating a room with it directly instead of switching media after the fact.
+          if (await isDomainBlocked(this.redis, videoUrl)) {
+            logger.warn('createRoom: VB auto-start skipped — blocked domain', { roomId, url: videoUrl });
+            return;
+          }
           const tier = await getUserPlan(userId);
           try {
             await startVBForRoom(this.io, this.redis, roomId, userId, videoUrl, tier);
@@ -269,6 +278,14 @@ export class WatchPartyController {
       if (room.videoUrl && (room as { nextNeedsVirtualBrowser?: boolean }).nextNeedsVirtualBrowser) {
         const videoUrl = room.videoUrl;
         void (async () => {
+          // #84 follow-up, defense in depth: watchPartyPlaylist.service.ts already checks the
+          // blocklist when an item is ADDED, but a domain can be blocked by an admin any time
+          // after that and before this item's turn comes up — re-check right before VB actually
+          // opens it, same as every other VB-start path now does.
+          if (await isDomainBlocked(this.redis, videoUrl)) {
+            logger.warn('playNext: VB fallback skipped — blocked domain', { roomId, url: videoUrl });
+            return;
+          }
           const tier = await getUserPlan(userId);
           try {
             await startVBForRoom(this.io, this.redis, roomId, userId, videoUrl, tier);
