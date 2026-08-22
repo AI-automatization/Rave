@@ -7,6 +7,7 @@ import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { toast } from '@/hooks/use-toast';
 import { trackClick } from '@/lib/analytics';
+import { formatDuration } from '@/lib/format-duration';
 import { YouTubePlayer } from './YouTubePlayer';
 import { VKPlayer } from './VKPlayer';
 import { RutubePlayer } from './RutubePlayer';
@@ -1104,11 +1105,6 @@ function NativeVideoPlayer({
     return <Volume2 size={size} />;
   }
 
-  function fmtTime(s: number) {
-    if (!isFinite(s) || s < 0) return '0:00';
-    return `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
-  }
-
   const controlsVisible = showControls;
 
   return (
@@ -1279,8 +1275,8 @@ function NativeVideoPlayer({
 
               {/* Time */}
               <span className="text-white/60 text-xs tabular-nums flex-shrink-0">
-                {fmtTime(currentTime)}
-                {duration > 0 && <span className="text-white/30"> / {fmtTime(duration)}</span>}
+                {formatDuration(currentTime)}
+                {duration > 0 && <span className="text-white/30"> / {formatDuration(duration)}</span>}
               </span>
 
               {/* Spacer */}
@@ -1459,13 +1455,11 @@ export function VideoPlayer({
         const data = (body as { data?: { position?: number } }).data;
         const position = data?.position ?? 0;
         if (position > 30) {
-          const fmtTime = (s: number) =>
-            `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
           // The `action` this used to carry was an empty object cast through `as any` — it
           // rendered no button and did nothing. The seek happens unconditionally just below, so
           // the toast is purely an explanation of what is about to happen; it now says so, and
           // in the user's language (it was hardcoded English).
-          toast({ title: t('resumedFrom', { time: fmtTime(position) }) });
+          toast({ title: t('resumedFrom', { time: formatDuration(position) }) });
           // Expose seek via a brief delay so videoRef is attached to src
           setTimeout(() => {
             if (videoRef.current) videoRef.current.currentTime = position;
