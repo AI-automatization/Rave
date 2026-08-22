@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { trackClick } from '@/lib/analytics';
 import { buildProxyUrl } from './VideoPlayer';
+import { formatDuration } from '@/lib/format-duration';
 import type { VideoCandidate } from '@/types';
 
 interface Props {
@@ -22,9 +23,7 @@ interface Props {
 
 function fmtDuration(seconds?: number): string | null {
   if (!seconds || !isFinite(seconds) || seconds <= 0) return null;
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-  return `${m}:${s}`;
+  return formatDuration(seconds);
 }
 
 // Grabs the CURRENTLY DECODED frame off a playing <video> as a real thumbnail — not a page
