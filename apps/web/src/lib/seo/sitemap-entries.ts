@@ -59,6 +59,17 @@ const LANDING_PAGES: readonly { path: string; priority: number }[] = [
 
 const LANDING_LASTMOD = '2026-07-28';
 
+/**
+ * Landing pages edited after LANDING_LASTMOD, keyed by the final URL. An edit
+ * usually lands in one locale only — `/ru/company` gained links to the team bio
+ * pages (PR #160) while `/uz/company` and `/en/company` were left untouched — so
+ * raising the shared constant would claim 17 pages changed when one did, and a
+ * lastmod that overstates is the same noise as a lastmod that lags.
+ */
+const LANDING_LASTMOD_OVERRIDES: Readonly<Record<string, string>> = {
+  '/ru/company': '2026-08-20',
+};
+
 const ENTRIES: SitemapEntry[] = [
   // ── Главные страницы: по одной на язык, все с префиксом ─────────────────────
   // Голого `/` здесь нет намеренно: proxy отвечает временным языковым redirect,
@@ -135,7 +146,7 @@ const ENTRIES: SitemapEntry[] = [
   ...LANDING_PAGES.flatMap(({ path, priority }) =>
     LOCALES.map((locale) => ({
       path: withLocale(path, locale),
-      lastModified: LANDING_LASTMOD,
+      lastModified: LANDING_LASTMOD_OVERRIDES[withLocale(path, locale)] ?? LANDING_LASTMOD,
       changeFrequency: 'monthly' as const,
       priority: locale === 'ru' ? priority : normalizePriority(priority - 0.1),
       languages: hreflangFor(path, BASE),
