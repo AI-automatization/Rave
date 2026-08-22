@@ -6,6 +6,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { logger } from '@shared/utils/logger';
 import { validateUrl } from '../services/videoExtractor/detectPlatform';
+import { verifyProxyUrlDetailed } from '@shared/utils/proxySignature';
 
 const CHROME_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
@@ -29,10 +30,9 @@ export const videoProxyController = {
    *  Range requests forwarded for seeking support.
    */
   async stream(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const { url, token, h } = req.query as { url?: string; token?: string; h?: string };
+    const { url, token, h, exp, sig } = req.query as { url?: string; token?: string; h?: string; exp?: string; sig?: string };
 
     if (!url) { res.status(400).json({ success: false, message: 'url required' }); return; }
-    if (!verifyQueryToken(token)) { res.status(401).json({ success: false, message: 'Unauthorized' }); return; }
 
     let parsed: ReturnType<typeof validateUrl>;
     try {
@@ -41,6 +41,21 @@ export const videoProxyController = {
       res.status(400).json({ success: false, message: (e as Error).message });
       return;
     }
+
+    // #84 follow-up: rolling out URL-signing (see videoExtract.controller.ts) additively — a
+    // valid signature for THIS url proves it's a target we ourselves resolved, closing the
+    // "any logged-in user, any url" open-proxy gap. Plain-JWT stays accepted for now (older
+    // mobile builds that haven't picked up the signed response yet) so this ships without a
+    // hard cutover; the `authMethod` log field is what lets a follow-up confirm real traffic has
+    // moved to `signature` before that fallback is ever removed.
+    const signatureCheck = exp && sig ? verifyProxyUrlDetailed(decodeURIComponent(url), Number(exp), sig) : null;
+    const authMethod = signatureCheck?.ok ? 'signature' : verifyQueryToken(token) ? 'jwt' : null;
+    if (!authMethod) {
+      logger.warn('videoProxy: rejected — no valid signature or token', { host: parsed.hostname, sigReason: signatureCheck?.reason });
+      res.status(401).json({ success: false, message: 'Unauthorized' });
+      return;
+    }
+    logger.info('videoProxy: authorized', { host: parsed.hostname, authMethod });
 
     // Only allow HTTPS to avoid leaking via cleartext
     if (parsed.protocol !== 'https:') {

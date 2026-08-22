@@ -8,6 +8,7 @@ import { extractVideo } from '../services/videoExtractor';
 import { VideoExtractError } from '../services/videoExtractor/types';
 import { genericExtractorCandidates } from '../services/videoExtractor/genericExtractor';
 import { validateUrl } from '../services/videoExtractor/detectPlatform';
+import { signProxyUrl } from '@shared/utils/proxySignature';
 import type { VideoExtractRequest } from '@shared/types';
 
 const HTTP_STATUS: Record<string, number> = {
@@ -51,6 +52,15 @@ export class VideoExtractController {
       // fixed in vbMediaProxy.controller.ts (attemptFetch's res.writableEnded/headersSent guard) —
       // applying the identical guard here.
       if (res.headersSent) return;
+      // #84 follow-up: sign the resolved URL so hls-proxy/proxy/stream can verify the request is
+      // for a URL WE actually resolved, not an arbitrary one the client supplies. Only for
+      // non-empty videoUrl — embed-type results (type: 'embed', videoUrl: '') never go through
+      // either proxy, nothing to sign.
+      if (result.videoUrl) {
+        const { exp, sig } = signProxyUrl(result.videoUrl);
+        result.proxyExp = exp;
+        result.proxySig = sig;
+      }
       res.json(apiResponse.success(result));
     } catch (error) {
       if (res.headersSent) return;
