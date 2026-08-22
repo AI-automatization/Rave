@@ -95,6 +95,12 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   // GET /watch-party/rooms/my/recent — user's last 10 rooms (T-S061)
   router.get('/rooms/my/recent', verifyToken, notBlocked, watchPartyController.getRecentRooms);
 
+  // GET /watch-party/rooms/my/resumable — Pro "continue watching" list (2026-08-22)
+  router.get('/rooms/my/resumable', verifyToken, notBlocked, watchPartyController.getResumableRooms);
+
+  // POST /watch-party/rooms/:id/resume — reopen a resumable room as a new one (2026-08-22)
+  router.post('/rooms/:id/resume', verifyToken, notBlocked, createLimiter, watchPartyController.resumeRoom);
+
   // GET /watch-party/rooms/public/active — public rooms sorted by memberCount (T-S062)
   router.get('/rooms/public/active', verifyToken, notBlocked, watchPartyController.getPublicActiveRooms);
 

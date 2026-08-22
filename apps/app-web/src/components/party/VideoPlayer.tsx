@@ -140,7 +140,7 @@ interface Props {
   onPlay: (time: number) => void;
   onPause: (time: number) => void;
   onSeek: (time: number) => void;
-  onHeartbeat: (time: number) => void;
+  onHeartbeat: (time: number, frame?: string) => void;
   onBufferStart: () => void;
   onBufferEnd: () => void;
   /** Real playback failure (not just autoplay needing a click) on the generic extract+proxy path
@@ -1510,11 +1510,35 @@ export function VideoPlayer({
   // Owner heartbeat every 1s — dep on directSrc so interval starts once VB has resolved a
   // playable url and videoRef.current is guaranteed set (NativeVideoPlayer renders when
   // directSrc is ready)
+  //
+  // Every 15th tick (~15s, matching watchParty.service.ts's Mongo-write throttle — no point
+  // capturing more often than the server would ever persist) also grabs a small frame for the
+  // Pro "continue watching" thumbnail. Best-effort: a cross-origin video source without CORS
+  // headers taints the canvas and throws on toDataURL() — caught and skipped rather than crashing
+  // the heartbeat, since most sources (vb-capture/vb-media-proxy, same-origin) work fine and a
+  // missing thumbnail for the rest just means no preview, not a broken room.
   useEffect(() => {
     const video = videoRef.current;
     if (!isOwner || isEmbed || !video) return;
+    let tick = 0;
     const id = setInterval(() => {
-      if (!video.paused) onHeartbeat(video.currentTime);
+      if (video.paused) return;
+      tick++;
+      let frame: string | undefined;
+      if (tick % 15 === 0 && video.videoWidth > 0) {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = 160;
+          canvas.height = Math.round((160 * video.videoHeight) / video.videoWidth);
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+          frame = canvas.toDataURL('image/jpeg', 0.5);
+        } catch {
+          // Tainted canvas (cross-origin source without CORS) or any other capture failure —
+          // just skip the thumbnail this tick, position sync below is unaffected.
+        }
+      }
+      onHeartbeat(video.currentTime, frame);
     }, 1000);
     return () => clearInterval(id);
   }, [isOwner, isEmbed, onHeartbeat, directSrc]);

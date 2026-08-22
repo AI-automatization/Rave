@@ -332,6 +332,8 @@
     "statRooms": "Rooms",
     "statLive": "Live",
     "statViewers": "Viewers",
+    "continueWatching": "Continue watching",
+    "untitledRoom": "Untitled room",
     "greetingMorning": "Good morning, {name}",
     "greetingDay": "Hi, {name}",
     "greetingEvening": "Good evening, {name}",

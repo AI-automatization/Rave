@@ -308,6 +308,8 @@
     "statRooms": "Комнат",
     "statLive": "В эфире",
     "statViewers": "Зрителей",
+    "continueWatching": "Продолжить просмотр",
+    "untitledRoom": "Комната без названия",
     "greetingMorning": "Доброе утро, {name}",
     "greetingDay": "Привет, {name}",
     "greetingEvening": "Добрый вечер, {name}",
