@@ -351,8 +351,13 @@ export function useWatchParty(roomId: string) {
     socket?.emit(CLIENT_EVENTS.UNMUTE_MEMBER, { targetUserId });
   }, [socket]);
 
-  const sendHeartbeat = useCallback((currentTime: number) => {
-    socket?.emit(CLIENT_EVENTS.HEARTBEAT, { roomId, currentTime });
+  // `frame` (2026-08-22, Pro "continue watching"): a small base64 JPEG the owner's client
+  // captures periodically — see VideoPlayer.tsx. Optional/undefined on most ticks; the server
+  // only persists it every ~15s anyway (watchParty.service.ts's Mongo-write throttle) and
+  // discards it entirely for non-Pro owners, so sending it less often here just saves bandwidth
+  // on the same throttle window rather than changing behavior.
+  const sendHeartbeat = useCallback((currentTime: number, frame?: string) => {
+    socket?.emit(CLIENT_EVENTS.HEARTBEAT, { roomId, currentTime, frame });
   }, [socket, roomId]);
 
   const sendBufferStart = useCallback(() => {

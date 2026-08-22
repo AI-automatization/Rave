@@ -16,6 +16,7 @@ import { StatTiles } from '@/components/home/StatTiles';
 import { FriendsRail } from '@/components/home/FriendsRail';
 import { LiveSpotlight } from '@/components/home/LiveSpotlight';
 import { StartHero } from '@/components/home/StartHero';
+import { ContinueWatchingRail } from '@/components/home/ContinueWatchingRail';
 import { Button } from '@/components/ui/button';
 import { trackClick } from '@/lib/analytics';
 import type { IWatchPartyRoom } from '@/types';
@@ -175,8 +176,13 @@ export function HomeContent() {
         </motion.div>
       )}
 
-      {/* ── Geymifikatsiya plitalari ── */}
+      {/* ── Continue watching — Pro perk, komponent o'zi bo'sh bo'lsa hech narsa render qilmaydi ── */}
       <motion.div {...fadeIn(1)}>
+        <ContinueWatchingRail />
+      </motion.div>
+
+      {/* ── Geymifikatsiya plitalari ── */}
+      <motion.div {...fadeIn(2)}>
         <StatTiles />
       </motion.div>
 

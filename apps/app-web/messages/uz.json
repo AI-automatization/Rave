@@ -308,6 +308,8 @@
     "statRooms": "Xona",
     "statLive": "Efirda",
     "statViewers": "Tomoshabin",
+    "continueWatching": "Tomoshani davom ettirish",
+    "untitledRoom": "Nomsiz xona",
     "greetingMorning": "Xayrli tong, {name}",
     "greetingDay": "Salom, {name}",
     "greetingEvening": "Xayrli kech, {name}",

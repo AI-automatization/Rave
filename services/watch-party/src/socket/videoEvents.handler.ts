@@ -3,6 +3,7 @@ import { WatchPartyService } from '../services/watchParty.service';
 import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { JwtPayload } from '@shared/types';
+import { getUserPlan } from '@shared/utils/serviceClient';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -136,13 +137,17 @@ export const registerVideoEvents = (
   });
 
   // HEARTBEAT — owner position ping, no scheduledAt, no seekTo on peers
-  socket.on(CLIENT_EVENTS.HEARTBEAT, async (data: { currentTime: number }) => {
+  socket.on(CLIENT_EVENTS.HEARTBEAT, async (data: { currentTime: number; frame?: string }) => {
     if (!authSocket.roomId || !await resolveIsOwner()) return;
     const roomId = authSocket.roomId;
 
     try {
+      // Frame gated to Pro here (not in updateCurrentTime — same tier-check-at-the-call-site
+      // pattern the rest of this codebase uses) so a Free owner's client sending one anyway
+      // (it doesn't know its own plan client-side) never gets persisted or wastes a Mongo write.
+      const frame = data.frame && await getUserPlan(userId) === 'pro' ? data.frame : undefined;
       // Persist current position so BUFFER_START/resumeRoom always have fresh currentTime
-      await watchPartyService.updateCurrentTime(roomId, data.currentTime);
+      await watchPartyService.updateCurrentTime(roomId, data.currentTime, frame);
 
       const heartbeat = {
         currentTime: data.currentTime,

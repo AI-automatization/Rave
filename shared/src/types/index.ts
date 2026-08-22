@@ -127,6 +127,10 @@ export interface IWatchPartyRoom {
   isPrivate: boolean;
   memberCount?: number;  // included in getRooms response
   playlist?: VideoItem[]; // T-E107
+  // 2026-08-22, Pro "continue watching" — see watchParty.service.ts's closeRoomBySystem.
+  lastFrame?: string | null;
+  resumable?: boolean;
+  resumeExpiresAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }

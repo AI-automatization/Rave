@@ -301,6 +301,30 @@ export class WatchPartyController {
     }
   };
 
+  // ── 2026-08-22: Pro "continue watching" ───────────────────────────────
+
+  // GET /watch-party/rooms/my/resumable
+  getResumableRooms = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const rooms = await this.watchPartyService.listResumableRooms(userId);
+      res.json(apiResponse.success(rooms));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // POST /watch-party/rooms/:id/resume
+  resumeRoom = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const room = await this.watchPartyService.resumeRoom(userId, req.params.id);
+      res.status(201).json(apiResponse.success(room, 'Room resumed'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   // ── T-S062: Public active rooms ───────────────────────────────
 
   // GET /watch-party/rooms/public/active
