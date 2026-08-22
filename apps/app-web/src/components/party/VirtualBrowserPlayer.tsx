@@ -14,6 +14,9 @@ interface Props {
    * `error` (that's scoped to the pre-session URL-input screen, see the render tree below) — this
    * needs to show ON TOP of a live, still-streaming frame. */
   blocked: 'cloudflare' | 'recaptcha' | null;
+  /** 1-indexed position while waiting for a Free-tier slot — see use-virtual-browser.ts. null =
+   * not queued (Pro never queues, or the session just hasn't hit the cap). */
+  queuePosition: number | null;
   remoteCursor: { x: number; y: number } | null;
   start: (url: string) => void;
   stop: () => void;
@@ -28,7 +31,7 @@ interface Props {
 // frame stream. See services/watch-party/src/services/virtualBrowser.service.ts for the server
 // side (CDP screencast + input dispatch). State/socket wiring lives in the parent's
 // useVirtualBrowser() call (RoomContent.tsx) — this component is presentational + input capture.
-export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocked, remoteCursor, start, stop, sendInput, onPickDifferentVideo }: Props) {
+export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocked, queuePosition, remoteCursor, start, stop, sendInput, onPickDifferentVideo }: Props) {
   const t = useTranslations('party');
   const [urlInput, setUrlInput] = useState('');
   const imgRef = useRef<HTMLImageElement>(null);
@@ -207,6 +210,14 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
         <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-2 text-center px-6">
           <Globe size={24} className="text-zinc-700" />
           <p className="text-sm text-zinc-500">{t('vbNotOpened')}</p>
+        </div>
+      );
+    }
+    if (queuePosition !== null) {
+      return (
+        <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-2 text-center px-6">
+          <Loader2 size={24} className="text-violet-400/60 animate-spin" />
+          <p className="text-sm text-zinc-300">{t('vbQueued', { position: queuePosition })}</p>
         </div>
       );
     }
