@@ -70,6 +70,11 @@ export const SERVER_EVENTS = Object.freeze({
   // never include an OS cursor, so without this nobody but the owner can tell where they're
   // about to click (Kosmi shows a synced cursor for exactly this reason).
   VB_CURSOR:  'vb:cursor',
+  // The page VB navigated to (or into, on a later in-session click) is a bot-challenge wall —
+  // room-wide, not tied to any one request/response (see virtualBrowser.service.ts's
+  // detectBotChallenge and vbSession.helper.ts's startVBForRoom). Not solved/bypassed — this is
+  // purely a "can't get through, pick a different source" signal for the UI.
+  VB_BLOCKED: 'vb:blocked',
 
   // Owner-only: the video-candidate picker. Server pushes whatever candidates it currently has
   // for the room's video session (from generic-extraction regex matches and/or VB's sniffer) —

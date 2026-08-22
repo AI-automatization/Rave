@@ -31,6 +31,9 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
   const [active, setActive] = useState(false);
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Page VB is showing is a bot-challenge wall (Cloudflare/reCAPTCHA) — not solved/bypassed, just
+  // surfaced so the owner can pick a different source instead of staring at a stuck screencast.
+  const [blocked, setBlocked] = useState<'cloudflare' | 'recaptcha' | null>(null);
   // Owner's pointer position in server-viewport space, relayed from vbEvents.handler.ts on
   // every mousemove input — lets viewers see a synced cursor (Kosmi-style) even though the
   // JPEG screencast itself never contains an OS cursor.
@@ -43,6 +46,7 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
       setActive(true);
       setDimensions({ width: data.width, height: data.height });
       setError(null);
+      setBlocked(null);
     };
     // setActive(true) here too, not just in onStarted/onRoomJoined — real prod reports
     // 2026-08-07: the VB overlay sometimes never appeared despite the backend session running
@@ -58,6 +62,7 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
       setActive(false);
       setFrame(null);
       setRemoteCursor(null);
+      setBlocked(null);
       // needsConfirmation: true — VB found *something* but, unlike a normal extraction result,
       // never auto-commits it to the room (see vbSession.helper.ts) — it's just pushed into the
       // same video-candidate picker the owner already knows from "Это не то видео", waiting for
@@ -69,6 +74,7 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
       }
     };
     const onError = (data: { message: string }) => setError(data.message);
+    const onBlocked = (data: { reason: 'cloudflare' | 'recaptcha' }) => setBlocked(data.reason);
 
     // Catch-up: ROOM_JOINED now carries a `vb` snapshot (services/watch-party
     // getSessionSnapshot) for whoever joins/refreshes AFTER the owner already started a
@@ -98,6 +104,7 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
     socket.on(SERVER_EVENTS.VB_FRAME, onFrame);
     socket.on(SERVER_EVENTS.VB_STOPPED, onStopped);
     socket.on(SERVER_EVENTS.VB_ERROR, onError);
+    socket.on(SERVER_EVENTS.VB_BLOCKED, onBlocked);
     socket.on(SERVER_EVENTS.ROOM_JOINED, onRoomJoined);
     socket.on(SERVER_EVENTS.VB_CURSOR, onCursor);
 
@@ -106,6 +113,7 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
       socket.off(SERVER_EVENTS.VB_FRAME, onFrame);
       socket.off(SERVER_EVENTS.VB_STOPPED, onStopped);
       socket.off(SERVER_EVENTS.VB_ERROR, onError);
+      socket.off(SERVER_EVENTS.VB_BLOCKED, onBlocked);
       socket.off(SERVER_EVENTS.ROOM_JOINED, onRoomJoined);
       socket.off(SERVER_EVENTS.VB_CURSOR, onCursor);
     };
@@ -124,5 +132,5 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
     socket?.emit(CLIENT_EVENTS.VB_INPUT, input);
   }, [socket, isOwner]);
 
-  return { frame, active, dimensions, error, remoteCursor, start, stop, sendInput };
+  return { frame, active, dimensions, error, blocked, remoteCursor, start, stop, sendInput };
 }

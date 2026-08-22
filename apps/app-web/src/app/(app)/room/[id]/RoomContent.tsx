@@ -424,7 +424,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   // VB's found candidate never auto-commits (see vbSession.helper.ts) — it lands in the same
   // picker as "Это не то видео", just auto-opened instead of waiting for the owner to find the
   // menu entry themselves.
-  const { frame: vbFrame, active: vbActive, dimensions: vbDimensions, error: vbError, remoteCursor: vbRemoteCursor, start: vbStart, stop: vbStop, sendInput: vbSendInput } = useVirtualBrowser(isOwner, () => setCandidatePickerOpen(true));
+  const { frame: vbFrame, active: vbActive, dimensions: vbDimensions, error: vbError, blocked: vbBlocked, remoteCursor: vbRemoteCursor, start: vbStart, stop: vbStop, sendInput: vbSendInput } = useVirtualBrowser(isOwner, () => setCandidatePickerOpen(true));
   const [showVBPanel, setShowVBPanel] = useState(false);
   const showVB = vbActive || (isOwner && showVBPanel);
   const handleVBStop = () => { vbStop(); setShowVBPanel(false); };
@@ -550,10 +550,12 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                 frame={vbFrame}
                 dimensions={vbDimensions}
                 error={vbError}
+                blocked={vbBlocked}
                 remoteCursor={vbRemoteCursor}
                 start={vbStart}
                 stop={handleVBStop}
                 sendInput={vbSendInput}
+                onPickDifferentVideo={() => setCandidatePickerOpen(true)}
               />
             ) : (
               <VideoPlayer
