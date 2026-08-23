@@ -119,6 +119,29 @@ const CHROME_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
   '(KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36';
 
+// 2026-08-23: some VB-caught mp4 hosts (fayllar1.ru-class) block/throttle this service's own
+// Railway egress IP — vbSession.helper.ts marks those candidates `viaBunny=1` so this proxy
+// re-sends the SAME request server-to-server through the Bunny Edge Script on the already-paid-
+// for wewatch-stream pull zone (a different egress IP, same trick as before) instead of fetching
+// the origin directly. Bunny's edge platform strips the client's `Range` header before its script
+// ever sees it (confirmed live via a debug log dump of the script's own request.headers — 'range'
+// is simply absent), so the already-capped Range this function computed gets passed as a QUERY
+// PARAM instead — a value Bunny's script reads fine and forwards to ITS OWN origin fetch as a real
+// header (that direction works, already proven). Referer/Cookie travel the same way, since Bunny's
+// script has no notion of either otherwise. Bunny only ever sees this call from Railway now (never
+// a client directly), so it doesn't need its own SSRF guard — validateTarget() above already
+// vetted `url` before this is ever called.
+async function fetchViaBunny(url: string, headers: Record<string, string>): Promise<globalThis.Response> {
+  const vbEdgeFetchUrl = process.env.VB_EDGE_FETCH_URL;
+  const { exp, sig } = signProxyUrl(url);
+  const encodedUrl = Buffer.from(url, 'utf8').toString('base64url');
+  const params = new URLSearchParams({ url: encodedUrl, exp: String(exp), sig });
+  if (headers.Range) params.set('range', headers.Range);
+  if (headers.Referer) params.set('referer', Buffer.from(headers.Referer, 'utf8').toString('base64url'));
+  if (headers.Cookie) params.set('cookie', Buffer.from(headers.Cookie, 'utf8').toString('base64url'));
+  return fetch(`${vbEdgeFetchUrl}/vb-edge-fetch?${params.toString()}`, { redirect: 'follow' });
+}
+
 function proxyBase(req: Request): string {
   return `${req.protocol}://${req.get('host')}/api/v1/watch-party/vb-media-proxy`;
 }
@@ -365,9 +388,10 @@ async function attemptFetch(rawUrl: string, req: Request, res: Response, referer
     if (referer) headers['Referer'] = referer;
     if (cookieHeader) headers['Cookie'] = cookieHeader;
 
+    const viaBunny = req.query.viaBunny === '1' && Boolean(process.env.VB_EDGE_FETCH_URL);
     let upstream: globalThis.Response;
     try {
-      upstream = await safeFetch(parsedUrl.href, headers);
+      upstream = viaBunny ? await fetchViaBunny(parsedUrl.href, headers) : await safeFetch(parsedUrl.href, headers);
     } catch (e) {
       // Node's fetch() wraps the real underlying error (DNS failure, connection refused, TLS
       // error, etc.) in `.cause` rather than putting it in `.message` — logging only `.message`

@@ -18,6 +18,19 @@
 // (signProxyUrl/verifyProxyUrlDetailed) — same HMAC-SHA256(`${target}|${exp}`), same secret
 // (INTERNAL_SECRET, set as an environment variable in this script's Bunny dashboard settings,
 // not committed here). Railway mints the URL exactly as before; this script only re-verifies it.
+//
+// 2026-08-23: this used to read the client's Range header directly (`request.headers.get('range')`)
+// — confirmed live (debug console.log dumping every key in request.headers.forEach) that Bunny's
+// own edge/CDN layer strips Range before this script ever runs; it was always reading `null`, no
+// matter what the real client sent, so the 206/Content-Range logic below never actually fired.
+// Nothing inside this script can fix that — the information just isn't there. Railway's
+// vbMediaProxy.controller.ts (this script's only caller now, never a client directly — see that
+// file's fetchViaBunny) works around it by sending the SAME already-capped Range value as a
+// `range` QUERY PARAM instead, which survives fine. Referer/Cookie travel the same way, since
+// there's no other channel for them either. Because the caller is always Railway now (not a
+// browser/player), these extra params don't need their own signature — url/exp/sig already gate
+// whether ANY of this happens at all; range/referer/cookie only affect what Railway asks for once
+// it's already allowed through.
 import * as BunnySDK from 'npm:@bunny.net/edgescript-sdk@0.12.1';
 import crypto from 'node:crypto';
 import process from 'node:process';
@@ -60,11 +73,25 @@ function jsonError(status: number, message: string): Response {
   });
 }
 
+function decodeBase64url(value: string): string {
+  return new TextDecoder().decode(
+    Uint8Array.from(atob(value.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0)),
+  );
+}
+
 BunnySDK.net.http.serve(async (request: Request): Promise<Response> => {
   const reqUrl = new URL(request.url);
   const urlParam = reqUrl.searchParams.get('url');
   const expParam = Number(reqUrl.searchParams.get('exp'));
   const sigParam = reqUrl.searchParams.get('sig') ?? '';
+  // See the 2026-08-23 comment at the top of this file — Bunny strips the real Range/Referer/
+  // Cookie headers before this script ever runs, so Railway (the only caller) sends them as query
+  // params instead. `range` travels plain (it's just `bytes=0-4194303`, no unsafe URL characters);
+  // referer/cookie are base64url same as `url` since a raw Referer/Cookie value could contain
+  // '&' or other characters that would otherwise corrupt the query string.
+  const rangeParam = reqUrl.searchParams.get('range');
+  const refererParam = reqUrl.searchParams.get('referer');
+  const cookieParam = reqUrl.searchParams.get('cookie');
 
   if (!urlParam) return jsonError(400, 'url required');
 
@@ -96,8 +123,15 @@ BunnySDK.net.http.serve(async (request: Request): Promise<Response> => {
     'Accept': '*/*',
     'Accept-Encoding': 'identity',
   };
-  const range = request.headers.get('range');
-  if (range) headers['Range'] = cappedRange(range, MAX_RANGE_CHUNK_BYTES);
+  // rangeParam is already capped by Railway (vbMediaProxy.controller.ts) before it gets here —
+  // cappedRange() below is a second, harmless safety net, not the primary cap.
+  if (rangeParam) headers['Range'] = cappedRange(rangeParam, MAX_RANGE_CHUNK_BYTES);
+  if (refererParam) {
+    try { headers['Referer'] = decodeBase64url(refererParam); } catch { /* malformed — skip, not fatal */ }
+  }
+  if (cookieParam) {
+    try { headers['Cookie'] = decodeBase64url(cookieParam); } catch { /* malformed — skip, not fatal */ }
+  }
 
   let upstream: Response;
   try {
