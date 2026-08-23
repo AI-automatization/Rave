@@ -35,20 +35,9 @@ import * as BunnySDK from 'npm:@bunny.net/edgescript-sdk@0.12.1';
 import crypto from 'node:crypto';
 import process from 'node:process';
 
-const MAX_RANGE_CHUNK_BYTES = 4 * 1024 * 1024; // 4MB — same cap as vbMediaProxy.controller.ts
 const CHROME_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
   '(KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36';
-
-function cappedRange(rangeHeader: string, maxBytes: number): string {
-  const match = /^bytes=(\d+)-(\d*)$/.exec(rangeHeader.trim());
-  if (!match) return rangeHeader;
-  const start = Number(match[1]);
-  const requestedEnd = match[2] ? Number(match[2]) : undefined;
-  const cappedEnd = start + maxBytes - 1;
-  const end = requestedEnd !== undefined ? Math.min(requestedEnd, cappedEnd) : cappedEnd;
-  return `bytes=${start}-${end}`;
-}
 
 // Same HMAC verification as proxySignature.ts's verifyProxyUrlDetailed — fails closed on any
 // missing secret, expired exp, or malformed/mismatched sig.
@@ -123,9 +112,17 @@ BunnySDK.net.http.serve(async (request: Request): Promise<Response> => {
     'Accept': '*/*',
     'Accept-Encoding': 'identity',
   };
-  // rangeParam is already capped by Railway (vbMediaProxy.controller.ts) before it gets here —
-  // cappedRange() below is a second, harmless safety net, not the primary cap.
-  if (rangeParam) headers['Range'] = cappedRange(rangeParam, MAX_RANGE_CHUNK_BYTES);
+  // 2026-08-23 correction: this used to re-cap rangeParam to MAX_RANGE_CHUNK_BYTES (4MB) here,
+  // on the assumption that was "just a harmless safety net" since Railway already capped it —
+  // wrong. Railway's cappedRange (vbMediaProxy.controller.ts) allows up to 24MB for an EXPLICIT
+  // bounded request (Safari/native players fetching a non-faststart file's moov atom, which can
+  // legitimately be several MB, near the end of the file) and only 4MB for an open-ended one.
+  // Re-capping everything back down to 4MB here silently threw that headroom away — an explicit
+  // 24MB request Railway had already decided was safe came back truncated to 4MB anyway, which
+  // is exactly the "player keeps re-requesting the same first chunk and never actually starts"
+  // symptom seen live (fayllar1.ru, 2026-08-23: repeated identical 4194304-byte 206 responses,
+  // playback never progressed). Railway is this script's only caller now — trust its cap as-is.
+  if (rangeParam) headers['Range'] = rangeParam;
   if (refererParam) {
     try { headers['Referer'] = decodeBase64url(refererParam); } catch { /* malformed — skip, not fatal */ }
   }
