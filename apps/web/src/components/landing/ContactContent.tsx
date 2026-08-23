@@ -5,7 +5,7 @@ import { useState, type FormEvent } from 'react';
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import { FaEnvelope, FaArrowRight, FaMapMarkerAlt, FaPaperPlane, FaCheck } from 'react-icons/fa';
 import { useTranslations, useLocale } from 'next-intl';
-import { CONTACTS, CONTACT_EMAIL } from '@/data/tezcode';
+import { BRAND_CONTACTS, SUPPORT_EMAIL } from '@/data/brand';
 import { useLocalizedHref } from '@/lib/i18n/use-localized-href';
 
 const spring = { type: 'spring' as const, stiffness: 280, damping: 24 };
@@ -36,7 +36,7 @@ export function ContactContent() {
     if (!name.trim() || !email.includes('@') || !message.trim()) return;
     const subject = encodeURIComponent(`WeWatch — ${name}`);
     const body = encodeURIComponent(`${message}\n\n— ${name} (${email})`);
-    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
     setSent(true);
   };
 
@@ -107,7 +107,7 @@ export function ContactContent() {
                       <FaCheck size={24} className="text-green-400" aria-hidden="true" />
                     </div>
                     <p className="text-white text-lg font-semibold mb-2">{t('contactSuccess')}</p>
-                    <p className="text-zinc-500 text-sm select-all">{CONTACT_EMAIL}</p>
+                    <p className="text-zinc-500 text-sm select-all">{SUPPORT_EMAIL}</p>
                   </motion.div>
                 ) : (
                   <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -151,7 +151,7 @@ export function ContactContent() {
                 <p className="text-zinc-500 text-sm">{t('contactChannelsSub')}</p>
               </motion.div>
 
-              {CONTACTS.map(({ name: cname, icon: Icon, label, href, color }) => (
+              {BRAND_CONTACTS.map(({ name: cname, icon: Icon, label, href, color }) => (
                 <motion.a
                   key={cname}
                   variants={fadeUp}

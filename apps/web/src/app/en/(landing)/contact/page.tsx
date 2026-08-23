@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { SOCIAL_PROFILE_URLS, SUPPORT_EMAIL } from '@/data/brand';
 import { ContactContent } from '@/components/landing/ContactContent';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { socialMeta } from '@/lib/i18n/metadata';
@@ -8,7 +9,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 export const metadata: Metadata = {
   title: { absolute: 'Contact — WeWatch and tezcode.dev | Get in Touch' },
   description:
-    'Reach the WeWatch and tezcode.dev team: email tezcode@tezcode.dev, Telegram, Instagram. Questions, partnerships or ideas — we are listening.',
+    'Reach the WeWatch team: email support@wewatch.uz, Telegram, Instagram, X. Questions, partnerships or ideas — we are listening.',
   alternates: {
     canonical: `${APP_URL}/en/contact`,
     languages: hreflangFor('/ru/contact', APP_URL),
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
   ...socialMeta({
     locale: 'en',
     title: 'Contact — WeWatch and tezcode.dev',
-    description: 'Write to the WeWatch and tezcode.dev team — email, Telegram, Instagram.',
+    description: 'Write to the WeWatch team — email, Telegram, Instagram, X.',
     url: `${APP_URL}/en/contact`,
   }),
   robots: { index: true, follow: true },
@@ -28,12 +29,19 @@ const jsonLd = {
   name: 'Contact WeWatch',
   url: `${APP_URL}/en/contact`,
   inLanguage: 'en',
+  // The page lists WeWatch's own channels, so the entity it describes is WeWatch —
+  // tezcode stays as the parent organization rather than the contact itself.
   mainEntity: {
     '@type': 'Organization',
-    name: 'tezcode.dev',
-    email: 'tezcode@tezcode.dev',
-    url: 'https://www.tezcode.dev/',
-    sameAs: ['https://t.me/webdevelopertk', 'https://instagram.com/tezcode_dev'],
+    name: 'WeWatch',
+    email: SUPPORT_EMAIL,
+    url: APP_URL,
+    sameAs: SOCIAL_PROFILE_URLS,
+    parentOrganization: {
+      '@type': 'Organization',
+      name: 'tezcode',
+      url: 'https://www.tezcode.dev/',
+    },
   },
 };
 
