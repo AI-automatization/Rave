@@ -27,6 +27,12 @@ export interface VideoExtractResult {
   httpHeaders?: Record<string, string>;
   qualities?: VideoQualityOption[];
   episodes?: VideoEpisode[];
+  // 2026-08-22, GitHub issue #84 follow-up — see services/content/src/controllers/
+  // videoExtract.controller.ts. Signed by the server for this exact videoUrl; the hls-proxy/
+  // proxy-stream endpoints accept it as proof we ourselves resolved this URL, instead of the
+  // fully-open "any logged-in user, any url" proxy this used to be.
+  proxyExp?: number;
+  proxySig?: string;
 }
 
 export interface YtStreamInfo {

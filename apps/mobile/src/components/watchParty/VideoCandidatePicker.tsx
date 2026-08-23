@@ -31,7 +31,7 @@ import { UniversalPlayer, UniversalPlayerRef } from '@components/video/Universal
 import { videoStyles as vs } from './VideoSection.styles';
 import { useTheme, spacing, borderRadius, typography } from '@theme/index';
 import { useT } from '@i18n/index';
-import type { VideoCandidate } from '@app-types/index';
+import type { VideoCandidate, PlaybackStatus } from '@app-types/index';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -50,11 +50,20 @@ const SCREEN_W = Dimensions.get('window').width;
 const SCREEN_H = Dimensions.get('window').height;
 const PREVIEW_H = Math.round(SCREEN_W * (9 / 16));
 
+// Frame carousel shown in the single-candidate preview while the real video isn't playable yet
+// (VB-sourced candidates can take a while — see hiddenPlayer note below). Once expo-video reports
+// isBuffering:false for the first time, the actual video takes over from these static frames.
+const CAROUSEL_TIMES_SEC = [3, 10, 20, 30];
+const CAROUSEL_INTERVAL_MS = 1300;
+
 function formatDuration(secs?: number): string | null {
   if (!secs || secs <= 0) return null;
-  const m = Math.floor(secs / 60);
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
   const s = Math.floor(secs % 60);
-  return `${m}:${String(s).padStart(2, '0')}`;
+  return h > 0
+    ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+    : `${m}:${String(s).padStart(2, '0')}`;
 }
 
 export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }: Props) {
@@ -72,6 +81,21 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
   // a native-appropriate way to get it. Keyed by index, cached for the life of this sheet.
   const [thumbnails, setThumbnails] = useState<Record<number, string>>({});
   const thumbnailAttempted = useRef<Set<number>>(new Set());
+  // Server never sends duration for mp4 candidates (only hls/dash, parsed from the manifest) —
+  // by design, the client is expected to read it off the actually-playing element instead (see
+  // vbSession.helper.ts). Mirrors web's onCapture: once a candidate is previewed, its real
+  // duration lands here and wins over the (usually absent) server-provided one.
+  const [capturedDurations, setCapturedDurations] = useState<Record<number, number>>({});
+  // Multi-frame carousel for the single-candidate preview (cycle/gridPreview only — grid cards
+  // keep their single `thumbnails` frame above). Populated progressively as each of
+  // CAROUSEL_TIMES_SEC resolves, so the carousel can start cycling before all 4 are in.
+  const [previewFrames, setPreviewFrames] = useState<Record<number, string[]>>({});
+  const previewFramesAttempted = useRef<Set<number>>(new Set());
+  const [frameCycleIdx, setFrameCycleIdx] = useState(0);
+  // True once the hidden player for this candidate has reported isBuffering:false at least
+  // once — i.e. it's actually playable, not just "started loading". Flips the preview from the
+  // static frame carousel to the live player itself.
+  const [liveReady, setLiveReady] = useState<Record<number, boolean>>({});
 
   // Fresh cycle-through every time the sheet opens — a stale mode/index from a previous
   // session would otherwise show the wrong candidate (or land straight in the grid).
@@ -82,16 +106,42 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
       setGridPreviewIndex(0);
       setThumbnails({});
       thumbnailAttempted.current = new Set();
+      setCapturedDurations({});
+      setPreviewFrames({});
+      previewFramesAttempted.current = new Set();
+      setFrameCycleIdx(0);
+      setLiveReady({});
     }
   }, [visible]);
 
-  // Lazy, on entering the grid (not eagerly on load) — generating a thumbnail costs a real
-  // network fetch per candidate, not worth paying for candidates the owner never looks at because
-  // the first one in cycle mode was already the right one.
+  // Lazy — generating a thumbnail costs a real network fetch per candidate, not worth paying for
+  // ones the owner never looks at. Originally grid-only; 2026-08-23 extended to cycle/gridPreview
+  // too, since those single-candidate views now show this same static frame instead of a live
+  // player (see renderPreview below — live playback in this sheet turned out to be exactly as
+  // unreliable as everything else about these slow VB-sourced candidates, and a stalled black
+  // rectangle told the owner nothing useful while they're just trying to confirm "is this the
+  // right video"). Grid still does all candidates at once; cycle/gridPreview do just the one
+  // currently on screen.
   useEffect(() => {
-    if (mode !== 'grid' || !candidates) return;
-    candidates.forEach((c, i) => {
-      if (c.poster || c.type === 'embed' || thumbnailAttempted.current.has(i)) return;
+    // 2026-08-23 real bug: auto-opened picker (VB's "media_found" flow — see useVirtualBrowser.ts)
+    // showed black on the FIRST open but worked fine on a manual reopen right after. Root cause —
+    // `visible` wasn't a dependency here. mode/cycleIndex/gridPreviewIndex are already at their
+    // useState-declared defaults ('cycle'/0/0) the very first time this sheet ever opens in a
+    // room, so the reset effect above's setMode('cycle')/setCycleIndex(0)/setGridPreviewIndex(0)
+    // are no-op state updates (same value as before) — nothing in THIS effect's old dependency
+    // list necessarily changed at the exact moment the sheet actually became visible, so the
+    // fetch could end up scheduled before `visible` flips, racing the thumbnail against the
+    // modal's own mount. A manual reopen right after always worked because by then something
+    // (mode/index) really had changed at least once. Depending on `visible` directly removes the
+    // race — it always re-evaluates right when the sheet is shown, not just when some other value
+    // happens to differ from its already-current default.
+    if (!visible || !candidates) return;
+    const indices = mode === 'grid'
+      ? candidates.map((_, i) => i)
+      : mode === 'cycle' ? [cycleIndex] : [gridPreviewIndex];
+    indices.forEach((i) => {
+      const c = candidates[i];
+      if (!c || c.poster || c.type === 'embed' || thumbnailAttempted.current.has(i)) return;
       thumbnailAttempted.current.add(i);
       VideoThumbnails.getThumbnailAsync(c.url, { time: 3000 })
         .then(({ uri }) => setThumbnails((prev) => ({ ...prev, [i]: uri })))
@@ -99,7 +149,40 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
           or a site that blocks the device's own fetch) just won't thumbnail — falls back to the
           existing placeholder icon, same as a missing server-provided poster already did */ });
     });
-  }, [mode, candidates]);
+  }, [visible, mode, candidates, cycleIndex, gridPreviewIndex]);
+
+  // Multi-frame carousel source — only for the single-candidate preview (cycle/gridPreview),
+  // and only the one candidate currently on screen. Same rationale as the effect above for not
+  // doing this for every candidate up front (real network fetch each).
+  useEffect(() => {
+    if (!visible || !candidates) return;
+    if (mode !== 'cycle' && mode !== 'gridPreview') return;
+    const index = mode === 'cycle' ? cycleIndex : gridPreviewIndex;
+    const c = candidates[index];
+    if (!c || c.type === 'embed' || previewFramesAttempted.current.has(index)) return;
+    previewFramesAttempted.current.add(index);
+    CAROUSEL_TIMES_SEC.forEach((t) => {
+      VideoThumbnails.getThumbnailAsync(c.url, { time: t * 1000 })
+        .then(({ uri }) => setPreviewFrames((prev) => ({ ...prev, [index]: [...(prev[index] ?? []), uri] })))
+        .catch(() => { /* that timestamp just doesn't exist / isn't reachable for this candidate —
+          whatever frames DID resolve still carousel fine, this one's simply skipped */ });
+    });
+  }, [visible, mode, candidates, cycleIndex, gridPreviewIndex]);
+
+  // Cycles frameCycleIdx through whatever frames have resolved so far for the candidate on
+  // screen. Stops once liveReady flips (real video takes over) or the sheet closes.
+  useEffect(() => {
+    setFrameCycleIdx(0);
+    if (!visible || (mode !== 'cycle' && mode !== 'gridPreview')) return;
+    const index = mode === 'cycle' ? cycleIndex : gridPreviewIndex;
+    if (liveReady[index]) return;
+    const frames = previewFrames[index];
+    if (!frames || frames.length < 2) return;
+    const id = setInterval(() => {
+      setFrameCycleIdx((i) => (i + 1) % frames.length);
+    }, CAROUSEL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [visible, mode, cycleIndex, gridPreviewIndex, previewFrames, liveReady]);
 
   // Loading badge pulse — same animation as VideoSection's "waiting for the video" overlay,
   // reused here for the equivalent "waiting for the candidates list" moment.
@@ -130,22 +213,62 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
     setCycleIndex((i) => i + 1);
   }, [candidates, cycleIndex]);
 
-  const renderPreview = (candidate: VideoCandidate, secondary: { label: string; icon: IconName; onPress: () => void }) => (
+  const renderPreview = (candidate: VideoCandidate, index: number, secondary: { label: string; icon: IconName; onPress: () => void }) => {
+    const frames = previewFrames[index];
+    const carouselFrame = frames?.[frameCycleIdx % frames.length];
+    const poster = carouselFrame ?? candidate.poster ?? thumbnails[index];
+    const isLive = !!liveReady[index];
+    return (
     <View style={styles.previewWrap}>
       <View style={[styles.previewBox, { height: PREVIEW_H }]}>
-        <UniversalPlayer
-          // Re-mount per candidate — a shared ref across different URLs would carry over
-          // expo-video's internal source state instead of loading the new one cleanly.
-          key={candidate.url}
-          ref={previewRef}
-          url={candidate.url}
-          extractedType={candidate.type === 'embed' ? undefined : candidate.type}
-          isOwner
-          onPlay={() => {}}
-          onPause={() => {}}
-          onSeek={() => {}}
-          onReady={() => { void previewRef.current?.play(); }}
-        />
+        {!isLive && (poster ? (
+          <Image source={{ uri: poster }} style={styles.previewThumb} resizeMode="cover" />
+        ) : (
+          <View style={[styles.previewThumb, styles.gridThumbPlaceholder]}>
+            <ActivityIndicator size="small" color="rgba(255,255,255,0.5)" />
+          </View>
+        ))}
+        {/* Live playback in this sheet used to be unconditionally unreliable for these slow
+            VB-sourced candidates — a black rectangle stuck loading told the owner nothing while
+            confirming "is this the right video". 2026-08-23: default view became the static frame
+            carousel above (same expo-video-thumbnails path grid already used). This player stays
+            mounted throughout — invisible while buffering, promoted to visible (styles.livePlayer)
+            the first time expo-video reports isBuffering:false, i.e. once it's actually smooth
+            enough to watch. Also still the source of the real duration via onProgress (server
+            never sends it for mp4 — see vbSession.helper.ts). */}
+        <View style={isLive ? styles.livePlayer : styles.hiddenPlayer} pointerEvents="none">
+          <UniversalPlayer
+            // Re-mount per candidate — a shared ref across different URLs would carry over
+            // expo-video's internal source state instead of loading the new one cleanly.
+            key={candidate.url}
+            ref={previewRef}
+            url={candidate.url}
+            extractedType={candidate.type === 'embed' ? undefined : candidate.type}
+            isOwner
+            onPlay={() => {}}
+            onPause={() => {}}
+            onSeek={() => {}}
+            onReady={() => { void previewRef.current?.play(); }}
+            onPlaybackStatusUpdate={(status: PlaybackStatus) => {
+              if (status.isLoaded && !status.isBuffering) {
+                setLiveReady((prev) => (prev[index] ? prev : { ...prev, [index]: true }));
+              }
+            }}
+            onProgress={(_current, durationSecs) => {
+              if (durationSecs > 0) {
+                setCapturedDurations((prev) => (prev[index] ? prev : { ...prev, [index]: durationSecs }));
+              }
+            }}
+          />
+        </View>
+        {(() => {
+          const dur = formatDuration(capturedDurations[index] ?? candidate.duration);
+          return dur ? (
+            <View style={styles.previewDurationBadge}>
+              <Text style={styles.gridDurationText}>{dur}</Text>
+            </View>
+          ) : null;
+        })()}
       </View>
       <View style={styles.previewActions}>
         <TrackedTouchable trackId="candidate_picker:secondary" style={styles.secondaryBtn} onPress={secondary.onPress} activeOpacity={0.8}>
@@ -158,10 +281,11 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
         </TrackedTouchable>
       </View>
     </View>
-  );
+    );
+  };
 
   const renderGridItem = ({ item, index }: ListRenderItemInfo<VideoCandidate>) => {
-    const duration = formatDuration(item.duration);
+    const duration = formatDuration(capturedDurations[index] ?? item.duration);
     const poster = item.poster ?? thumbnails[index];
     return (
       <TrackedTouchable
@@ -218,13 +342,13 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
             <Text style={styles.emptyText}>{t('watchParty', 'candidatesEmpty')}</Text>
           </View>
         ) : mode === 'cycle' && cycleCandidate ? (
-          renderPreview(cycleCandidate, {
+          renderPreview(cycleCandidate, cycleIndex, {
             label: t('watchParty', 'candidateNext'),
             icon: 'play-skip-forward-outline',
             onPress: handleNext,
           })
         ) : mode === 'gridPreview' && gridPreviewCandidate ? (
-          renderPreview(gridPreviewCandidate, {
+          renderPreview(gridPreviewCandidate, gridPreviewIndex, {
             label: t('common', 'back'),
             icon: 'arrow-back-outline',
             onPress: () => setMode('grid'),
@@ -292,6 +416,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     borderRadius: borderRadius.lg,
     overflow: 'hidden',
+  },
+  previewThumb: { width: '100%', height: '100%' },
+  // Mounted purely to capture duration via onProgress (see renderPreview) — never meant to be
+  // seen, so it's sized like the real preview but pinned invisible rather than removed, avoiding
+  // a remount (and re-fetch) every time the owner flips back to a candidate they already visited.
+  hiddenPlayer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0 },
+  livePlayer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 1 },
+  previewDurationBadge: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: borderRadius.sm,
   },
   previewActions: {
     flexDirection: 'row',

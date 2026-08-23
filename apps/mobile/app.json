@@ -30,7 +30,10 @@
         "NSCameraUsageDescription": "WeWatch uses your camera to set your profile photo.",
         "NSPhotoLibraryUsageDescription": "WeWatch uses your photo library to set your profile photo.",
         "NSMicrophoneUsageDescription": "WeWatch uses your microphone for the Voice Chat feature in Watch Party rooms, allowing you to talk with friends while watching together.",
-        "LSApplicationQueriesSchemes": ["instagram-stories", "instagram"]
+        "LSApplicationQueriesSchemes": [
+          "instagram-stories",
+          "instagram"
+        ]
       },
       "privacyManifests": {
         "NSPrivacyAccessedAPITypes": [
@@ -126,7 +129,7 @@
     "android": {
       "googleServicesFile": "./google-services.json",
       "package": "com.wewatch.app",
-      "versionCode": 10,
+      "versionCode": 11,
       "adaptiveIcon": {
         "backgroundColor": "#0A0A0F",
         "backgroundImage": "./assets/android-icon-background.png",
@@ -163,7 +166,10 @@
               "pathPrefix": "/room"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },

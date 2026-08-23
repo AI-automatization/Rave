@@ -26,6 +26,13 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
   const [remoteCursor, setRemoteCursor] = useState<{ x: number; y: number } | null>(null);
   const onCandidateNeedsConfirmationRef = useRef(onCandidateNeedsConfirmation);
   onCandidateNeedsConfirmationRef.current = onCandidateNeedsConfirmation;
+  // Server streams the screencast unthrottled (everyNthFrame: 1, real page fps) — fine for a
+  // browser's <img> src swap, but RN's <Image> re-decodes a fresh base64 JPEG through the JS
+  // bridge on every single source change, and at that rate it reads as lag/flicker on-device
+  // (live report 2026-08-23). Web isn't touched — this only drops frames on the RN render side,
+  // same source stream, so the owner's actual VB session and every other viewer are unaffected.
+  const lastFrameAtRef = useRef(0);
+  const FRAME_THROTTLE_MS = 100; // ~10fps ceiling for the RN <Image>, plenty for "watch someone click"
 
   useEffect(() => {
     const socket = getSocket();
@@ -36,7 +43,12 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
       setDimensions({ width: data.width, height: data.height });
       setError(null);
     };
-    const onFrame = (data: { data: string }) => setFrame(data.data);
+    const onFrame = (data: { data: string }) => {
+      const now = Date.now();
+      if (now - lastFrameAtRef.current < FRAME_THROTTLE_MS) return;
+      lastFrameAtRef.current = now;
+      setFrame(data.data);
+    };
     const onStopped = (data?: { reason?: string; needsConfirmation?: boolean }) => {
       setActive(false);
       setFrame(null);

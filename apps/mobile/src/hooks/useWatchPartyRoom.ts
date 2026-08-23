@@ -83,6 +83,23 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   const playerRef = useRef<UniversalPlayerRef>(null);
   const isSyncing = useRef(false);
+  // 2026-08-23: the fixed 1.5s "sync settled" timer in handleProgressSeek below assumed a normal
+  // HLS re-buffer (1-2s on Android, per that function's own comment) — real prod retest showed the
+  // rollback bug persisting on these slow VB/Bunny-routed mp4 sources, where actual re-buffering
+  // after a hard seekTo() can run well past 1.5s (this session separately measured a single such
+  // fetch taking 30s+ under load). A fixed timer can't know that in advance; instead this timer
+  // gets PUSHED FURTHER OUT every time onPlaybackStatusUpdate below still sees isBuffering:true
+  // while a seek is settling, so isSyncing only actually releases once buffering genuinely stops —
+  // fast sources behave exactly as before (one 1.5s tick, nothing to push out), slow ones just keep
+  // extending instead of releasing early into a stale position report.
+  const seekSettleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleSyncRelease = useCallback((ms: number) => {
+    if (seekSettleTimerRef.current) clearTimeout(seekSettleTimerRef.current);
+    seekSettleTimerRef.current = setTimeout(() => {
+      isSyncing.current = false;
+      seekSettleTimerRef.current = null;
+    }, ms);
+  }, []);
   const lastSyncId = useRef('');
   const prevIsPlayingRef = useRef(false);
   const isActionInFlight = useRef(false);
@@ -480,14 +497,28 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const onPlaybackStatusUpdate = useCallback((status: PlaybackStatus) => {
     if (!status.isLoaded) return;
     if (!isSyncing.current) { setIsPlaying(status.isPlaying); intendedPlayingRef.current = status.isPlaying; }
-    setVideoCurrentTime(status.positionMillis / 1000);
+    // Same guard as handleProgress below (see its comment) — expo-av's own status-poll can report
+    // the PRE-seek position for a tick or two while a hard seekTo() is still landing, especially
+    // when the underlying proxy needs to re-buffer (slow VB/Bunny-routed mp4 sources are the live
+    // case that surfaced this — 2026-08-23: "seek to 48:00 jerks back to ~4min"). handleProgress
+    // already had this exact guard on setVideoCurrentTime; onPlaybackStatusUpdate (the native
+    // expo-av path, used for direct mp4 playback rather than the WebView/HLS path) didn't, so the
+    // fix only ever covered half the players.
+    if (!isSyncing.current) setVideoCurrentTime(status.positionMillis / 1000);
+    // Still settling a seek and the player is genuinely still buffering — push the release timer
+    // further out instead of letting it expire on schedule (see scheduleSyncRelease's comment).
+    // Capped at ~20s total from the original seek by seekSettleTimerRef always being a single
+    // active timer that only ever gets replaced, never stacked — a source that never stops
+    // reporting isBuffering just keeps isSyncing engaged, which is the safe failure mode here
+    // (worst case the bar looks briefly frozen, never that it snaps back to a stale position).
+    if (isSyncing.current && seekSettleTimerRef.current && status.isBuffering) scheduleSyncRelease(1500);
     if (status.durationMillis) setVideoDuration(status.durationMillis / 1000);
     // Only signal buffering when video is supposed to be playing — avoids BUFFER_START
     // during initial load / owner-paused state which would trigger democratic pause incorrectly.
     if (status.isBuffering !== undefined && intendedPlayingRef.current) emitBufferState(status.isBuffering);
     if (isOwner && !isSyncing.current && status.didJustFinish) emitPause(status.durationMillis ? status.durationMillis / 1000 : 0);
     prevIsPlayingRef.current = status.isPlaying;
-  }, [isOwner, emitPause, emitBufferState]);
+  }, [isOwner, emitPause, emitBufferState, scheduleSyncRelease]);
 
   const handleWebViewPlay = useCallback((secs: number) => {
     setIsPlaying(true);
@@ -513,11 +544,13 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     isSyncing.current = true;
     await playerRef.current?.seekTo(secs * 1000);
     emitSeek(secs);
-    // 1.5s, not 400ms: HLS proxy re-buffer after a hard seekTo takes 1-2s on Android (same
+    // 1.5s baseline, not 400ms: HLS proxy re-buffer after a hard seekTo takes 1-2s on Android (same
     // figure used elsewhere in this file, e.g. suppressBufferRef) — 400ms let a stale
-    // position-poll tick land inside handleProgress before the real seek settled.
-    setTimeout(() => { isSyncing.current = false; }, 1500);
-  }, [isOwner, videoIsLive, emitSeek]);
+    // position-poll tick land inside handleProgress before the real seek settled. See
+    // scheduleSyncRelease's comment — onPlaybackStatusUpdate extends this further if buffering is
+    // still genuinely ongoing past this baseline, instead of releasing into a stale position.
+    scheduleSyncRelease(1500);
+  }, [isOwner, videoIsLive, emitSeek, scheduleSyncRelease]);
 
   const handlePlayPause = useCallback(async () => {
     if (!isOwner || isActionInFlight.current) return;
@@ -748,10 +781,17 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const proxyHeadersParam = Object.keys(proxyUpstreamHeaders).length > 0
     ? `&h=${encodeURIComponent(JSON.stringify(proxyUpstreamHeaders))}`
     : '';
+  // #84 follow-up: the signature is only valid for the exact URL the server signed
+  // (extractResult.videoUrl) — only attach it when androidPlayUrl IS that URL. When androidPlayUrl
+  // falls back to originalVideoUrl (extraction failed/skipped), there's nothing signed for it and
+  // the proxy still accepts the plain accessToken/token path, same as before this change.
+  const proxySigParam = (androidPlayUrl && androidPlayUrl === extractedVideoUrl && extractResult?.proxyExp && extractResult?.proxySig)
+    ? `&exp=${extractResult.proxyExp}&sig=${extractResult.proxySig}`
+    : '';
   const extractedVideoProxyUrl = (androidPlayUrl && accessToken)
     ? isHlsStream
-      ? `${CONTENT_BASE_URL}/content/hls-proxy?url=${encodeURIComponent(androidPlayUrl)}&referer=${encodeURIComponent(proxyReferer)}`
-      : `${CONTENT_BASE_URL}/content/proxy/stream?url=${encodeURIComponent(androidPlayUrl)}&token=${encodeURIComponent(accessToken)}${proxyHeadersParam}`
+      ? `${CONTENT_BASE_URL}/content/hls-proxy?url=${encodeURIComponent(androidPlayUrl)}&referer=${encodeURIComponent(proxyReferer)}${proxySigParam}`
+      : `${CONTENT_BASE_URL}/content/proxy/stream?url=${encodeURIComponent(androidPlayUrl)}&token=${encodeURIComponent(accessToken)}${proxyHeadersParam}${proxySigParam}`
     : undefined;
   // iOS VK/Rutube: same CDN IP-lock issue as Android — the CDN HLS manifests are served from
   // the Railway extraction server's IP. AVPlayer fetching segments from a different IP gets
