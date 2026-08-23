@@ -13,7 +13,7 @@ import { useLocalizedHref } from '@/lib/i18n/use-localized-href';
 const SOCIAL_LINKS = [
   { href: 'https://instagram.com/wewatch.tezcode', label: 'Instagram', Icon: FaInstagram },
   { href: 'https://x.com/wewattch', label: 'X (Twitter)', Icon: FaXTwitter },
-  { href: 'https://t.me/+6w6lOLm7eJRiMjVi', label: 'Telegram', Icon: FaTelegram },
+  { href: 'https://t.me/wewatchh', label: 'Telegram', Icon: FaTelegram },
 ] as const;
 
 /** Language roots, in the order they are offered. Fixed targets — see the row below. */
