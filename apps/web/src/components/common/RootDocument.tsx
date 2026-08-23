@@ -168,7 +168,7 @@ const jsonLdOrg = {
   sameAs: [
     'https://tezcode.dev',
     'https://instagram.com/wewatch.tezcode',
-    'https://x.com/wewattch',
+    'https://x.com/wewatch_uz',
     'https://t.me/wewatchh',
   ],
   parentOrganization: {

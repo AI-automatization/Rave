@@ -12,7 +12,7 @@ import { useLocalizedHref } from '@/lib/i18n/use-localized-href';
 // sameAs is what tells Google these are the same entity as wewatch.uz.
 const SOCIAL_LINKS = [
   { href: 'https://instagram.com/wewatch.tezcode', label: 'Instagram', Icon: FaInstagram },
-  { href: 'https://x.com/wewattch', label: 'X (Twitter)', Icon: FaXTwitter },
+  { href: 'https://x.com/wewatch_uz', label: 'X (Twitter)', Icon: FaXTwitter },
   { href: 'https://t.me/wewatchh', label: 'Telegram', Icon: FaTelegram },
 ] as const;
 
