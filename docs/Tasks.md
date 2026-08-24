@@ -206,18 +206,24 @@
 - **Mas'ul:** pending[Jasur]
 - **Beruvchi:** Saidazim
 - **Yaratilgan:** 2026-08-10 18:42
-- **Holat:** ❌ Boshlanmagan — Jasur'ga Telegram orqali yuborildi (@do_you_wanna_me), javob kutilmoqda
+- **Holat:** 🔶 Jarayonda — 30 kunlik reja tayyor (vault: "WeWatch — Instagram Kontent Tizimi"), avtomatik nashr
+  zanjiri to'liq yozildi va `marketing/instagram-publish/`ga ko'chirildi (2026-08-25, avval
+  `wewatch-reels/`da edi). Saidazimdan IG_USER_ID/IG_ACCESS_TOKEN va Cloudinary kalitlari kelib tushdi
+  (Telegram orqali, 2026-08-25) — hech biri repo'ga yozilmagan, `.env` (gitignore'da) orqali qo'lda kiritiladi.
 - **Tavsiya model:** opus
 - **Model sababi:** noldan avtomatika (Meta Graph API integratsiyasi mavjud emas) + 30 kunlik strategik kontent-reja — katta, noaniq ko'p qismli ish
 - **Sabab:** WeWatch Instagram marketingi to'liq Jasur zimmasiga o'tkazildi (Saidazim qarori, T-S195 9+ kun harakatsiz qolgani munosabati bilan domain almashtirish).
 - **Qilish kerak:**
-  - [ ] 30 kunlik kontent-reja (nima/qachon/qanday format) — Saidazim'ga yuborish
-  - [ ] Instagram'ga avtomatik yuklash — repo'da hozircha YO'Q (faqat Remotion render pipeline bor,
-        marketing/instagram/), Meta Graph API yoki shunga o'xshash vositani ulash kerak
+  - [x] 30 kunlik kontent-reja — tayyor (`marketing/instagram-30day-content-plan.md`, machine-readable versiyasi `marketing/instagram-publish/schedule.json`)
+  - [x] Instagram'ga avtomatik yuklash — to'liq zanjir yozildi: `publish-instagram.mjs` (bitta video),
+        `schedule-publish.mjs` (30 kunlik jadval, Task Scheduler orqali har 15 daqiqada),
+        `cloudinary-upload.mjs` + `set-day-media.mjs` (lokal video → ochiq URL → schedule.json, bandi 5 yopildi)
+  - [ ] `schedule.json`da hozircha 1-2 kun uchungina video bor — qolgan kunlar uchun render qilish kerak
+  - [ ] `.env` to'ldirish va `register-task.ps1` ishga tushirish — bu qadam ATAYLAB avtomatlashtirilmagan
+        (haqiqiy avtomatik post boshlanishi — ongli ravishda, Telegram orqali tasdiqlangandan keyin qilinadi)
   - [ ] Video formati: "3 ta savol + WeWatch javobi" hook-uslubi (Saidazim'ning aniq ko'rsatmasi)
-  - [ ] ERTAGA (2026-08-11) 10:00 — birinchi kontent Instagram'da jonli bo'lishi kerak
-- **Fayllar:** marketing/instagram/ (mavjud Remotion pipeline — WeWatchReel, kunlik Stories D1-D7,
-  render-all.js va h.k. — asos sifatida ishlatiladi)
+- **Fayllar:** `marketing/instagram/` (Remotion render pipeline — WeWatchReel, kunlik Stories D1-D7),
+  `marketing/instagram-publish/` (nashr zanjiri: render → Cloudinary → schedule.json → Instagram, README-INSTAGRAM-API.md'ga qarang)
 - **⚠️ Muddat juda qisqa** — to'liq avtomatika + tayyor kontent bir kunda real bo'lmasligi mumkin,
   Jasur'ga darhol savol berishga aytilgan.
 
