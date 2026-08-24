@@ -31,6 +31,16 @@ export class PaymentController {
     }
   };
 
+  getHistory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const history = await this.paymentService.getHistory(userId);
+      res.json(apiResponse.success(history));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   startCheckout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { userId } = (req as AuthenticatedRequest).user;
