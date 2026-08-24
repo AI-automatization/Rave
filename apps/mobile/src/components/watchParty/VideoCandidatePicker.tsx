@@ -31,7 +31,7 @@ import { UniversalPlayer, UniversalPlayerRef } from '@components/video/Universal
 import { videoStyles as vs } from './VideoSection.styles';
 import { useTheme, spacing, borderRadius, typography } from '@theme/index';
 import { useT } from '@i18n/index';
-import type { VideoCandidate, PlaybackStatus } from '@app-types/index';
+import type { VideoCandidate } from '@app-types/index';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -249,14 +249,18 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
             onPause={() => {}}
             onSeek={() => {}}
             onReady={() => { void previewRef.current?.play(); }}
-            onPlaybackStatusUpdate={(status: PlaybackStatus) => {
-              if (status.isLoaded && !status.isBuffering) {
-                setLiveReady((prev) => (prev[index] ? prev : { ...prev, [index]: true }));
-              }
-            }}
-            onProgress={(_current, durationSecs) => {
+            onProgress={(currentTimeSecs, durationSecs) => {
               if (durationSecs > 0) {
                 setCapturedDurations((prev) => (prev[index] ? prev : { ...prev, [index]: durationSecs }));
+              }
+              // Real prod bug 2026-08-24: using status.isBuffering:false alone flipped this to
+              // "live" on the very first status tick — right when metadata loads, before any
+              // frame has actually been decoded — producing an instant black rectangle instead
+              // of the intended carousel-then-video handoff. currentTimeSecs actually advancing
+              // means expo-video is genuinely decoding and displaying frames, not just "ready to
+              // start" — a much stronger readiness signal.
+              if (currentTimeSecs > 0.15) {
+                setLiveReady((prev) => (prev[index] ? prev : { ...prev, [index]: true }));
               }
             }}
           />
