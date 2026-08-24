@@ -55,6 +55,13 @@ const HEARTBEAT_INTERVAL_MS = Platform.OS === 'android' ? 2000 : 5000;
 const MAX_SYNC_SCHEDULE_WAIT_MS = 1500;
 const MAX_HEARTBEAT_EXTRAPOLATION_MS = 3000;
 const MAX_COMPENSATION_SECS = 30;
+// Absolute ceiling on how long a single seek-settle episode can keep isSyncing engaged.
+// scheduleSyncRelease used to just push a relative 1.5s timer out on every isBuffering:true tick
+// (see its own comment, which claimed a "~20s cap" that the code never actually enforced — pure
+// drift between comment and implementation). A source that never stops reporting isBuffering kept
+// isSyncing.current true forever, freezing currentTime/isPlaying permanently (live repro 2026-08-24:
+// player stuck on a video's 18+ warning interstitial, 37s+ frozen, play/pause/seek all no-ops).
+const MAX_SEEK_SETTLE_MS = 25000;
 // On play/pause, skip the hard seekTo if the player is already this close to the target — a seek
 // flushes ExoPlayer's HLS buffer (1-2s re-buffer). Small residual gaps are closed by drift micro-sync.
 const SEEK_SKIP_THRESHOLD_MS = 1000;
@@ -93,12 +100,20 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   // fast sources behave exactly as before (one 1.5s tick, nothing to push out), slow ones just keep
   // extending instead of releasing early into a stale position report.
   const seekSettleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Set on the first scheduleSyncRelease call of a settling episode, cleared once it actually
+  // releases — lets scheduleSyncRelease clamp against MAX_SEEK_SETTLE_MS from the true start,
+  // not from "now" on every extension (that was the bug — see MAX_SEEK_SETTLE_MS comment).
+  const seekSettleStartRef = useRef<number | null>(null);
   const scheduleSyncRelease = useCallback((ms: number) => {
     if (seekSettleTimerRef.current) clearTimeout(seekSettleTimerRef.current);
+    if (seekSettleStartRef.current == null) seekSettleStartRef.current = Date.now();
+    const elapsed = Date.now() - seekSettleStartRef.current;
+    const clampedMs = Math.max(0, Math.min(ms, MAX_SEEK_SETTLE_MS - elapsed));
     seekSettleTimerRef.current = setTimeout(() => {
       isSyncing.current = false;
       seekSettleTimerRef.current = null;
-    }, ms);
+      seekSettleStartRef.current = null;
+    }, clampedMs);
   }, []);
   const lastSyncId = useRef('');
   const prevIsPlayingRef = useRef(false);
@@ -507,10 +522,10 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     if (!isSyncing.current) setVideoCurrentTime(status.positionMillis / 1000);
     // Still settling a seek and the player is genuinely still buffering — push the release timer
     // further out instead of letting it expire on schedule (see scheduleSyncRelease's comment).
-    // Capped at ~20s total from the original seek by seekSettleTimerRef always being a single
-    // active timer that only ever gets replaced, never stacked — a source that never stops
-    // reporting isBuffering just keeps isSyncing engaged, which is the safe failure mode here
-    // (worst case the bar looks briefly frozen, never that it snaps back to a stale position).
+    // Hard-capped at MAX_SEEK_SETTLE_MS total from the original seek (2026-08-24: a source that
+    // never stops reporting isBuffering used to keep isSyncing engaged forever — real freeze,
+    // not "briefly", live repro on an 18+ warning interstitial). Past the cap this force-releases
+    // into whatever position is current, which can be stale, but stale beats frozen forever.
     if (isSyncing.current && seekSettleTimerRef.current && status.isBuffering) scheduleSyncRelease(1500);
     if (status.durationMillis) setVideoDuration(status.durationMillis / 1000);
     // Only signal buffering when video is supposed to be playing — avoids BUFFER_START
