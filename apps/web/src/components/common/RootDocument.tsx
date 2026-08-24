@@ -3,6 +3,7 @@ import type { AbstractIntlMessages } from 'next-intl';
 import { DM_Sans, Oswald } from 'next/font/google';
 import Script from 'next/script';
 import { Providers } from '@/components/common/Providers';
+import { SOCIAL_PROFILE_URLS } from '@/data/brand';
 import { AVAILABLE_OPERATING_SYSTEMS } from '@/data/product-facts';
 import enMessages from '../../../messages/en.json';
 import ruMessages from '../../../messages/ru.json';
@@ -155,12 +156,16 @@ const jsonLdOrg = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   name: 'WeWatch',
+  // The name is shared with unrelated brands (a US projector maker, several apps),
+  // so the entity carries an explicit alternate name and description.
+  alternateName: 'WeWatch UZ',
+  description:
+    'Watch-party service from Tashkent: watch YouTube, VK Video and Rutube in sync with friends, no extension and no account for guests.',
   url: 'https://wewatch.uz',
   logo: 'https://wewatch.uz/icons/icon-512x512.png',
   // WeWatch's own profiles — this is what lets a brand search for "wewatch"
-  // surface Instagram/X alongside the site, not just tezcode.dev. Keep in
-  // sync with SOCIAL_LINKS in Footer.tsx.
-  sameAs: ['https://tezcode.dev', 'https://instagram.com/wewatch.tezcode', 'https://x.com/wewattch'],
+  // surface Instagram/X/Telegram alongside the site, not just tezcode.dev.
+  sameAs: ['https://tezcode.dev', ...SOCIAL_PROFILE_URLS],
   parentOrganization: {
     '@type': 'Organization',
     name: 'tezcode',

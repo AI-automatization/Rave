@@ -4,16 +4,16 @@ import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { FaInstagram, FaXTwitter, FaTelegram } from 'react-icons/fa6';
 import { WeWatchLogo } from './WeWatchLogo';
+import { SOCIAL_PROFILES } from '@/data/brand';
 import { type Locale } from '@/lib/i18n/config';
 import { useLocalizedHref } from '@/lib/i18n/use-localized-href';
 
-// Official WeWatch profiles, sitewide — same URLs as jsonLdOrg.sameAs in
-// RootDocument.tsx. Keep both in sync: this row is what a visitor clicks,
-// sameAs is what tells Google these are the same entity as wewatch.uz.
+// The row a visitor clicks. URLs come from data/brand.ts, which also feeds
+// jsonLdOrg.sameAs — the two can no longer drift apart.
 const SOCIAL_LINKS = [
-  { href: 'https://instagram.com/wewatch.tezcode', label: 'Instagram', Icon: FaInstagram },
-  { href: 'https://x.com/wewattch', label: 'X (Twitter)', Icon: FaXTwitter },
-  { href: 'https://t.me/+6w6lOLm7eJRiMjVi', label: 'Telegram', Icon: FaTelegram },
+  { href: SOCIAL_PROFILES.instagram, label: 'Instagram', Icon: FaInstagram },
+  { href: SOCIAL_PROFILES.x, label: 'X (Twitter)', Icon: FaXTwitter },
+  { href: SOCIAL_PROFILES.telegram, label: 'Telegram', Icon: FaTelegram },
 ] as const;
 
 /** Language roots, in the order they are offered. Fixed targets — see the row below. */
