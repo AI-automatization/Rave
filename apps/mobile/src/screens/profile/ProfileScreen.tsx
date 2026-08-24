@@ -167,7 +167,10 @@ export function ProfileScreen() {
           <NavItem trackId="profile:watch_history" icon="time-outline" label={t('profile', 'watchHistory')} onPress={() => navigation.navigate('WatchHistory')} delay={450} />
         </View>
 
-        {/* Coming Soon — Subscription & Purchases */}
+        {/* Subscriptions & Purchases — "Подписки" stays a web-only placeholder (no such
+            concept to manage on mobile per Google Play policy — see services/payment/README.md),
+            "История покупок" is real: current plan + subscription lifecycle history from
+            services/payment. Read-only, no checkout/price/CTA. */}
         <View style={s.section}>
           <SectionHeader label={t('profile', 'subscriptions')} />
           <View style={s.navGroup}>
@@ -177,10 +180,12 @@ export function ProfileScreen() {
               subtitle={t('profile', 'subHistorySub')}
               delay={500}
             />
-            <ComingSoonItem
+            <NavItem
+              trackId="profile:purchase_history"
               icon="receipt-outline"
               label={t('profile', 'purchaseHistory')}
               subtitle={t('profile', 'purchaseHistorySub')}
+              onPress={() => navigation.navigate('PurchaseHistory')}
               delay={540}
             />
           </View>

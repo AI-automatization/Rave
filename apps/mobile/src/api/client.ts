@@ -20,6 +20,7 @@ const URLS = {
   content: process.env.EXPO_PUBLIC_CONTENT_URL!,
   notification: process.env.EXPO_PUBLIC_NOTIFICATION_URL!,
   watchParty: `${process.env.EXPO_PUBLIC_WATCH_PARTY_URL}/api/v1`,
+  payment: process.env.EXPO_PUBLIC_PAYMENT_URL!,
 };
 
 // Shared refresh state — prevents concurrent 401 refresh storms across all clients
@@ -143,3 +144,4 @@ export const contentClient = createClient(URLS.content);
 export const notificationClient = createClient(URLS.notification);
 export const watchPartyClient = createClient(URLS.watchParty);
 export const adminClient = createClient(`${process.env.EXPO_PUBLIC_ADMIN_URL ?? ''}`);
+export const paymentClient = createClient(URLS.payment);

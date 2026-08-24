@@ -103,6 +103,7 @@ export type ProfileStackParamList = {
   Profile: undefined;
   Settings: undefined;
   WatchHistory: undefined;
+  PurchaseHistory: undefined;
   BindEmail: { mode?: 'bind' | 'change' } | undefined;
 };
 
