@@ -52,6 +52,7 @@ const CLUSTER_BY_SLUG: Record<string, string> = {
   'smotret-vmeste-onlayn': 'watch_together',
   'birgalikda-tomosha-qilish': 'watch_together',
   'watch-party-besplatno': 'watch_together',
+  'bepul-watch-party': 'watch_together',
   'what-is-watch-party': 'watch_together',
   // YouTube — the cluster carrying the most RU impressions in the 2026-08-10 baseline.
   'smotret-youtube-vmeste': 'youtube',
