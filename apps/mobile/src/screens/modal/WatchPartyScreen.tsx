@@ -371,7 +371,6 @@ export function WatchPartyScreen() {
           frame={vb.frame}
           dimensions={vb.dimensions}
           error={vb.error}
-          remoteCursor={vb.remoteCursor}
           stop={vb.stop}
           sendInput={vb.sendInput}
         />

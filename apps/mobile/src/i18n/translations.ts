@@ -630,6 +630,7 @@ export const translations = {
     voiceEmpty: { uz: "Ovozli chatda hech kim yo'q", ru: 'Никого нет в голосовом чате', en: 'No one in voice chat' },
     voiceRetry: { uz: 'Qayta urinish', ru: 'Повторить', en: 'Retry' },
     vbStartVideo: { uz: 'Saytda videoni ishga tushiring', ru: 'Запустите видео на сайте', en: 'Start the video on the site' },
+    vbOwnerPicking: { uz: "Xona egasi video tanlamoqda...", ru: 'Владелец комнаты выбирает видео...', en: 'Room owner is picking a video...' },
     loadingExtracting: { uz: 'Video qidirilmoqda...', ru: 'Ищем видео...', en: 'Looking for video...' },
     loadingFallbackVB: { uz: 'Virtual brauzer ochilmoqda...', ru: 'Открываем виртуальный браузер...', en: 'Opening virtual browser...' },
     // T-S190: video-candidate picker

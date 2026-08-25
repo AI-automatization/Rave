@@ -20,7 +20,6 @@ interface Props {
   frame: string | null;
   dimensions: { width: number; height: number } | null;
   error: string | null;
-  remoteCursor: { x: number; y: number } | null;
   stop: () => void;
   sendInput: (input: VBInput) => void;
 }
@@ -30,7 +29,7 @@ interface Props {
 const TAP_SLOP_PX = 10;
 const MOVE_THROTTLE_MS = 40; // ~25fps for mousemove — matches web
 
-export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remoteCursor, stop, sendInput }: Props) {
+export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, stop, sendInput }: Props) {
   const { t } = useT();
   const [layout, setLayout] = useState<{ width: number; height: number } | null>(null);
   const lastMoveRef = useRef(0);
@@ -71,15 +70,6 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remote
     return { x: Math.round(localX * scaleX), y: Math.round(localY * scaleY) };
   }, []);
 
-  // Inverse — places the OWNER's cursor (received in server-viewport space via VB_CURSOR) at the
-  // right spot on THIS client's rendered frame, whatever size it happens to be displayed at.
-  const viewportToLocal = useCallback((vx: number, vy: number): { x: number; y: number } | null => {
-    const l = layoutRef.current;
-    const d = dimensionsRef.current;
-    if (!l || !d) return null;
-    return { x: (vx / d.width) * l.width, y: (vy / d.height) * l.height };
-  }, []);
-
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => isOwnerRef.current,
@@ -115,6 +105,19 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remote
     }),
   ).current;
 
+  // 2026-08-25 (Saidazim): VB frames are now owner-only server-side (vbSession.helper.ts) — a
+  // non-owner's `frame` is permanently null while VB is active, not "still loading". Showing the
+  // same spinner-forever as the real loading state would just be a silent, misleading hang;
+  // members get an explicit status instead, since they can't see or drive the browser anyway.
+  if (!isOwner) {
+    return (
+      <View style={[s.root, s.centered]}>
+        <Ionicons name="globe-outline" size={28} color="#A78BFA" />
+        <Text style={s.statusText}>{t('watchParty', 'vbOwnerPicking')}</Text>
+      </View>
+    );
+  }
+
   if (!frame) {
     return (
       <View style={[s.root, s.centered]}>
@@ -124,15 +127,15 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remote
     );
   }
 
-  const remoteCursorLocal = !isOwner && remoteCursor ? viewportToLocal(remoteCursor.x, remoteCursor.y) : null;
-
+  // Past this point isOwner is always true (non-owners returned above) — VB_FRAME/this whole
+  // render path is owner-only now, so the close button, pan handlers, and the owner's own
+  // remote-cursor overlay (that was for OTHER viewers watching the owner's pointer) no longer
+  // have a non-owner case to branch on.
   return (
     <View style={s.root}>
-      {isOwner && (
-        <TrackedTouchable trackId="watchparty:vb_close" style={s.closeBtn} onPress={stop} activeOpacity={0.75}>
-          <Ionicons name="close" size={16} color="#fff" />
-        </TrackedTouchable>
-      )}
+      <TrackedTouchable trackId="watchparty:vb_close" style={s.closeBtn} onPress={stop} activeOpacity={0.75}>
+        <Ionicons name="close" size={16} color="#fff" />
+      </TrackedTouchable>
 
       {/* Nothing auto-plays here on purpose — the whole point of falling back to VB is a real
           page the owner has to tap through (play button, ads, captcha). */}
@@ -141,7 +144,7 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remote
         <Text style={s.hintText}>{t('watchParty', 'vbStartVideo')}</Text>
       </View>
 
-      <View style={s.frameWrap} onLayout={onLayout} {...(isOwner ? panResponder.panHandlers : {})}>
+      <View style={s.frameWrap} onLayout={onLayout} {...panResponder.panHandlers}>
         {/* eslint-disable-next-line react-native/no-inline-styles -- base64 data URI, not a static asset */}
         <Image
           source={{ uri: `data:image/jpeg;base64,${frame}` }}
@@ -155,17 +158,6 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remote
           // iOS already defaults fadeDuration to 0, so this only mattered on Android.
           fadeDuration={0}
         />
-
-        {/* Everyone else sees the OWNER's cursor, synced via VB_CURSOR — otherwise nobody but
-            the owner has any idea what they're pointing at. */}
-        {remoteCursorLocal && (
-          <Ionicons
-            name="locate"
-            size={16}
-            color="#FBBF24"
-            style={[s.remoteCursor, { left: remoteCursorLocal.x - 2, top: remoteCursorLocal.y - 2 }]}
-          />
-        )}
       </View>
     </View>
   );
@@ -181,6 +173,7 @@ const s = StyleSheet.create({
   },
   centered: { alignItems: 'center', justifyContent: 'center', gap: 10 },
   errorText: { color: '#F87171', fontSize: 12, textAlign: 'center', paddingHorizontal: 20 },
+  statusText: { color: 'rgba(255,255,255,0.7)', fontSize: 13, textAlign: 'center', paddingHorizontal: 24 },
   frameWrap: { flex: 1 },
   frameImg: { width: '100%', height: '100%' },
   closeBtn: {
@@ -198,5 +191,4 @@ const s = StyleSheet.create({
   },
   hintDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#A78BFA' },
   hintText: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '600' },
-  remoteCursor: { position: 'absolute' },
 });

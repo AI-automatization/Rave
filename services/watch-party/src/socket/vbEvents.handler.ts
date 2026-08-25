@@ -7,6 +7,8 @@ import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { JwtPayload } from '@shared/types';
 import { VBInput, stopSession, sendInput, getSessionOwner } from '../services/virtualBrowser.service';
 import { startVBForRoom } from './vbSession.helper';
+import { enqueueVBRequest, removeFromQueue } from './vbQueue.helper';
+import { getUserPlan } from '@shared/utils/serviceClient';
 import { isOwnVbUrl, isPrivateUrl } from '../services/extractionClient';
 import { isDomainBlocked } from '../controllers/domain.admin.controller';
 
@@ -104,14 +106,20 @@ export const registerVBEvents = (
       return;
     }
 
+    const tier = await getUserPlan(userId);
     try {
-      await startVBForRoom(io, redis, roomId, userId, url.toString());
-      logger.info('VB started', { roomId, userId, url: url.toString() });
+      await startVBForRoom(io, redis, roomId, userId, url.toString(), tier);
+      logger.info('VB started', { roomId, userId, url: url.toString(), tier });
     } catch (e) {
-      const message = (e as Error).message === 'virtual_browser_limit'
-        ? 'Слишком много активных виртуальных браузеров, попробуйте позже'
-        : 'Не удалось открыть виртуальный браузер';
-      socket.emit(SERVER_EVENTS.VB_ERROR, { message });
+      if ((e as Error).message === 'virtual_browser_limit') {
+        // Free pool is full — wait instead of failing outright (Pro never hits this branch,
+        // it's uncapped, see virtualBrowser.service.ts's MAX_TOTAL_SAFETY_CEILING).
+        const position = enqueueVBRequest({ roomId, ownerId: userId, url: url.toString(), io, redis });
+        socket.emit(SERVER_EVENTS.VB_QUEUED, { position });
+        logger.info('VB queued — free pool full', { roomId, userId, position });
+        return;
+      }
+      socket.emit(SERVER_EVENTS.VB_ERROR, { message: 'Не удалось открыть виртуальный браузер' });
       logger.error('VB start failed', { roomId, userId, error: (e as Error).message });
     }
   });
@@ -120,17 +128,15 @@ export const registerVBEvents = (
     if (!authSocket.roomId) return;
     const roomId = authSocket.roomId;
     if (getSessionOwner(roomId) !== userId) return; // silently ignore non-owner input
-    // Relay the owner's pointer position to everyone else so they can see a synced cursor —
-    // the JPEG screencast itself never contains an OS cursor (see VB_CURSOR comment).
-    if (input.type === 'mousemove') {
-      socket.to(roomId).emit(SERVER_EVENTS.VB_CURSOR, { x: input.x, y: input.y });
-    }
+    // 2026-08-25 (Saidazim): VB_CURSOR relay removed — VB_FRAME is owner-only now (see
+    // vbSession.helper.ts), so no other viewer has the screencast to overlay a synced cursor on.
     await sendInput(roomId, userId, input);
   });
 
   socket.on(CLIENT_EVENTS.VB_STOP, async () => {
     if (!authSocket.roomId || !await resolveIsOwner()) return;
     const roomId = authSocket.roomId;
+    removeFromQueue(roomId); // owner cancelled — don't auto-start this later once it dequeues
     await stopSession(roomId);
     io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, {});
     logger.info('VB stopped by owner', { roomId, userId });

@@ -106,22 +106,31 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
     setFailedUris((prev) => (prev.has(uri) ? prev : new Set(prev).add(uri)));
   }, []);
 
-  // Fresh cycle-through every time the sheet opens — a stale mode/index from a previous
-  // session would otherwise show the wrong candidate (or land straight in the grid).
+  // Real feedback 2026-08-25: closing and reopening this sheet (same VB session, same
+  // candidates) forced every thumbnail/frame to refetch from scratch — the owner had already
+  // waited once and had to wait again for data that was still perfectly valid. Only wipe the
+  // fetched-data caches when the candidate LIST itself actually changed (new VB session); always
+  // reset navigation (mode/index) on open regardless, since landing on a stale mode/index from a
+  // previous, different session is a real bug this same effect used to guard against.
+  const candidatesSignatureRef = useRef<string>('');
   useEffect(() => {
     if (visible) {
       setMode('cycle');
       setCycleIndex(0);
       setGridPreviewIndex(0);
-      setThumbnails({});
-      thumbnailAttempted.current = new Set();
-      setCapturedDurations({});
-      setPreviewFrames({});
-      previewFramesAttempted.current = new Set();
       setFrameCycleIdx(0);
-      setLiveReady({});
+      const signature = candidates?.map((c) => c.url).join('|') ?? '';
+      if (signature !== candidatesSignatureRef.current) {
+        candidatesSignatureRef.current = signature;
+        setThumbnails({});
+        thumbnailAttempted.current = new Set();
+        setCapturedDurations({});
+        setPreviewFrames({});
+        previewFramesAttempted.current = new Set();
+        setLiveReady({});
+      }
     }
-  }, [visible]);
+  }, [visible, candidates]);
 
   // Lazy — generating a thumbnail costs a real network fetch per candidate, not worth paying for
   // ones the owner never looks at. Originally grid-only; 2026-08-23 extended to cycle/gridPreview
@@ -300,7 +309,13 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
 
   const renderGridItem = ({ item, index }: ListRenderItemInfo<VideoCandidate>) => {
     const duration = formatDuration(capturedDurations[index] ?? item.duration);
-    const rawPoster = item.poster ?? thumbnails[index];
+    // Real feedback 2026-08-25: grid showed bare placeholder icons even for candidates the owner
+    // had ALREADY cycled through (and whose frames genuinely loaded) — thumbnails[index] is a
+    // separate fetch from the carousel frames cycle mode already collected in previewFrames, and
+    // by grid time the plain thumbnail fetch often hadn't resolved yet even though carousel
+    // frames had. Fall back to whatever carousel frame is already in hand instead of re-showing
+    // an empty placeholder for data that's sitting right there.
+    const rawPoster = item.poster ?? thumbnails[index] ?? previewFrames[index]?.[0];
     const poster = rawPoster && !failedUris.has(rawPoster) ? rawPoster : undefined;
     return (
       <TrackedTouchable
@@ -336,6 +351,10 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <Text style={[styles.title, { color: colors.textPrimary }]}>
             {mode === 'grid' ? t('watchParty', 'candidatesGridTitle') : t('watchParty', 'candidatesTitle')}
+            {/* Real feedback 2026-08-25: cycle mode had no indication of which candidate is on
+                screen or whether "не то видео" actually advanced — owner couldn't tell if a tap
+                did anything. A plain position counter answers both at once. */}
+            {mode === 'cycle' && candidates && candidates.length > 0 ? ` (${cycleIndex + 1}/${candidates.length})` : null}
           </Text>
           <TrackedTouchable trackId="candidate_picker:close" onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="close" size={22} color={colors.textMuted} />

@@ -67,16 +67,21 @@ function proxiedMediaUrl(mediaUrl: string, mediaType: MediaType, roomId: string)
   const encodedUrl = Buffer.from(mediaUrl, 'utf8').toString('base64url');
 
   if (mediaType === 'mp4' && vbEdgeFetchUrl) {
-    // Real prod bug 2026-08-10 found live: minting this as a bare `${vbEdgeFetchUrl}/?url=...`
-    // gave it no distinguishing path segment, so isOwnVbUrl (below) and the frontend's twin check
-    // (isOwnVbMediaUrl, VideoPlayer.tsx) — both path-substring matches, deliberately host-agnostic
-    // — never recognized it as "our own already-resolved URL". CHANGE_MEDIA then treated a
-    // confirmed candidate's own playback URL as an arbitrary external page, tried to extract it,
-    // failed, auto-started a FRESH VB session pointed at the edge-fetch URL itself, whose sniffer
-    // then caught its own passthrough response as a "candidate" — a self-referential loop. The
-    // Bunny script itself doesn't care about path (only reads query params), so adding one here
-    // costs nothing there.
-    return `${vbEdgeFetchUrl}/vb-edge-fetch?url=${encodedUrl}&exp=${exp}&sig=${sig}`;
+    // 2026-08-23 follow-up: this used to hand the client a bare Bunny URL directly (bypassing
+    // Railway's vb-media-proxy entirely) — but Bunny's edge platform strips the incoming `Range`
+    // header before the script ever sees it (confirmed live via a debug console.log dump of
+    // request.headers.forEach — 'range' is simply absent from what the script receives, no matter
+    // what the client sent). No code inside the Bunny script can work around that; it never gets
+    // the information. So mp4 now goes through Railway's vb-media-proxy exactly like HLS/DASH does
+    // (same URL shape, same isOwnVbUrl/isOwnVbMediaUrl self-reference recognition below — the
+    // 2026-08-10 "no distinguishing path segment" bug this comment used to describe doesn't apply
+    // anymore, since this is now a completely normal vb-media-proxy/stream.mp4 URL). Railway DOES
+    // receive Range correctly from the client; it just can't always reach the origin directly for
+    // IP-blocked hosts (fayllar1.ru-class) — vbMediaProxy.controller.ts's attemptFetch() re-sends
+    // that same request through Bunny server-to-server when `viaBunny=1`, passing Range as a query
+    // param instead of a header (Bunny strips it either way, but a query param survives).
+    return `${vbStreamPublicUrl}/api/v1/watch-party/vb-media-proxy/stream.mp4`
+         + `?url=${encodedUrl}&exp=${exp}&sig=${sig}&roomId=${encodeURIComponent(roomId)}&viaBunny=1`;
   }
 
   const ext = mediaType === 'hls' ? 'm3u8' : 'mpd';
@@ -90,6 +95,9 @@ export async function startVBForRoom(
   roomId: string,
   ownerId: string,
   url: string,
+  // Determined by the caller via getUserPlan(ownerId) — see vbEvents.handler.ts. Threaded straight
+  // through to startSession()'s concurrency check (virtualBrowser.service.ts).
+  tier: 'free' | 'pro' = 'free',
 ): Promise<void> {
   // Real prod case 2026-08-06 (uzmovi.net): VB is a best-effort sniffer — ads, related-content
   // widgets, and (separately) a duration bug on captured streams can all pass its heuristics —
@@ -118,8 +126,13 @@ export async function startVBForRoom(
   });
 
   await startSession(roomId, ownerId, url, (base64Jpeg) => {
-    // volatile: a lagging viewer jumps to the latest frame instead of draining a backlog.
-    io.to(roomId).volatile.emit(SERVER_EVENTS.VB_FRAME, { data: base64Jpeg });
+    // Owner only (2026-08-25, Saidazim: "виден только владельцу"). Was io.to(roomId) — every
+    // member decoded every 1280x720 JPEG frame just to watch the owner pick a video, multiplying
+    // server bandwidth by room size for something non-owners can't even interact with. Every
+    // socket already joins `user:${userId}` on connect (watchParty.socket.ts) — reuse that
+    // instead of the room broadcast. volatile: a lagging owner client jumps to the latest frame
+    // instead of draining a backlog.
+    io.to(`user:${ownerId}`).volatile.emit(SERVER_EVENTS.VB_FRAME, { data: base64Jpeg });
   }, (mediaUrl, mediaType, kind, duration) => {
     // 'capture' mediaUrl already points at our own vb-capture endpoint — only 'url' (a raw,
     // independently-fetchable CDN URL) needs the same-IP proxy wrapper.
@@ -196,7 +209,13 @@ export async function startVBForRoom(
     void redis.setex(REDIS_KEYS.vbSessionCookies(roomId), CANDIDATES_TTL_SEC, cookieHeader).catch((e) => {
       logger.warn('VB: failed to store session cookies for later replay', { roomId, error: (e as Error).message });
     });
-  });
+  }, (reason) => {
+    // Best-effort, room-wide (not the requesting socket — this fires from deep inside the async
+    // session, long after the original VB_START request/response round-trip is over). Frontend
+    // shows a corner badge on the live screencast rather than trying to solve/bypass the challenge.
+    io.to(roomId).emit(SERVER_EVENTS.VB_BLOCKED, { reason });
+    logger.info('VB: bot challenge detected, notified room', { roomId, reason });
+  }, tier);
 
   io.to(roomId).emit(SERVER_EVENTS.VB_STARTED, { url, width: VB_VIEWPORT.width, height: VB_VIEWPORT.height, ownerId });
 }

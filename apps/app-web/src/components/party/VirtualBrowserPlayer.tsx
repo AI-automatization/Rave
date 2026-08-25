@@ -10,10 +10,19 @@ interface Props {
   frame: string | null;
   dimensions: { width: number; height: number } | null;
   error: string | null;
-  remoteCursor: { x: number; y: number } | null;
+  /** Page VB is showing is a bot-challenge wall — see use-virtual-browser.ts's `blocked`. Not an
+   * `error` (that's scoped to the pre-session URL-input screen, see the render tree below) — this
+   * needs to show ON TOP of a live, still-streaming frame. */
+  blocked: 'cloudflare' | 'recaptcha' | null;
+  /** 1-indexed position while waiting for a Free-tier slot — see use-virtual-browser.ts. null =
+   * not queued (Pro never queues, or the session just hasn't hit the cap). */
+  queuePosition: number | null;
   start: (url: string) => void;
   stop: () => void;
   sendInput: (input: VBInput) => void;
+  /** Owner-only: opens the same video-candidate picker "Это не то видео" already opens — the
+   * blocked-badge's escape hatch to pick a different source instead of waiting out a dead session. */
+  onPickDifferentVideo?: () => void;
 }
 
 // Kosmi-style shared virtual browser: a real headless Chromium page runs on the server, the
@@ -21,7 +30,7 @@ interface Props {
 // frame stream. See services/watch-party/src/services/virtualBrowser.service.ts for the server
 // side (CDP screencast + input dispatch). State/socket wiring lives in the parent's
 // useVirtualBrowser() call (RoomContent.tsx) — this component is presentational + input capture.
-export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remoteCursor, start, stop, sendInput }: Props) {
+export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocked, queuePosition, start, stop, sendInput, onPickDifferentVideo }: Props) {
   const t = useTranslations('party');
   const [urlInput, setUrlInput] = useState('');
   const imgRef = useRef<HTMLImageElement>(null);
@@ -49,18 +58,6 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remote
     (e: React.MouseEvent) => clientToViewport(e.clientX, e.clientY),
     [clientToViewport],
   );
-
-  // Inverse of toViewportCoords — used to place the OTHER viewers' synced cursor (received in
-  // server-viewport space via VB_CURSOR) at the right spot on THIS client's rendered <img>,
-  // whatever size it happens to be displayed at.
-  const viewportToCssCoords = useCallback((vx: number, vy: number): { x: number; y: number } | null => {
-    if (!imgRef.current || !dimensions) return null;
-    const rect = imgRef.current.getBoundingClientRect();
-    return {
-      x: (vx / dimensions.width) * rect.width,
-      y: (vy / dimensions.height) * rect.height,
-    };
-  }, [dimensions]);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (isOwner && imgRef.current) {
@@ -194,12 +191,27 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remote
     };
   }, [isOwner, sendInput, frame, clientToViewport]);
 
+  // 2026-08-25 (Saidazim): VB frames are now owner-only server-side (services/watch-party's
+  // vbSession.helper.ts) — a non-owner's `frame` never arrives at all while VB is active, it's
+  // not "still loading". Check this before the loading/queue states below so a non-owner always
+  // gets one consistent, honest status instead of racing into the `!frame` spinner further down
+  // and hanging there forever once `dimensions` arrives (VB_STARTED is still broadcast to
+  // everyone) but no frame ever will.
+  if (!isOwner) {
+    return (
+      <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-2 text-center px-6">
+        <Globe size={24} className="text-zinc-700" />
+        <p className="text-sm text-zinc-500">{t('vbOwnerPicking')}</p>
+      </div>
+    );
+  }
+
   if (!frame && !dimensions) {
-    if (!isOwner) {
+    if (queuePosition !== null) {
       return (
         <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-2 text-center px-6">
-          <Globe size={24} className="text-zinc-700" />
-          <p className="text-sm text-zinc-500">{t('vbNotOpened')}</p>
+          <Loader2 size={24} className="text-violet-400/60 animate-spin" />
+          <p className="text-sm text-zinc-300">{t('vbQueued', { position: queuePosition })}</p>
         </div>
       );
     }
@@ -227,8 +239,6 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remote
       </div>
     );
   }
-
-  const remoteCursorCss = !isOwner && remoteCursor ? viewportToCssCoords(remoteCursor.x, remoteCursor.y) : null;
 
   return (
     <div className="relative aspect-video bg-black rounded-xl overflow-hidden">
@@ -293,15 +303,22 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remote
             />
           )}
 
-          {/* Everyone else sees the OWNER's cursor, synced via VB_CURSOR — same reason Kosmi
-              shows one: otherwise nobody but the owner has any idea what they're pointing at. */}
-          {remoteCursorCss && (
-            <MousePointer2
-              size={18}
-              className="absolute pointer-events-none text-amber-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
-              style={{ left: remoteCursorCss.x, top: remoteCursorCss.y, transform: 'translate(-2px,-2px)' }}
-              fill="currentColor"
-            />
+          {/* Bot-challenge wall — not solved/bypassed (out of scope on purpose, see
+              virtualBrowser.service.ts), just surfaced. Owner can click straight through to the
+              candidate picker instead of waiting out a screencast that will never resolve on its
+              own; non-owner sees the same badge but it's informational only (picker is owner-gated,
+              same as "Это не то видео"). */}
+          {blocked && (
+            <button
+              type="button"
+              disabled={!isOwner || !onPickDifferentVideo}
+              onClick={() => onPickDifferentVideo?.()}
+              className={`absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 text-[12px] font-medium text-white/80 backdrop-blur-sm transition-colors ${isOwner && onPickDifferentVideo ? 'cursor-pointer hover:bg-black/85 hover:text-white' : 'cursor-default'}`}
+            >
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-400" />
+              {t('vbBlocked')}
+              {isOwner && onPickDifferentVideo && <span className="opacity-70">— {t('playerPickAnother')}</span>}
+            </button>
           )}
         </>
       )}
