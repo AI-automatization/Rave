@@ -17,7 +17,8 @@
 #   MINIO_ENDPOINT     — адрес MinIO
 #   MINIO_ACCESS       — access key
 #   MINIO_SECRET       — secret key
-#   MINIO_BUCKET       — бакет, например wewatch-backups
+#   MINIO_BUCKET       — существующий бакет MinIO
+#   MINIO_PREFIX       — префикс внутри бакета, например wewatch/ (см. ниже)
 #   GPG_PASSPHRASE     — пароль симметричного шифрования (БЕЗ НЕГО ДАМП НЕ ВОССТАНОВИТЬ)
 #   RETENTION_DAYS     — сколько дней хранить, по умолчанию 30
 #   TELEGRAM_BOT_TOKEN — необязательно, уведомление
@@ -30,6 +31,13 @@ DATE=$(date -u +"%Y/%m/%d")
 BACKUP_NAME="wewatch-mongo-${TIMESTAMP}.archive.gz.gpg"
 TMP_DIR="/tmp/wewatch-backup"
 RETENTION_DAYS="${RETENTION_DAYS:-30}"
+
+# Префикс внутри бакета. Появился 25.08 после первого живого прогона: ключ
+# MinIO не имеет права создавать бакеты («mc mb … Access Denied»), поэтому
+# дампы WeWatch кладутся в уже существующий бакет рядом с чужими. Отсюда
+# требование: и загрузка, и РЕТЕНЦИЯ работают строго внутри префикса —
+# иначе уборка старше 30 дней снесёт бэкапы RAOS, лежащие в том же бакете.
+MINIO_PREFIX="${MINIO_PREFIX:-}"
 
 mkdir -p "${TMP_DIR}"
 BACKUP_FILE="${TMP_DIR}/${BACKUP_NAME}"
@@ -80,9 +88,10 @@ echo "[$(date -u)] Backup created: ${BACKUP_FILE} (${BACKUP_SIZE})"
 
 # ─── 3. Загрузка в MinIO ──────────────────────────────────────────────────────
 mc alias set wewatch "${MINIO_ENDPOINT}" "${MINIO_ACCESS}" "${MINIO_SECRET}" --quiet
-mc mb "wewatch/${MINIO_BUCKET}" --quiet --ignore-existing || true
-mc cp "${BACKUP_FILE}" "wewatch/${MINIO_BUCKET}/${DATE}/${BACKUP_NAME}" --quiet
-echo "[$(date -u)] Uploaded: ${MINIO_BUCKET}/${DATE}/${BACKUP_NAME}"
+# Бакет НЕ создаём: у ключа нет на это прав, и это нормально — он и не должен
+# уметь ничего, кроме записи в свой префикс.
+mc cp "${BACKUP_FILE}" "wewatch/${MINIO_BUCKET}/${MINIO_PREFIX}${DATE}/${BACKUP_NAME}" --quiet
+echo "[$(date -u)] Uploaded: ${MINIO_BUCKET}/${MINIO_PREFIX}${DATE}/${BACKUP_NAME}"
 
 # ─── 4. Ретенция ──────────────────────────────────────────────────────────────
 # Cutoff — ЧИСЛО (YYYYMMDD), не строка. В бэкапе RAOS ровно здесь была дыра:
@@ -96,7 +105,9 @@ CUTOFF_NUM=$(date -u -d "${RETENTION_DAYS} days ago" +"%Y%m%d" 2>/dev/null || \
 if [ -z "${CUTOFF_NUM}" ]; then
   echo "[$(date -u)] WARNING: cutoff date not computed — retention skipped"
 else
-  mc ls --recursive "wewatch/${MINIO_BUCKET}/" --quiet 2>/dev/null \
+  # Листинг ИМЕННО от префикса: mc отдаёт пути относительно него, поэтому
+  # разбор на YYYY/MM/DD ниже не меняется, а чужие папки в выборку не попадают.
+  mc ls --recursive "wewatch/${MINIO_BUCKET}/${MINIO_PREFIX}" --quiet 2>/dev/null \
     | awk '{print $NF}' \
     | awk -F/ 'NF >= 4 { print $1 "/" $2 "/" $3 }' \
     | sort -u \
@@ -109,7 +120,7 @@ else
             ;;
         esac
         if [ "${DAY_NUM}" -lt "${CUTOFF_NUM}" ]; then
-          mc rm --recursive --force "wewatch/${MINIO_BUCKET}/${DAY}/" --quiet || true
+          mc rm --recursive --force "wewatch/${MINIO_BUCKET}/${MINIO_PREFIX}${DAY}/" --quiet || true
           echo "[$(date -u)] Deleted old backup dir: ${DAY}"
         fi
       done
