@@ -66,10 +66,6 @@ export const SERVER_EVENTS = Object.freeze({
   VB_FRAME:   'vb:frame',
   VB_STOPPED: 'vb:stopped',
   VB_ERROR:   'vb:error',
-  // Owner's pointer position relayed to everyone else — headless Chrome's screencast frames
-  // never include an OS cursor, so without this nobody but the owner can tell where they're
-  // about to click (Kosmi shows a synced cursor for exactly this reason).
-  VB_CURSOR:  'vb:cursor',
   // The page VB navigated to (or into, on a later in-session click) is a bot-challenge wall —
   // room-wide, not tied to any one request/response (see virtualBrowser.service.ts's
   // detectBotChallenge and vbSession.helper.ts's startVBForRoom). Not solved/bypassed — this is

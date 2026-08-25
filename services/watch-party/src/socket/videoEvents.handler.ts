@@ -17,6 +17,15 @@ interface AuthenticatedSocket extends Socket {
 // mid-buffer must not leave the democratic pause stuck with nobody left to catch up to.
 export const bufferTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
 
+// Real prod bug (Railway logs, 2026-08-24): concurrent/out-of-order SEEK emits from the owner's
+// client (rapid skip-burst taps racing the network) landed at the server in a different order
+// than they were sent, producing chaotic currentTime values in syncState (e.g. 258→1997→298→
+// 3138→258...) and a visible rewind/jitter for every member. `seq` is a per-client monotonic
+// counter (see useWatchParty.ts's emitSeek) — dropping any SEEK whose seq isn't strictly greater
+// than the last applied one for this room rejects the stale, out-of-order arrivals without
+// needing a server-side debounce that would add latency to legitimate rapid seeks.
+export const lastSeekSeq = new Map<string, number>();
+
 // Standalone (no closure over a specific socket) so LEAVE_ROOM in roomEvents.handler.ts can
 // call the exact same resume path a disconnecting/leaving buffering member should trigger.
 export const resumeBufferedRoom = async (
@@ -116,9 +125,18 @@ export const registerVideoEvents = (
   });
 
   // SEEK — owner only
-  socket.on(CLIENT_EVENTS.SEEK, async (data: { currentTime: number }) => {
+  socket.on(CLIENT_EVENTS.SEEK, async (data: { currentTime: number; seq?: number }) => {
     if (!authSocket.roomId || !await resolveIsOwner()) return;
     const roomId = authSocket.roomId;
+
+    if (data.seq !== undefined) {
+      const lastApplied = lastSeekSeq.get(roomId) ?? -1;
+      if (data.seq <= lastApplied) {
+        logger.info('Seek dropped as stale (out of order)', { roomId, userId, seq: data.seq, lastApplied });
+        return;
+      }
+      lastSeekSeq.set(roomId, data.seq);
+    }
 
     try {
       // Read isPlaying from Redis (fast) rather than MongoDB

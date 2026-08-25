@@ -20,10 +20,6 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
   const [active, setActive] = useState(false);
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // Owner's pointer position in server-viewport space, relayed from vbEvents.handler.ts on
-  // every mousemove input — lets viewers see a synced cursor even though the JPEG screencast
-  // itself never contains an OS cursor.
-  const [remoteCursor, setRemoteCursor] = useState<{ x: number; y: number } | null>(null);
   const onCandidateNeedsConfirmationRef = useRef(onCandidateNeedsConfirmation);
   onCandidateNeedsConfirmationRef.current = onCandidateNeedsConfirmation;
 
@@ -40,7 +36,6 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
     const onStopped = (data?: { reason?: string; needsConfirmation?: boolean }) => {
       setActive(false);
       setFrame(null);
-      setRemoteCursor(null);
       // needsConfirmation: true — VB found candidate(s) but, unlike a normal extraction result,
       // never auto-commits to the room (services/watch-party vbSession.helper.ts) — same picker
       // as the gear-row "Это не то видео" (VideoCandidatePicker.tsx, T-S190), just opened for the
@@ -72,14 +67,11 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
       }
     };
 
-    const onCursor = (data: { x: number; y: number }) => setRemoteCursor({ x: data.x, y: data.y });
-
     socket.on(SERVER_EVENTS.VB_STARTED, onStarted);
     socket.on(SERVER_EVENTS.VB_FRAME, onFrame);
     socket.on(SERVER_EVENTS.VB_STOPPED, onStopped);
     socket.on(SERVER_EVENTS.VB_ERROR, onError);
     socket.on(SERVER_EVENTS.ROOM_JOINED, onRoomJoined);
-    socket.on(SERVER_EVENTS.VB_CURSOR, onCursor);
 
     return () => {
       socket.off(SERVER_EVENTS.VB_STARTED, onStarted);
@@ -87,7 +79,6 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
       socket.off(SERVER_EVENTS.VB_STOPPED, onStopped);
       socket.off(SERVER_EVENTS.VB_ERROR, onError);
       socket.off(SERVER_EVENTS.ROOM_JOINED, onRoomJoined);
-      socket.off(SERVER_EVENTS.VB_CURSOR, onCursor);
     };
   }, []);
 
@@ -104,5 +95,5 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
     getSocket()?.emit(CLIENT_EVENTS.VB_INPUT, input);
   }, [isOwner]);
 
-  return { frame, active, dimensions, error, remoteCursor, start, stop, sendInput };
+  return { frame, active, dimensions, error, start, stop, sendInput };
 }

@@ -126,8 +126,13 @@ export async function startVBForRoom(
   });
 
   await startSession(roomId, ownerId, url, (base64Jpeg) => {
-    // volatile: a lagging viewer jumps to the latest frame instead of draining a backlog.
-    io.to(roomId).volatile.emit(SERVER_EVENTS.VB_FRAME, { data: base64Jpeg });
+    // Owner only (2026-08-25, Saidazim: "виден только владельцу"). Was io.to(roomId) — every
+    // member decoded every 1280x720 JPEG frame just to watch the owner pick a video, multiplying
+    // server bandwidth by room size for something non-owners can't even interact with. Every
+    // socket already joins `user:${userId}` on connect (watchParty.socket.ts) — reuse that
+    // instead of the room broadcast. volatile: a lagging owner client jumps to the latest frame
+    // instead of draining a backlog.
+    io.to(`user:${ownerId}`).volatile.emit(SERVER_EVENTS.VB_FRAME, { data: base64Jpeg });
   }, (mediaUrl, mediaType, kind, duration) => {
     // 'capture' mediaUrl already points at our own vb-capture endpoint — only 'url' (a raw,
     // independently-fetchable CDN URL) needs the same-IP proxy wrapper.
