@@ -604,8 +604,13 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     isSyncing.current = true;
     await playerRef.current?.seekTo(target * 1000);
     emitSeek(target);
-    setTimeout(() => { isSyncing.current = false; }, 1500);
-  }, [emitSeek]);
+    // scheduleSyncRelease, not a bare timer (2026-08-25 fix): a bare 1.5s timeout here skipped
+    // the buffering-aware extension handleProgressSeek already gets from onPlaybackStatusUpdate
+    // — on the same slow VB/Bunny-routed sources that motivated that fix, this path released
+    // isSyncing before the seek actually settled, letting a stale position report snap the
+    // room back (live repro: skip-burst to ~min 40, position rolled back to ~min 4-5).
+    scheduleSyncRelease(1500);
+  }, [emitSeek, scheduleSyncRelease]);
 
   const handleSeekDirection = useCallback(async (direction: 'forward' | 'back') => {
     if (!isOwner || videoIsLive) return;
@@ -620,7 +625,8 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       isSyncing.current = true;
       await playerRef.current?.seekTo(target * 1000);
       emitSeek(target);
-      setTimeout(() => { isSyncing.current = false; }, 1500);
+      // scheduleSyncRelease, not a bare timer — see flushSkipBurst's comment above, same fix.
+      scheduleSyncRelease(1500);
       // Burst window stays open after the immediate seek — a tap landing inside it accumulates
       // (below) instead of firing another seek of its own.
       skipBurstTimerRef.current = setTimeout(() => { skipBurstActiveRef.current = false; }, SKIP_BURST_WINDOW_MS);
@@ -633,7 +639,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     setPendingSkipSecs(skipAccumSecsRef.current);
     if (skipBurstTimerRef.current) clearTimeout(skipBurstTimerRef.current);
     skipBurstTimerRef.current = setTimeout(flushSkipBurst, SKIP_BURST_WINDOW_MS);
-  }, [isOwner, videoIsLive, emitSeek, flushSkipBurst]);
+  }, [isOwner, videoIsLive, emitSeek, flushSkipBurst, scheduleSyncRelease]);
 
   const handleEmojiSelect = useCallback((emoji: string) => {
     if (reactionCooldownSec > 0) return; // server-driven burst lockout — picker is already dimmed

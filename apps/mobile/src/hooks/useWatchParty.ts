@@ -411,9 +411,18 @@ export function useWatchParty(roomId: string) {
     [roomId],
   );
 
+  // Monotonic per-mount counter, not a timestamp: several seek sources (progress-bar drag,
+  // skip-burst buttons, WebView embeds echoing our own programmatic seekTo() back as an
+  // incoming 'SEEK' message) can each call emitSeek within the same millisecond — an integer
+  // ++ can't collide the way Date.now() could. Server enforces send-order using this (see
+  // videoEvents.handler.ts's lastSeekSeq) so a stale seek arriving late over the network can't
+  // snap the room's position backward regardless of which source produced it.
+  const seekSeqRef = useRef(0);
+
   const emitSeek = useCallback(
     (currentTime: number) => {
-      getSocket()?.emit(CLIENT_EVENTS.SEEK, { roomId, currentTime });
+      const seq = ++seekSeqRef.current;
+      getSocket()?.emit(CLIENT_EVENTS.SEEK, { roomId, currentTime, seq });
       broadcasterRef.current?.broadcastSeek(currentTime, Date.now() + MESH_SCHEDULE_AHEAD_MS);
     },
     [roomId],

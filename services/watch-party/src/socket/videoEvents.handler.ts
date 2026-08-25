@@ -3,6 +3,7 @@ import { WatchPartyService } from '../services/watchParty.service';
 import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { JwtPayload } from '@shared/types';
+import { getUserPlan } from '@shared/utils/serviceClient';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -15,6 +16,17 @@ interface AuthenticatedSocket extends Socket {
 // Exported so roomEvents.handler.ts (LEAVE_ROOM) can check/resume it too — a member leaving
 // mid-buffer must not leave the democratic pause stuck with nobody left to catch up to.
 export const bufferTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+
+// lastSeekSeq: per-room monotonic counter the CLIENT assigns to each outgoing seek. Real prod
+// bug 2026-08-25: several independent client-side sources can each emit a SEEK for the same
+// room in quick succession (progress-bar drag, skip-burst buttons, and — for WebView embeds —
+// our own programmatic seekTo() echoing straight back as an incoming 'SEEK' postMessage from
+// the page). Network/event-loop delivery order isn't guaranteed to match send order, so an
+// older seek arriving after a newer one previously snapped the room's position backward (live
+// repro: currentTime jumping 258→1997→298→3138→258... within a few seconds). Dropping anything
+// that isn't strictly newer than the last APPLIED seq for that room enforces send-order instead
+// of arrival-order, regardless of which client-side source produced the stale value.
+export const lastSeekSeq = new Map<string, number>();
 
 // Standalone (no closure over a specific socket) so LEAVE_ROOM in roomEvents.handler.ts can
 // call the exact same resume path a disconnecting/leaving buffering member should trigger.
@@ -115,9 +127,21 @@ export const registerVideoEvents = (
   });
 
   // SEEK — owner only
-  socket.on(CLIENT_EVENTS.SEEK, async (data: { currentTime: number }) => {
+  socket.on(CLIENT_EVENTS.SEEK, async (data: { currentTime: number; seq?: number }) => {
     if (!authSocket.roomId || !await resolveIsOwner()) return;
     const roomId = authSocket.roomId;
+
+    // Enforce send-order, not arrival-order (see lastSeekSeq's module-level comment). Only
+    // applies when the client sent a seq — old app builds without it fall through unguarded,
+    // same as before this fix.
+    if (data.seq !== undefined) {
+      const lastApplied = lastSeekSeq.get(roomId) ?? -1;
+      if (data.seq <= lastApplied) {
+        logger.info('Seek dropped as stale (out of order)', { roomId, userId, seq: data.seq, lastApplied });
+        return;
+      }
+      lastSeekSeq.set(roomId, data.seq);
+    }
 
     try {
       // Read isPlaying from Redis (fast) rather than MongoDB
@@ -136,13 +160,17 @@ export const registerVideoEvents = (
   });
 
   // HEARTBEAT — owner position ping, no scheduledAt, no seekTo on peers
-  socket.on(CLIENT_EVENTS.HEARTBEAT, async (data: { currentTime: number }) => {
+  socket.on(CLIENT_EVENTS.HEARTBEAT, async (data: { currentTime: number; frame?: string }) => {
     if (!authSocket.roomId || !await resolveIsOwner()) return;
     const roomId = authSocket.roomId;
 
     try {
+      // Frame gated to Pro here (not in updateCurrentTime — same tier-check-at-the-call-site
+      // pattern the rest of this codebase uses) so a Free owner's client sending one anyway
+      // (it doesn't know its own plan client-side) never gets persisted or wastes a Mongo write.
+      const frame = data.frame && await getUserPlan(userId) === 'pro' ? data.frame : undefined;
       // Persist current position so BUFFER_START/resumeRoom always have fresh currentTime
-      await watchPartyService.updateCurrentTime(roomId, data.currentTime);
+      await watchPartyService.updateCurrentTime(roomId, data.currentTime, frame);
 
       const heartbeat = {
         currentTime: data.currentTime,

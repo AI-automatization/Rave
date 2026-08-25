@@ -96,6 +96,15 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
   // once — i.e. it's actually playable, not just "started loading". Flips the preview from the
   // static frame carousel to the live player itself.
   const [liveReady, setLiveReady] = useState<Record<number, boolean>>({});
+  // Real prod bug 2026-08-25: a poster/thumbnail URI can go dead (the VB session backing it
+  // already ended by the time the owner gets around to looking, after cycling through several
+  // candidates) — RN's <Image> has no built-in fallback, a broken URI just renders blank, not
+  // an error state or the placeholder icon. Track failed URIs and treat them as absent below.
+  const [failedUris, setFailedUris] = useState<Set<string>>(new Set());
+  const markUriFailed = useCallback((uri: string | undefined) => {
+    if (!uri) return;
+    setFailedUris((prev) => (prev.has(uri) ? prev : new Set(prev).add(uri)));
+  }, []);
 
   // Fresh cycle-through every time the sheet opens — a stale mode/index from a previous
   // session would otherwise show the wrong candidate (or land straight in the grid).
@@ -216,13 +225,14 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
   const renderPreview = (candidate: VideoCandidate, index: number, secondary: { label: string; icon: IconName; onPress: () => void }) => {
     const frames = previewFrames[index];
     const carouselFrame = frames?.[frameCycleIdx % frames.length];
-    const poster = carouselFrame ?? candidate.poster ?? thumbnails[index];
+    const rawPoster = carouselFrame ?? candidate.poster ?? thumbnails[index];
+    const poster = rawPoster && !failedUris.has(rawPoster) ? rawPoster : undefined;
     const isLive = !!liveReady[index];
     return (
     <View style={styles.previewWrap}>
       <View style={[styles.previewBox, { height: PREVIEW_H }]}>
         {!isLive && (poster ? (
-          <Image source={{ uri: poster }} style={styles.previewThumb} resizeMode="cover" />
+          <Image source={{ uri: poster }} style={styles.previewThumb} resizeMode="cover" onError={() => markUriFailed(poster)} />
         ) : (
           <View style={[styles.previewThumb, styles.gridThumbPlaceholder]}>
             <ActivityIndicator size="small" color="rgba(255,255,255,0.5)" />
@@ -290,7 +300,8 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
 
   const renderGridItem = ({ item, index }: ListRenderItemInfo<VideoCandidate>) => {
     const duration = formatDuration(capturedDurations[index] ?? item.duration);
-    const poster = item.poster ?? thumbnails[index];
+    const rawPoster = item.poster ?? thumbnails[index];
+    const poster = rawPoster && !failedUris.has(rawPoster) ? rawPoster : undefined;
     return (
       <TrackedTouchable
         trackId="candidate_picker:grid_select"
@@ -299,7 +310,7 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
         activeOpacity={0.8}
       >
         {poster ? (
-          <Image source={{ uri: poster }} style={styles.gridThumb} resizeMode="cover" />
+          <Image source={{ uri: poster }} style={styles.gridThumb} resizeMode="cover" onError={() => markUriFailed(poster)} />
         ) : (
           <View style={[styles.gridThumb, styles.gridThumbPlaceholder]}>
             <Ionicons name="film-outline" size={22} color="rgba(255,255,255,0.3)" />
