@@ -100,6 +100,7 @@ export default function SerialyVmestePage() {
           <section className="mb-10">
             <h2 className="text-2xl font-bold mb-6">Как смотреть сериал вместе — 3 шага</h2>
             <GuideSteps
+              variant="timeline"
               steps={[
                 { n: 1, title: 'Найдите серию', desc: 'Откройте эпизод на YouTube, VK Видео или Rutube в браузере WeWatch.' },
                 { n: 2, title: 'Создайте комнату', desc: 'Отправьте ссылку-приглашение всем участникам клуба.' },

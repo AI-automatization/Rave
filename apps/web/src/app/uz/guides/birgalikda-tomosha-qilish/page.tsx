@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideArticleEnd } from '@/components/common/GuideChrome';
-import { GuideRoomMockup, GuideCTA } from '@/components/common/GuideArticleUI';
+import { GuideHeroWide, GuideCTA } from '@/components/common/GuideArticleUI';
 import { appUrl } from '@/lib/app-url';
 import { socialMeta } from '@/lib/i18n/metadata';
 
@@ -99,16 +99,13 @@ export default function BirgalikdaTomashaPage() {
             </Link>
           </nav>
 
-          <div className="grid lg:grid-cols-2 gap-10 items-center">
-            <div>
-              <h1>Onlayn birgalikda tomosha qilish — bepul</h1>
-              <p>
-            WeWatch — do'stlaringiz bilan istagan film, serial yoki videoni onlayn sinxron tomosha qiling.
-            Bir kishi pause bosadi — hammaga to'xtaydi. Uzoqlik muhim emas.
-              </p>
-            </div>
-            <GuideRoomMockup locale="uz" />
-          </div>
+          <GuideHeroWide locale="uz">
+            <h1>Onlayn birgalikda tomosha qilish — bepul</h1>
+            <p>
+          WeWatch — do'stlaringiz bilan istagan film, serial yoki videoni onlayn sinxron tomosha qiling.
+          Bir kishi pause bosadi — hammaga to'xtaydi. Uzoqlik muhim emas.
+            </p>
+          </GuideHeroWide>
         </div>
 
         <div className="article max-w-5xl mx-auto px-4 py-10">

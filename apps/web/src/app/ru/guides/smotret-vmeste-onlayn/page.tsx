@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideArticleEnd } from '@/components/common/GuideChrome';
-import { GuideRoomMockup, GuideSteps, GuideFAQ, GuideCTA } from '@/components/common/GuideArticleUI';
+import { GuideHeroWide, GuideSteps, GuideFAQ, GuideCTA } from '@/components/common/GuideArticleUI';
 
 export const metadata: Metadata = {
   title: 'Смотреть видео вместе онлайн бесплатно — синхронно с друзьями',
@@ -83,15 +83,12 @@ export default function SmotretVmesteOnlaynPage() {
             <span>Смотреть вместе онлайн</span>
           </nav>
 
-          <div className="grid lg:grid-cols-2 gap-10 items-center">
-            <div>
-              <h1>Смотреть видео вместе онлайн бесплатно</h1>
-              <p>
-            WeWatch позволяет смотреть видео вместе с друзьями онлайн — бесплатно, синхронно, без задержек. Фильм, сериал или короткий ролик: один участник ставит паузу — все ставят паузу. Расстояние не важно.
-              </p>
-            </div>
-            <GuideRoomMockup />
-          </div>
+          <GuideHeroWide>
+            <h1>Смотреть видео вместе онлайн бесплатно</h1>
+            <p>
+          WeWatch позволяет смотреть видео вместе с друзьями онлайн — бесплатно, синхронно, без задержек. Фильм, сериал или короткий ролик: один участник ставит паузу — все ставят паузу. Расстояние не важно.
+            </p>
+          </GuideHeroWide>
         </div>
 
         <div className="article max-w-5xl mx-auto px-4 py-10">
@@ -122,6 +119,7 @@ export default function SmotretVmesteOnlaynPage() {
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-6">Как смотреть вместе онлайн — 4 шага</h2>
             <GuideSteps
+              variant="timeline"
               steps={[
                 { n: 1, title: 'Откройте WeWatch', desc: 'Веб-версия доступна в браузере; приложения для iOS и Android находятся в разработке.' },
                 { n: 2, title: 'Добавьте видео', desc: 'Вставьте ссылку YouTube, VK Видео, Rutube или прямую MP4-ссылку.' },

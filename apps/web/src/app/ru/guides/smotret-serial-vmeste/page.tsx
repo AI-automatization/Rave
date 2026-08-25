@@ -105,6 +105,7 @@ export default function SmotretSerialVmestePage() {
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-6">Как начать — 4 шага</h2>
             <GuideSteps
+              variant="timeline"
               steps={[
                 { n: 1, title: 'Откройте WeWatch', desc: 'Веб-версия доступна сейчас; приложения iOS и Android разрабатываются.' },
                 { n: 2, title: 'Добавьте серию', desc: 'Вставьте ссылку YouTube, VK Видео, Rutube или прямую MP4-ссылку.' },

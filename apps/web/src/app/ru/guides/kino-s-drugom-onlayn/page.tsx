@@ -88,6 +88,7 @@ export default function KinoSDrugoOnlaynPage() {
           <section className="mb-12">
             <h2 className="text-2xl font-bold text-white mb-6">Почему это удобно</h2>
             <GuideBenefits
+              variant="bento"
               items={[
                 { icon: 'users', title: 'До 10 человек', desc: 'Вдвоём или компанией — одна ссылка-приглашение на всех участников.' },
                 { icon: 'link', title: 'Гостю не нужен аккаунт', desc: 'Регистрация только у того, кто создаёт комнату.' },
@@ -123,6 +124,7 @@ export default function KinoSDrugoOnlaynPage() {
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-6">Как смотреть кино с другом — 4 шага</h2>
             <GuideSteps
+              variant="timeline"
               steps={[
                 { n: 1, icon: 'mobile', title: 'Откройте WeWatch', desc: 'Откройте веб-версию на iPhone, Android или компьютере; мобильные приложения разрабатываются.' },
                 { n: 2, icon: 'link', title: 'Добавьте фильм', desc: 'Вставьте ссылку YouTube, VK Видео, Rutube или прямую MP4-ссылку.' },

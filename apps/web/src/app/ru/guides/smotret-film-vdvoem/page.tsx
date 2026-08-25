@@ -95,6 +95,7 @@ export default function FilmVdvoemPage() {
           <section className="mb-12">
             <h2 className="text-2xl font-bold mb-6">Почему это удобно</h2>
             <GuideBenefits
+              variant="bento"
               items={[
                 { icon: 'users', title: 'Вместе на расстоянии', desc: 'Смотрите синхронно с любого устройства, где бы вы ни находились.' },
                 { icon: 'chat', title: 'Чат во время просмотра', desc: 'Обсуждайте фильм в реальном времени, не выходя из плеера.' },
@@ -107,6 +108,7 @@ export default function FilmVdvoemPage() {
           <section className="mb-12">
             <h2 className="text-2xl font-bold mb-6">Как смотреть вдвоём — 3 шага</h2>
             <GuideSteps
+              variant="timeline"
               steps={[
                 { n: 1, icon: 'link', title: 'Добавьте фильм', desc: 'Вставьте ссылку YouTube, VK Видео, Rutube или прямую MP4-ссылку.' },
                 { n: 2, icon: 'invite', title: 'Создайте комнату', desc: 'Отправьте ссылку-приглашение второму участнику.' },

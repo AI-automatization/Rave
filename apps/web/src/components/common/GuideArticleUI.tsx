@@ -52,7 +52,14 @@ export type GuideStep = { n: number; title: string; desc: string; icon?: GuideIc
  * fold on every guide, so animating it costs nothing and reads as
  * intentional rather than static.
  */
-export function GuideSteps({ steps }: { steps: GuideStep[] }) {
+/**
+ * `timeline` renders the same data as a vertical rail with a connecting line
+ * instead of a card row. Two layouts, one data shape — this is what stops
+ * every guide from opening with the identical three-across grid.
+ */
+export function GuideSteps({ steps, variant = 'cards' }: { steps: GuideStep[]; variant?: 'cards' | 'timeline' }) {
+  if (variant === 'timeline') return <StepsTimeline steps={steps} />;
+
   // Guides run 3 or 4 steps. A hardcoded 3-column grid orphans the 4th step onto
   // its own row; these two cases keep every row full at each breakpoint.
   const columns = steps.length === 4 ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-3';
@@ -102,6 +109,44 @@ export function GuideSteps({ steps }: { steps: GuideStep[] }) {
   );
 }
 
+/** Vertical rail layout for GuideSteps — see the `timeline` variant. */
+function StepsTimeline({ steps }: { steps: GuideStep[] }) {
+  return (
+    <ol className="relative">
+      {/* The rail itself. Stops short of the last marker so it doesn't dangle. */}
+      <div
+        className="absolute left-[19px] top-3 bottom-10 w-px"
+        style={{ background: 'linear-gradient(180deg, rgba(123,114,248,0.5), rgba(123,114,248,0.05))' }}
+        aria-hidden="true"
+      />
+      {steps.map(({ n, title, desc, icon }, i) => {
+        const Icon = icon ? ICONS[icon] : null;
+        return (
+          <motion.li
+            key={n}
+            initial={{ opacity: 0, x: -16 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ ...spring, delay: i * 0.1 }}
+            className="relative flex gap-5 pb-8 last:pb-0"
+          >
+            <span
+              className="relative z-10 flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full text-sm font-bold text-white"
+              style={{ background: 'linear-gradient(135deg, #7B72F8, #9B72F8)', boxShadow: '0 0 24px rgba(123,114,248,0.45)' }}
+            >
+              {Icon ? <Icon size={15} /> : n}
+            </span>
+            <div className="pt-1.5">
+              <h3 className="font-semibold text-white mb-1.5">{title}</h3>
+              <p className="text-zinc-400 text-sm leading-relaxed">{desc}</p>
+            </div>
+          </motion.li>
+        );
+      })}
+    </ol>
+  );
+}
+
 /** One card in GuideBenefits. */
 export type GuideBenefit = { icon: GuideIconKey; title: string; desc: string };
 
@@ -110,11 +155,23 @@ export type GuideBenefit = { icon: GuideIconKey; title: string; desc: string };
  * committing to the full how-to below. Same glass treatment as GuideSteps,
  * grid-of-4 on desktop collapsing to 2 on mobile.
  */
-export function GuideBenefits({ items }: { items: GuideBenefit[] }) {
+export function GuideBenefits({ items, variant = 'grid' }: { items: GuideBenefit[]; variant?: 'grid' | 'bento' }) {
+  // `bento` promotes the first item to a full-width banner and lets the rest
+  // share the row below, so the block reads as a composition rather than four
+  // identical tiles. Deliberately not a row/col span puzzle: with 4 items a
+  // 2x2 feature in a 3-column grid orphans the last card into a half-empty row.
+  // Class strings are written out in full — Tailwind's JIT scans source text,
+  // so an interpolated `grid-cols-${n}` would never be generated.
+  const REST_COLS = ['sm:grid-cols-1', 'sm:grid-cols-2', 'sm:grid-cols-3'] as const;
+  const wrap = variant === 'bento'
+    ? `grid grid-cols-1 gap-4 ${REST_COLS[Math.min(items.length - 1, 3) - 1] ?? 'sm:grid-cols-3'}`
+    : 'grid grid-cols-2 lg:grid-cols-4 gap-4';
+
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className={wrap}>
       {items.map(({ icon, title, desc }, i) => {
         const Icon = ICONS[icon];
+        const feature = variant === 'bento' && i === 0;
         return (
         <motion.div
           key={title}
@@ -122,19 +179,26 @@ export function GuideBenefits({ items }: { items: GuideBenefit[] }) {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-40px' }}
           transition={{ ...spring, delay: i * 0.06 }}
-          className="rounded-2xl border border-white/[0.08] p-5"
-          style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(20px)' }}
+          className={`rounded-2xl border border-white/[0.08] p-5 ${feature ? 'col-span-full sm:flex sm:items-center sm:gap-6 sm:p-7' : ''}`}
+          style={{
+            background: feature
+              ? 'linear-gradient(150deg, rgba(123,114,248,0.14) 0%, rgba(255,255,255,0.03) 60%)'
+              : 'rgba(255,255,255,0.04)',
+            backdropFilter: 'blur(20px)',
+          }}
         >
           <span
-            className="flex items-center justify-center w-10 h-10 rounded-xl text-[#7B72F8] mb-4"
+            className={`flex items-center justify-center rounded-xl text-[#7B72F8] mb-4 shrink-0 ${feature ? 'w-14 h-14 sm:mb-0' : 'w-10 h-10'}`}
             style={{ background: 'rgba(123,114,248,0.12)', border: '1px solid rgba(123,114,248,0.2)' }}
           >
-            <Icon size={17} />
+            <Icon size={feature ? 24 : 17} />
           </span>
-          {/* text-sm, not text-xs: 12px body copy fails the readability half of the
-              accessibility rules even when its contrast ratio passes. */}
-          <h3 className="font-semibold text-white text-sm mb-1.5">{title}</h3>
-          <p className="text-zinc-300 text-sm leading-relaxed">{desc}</p>
+          <div>
+            {/* text-sm, not text-xs: 12px body copy fails the readability half of the
+                accessibility rules even when its contrast ratio passes. */}
+            <h3 className={`font-semibold text-white mb-1.5 ${feature ? 'text-lg' : 'text-sm'}`}>{title}</h3>
+            <p className={`text-zinc-300 leading-relaxed ${feature ? 'text-base' : 'text-sm'}`}>{desc}</p>
+          </div>
         </motion.div>
         );
       })}
@@ -150,13 +214,29 @@ export function GuideBenefits({ items }: { items: GuideBenefit[] }) {
  * specific film is playing or showing real people, so there's nothing here
  * that needs a licence or that overstates what the product does.
  */
+/**
+ * Wide, centred hero: heading stacked above a full-width mockup instead of the
+ * side-by-side split. Used by the broad "what is / how to watch together"
+ * guides so they don't open identically to the scenario ones.
+ */
+export function GuideHeroWide({ children, locale = 'ru' }: { children: ReactNode; locale?: 'ru' | 'uz' | 'en' }) {
+  return (
+    <>
+      <div className="max-w-3xl">{children}</div>
+      <div className="mt-10 max-w-4xl mx-auto">
+        <GuideRoomMockup locale={locale} wide />
+      </div>
+    </>
+  );
+}
+
 const MOCKUP_COPY = {
   ru: { chat: 'Чат', lines: [['Андрей', 'Отличный фильм 🔥'], ['Маша', 'Да, сюжет топ 👌']] },
   uz: { chat: 'Chat', lines: [['Aziz', 'Zo‘r kino 🔥'], ['Nilufar', 'Ha, syujet top 👌']] },
   en: { chat: 'Chat', lines: [['Alex', 'Great movie 🔥'], ['Mia', 'Yeah, the plot 👌']] },
 } as const;
 
-export function GuideRoomMockup({ locale = 'ru' }: { locale?: 'ru' | 'uz' | 'en' }) {
+export function GuideRoomMockup({ locale = 'ru', wide = false }: { locale?: 'ru' | 'uz' | 'en'; wide?: boolean }) {
   const copy = MOCKUP_COPY[locale];
   return (
     // Plain <div>, no entrance animation: this sits in the hero, and hero
@@ -168,7 +248,7 @@ export function GuideRoomMockup({ locale = 'ru' }: { locale?: 'ru' | 'uz' | 'en'
       // 10px labels inside are visual texture, not content a screen reader
       // should read out mid-article.
       aria-hidden="true"
-      className="relative rounded-2xl border border-white/[0.08] overflow-hidden aspect-[4/3]"
+      className={`relative rounded-2xl border border-white/[0.08] overflow-hidden ${wide ? 'aspect-[16/9]' : 'aspect-[4/3]'}`}
       style={{ background: 'linear-gradient(160deg, #15121f 0%, #0c0b12 100%)' }}
     >
       {/* Fake player surface */}

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideArticleEnd } from '@/components/common/GuideChrome';
-import { GuideRoomMockup, GuideFAQ, GuideCTA } from '@/components/common/GuideArticleUI';
+import { GuideHeroWide, GuideFAQ, GuideCTA } from '@/components/common/GuideArticleUI';
 import { hreflangFor } from '@/lib/i18n/routes';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
@@ -98,15 +98,12 @@ export default function WatchPartyBesplatnoPage() {
             <span>Watch Party бесплатно</span>
           </nav>
 
-          <div className="grid lg:grid-cols-2 gap-10 items-center">
-            <div>
-              <h1>Бесплатный Watch Party онлайн в 2026</h1>
-              <p>
-            Основные функции watch party WeWatch доступны бесплатно в веб-версии. Поддерживаются YouTube, VK Видео, Rutube и прямые MP4-ссылки; приложения для iOS и Android находятся в разработке.
-              </p>
-            </div>
-            <GuideRoomMockup />
-          </div>
+          <GuideHeroWide>
+            <h1>Бесплатный Watch Party онлайн в 2026</h1>
+            <p>
+          Основные функции watch party WeWatch доступны бесплатно в веб-версии. Поддерживаются YouTube, VK Видео, Rutube и прямые MP4-ссылки; приложения для iOS и Android находятся в разработке.
+            </p>
+          </GuideHeroWide>
         </div>
 
         <div className="article max-w-5xl mx-auto px-4 py-10">

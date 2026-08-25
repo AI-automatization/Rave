@@ -126,7 +126,7 @@ export default function KinoBirgalikdaPage() {
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-6">Do'stim bilan kino qanday ko'raman — 4 qadam</h2>
-            <GuideSteps steps={HOW_TO_STEPS.map(({ n, t, d }) => ({ n, title: t, desc: d }))} />
+            <GuideSteps variant="timeline" steps={HOW_TO_STEPS.map(({ n, t, d }) => ({ n, title: t, desc: d }))} />
           </section>
 
           <section className="mb-10">
