@@ -37,10 +37,6 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
   // Free-tier pool is full — 1-indexed position while waiting, see vbQueue.helper.ts. null means
   // "not queued" (either never asked, already started, or Pro — Pro never queues).
   const [queuePosition, setQueuePosition] = useState<number | null>(null);
-  // Owner's pointer position in server-viewport space, relayed from vbEvents.handler.ts on
-  // every mousemove input — lets viewers see a synced cursor (Kosmi-style) even though the
-  // JPEG screencast itself never contains an OS cursor.
-  const [remoteCursor, setRemoteCursor] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (!socket || !isConnected) return;
@@ -65,7 +61,6 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
     const onStopped = (data?: { reason?: string; needsConfirmation?: boolean }) => {
       setActive(false);
       setFrame(null);
-      setRemoteCursor(null);
       setBlocked(null);
       setQueuePosition(null);
       // needsConfirmation: true — VB found *something* but, unlike a normal extraction result,
@@ -104,8 +99,6 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
       }
     };
 
-    const onCursor = (data: { x: number; y: number }) => setRemoteCursor({ x: data.x, y: data.y });
-
     socket.on(SERVER_EVENTS.VB_STARTED, onStarted);
     socket.on(SERVER_EVENTS.VB_FRAME, onFrame);
     socket.on(SERVER_EVENTS.VB_STOPPED, onStopped);
@@ -113,7 +106,6 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
     socket.on(SERVER_EVENTS.VB_BLOCKED, onBlocked);
     socket.on(SERVER_EVENTS.VB_QUEUED, onQueued);
     socket.on(SERVER_EVENTS.ROOM_JOINED, onRoomJoined);
-    socket.on(SERVER_EVENTS.VB_CURSOR, onCursor);
 
     return () => {
       socket.off(SERVER_EVENTS.VB_STARTED, onStarted);
@@ -123,7 +115,6 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
       socket.off(SERVER_EVENTS.VB_BLOCKED, onBlocked);
       socket.off(SERVER_EVENTS.VB_QUEUED, onQueued);
       socket.off(SERVER_EVENTS.ROOM_JOINED, onRoomJoined);
-      socket.off(SERVER_EVENTS.VB_CURSOR, onCursor);
     };
   }, [socket, isConnected]);
 
@@ -140,5 +131,5 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
     socket?.emit(CLIENT_EVENTS.VB_INPUT, input);
   }, [socket, isOwner]);
 
-  return { frame, active, dimensions, error, blocked, queuePosition, remoteCursor, start, stop, sendInput };
+  return { frame, active, dimensions, error, blocked, queuePosition, start, stop, sendInput };
 }

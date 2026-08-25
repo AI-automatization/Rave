@@ -83,6 +83,21 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   const playerRef = useRef<UniversalPlayerRef>(null);
   const isSyncing = useRef(false);
+  // Real prod bug (Railway logs, 2026-08-24): rapid skip taps each scheduled their own bare
+  // `setTimeout(() => isSyncing.current = false, 1500)`. An EARLIER tap's timer could fire AFTER a
+  // LATER tap had already re-armed isSyncing for its own in-flight seek, clearing the guard out
+  // from under the still-settling newer seek — handleProgress then applied a stale position tick,
+  // visible as the seek snapping back ("perematyvka" rollback). scheduleSyncRelease cancels any
+  // previously-scheduled release before arming a new one, so only the MOST RECENT seek's timer
+  // ever actually clears isSyncing.
+  const syncReleaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleSyncRelease = useCallback((delayMs: number) => {
+    if (syncReleaseTimerRef.current) clearTimeout(syncReleaseTimerRef.current);
+    syncReleaseTimerRef.current = setTimeout(() => {
+      syncReleaseTimerRef.current = null;
+      isSyncing.current = false;
+    }, delayMs);
+  }, []);
   const lastSyncId = useRef('');
   const prevIsPlayingRef = useRef(false);
   const isActionInFlight = useRef(false);
@@ -556,8 +571,8 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     isSyncing.current = true;
     await playerRef.current?.seekTo(target * 1000);
     emitSeek(target);
-    setTimeout(() => { isSyncing.current = false; }, 1500);
-  }, [emitSeek]);
+    scheduleSyncRelease(1500);
+  }, [emitSeek, scheduleSyncRelease]);
 
   const handleSeekDirection = useCallback(async (direction: 'forward' | 'back') => {
     if (!isOwner || videoIsLive) return;
@@ -572,7 +587,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       isSyncing.current = true;
       await playerRef.current?.seekTo(target * 1000);
       emitSeek(target);
-      setTimeout(() => { isSyncing.current = false; }, 1500);
+      scheduleSyncRelease(1500);
       // Burst window stays open after the immediate seek — a tap landing inside it accumulates
       // (below) instead of firing another seek of its own.
       skipBurstTimerRef.current = setTimeout(() => { skipBurstActiveRef.current = false; }, SKIP_BURST_WINDOW_MS);
@@ -585,7 +600,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     setPendingSkipSecs(skipAccumSecsRef.current);
     if (skipBurstTimerRef.current) clearTimeout(skipBurstTimerRef.current);
     skipBurstTimerRef.current = setTimeout(flushSkipBurst, SKIP_BURST_WINDOW_MS);
-  }, [isOwner, videoIsLive, emitSeek, flushSkipBurst]);
+  }, [isOwner, videoIsLive, emitSeek, flushSkipBurst, scheduleSyncRelease]);
 
   const handleEmojiSelect = useCallback((emoji: string) => {
     if (reactionCooldownSec > 0) return; // server-driven burst lockout — picker is already dimmed
