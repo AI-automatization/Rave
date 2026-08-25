@@ -37,7 +37,7 @@ RETENTION_DAYS="${RETENTION_DAYS:-30}"
 # дампы WeWatch кладутся в уже существующий бакет рядом с чужими. Отсюда
 # требование: и загрузка, и РЕТЕНЦИЯ работают строго внутри префикса —
 # иначе уборка старше 30 дней снесёт бэкапы RAOS, лежащие в том же бакете.
-MINIO_PREFIX="${MINIO_PREFIX:-}"
+# (Required-guard lives above with the other required vars, not here.)
 
 mkdir -p "${TMP_DIR}"
 BACKUP_FILE="${TMP_DIR}/${BACKUP_NAME}"
@@ -58,6 +58,10 @@ echo "[$(date -u)] Starting WeWatch MongoDB backup: ${BACKUP_NAME}"
 : "${MINIO_ENDPOINT:?MINIO_ENDPOINT is required}"
 : "${MINIO_BUCKET:?MINIO_BUCKET is required}"
 : "${GPG_PASSPHRASE:?GPG_PASSPHRASE is required}"
+# 2026-08-25 (Saidazim, PR review): MINIO_PREFIX is the ONLY thing standing between this
+# script and wiping RAOS's backups in the same shared bucket (see comment below) -- an unset
+# or mistyped value must fail loudly here, not silently fall back to bucket-root scope.
+: "${MINIO_PREFIX:?MINIO_PREFIX is required}"
 
 # ─── 1. Дамп в ФАЙЛ, не в пайп ────────────────────────────────────────────────
 # Пайп `mongodump | gpg` маскирует код возврата дампа: под `set -e` статус
