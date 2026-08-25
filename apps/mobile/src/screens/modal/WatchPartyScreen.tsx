@@ -219,9 +219,9 @@ export function WatchPartyScreen() {
   // because VB mutates room.videoUrl every time it finds new media — the very event the guard
   // needs to survive. Tracking the set of URLs already attempted means each distinct source gets
   // at most one VB attempt, and the reset can never fire mid-loop because there IS no reset. The
-  // size cap is a second, independent backstop.
+  // ("size cap" backstop this comment used to describe no longer applies — see
+  // handleVideoFatalError below, which now opens the candidate picker instead of retrying VB.)
   const vbAttemptedUrlsRef = useRef<Set<string>>(new Set());
-  const VB_MAX_ATTEMPTS_PER_SESSION = 3;
 
   // Tracks the last genuine owner-submitted SOURCE PAGE (never a vb-media-proxy rewrite) so a
   // fatal-error retry can re-open VB on the actual page instead of the raw sniffed media file.
@@ -237,15 +237,25 @@ export function WatchPartyScreen() {
     if (url && unwrapVbProxyUrl(url) === url) originalSourceUrlRef.current = url;
   }, [room?.videoUrl, originalVideoUrl]);
 
+  // 2026-08-25 (Saidazim, explicit product decision after live device testing): on a fatal
+  // playback error, open the candidate picker DIRECTLY instead of silently re-opening VB on
+  // the original page. requestCandidates() (called by handleOpenCandidatePicker) shows whatever
+  // the extraction pipeline already collected for this page — services/content's
+  // genericExtractorCandidates() runs as part of the SAME extraction pass that found the URL
+  // that just failed to play, so real alternates are typically already sitting there, not empty.
+  // If there's genuinely nothing, the picker itself shows its existing "candidatesEmpty" state
+  // rather than silently reopening a browser window the owner didn't ask for — the owner still
+  // has the manual gear-row entry to retry from there. This replaces the previous vb.start()
+  // auto-retry entirely; vbAttemptedUrlsRef above now only dedupes so the SAME failing source
+  // doesn't reopen the picker over and over on repeated fatal errors.
   const handleVideoFatalError = useCallback(() => {
     if (!isOwner || vb.active) return;
     const targetUrl = originalSourceUrlRef.current;
-    if (!targetUrl) return; // no known source page to retry (e.g. fatal error before any CHANGE_MEDIA)
-    if (vbAttemptedUrlsRef.current.has(targetUrl)) return; // this exact source was already tried
-    if (vbAttemptedUrlsRef.current.size >= VB_MAX_ATTEMPTS_PER_SESSION) return; // hard cap backstop
+    if (!targetUrl) return; // no known source page (e.g. fatal error before any CHANGE_MEDIA)
+    if (vbAttemptedUrlsRef.current.has(targetUrl)) return; // already handled once for this source
     vbAttemptedUrlsRef.current.add(targetUrl);
-    vb.start(targetUrl);
-  }, [isOwner, vb]);
+    handleOpenCandidatePicker();
+  }, [isOwner, vb.active, handleOpenCandidatePicker]);
 
   // T-S189: room was created with a raw, unverified URL (user forced it via "try current
   // page anyway" — no client/server detection confirmed it beforehand). Mirrors web's
