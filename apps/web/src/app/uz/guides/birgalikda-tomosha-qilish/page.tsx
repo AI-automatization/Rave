@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideArticleEnd } from '@/components/common/GuideChrome';
+import { GuideRoomMockup, GuideCTA } from '@/components/common/GuideArticleUI';
 import { appUrl } from '@/lib/app-url';
 import { socialMeta } from '@/lib/i18n/metadata';
 
@@ -89,8 +90,8 @@ export default function BirgalikdaTomashaPage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <main className="flex-1 bg-page text-white">
-        <div className="article max-w-3xl mx-auto px-4 py-16">
-          <nav className="text-sm text-zinc-500 mb-8">
+        <div className="page-hero relative max-w-5xl mx-auto px-4 pt-16 pb-8">
+          <nav className="text-sm text-zinc-500">
             <Link href="/uz" className="hover:text-white transition-colors">WeWatch</Link>
             <span className="mx-2">/</span>
             <Link href="/uz/guides/birgalikda-tomosha-qilish" className="hover:text-white transition-colors">
@@ -98,14 +99,19 @@ export default function BirgalikdaTomashaPage() {
             </Link>
           </nav>
 
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
-            Onlayn birgalikda tomosha qilish — bepul
-          </h1>
-
-          <p className="text-xl text-zinc-400 mb-10 leading-relaxed">
+          <div className="grid lg:grid-cols-2 gap-10 items-center">
+            <div>
+              <h1>Onlayn birgalikda tomosha qilish — bepul</h1>
+              <p>
             WeWatch — do'stlaringiz bilan istagan film, serial yoki videoni onlayn sinxron tomosha qiling.
             Bir kishi pause bosadi — hammaga to'xtaydi. Uzoqlik muhim emas.
-          </p>
+              </p>
+            </div>
+            <GuideRoomMockup locale="uz" />
+          </div>
+        </div>
+
+        <div className="article max-w-5xl mx-auto px-4 py-10">
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">Birgalikda onlayn tomosha qilish nima?</h2>
@@ -187,16 +193,14 @@ export default function BirgalikdaTomashaPage() {
             </div>
           </section>
 
-          <div className="bg-gradient-to-r from-purple-900/40 to-indigo-900/40 rounded-2xl p-8 text-center border border-purple-800/30 mb-10">
-            <h2 className="text-2xl font-bold text-white mb-3">Hoziroq boshlang</h2>
-            <p className="text-zinc-400 mb-6">Bepul, ro'yxatsiz, istagan qurilmadan.</p>
+          <GuideCTA title="Hoziroq boshlang" subtitle="Bepul, ro'yxatsiz, istagan qurilmadan.">
             <a
               href={appUrl('/register')}
               className="inline-block bg-purple-600 hover:bg-purple-500 text-white font-semibold px-8 py-3 rounded-xl transition-colors"
             >
               Xona yaratish
             </a>
-          </div>
+          </GuideCTA>
 
           <div className="border-t border-zinc-800 pt-8">
             <p className="text-zinc-500 text-sm mb-4">Boshqa maqolalar:</p>

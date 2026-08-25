@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideArticleEnd } from '@/components/common/GuideChrome';
+import { GuideRoomMockup, GuideBenefits, GuideSteps, GuideFAQ, GuideCTA } from '@/components/common/GuideArticleUI';
 
 export const metadata: Metadata = {
   // No manual "| WeWatch" — the root layout's title template appends it.
@@ -67,8 +68,11 @@ export default function FilmVdvoemPage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <main className="flex-1 bg-page text-white">
-        <div className="article max-w-3xl mx-auto px-4 py-16">
-          <nav className="text-sm text-zinc-500 mb-8">
+        {/* `page-hero` is the sitewide header treatment (breadcrumb pill,
+            display H1, lead paragraph) — same class /faq, /guides and /team
+            use. The two-column split with the mockup is the guide-specific part. */}
+        <div className="page-hero relative max-w-5xl mx-auto px-4 pt-16 pb-8">
+          <nav className="text-sm text-zinc-500">
             <Link href="/ru" className="hover:text-white transition-colors">WeWatch</Link>
             <span className="mx-2">/</span>
             <Link href="/ru/guides/kino-s-drugom-onlayn" className="hover:text-white transition-colors">Смотреть кино вместе</Link>
@@ -76,31 +80,42 @@ export default function FilmVdvoemPage() {
             <span>Фильм вдвоём</span>
           </nav>
 
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">Смотреть фильм вдвоём онлайн</h1>
-          <p className="text-xl text-zinc-400 mb-10 leading-relaxed">
-            Хотите посмотреть фильм вдвоём, но вы не рядом? Откройте веб-версию на двух устройствах: один ставит паузу — у второго тоже пауза. Как будто на одном диване.
-          </p>
+          <div className="grid lg:grid-cols-2 gap-10 items-center">
+            <div>
+              <h1>Смотреть фильм вдвоём онлайн</h1>
+              <p>
+                Хотите посмотреть фильм вдвоём, но вы не рядом? Откройте веб-версию на двух устройствах: один ставит паузу — у второго тоже пауза. Как будто на одном диване.
+              </p>
+            </div>
+            <GuideRoomMockup />
+          </div>
+        </div>
 
-          <section className="mb-10">
-            <h2 className="text-2xl font-bold mb-6">Как смотреть вдвоём — 3 шага</h2>
-            <ol className="space-y-5">
-              {[
-                { n: 1, title: 'Добавьте фильм', desc: 'Вставьте ссылку YouTube, VK Видео, Rutube или прямую MP4-ссылку.' },
-                { n: 2, title: 'Создайте комнату', desc: 'Отправьте ссылку-приглашение второму участнику.' },
-                { n: 3, title: 'Смотрите синхронно', desc: 'Просмотр идёт одновременно, а чат и эмодзи заменяют «сидеть рядом».' },
-              ].map(({ n, title, desc }) => (
-                <li key={n} className="flex gap-4">
-                  <span className="flex-shrink-0 w-8 h-8 rounded-full bg-[#7B72F8] flex items-center justify-center text-sm font-bold">{n}</span>
-                  <div>
-                    <h3 className="font-semibold text-white mb-1">{title}</h3>
-                    <p className="text-zinc-400 text-sm leading-relaxed">{desc}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
+        <div className="article max-w-5xl mx-auto px-4 py-10">
+          <section className="mb-12">
+            <h2 className="text-2xl font-bold mb-6">Почему это удобно</h2>
+            <GuideBenefits
+              items={[
+                { icon: 'users', title: 'Вместе на расстоянии', desc: 'Смотрите синхронно с любого устройства, где бы вы ни находились.' },
+                { icon: 'chat', title: 'Чат во время просмотра', desc: 'Обсуждайте фильм в реальном времени, не выходя из плеера.' },
+                { icon: 'link', title: 'Без регистрации гостю', desc: 'Второй участник заходит по ссылке — аккаунт не нужен.' },
+                { icon: 'bolt', title: 'Просто и быстро', desc: 'Никаких сложных настроек — пара кликов и вы смотрите вместе.' },
+              ]}
+            />
           </section>
 
-          <section className="mb-10">
+          <section className="mb-12">
+            <h2 className="text-2xl font-bold mb-6">Как смотреть вдвоём — 3 шага</h2>
+            <GuideSteps
+              steps={[
+                { n: 1, icon: 'link', title: 'Добавьте фильм', desc: 'Вставьте ссылку YouTube, VK Видео, Rutube или прямую MP4-ссылку.' },
+                { n: 2, icon: 'invite', title: 'Создайте комнату', desc: 'Отправьте ссылку-приглашение второму участнику.' },
+                { n: 3, icon: 'play', title: 'Смотрите синхронно', desc: 'Просмотр идёт одновременно, а чат и эмодзи заменяют «сидеть рядом».' },
+              ]}
+            />
+          </section>
+
+          <section className="mb-12">
             <h2 className="text-2xl font-bold mb-4">Идеально для пары, друга или близкого</h2>
             <p className="text-zinc-400 leading-relaxed mb-4">
               Вдвоём смотреть проще всего — веб-версия WeWatch держит фильм синхронно в браузерах на iPhone и Android. Нативные приложения находятся в разработке.
@@ -110,26 +125,15 @@ export default function FilmVdvoemPage() {
             </p>
           </section>
 
-          <section className="mb-10">
+          <section className="mb-12">
             <h2 className="text-2xl font-bold mb-4">Часто задаваемые вопросы</h2>
-            <div className="space-y-4">
-              {FAQS.map(({ q, a }) => (
-                <details key={q} className="border border-zinc-800 rounded-xl p-4">
-                  <summary className="text-white font-medium cursor-pointer">{q}</summary>
-                  <p className="text-zinc-400 text-sm mt-2 leading-relaxed">{a}</p>
-                </details>
-              ))}
-            </div>
+            <GuideFAQ items={FAQS.map(({ q, a }) => ({ q, a }))} />
           </section>
 
-          <div className="bg-[#7B72F8]/10 border border-[#7B72F8]/30 rounded-2xl p-8 text-center">
-            <h2 className="text-2xl font-bold mb-3">Посмотрите фильм вдвоём сегодня</h2>
-            <p className="text-zinc-400 mb-6">Основные функции совместного просмотра бесплатны</p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link href="/ru" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-6 py-3 rounded-xl transition-colors">Открыть WeWatch</Link>
-              <Link href="/ru/use-cases/dalnie-otnosheniya" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 font-medium px-6 py-3 rounded-xl transition-colors">На расстоянии →</Link>
-            </div>
-          </div>
+          <GuideCTA title="Посмотрите фильм вдвоём сегодня" subtitle="Основные функции совместного просмотра бесплатны">
+            <Link href="/ru" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-6 py-3 rounded-xl transition-colors">Открыть WeWatch</Link>
+            <Link href="/ru/use-cases/dalnie-otnosheniya" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 font-medium px-6 py-3 rounded-xl transition-colors">На расстоянии →</Link>
+          </GuideCTA>
         </div>
       </main>
       <GuideArticleEnd locale="ru" currentPath="/ru/guides/smotret-film-vdvoem" />

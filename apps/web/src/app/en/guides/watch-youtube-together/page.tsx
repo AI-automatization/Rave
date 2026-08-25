@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { FaPlay, FaYoutube } from 'react-icons/fa';
 import { GuideArticleEnd } from '@/components/common/GuideChrome';
+import { GuideRoomMockup } from '@/components/common/GuideArticleUI';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { socialMeta } from '@/lib/i18n/metadata';
 
@@ -116,7 +117,7 @@ export default function WatchYouTubeTogetherEnPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div className="flex-1 bg-page text-zinc-300">
 
-        <main className="max-w-4xl mx-auto px-4 sm:px-6 py-14">
+        <main className="max-w-5xl mx-auto px-4 sm:px-6 py-14">
           <div className="mb-10">
             <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-zinc-400 text-sm mb-4">
               <Link href="/en" className="hover:text-zinc-300 transition-colors">Home</Link>
@@ -133,6 +134,8 @@ export default function WatchYouTubeTogetherEnPage() {
               <span className="text-zinc-400 text-sm">Guide · 3 min read</span>
             </div>
 
+            <div className="grid lg:grid-cols-2 gap-10 items-center">
+              <div>
             <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-4">
               How to watch YouTube together with a friend
             </h1>
@@ -140,6 +143,9 @@ export default function WatchYouTubeTogetherEnPage() {
               Free and without a browser extension in browsers on iPhone, Android or desktop. Native mobile apps are in development.
               Synchronization is automatic.
             </p>
+              </div>
+              <GuideRoomMockup locale="en" />
+            </div>
           </div>
 
           <div className="bg-[#111118] border border-[#7B72F8]/30 rounded-2xl px-6 py-5 mb-12">

@@ -420,7 +420,12 @@ main.bg-page nav.text-zinc-500 {
 /* Body copy: one step larger and lighter than the stock zinc-400, so the pages
    read like the marketing ones rather than like documentation. */
 .article p { font-size: 1.02rem; line-height: 1.8; }
-.article section p { color: #b6b6c0; }
+/* Same 46rem measure the lead paragraph already uses. The guide container was
+   widened so card grids can breathe; without this, body copy stretched to the
+   full width and ran past 100 characters a line, well over the 45–75 that
+   stays comfortable to read. Grids and cards are unaffected — this only caps
+   paragraphs. */
+.article section p { color: #b6b6c0; max-width: 46rem; }
 
 /* ── Fact / feature lists → chips, the way the marketing sections list them ──
    Scoped to the spaced lists the guides use. The legal pages inherit
@@ -466,9 +471,11 @@ main.bg-page nav.text-zinc-500 {
 
 /* ── FAQ disclosures → glass cards ── */
 .article details {
-  border-color: rgba(63, 63, 70, 0.6);
+  border-color: rgba(255, 255, 255, 0.08);
   border-radius: 1rem;
-  background: rgba(13, 13, 22, 0.9);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   padding: 1.1rem 1.25rem;
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }

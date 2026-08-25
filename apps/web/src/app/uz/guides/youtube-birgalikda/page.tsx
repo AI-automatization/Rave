@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideArticleEnd } from '@/components/common/GuideChrome';
+import { GuideRoomMockup, GuideFAQ } from '@/components/common/GuideArticleUI';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { appUrl } from '@/lib/app-url';
 import { socialMeta } from '@/lib/i18n/metadata';
@@ -78,8 +79,8 @@ export default function YoutubeBirgalikdaPage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <main className="flex-1 bg-page text-white">
-        <div className="article max-w-3xl mx-auto px-4 py-16">
-          <nav className="text-sm text-zinc-500 mb-8">
+        <div className="page-hero relative max-w-5xl mx-auto px-4 pt-16 pb-8">
+          <nav className="text-sm text-zinc-500">
             <Link href="/uz" className="hover:text-white transition-colors">WeWatch</Link>
             <span className="mx-2">/</span>
             <Link href="/uz/guides/youtube-birgalikda" className="hover:text-white transition-colors">
@@ -87,15 +88,20 @@ export default function YoutubeBirgalikdaPage() {
             </Link>
           </nav>
 
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
-            YouTube-ni do'st bilan onlayn birgalikda ko'rish
-          </h1>
-
-          <p className="text-xl text-zinc-400 mb-10 leading-relaxed">
+          <div className="grid lg:grid-cols-2 gap-10 items-center">
+            <div>
+              <h1>YouTube-ni do'st bilan onlayn birgalikda ko'rish</h1>
+              <p>
             WeWatch orqali YouTube videolarini do'stingiz yoki sevimli odamingiz bilan onlayn sinxron holda
             tomosha qiling. Pause bosasiz — u ham to'xtaydi. Tezlatishingiz — u ham tezlashadi.
             Masofa muhim emas.
-          </p>
+              </p>
+            </div>
+            <GuideRoomMockup locale="uz" />
+          </div>
+        </div>
+
+        <div className="article max-w-5xl mx-auto px-4 py-10">
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">Nima uchun oddiy YouTube link yubormaysiz?</h2>
@@ -149,14 +155,7 @@ export default function YoutubeBirgalikdaPage() {
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">Ko'p so'raladigan savollar</h2>
-            <div className="space-y-4">
-              {FAQS.map(({ q, a }) => (
-                <div key={q} className="bg-zinc-900 rounded-xl p-5 border border-zinc-800">
-                  <div className="font-semibold text-white mb-2">{q}</div>
-                  <div className="text-zinc-400 text-sm">{a}</div>
-                </div>
-              ))}
-            </div>
+            <GuideFAQ items={FAQS.map(({ q, a }) => ({ q, a }))} />
           </section>
 
           <div className="bg-gradient-to-r from-red-900/30 to-purple-900/30 rounded-2xl p-8 text-center border border-red-800/20 mb-10">
