@@ -61,6 +61,7 @@ const CLUSTER_BY_SLUG: Record<string, string> = {
   'kino-s-drugom-onlayn': 'movie',
   'smotret-film-vdvoem': 'movie',
   'kino-birgalikda': 'movie',
+  'kino-ikkovlashib': 'movie',
   'watch-movies-with-friends': 'movie',
   // Series.
   'smotret-serial-vmeste': 'series',
