@@ -8,7 +8,8 @@
 // already covers; typing into the remote page would need a hidden TextInput + soft-keyboard
 // bridge, a separate follow-up if ever needed.
 import React, { useCallback, useRef, useState } from 'react';
-import { View, Text, Image, ActivityIndicator, StyleSheet, PanResponder, GestureResponderEvent, PanResponderGestureState, LayoutChangeEvent } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, PanResponder, GestureResponderEvent, PanResponderGestureState, LayoutChangeEvent } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useT } from '@i18n/index';
@@ -144,14 +145,18 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, stop, 
         <Image
           source={{ uri: `data:image/jpeg;base64,${frame}` }}
           style={s.frameImg}
-          resizeMode="contain"
-          // Each new frame is a fresh base64 data URI (never the same string twice), so RN's
-          // Image treats every VB_FRAME as a brand-new source. Android's Image defaults
-          // fadeDuration to 300ms, cross-fading from transparent on every source change —
-          // at several frames/sec that reads as a constant black flicker/brightness pulse
-          // (found via a live report 2026-08-03: "мерцает чёрным как будто яркость меняет").
-          // iOS already defaults fadeDuration to 0, so this only mattered on Android.
-          fadeDuration={0}
+          contentFit="contain"
+          // 2026-08-26: switched from react-native's core Image to expo-image. Every VB_FRAME is
+          // a fresh base64 data URI (never the same string twice) at up to ~10fps (FRAME_INTERVAL_MS
+          // in virtualBrowser.service.ts) — core Image's fadeDuration={0} (set 2026-08-03) killed
+          // the cross-fade-from-transparent flash on Android, but reports of flicker/lag on every
+          // tap and page change persisted after that fix, meaning fadeDuration wasn't the whole
+          // story. expo-image is built for exactly this "swap the source rapidly" case (used
+          // everywhere else in this app already) — `transition: null` and `cachePolicy: 'none'`
+          // make that explicit rather than relying on its defaults, since these frames are each
+          // unique and one-shot: caching them would only grow memory for URIs never reused.
+          transition={null}
+          cachePolicy="none"
         />
       </View>
     </View>
