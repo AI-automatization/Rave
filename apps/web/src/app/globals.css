@@ -2,6 +2,13 @@
 @plugin "tailwindcss-animate";
 
 @theme {
+  /* `--font-dm-sans` / `--font-oswald` are next/font's own variables, defined
+     wherever RootDocument.tsx applies their `.variable` class. They must be
+     in scope at :root (Tailwind emits @theme tokens there) for these two
+     tokens to resolve — real bug found 2026-08-26: they used to live on
+     <body>, one level below :root, so both computed to invalid everywhere
+     and every page silently fell back to the system UI font. Fixed by moving
+     next/font's variable classes onto <html> itself in RootDocument.tsx. */
   --font-body: var(--font-dm-sans), "Segoe UI", sans-serif;
   --font-display: var(--font-oswald), "Arial Narrow", sans-serif;
   /* The page background, as `bg-page`. There used to be two near-identical
@@ -40,27 +47,6 @@
   --shell: 80rem;
   --prose: 42rem;
 }
-
-/* ── Brand fonts, repaired ────────────────────────────────────────────────
-   `--font-body` / `--font-display` are declared in `@theme`, which Tailwind
-   emits on `:root` (<html>) — but next/font puts `--font-dm-sans` and
-   `--font-oswald` on <body>, one level down. At :root those references are
-   undefined, so both variables compute to guaranteed-invalid and every
-   consumer silently falls back to the browser's system UI font. Measured
-   2026-08-26: /ru rendered -apple-system everywhere; DM Sans and Oswald have
-   never actually shipped.
-
-   Re-declaring them here, inside <body>, is where the next/font variables are
-   in scope. Applied to the landing only for now (owner's call) — the same bug
-   is live on ~40 other routes and is reported to the team separately. */
-.brand-fonts {
-  --font-body: var(--font-dm-sans), "Segoe UI", sans-serif;
-  --font-display: var(--font-oswald), "Arial Narrow", sans-serif;
-  font-family: var(--font-body);
-}
-.brand-fonts .font-display,
-.brand-fonts h1,
-.brand-fonts h2 { font-family: var(--font-display); }
 
 /* ── Guide typography ─────────────────────────────────────────────────────
    Inter + Plus Jakarta Sans, scoped to guide articles only (owner's call,

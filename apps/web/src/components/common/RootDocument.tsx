@@ -195,8 +195,8 @@ export function RootDocument({
   locale,
 }: Readonly<{ children: React.ReactNode; locale: 'ru' | 'uz' | 'en' }>) {
   return (
-    <html lang={locale}>
-      <body className={`${dmSans.variable} ${oswald.variable} ${inter.variable} ${jakarta.variable} font-body antialiased bg-page text-white`}>
+    <html lang={locale} className={`${dmSans.variable} ${oswald.variable} ${inter.variable} ${jakarta.variable}`}>
+      <body className="font-body antialiased bg-page text-white">
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdApp) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdOrg) }} />
         <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="lazyOnload" />
