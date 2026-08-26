@@ -17,6 +17,8 @@ interface UseWatchPartyCreateReturn {
   setRoomName: (v: string) => void;
   isPrivate: boolean;
   setIsPrivate: (v: boolean) => void;
+  requireApproval: boolean;
+  setRequireApproval: (v: boolean) => void;
   maxMembers: number;
   setMaxMembers: (v: number) => void;
   loading: boolean;
@@ -43,6 +45,7 @@ export function useWatchPartyCreate(): UseWatchPartyCreateReturn {
   const { t } = useT();
   const [roomName, setRoomName] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
+  const [requireApproval, setRequireApproval] = useState(false);
   const [maxMembers, setMaxMembers] = useState(4);
   const [loading, setLoading] = useState(false);
   const [videoUrl, setVideoUrl] = useState('');
@@ -115,6 +118,7 @@ export function useWatchPartyCreate(): UseWatchPartyCreateReturn {
       const room = await watchPartyApi.createRoom({
         name: roomName.trim(),
         isPrivate,
+        requireApproval: isPrivate && requireApproval,
         maxMembers,
         videoUrl: videoUrl.trim(),
       });
@@ -150,6 +154,8 @@ export function useWatchPartyCreate(): UseWatchPartyCreateReturn {
     setRoomName,
     isPrivate,
     setIsPrivate,
+    requireApproval,
+    setRequireApproval,
     maxMembers,
     setMaxMembers,
     loading,

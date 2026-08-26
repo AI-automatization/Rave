@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme } from '@theme/index';
-import { watchPartyApi } from '@api/watchParty.api';
+import { watchPartyApi, JoinRequestPendingError } from '@api/watchParty.api';
 import { FadeSlideIn } from '@components/common/FadeSlideIn';
 import { useWatchPartyCreateStyles } from './watchPartyCreate.styles';
 import type { ModalStackParamList } from '@app-types/index';
@@ -43,7 +43,11 @@ export function JoinTab({ navigation, t }: Props) {
     try {
       const room = await watchPartyApi.joinByInviteCode(code);
       navigation.replace('WatchParty', { roomId: room._id });
-    } catch {
+    } catch (err) {
+      if (err instanceof JoinRequestPendingError) {
+        navigation.replace('WatchPartyJoinPending', { roomId: err.roomId });
+        return;
+      }
       appAlert(t('watchParty', 'error'), t('watchParty', 'joinError'));
     } finally {
       setLoading(false);

@@ -16,6 +16,11 @@ export interface IWatchPartyRoomDocument extends Document {
   isPlaying: boolean;
   inviteCode: string;
   isPrivate: boolean;
+  // Google Meet-style "knock to enter" (2026-08-26) — only enforced when isPrivate is also true
+  // (see joinRoom() in watchParty.service.ts). Independent of password: password (if set) still
+  // gates entry to the request queue itself; this gates the queue → membership.
+  requireApproval: boolean;
+  pendingRequests: { userId: string; requestedAt: Date }[];
   password: string | null;  // bcrypt hash — null for public rooms
   playlist: VideoItem[];
   lastActivityAt: Date;
@@ -65,6 +70,15 @@ const watchPartyRoomSchema = new Schema<IWatchPartyRoomDocument>(
     isPlaying: { type: Boolean, default: false },
     inviteCode: { type: String, required: true, unique: true },
     isPrivate: { type: Boolean, default: false },
+    requireApproval: { type: Boolean, default: false },
+    pendingRequests: {
+      type: [{
+        userId:      { type: String, required: true },
+        requestedAt: { type: Date, default: Date.now },
+      }],
+      default: [],
+      _id: false,
+    },
     password: { type: String, default: null, maxlength: 128 },
     playlist: {
       type: [{

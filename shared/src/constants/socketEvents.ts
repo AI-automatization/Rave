@@ -81,6 +81,15 @@ export const SERVER_EVENTS = Object.freeze({
   // see REQUEST_CANDIDATES below for when this fires.
   VIDEO_CANDIDATES: 'video:candidates',
 
+  // Google Meet-style "knock to enter" (2026-08-26): a private room can require owner approval
+  // per join even after the correct invite code/password. JOIN_REQUESTED goes to the owner
+  // (`user:${ownerId}`, so it arrives even before the owner's socket has joined the room
+  // channel); APPROVED/DENIED go to the requester (`user:${userId}`) the same way, since they
+  // are never a room member — and so never in the room's socket channel — until approved.
+  JOIN_REQUESTED:        'room:join_request:new',
+  JOIN_REQUEST_APPROVED: 'room:join_request:approved',
+  JOIN_REQUEST_DENIED:   'room:join_request:denied',
+
   ERROR: 'error',
 } as const);
 
@@ -143,6 +152,13 @@ export const CLIENT_EVENTS = Object.freeze({
   // candidates are collected proactively as a side effect of CHANGE_MEDIA / VB sniffing, not on
   // demand here.
   REQUEST_CANDIDATES: 'video:candidates:request',
+
+  // Owner-only, mirrors KICK_MEMBER's shape (targetUserId + authSocket.roomId) — see
+  // JOIN_REQUESTED above. Requester-only cancel needs roomId explicitly since a pending
+  // requester's socket was never joined to the room channel.
+  APPROVE_JOIN_REQUEST: 'room:join_request:approve',
+  DENY_JOIN_REQUEST:    'room:join_request:deny',
+  CANCEL_JOIN_REQUEST:  'room:join_request:cancel',
 } as const);
 
 export type ServerEvent = (typeof SERVER_EVENTS)[keyof typeof SERVER_EVENTS];

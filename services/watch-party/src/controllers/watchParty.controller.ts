@@ -50,7 +50,7 @@ export class WatchPartyController {
 
       const {
         name, movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,
-        maxMembers, isPrivate, password, startTime, videoReferer,
+        maxMembers, isPrivate, requireApproval, password, startTime, videoReferer,
       } = req.body as {
         name?: string;
         movieId?: string;
@@ -60,6 +60,7 @@ export class WatchPartyController {
         videoPlatform?: VideoPlatform;
         maxMembers?: number;
         isPrivate?: boolean;
+        requireApproval?: boolean;
         password?: string;
         startTime?: number;
         videoReferer?: string;
@@ -67,7 +68,7 @@ export class WatchPartyController {
 
       const room = await this.watchPartyService.createRoom(userId, {
         name, movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,
-        maxMembers, isPrivate, password, startTime, videoReferer,
+        maxMembers, isPrivate, requireApproval, password, startTime, videoReferer,
       });
       res.status(201).json(apiResponse.success(room, 'Room created'));
 
@@ -138,6 +139,22 @@ export class WatchPartyController {
       const room = await this.watchPartyService.joinRoom(userId, inviteCode, password);
       res.json(apiResponse.success(room, 'Joined room'));
     } catch (error) {
+      // requireApproval room: queued instead of joined (see joinRoom's JOIN_PENDING throw).
+      // ownerId is only present on a genuinely new request — see that comment for why.
+      const err = error as Error & { code?: string; roomId?: string; ownerId?: string };
+      if (err.code === 'JOIN_PENDING') {
+        const { userId } = (req as AuthenticatedRequest).user;
+        if (err.ownerId) {
+          this.io.to(`user:${err.ownerId}`).emit(SERVER_EVENTS.JOIN_REQUESTED, { roomId: err.roomId, userId });
+        }
+        res.status(202).json({
+          success: true,
+          data: { pending: true, roomId: err.roomId },
+          message: 'JOIN_PENDING',
+          errors: null,
+        });
+        return;
+      }
       next(error);
     }
   };

@@ -31,6 +31,8 @@ import { useWatchPartyRoom } from '@hooks/useWatchPartyRoom';
 import { getSocket, CLIENT_EVENTS } from '@socket/client';
 import { analyticsService } from '@services/analyticsService';
 import { MembersStrip } from '@components/watchParty/MembersStrip';
+import { JoinRequestBanner } from '@components/watchParty/JoinRequestBanner';
+import { useJoinRequests } from '@hooks/useJoinRequests';
 import { VideoProgressBar } from '@components/watchParty/VideoProgressBar';
 import { isDomainBlocked } from '@constants/blockedDomains';
 import { extractDomain } from '@utils/videoPlayer';
@@ -205,6 +207,11 @@ export function WatchPartyScreen() {
   // gear-row "Это не то видео" entry, just fired automatically instead of waiting for a tap.
   const vb = useVirtualBrowser(isOwner, handleOpenCandidatePicker);
 
+  // Google Meet-style "knock to enter" (2026-08-26) — only relevant to the owner, only when
+  // requireApproval is on (see JOIN_REQUESTED in roomEvents.handler.ts); the hook itself no-ops
+  // entirely for non-owners.
+  const joinRequests = useJoinRequests(isOwner);
+
   // Owner-only auto-recovery: the server's extraction pipeline said a URL was playable (found
   // SOME video URL), but UniversalPlayer then couldn't actually fetch it (direct attempt AND
   // our proxy both failed) — a real case is a file-host mirror like vikingfile.com returning
@@ -340,6 +347,14 @@ export function WatchPartyScreen() {
               <Text style={s.expiredBtnText}>{t('watchParty', 'updateSource')}</Text>
             </TrackedTouchable>
           )}
+        </View>
+      )}
+
+      {/* Knock-to-enter queue — owner only, only ever non-empty when the room has
+          requireApproval on */}
+      {isOwner && !isFullscreen && joinRequests.queue.length > 0 && (
+        <View style={{ paddingHorizontal: spacing.md, paddingTop: spacing.sm }}>
+          <JoinRequestBanner queue={joinRequests.queue} onApprove={joinRequests.approve} onDeny={joinRequests.deny} />
         </View>
       )}
 

@@ -424,6 +424,56 @@ export const registerRoomEvents = (
     }
   });
 
+  // Google Meet-style "knock to enter" (2026-08-26) — owner-only, same shape/auth pattern as
+  // KICK_MEMBER above. Requires the owner's socket to already be joined to the room (authSocket.
+  // roomId), matching every other owner-management event here.
+  socket.on(CLIENT_EVENTS.APPROVE_JOIN_REQUEST, async (data: { targetUserId: string }) => {
+    if (!authSocket.roomId) return;
+    try {
+      const room = await watchPartyService.getRoom(authSocket.roomId);
+      if (room.ownerId !== userId) {
+        socket.emit(SERVER_EVENTS.ERROR, { message: 'Only the room owner can approve join requests' });
+        return;
+      }
+      const updated = await watchPartyService.approveJoinRequest(userId, authSocket.roomId, data.targetUserId);
+      io.to(`user:${data.targetUserId}`).emit(SERVER_EVENTS.JOIN_REQUEST_APPROVED, { roomId: authSocket.roomId });
+      // Lets the owner's own UI drop the request from their pending list without a manual refetch.
+      io.to(authSocket.roomId).emit(SERVER_EVENTS.ROOM_UPDATED, updated);
+    } catch (error) {
+      socket.emit(SERVER_EVENTS.ERROR, { message: (error as Error).message || 'Failed to approve join request' });
+      logger.error('Socket approve join request error', { userId, error });
+    }
+  });
+
+  socket.on(CLIENT_EVENTS.DENY_JOIN_REQUEST, async (data: { targetUserId: string }) => {
+    if (!authSocket.roomId) return;
+    try {
+      const room = await watchPartyService.getRoom(authSocket.roomId);
+      if (room.ownerId !== userId) {
+        socket.emit(SERVER_EVENTS.ERROR, { message: 'Only the room owner can deny join requests' });
+        return;
+      }
+      const updated = await watchPartyService.denyJoinRequest(userId, authSocket.roomId, data.targetUserId);
+      io.to(`user:${data.targetUserId}`).emit(SERVER_EVENTS.JOIN_REQUEST_DENIED, { roomId: authSocket.roomId });
+      io.to(authSocket.roomId).emit(SERVER_EVENTS.ROOM_UPDATED, updated);
+    } catch (error) {
+      socket.emit(SERVER_EVENTS.ERROR, { message: (error as Error).message || 'Failed to deny join request' });
+      logger.error('Socket deny join request error', { userId, error });
+    }
+  });
+
+  // Requester-side: give up waiting. No authSocket.roomId check — a pending requester was never
+  // authorized into the room's socket channel in the first place, so roomId travels in the
+  // payload instead (same reason CANCEL takes it explicitly rather than reading authSocket).
+  socket.on(CLIENT_EVENTS.CANCEL_JOIN_REQUEST, async (data: { roomId: string }) => {
+    try {
+      const room = await watchPartyService.cancelJoinRequest(userId, data.roomId);
+      io.to(`user:${room.ownerId}`).emit(SERVER_EVENTS.ROOM_UPDATED, room);
+    } catch (error) {
+      logger.error('Socket cancel join request error', { userId, error });
+    }
+  });
+
   socket.on(CLIENT_EVENTS.MUTE_MEMBER, async (data: { targetUserId: string; reason?: string }) => {
     if (!authSocket.roomId) return;
 

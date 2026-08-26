@@ -18,6 +18,20 @@ export class RoomAlreadyExistsError extends Error {
   }
 }
 
+/**
+ * Thrown by joinByInviteCode when the room requires owner approval (2026-08-26) — the backend
+ * answers 202 (still a 2xx, axios won't throw on its own) with `{ pending: true, roomId }`
+ * instead of a room doc. Caller should navigate to a waiting screen and listen for
+ * SERVER_EVENTS.JOIN_REQUEST_APPROVED / JOIN_REQUEST_DENIED on `roomId` instead of treating this
+ * as a normal join failure.
+ */
+export class JoinRequestPendingError extends Error {
+  constructor(public readonly roomId: string) {
+    super('JOIN_PENDING');
+    this.name = 'JoinRequestPendingError';
+  }
+}
+
 export const watchPartyApi = {
   async createRoom(data: {
     videoUrl?: string;
@@ -26,6 +40,8 @@ export const watchPartyApi = {
     videoPlatform?: string;
     name?: string;
     isPrivate?: boolean;
+    /** Google Meet-style "knock to enter" — owner must approve each join. Only meaningful with isPrivate. */
+    requireApproval?: boolean;
     maxMembers?: number;
     /** Resume from this position in seconds */
     startTime?: number;
@@ -72,10 +88,14 @@ export const watchPartyApi = {
   },
 
   async joinByInviteCode(inviteCode: string): Promise<IWatchPartyRoom> {
-    const res = await watchPartyClient.post<ApiResponse<IWatchPartyRoom>>(
+    const res = await watchPartyClient.post<{ message?: string; data: unknown }>(
       `/watch-party/join/${inviteCode}`,
     );
-    return res.data.data!;
+    if (res.data.message === 'JOIN_PENDING') {
+      const pending = res.data.data as { roomId: string };
+      throw new JoinRequestPendingError(pending.roomId);
+    }
+    return res.data.data as IWatchPartyRoom;
   },
 
   async joinRoomById(roomId: string): Promise<IWatchPartyRoom> {

@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ModalStackParamList } from '@app-types/index';
 import { WatchPartyCreateScreen } from '@screens/modal/WatchPartyCreateScreen';
 import { WatchPartyJoinScreen } from '@screens/modal/WatchPartyJoinScreen';
+import { WatchPartyJoinPendingScreen } from '@screens/modal/WatchPartyJoinPendingScreen';
 import { WatchPartyScreen } from '@screens/modal/WatchPartyScreen';
 import { NotificationsScreen } from '@screens/modal/NotificationsScreen';
 import { SourcePickerScreen } from '@screens/modal/SourcePickerScreen';
@@ -24,6 +25,7 @@ export function ModalNavigator() {
       <Modal.Screen name="MediaWebView" component={MediaWebViewScreen} options={{ animation: 'slide_from_right' }} />
       <Modal.Screen name="WatchPartyCreate" component={WatchPartyCreateScreen} />
       <Modal.Screen name="WatchPartyJoin" component={WatchPartyJoinScreen} />
+      <Modal.Screen name="WatchPartyJoinPending" component={WatchPartyJoinPendingScreen} />
       <Modal.Screen name="WatchParty" component={WatchPartyScreen} options={{ gestureEnabled: false }} />
       <Modal.Screen name="Notifications" component={NotificationsScreen} />
       <Modal.Screen name="SupportChat" component={SupportChatScreen} options={{ animation: 'slide_from_right' }} />

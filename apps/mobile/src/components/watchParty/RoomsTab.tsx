@@ -8,7 +8,7 @@ import { useTheme, spacing, createThemedStyles, borderRadius, typography } from 
 import { useWatchPartyRooms } from '@hooks/useWatchPartyRooms';
 import { useRecentRooms } from '@hooks/useRecentRooms';
 import { usePublicRooms } from '@hooks/usePublicRooms';
-import { watchPartyApi } from '@api/watchParty.api';
+import { watchPartyApi, JoinRequestPendingError } from '@api/watchParty.api';
 import { RoomCard } from './RoomCard';
 import { FadeSlideIn } from '@components/common/FadeSlideIn';
 import { useWatchPartyCreateStyles } from './watchPartyCreate.styles';
@@ -48,7 +48,14 @@ export function RoomsTab({ navigation, t }: Props) {
     try {
       await watchPartyApi.joinRoomById(roomId);
       navigation.replace('WatchParty', { roomId });
-    } catch {
+    } catch (err) {
+      // Not expected to fire from any of this screen's lists in practice (a room the user isn't
+      // already a member of never appears in getRooms()/getPublicRooms() when requireApproval is
+      // on, since both now filter isPrivate out) — kept as a safety net, not a designed path.
+      if (err instanceof JoinRequestPendingError) {
+        navigation.replace('WatchPartyJoinPending', { roomId: err.roomId });
+        return;
+      }
       appAlert(t('watchParty', 'error'), t('watchParty', 'joinError'));
     } finally {
       setJoining(null);
