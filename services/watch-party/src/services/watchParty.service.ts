@@ -298,7 +298,15 @@ export class WatchPartyService {
 
   async getRooms(limit = 50): Promise<Array<IWatchPartyRoomDocument & { memberCount: number }>> {
     const cutoff = new Date(Date.now() - TIMING.ROOM_INACTIVE_MINUTES * 60 * 1000);
+    // Real prod bug found live 2026-08-26: this query never filtered isPrivate, so private
+    // rooms (and their inviteCode — only `password` was stripped below) were fully visible in
+    // the public room grid. Any authenticated user could read a private room's inviteCode
+    // straight from this list and POST /rooms/:inviteCode/join with it — for a private room
+    // created without a password (a valid config; invite-code-only privacy), that's an
+    // unauthenticated walk-in with zero gate. getRoom()/socket JOIN_ROOM already correctly
+    // block non-members for a known roomId; this list was the only leak.
     const rooms = await WatchPartyRoom.find({
+      isPrivate: false,
       status: { $ne: 'ended' },
       lastActivityAt: { $gt: cutoff },
     })
