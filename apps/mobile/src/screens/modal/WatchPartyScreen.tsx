@@ -218,10 +218,8 @@ export function WatchPartyScreen() {
   // every `room?.videoUrl` change (the original, since-rolled-back implementation) self-defeats,
   // because VB mutates room.videoUrl every time it finds new media — the very event the guard
   // needs to survive. Tracking the set of URLs already attempted means each distinct source gets
-  // at most one VB attempt, and the reset can never fire mid-loop because there IS no reset. The
-  // size cap is a second, independent backstop.
+  // at most one retry.
   const vbAttemptedUrlsRef = useRef<Set<string>>(new Set());
-  const VB_MAX_ATTEMPTS_PER_SESSION = 3;
 
   // Tracks the last genuine owner-submitted SOURCE PAGE (never a vb-media-proxy rewrite) so a
   // fatal-error retry can re-open VB on the actual page instead of the raw sniffed media file.
@@ -242,10 +240,13 @@ export function WatchPartyScreen() {
     const targetUrl = originalSourceUrlRef.current;
     if (!targetUrl) return; // no known source page to retry (e.g. fatal error before any CHANGE_MEDIA)
     if (vbAttemptedUrlsRef.current.has(targetUrl)) return; // this exact source was already tried
-    if (vbAttemptedUrlsRef.current.size >= VB_MAX_ATTEMPTS_PER_SESSION) return; // hard cap backstop
     vbAttemptedUrlsRef.current.add(targetUrl);
-    vb.start(targetUrl);
-  }, [isOwner, vb]);
+    // 2026-08-24 (Saidazim, live-test feedback): was calling vb.start(targetUrl) directly, which
+    // reopens the Virtual Browser screencast on fatal playback error — but VB never auto-commits
+    // what it finds, so the owner just watched it re-search then had to open the picker manually
+    // anyway. Go straight to the picker instead.
+    handleOpenCandidatePicker();
+  }, [isOwner, vb.active, handleOpenCandidatePicker]);
 
   // T-S189: room was created with a raw, unverified URL (user forced it via "try current
   // page anyway" — no client/server detection confirmed it beforehand). Mirrors web's
@@ -361,7 +362,6 @@ export function WatchPartyScreen() {
           frame={vb.frame}
           dimensions={vb.dimensions}
           error={vb.error}
-          remoteCursor={vb.remoteCursor}
           stop={vb.stop}
           sendInput={vb.sendInput}
         />

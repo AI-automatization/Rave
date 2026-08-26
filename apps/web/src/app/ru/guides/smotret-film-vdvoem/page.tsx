@@ -2,6 +2,10 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideArticleEnd } from '@/components/common/GuideChrome';
 import { GuideRoomMockup, GuideBenefits, GuideSteps, GuideFAQ, GuideCTA } from '@/components/common/GuideArticleUI';
+import { hreflangFor } from '@/lib/i18n/routes';
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
+const PATH = '/ru/guides/smotret-film-vdvoem';
 
 export const metadata: Metadata = {
   // No manual "| WeWatch" — the root layout's title template appends it.
@@ -12,7 +16,10 @@ export const metadata: Metadata = {
     'смотреть фильм вдвоём', 'смотреть фильм вдвоём онлайн', 'смотреть кино вдвоём',
     'смотреть фильм вдвоём на расстоянии', 'фильм на двоих онлайн', 'смотреть вдвоём синхронно',
   ],
-  alternates: { canonical: 'https://wewatch.uz/ru/guides/smotret-film-vdvoem' },
+  alternates: {
+    canonical: `${APP_URL}${PATH}`,
+    languages: hreflangFor(PATH, APP_URL),
+  },
   openGraph: {
     title: 'Смотреть фильм вдвоём онлайн | WeWatch',
     description: 'Синхронный просмотр фильма на двоих — на любом расстоянии.',
@@ -136,6 +143,10 @@ export default function FilmVdvoemPage() {
             <Link href="/ru" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-6 py-3 rounded-xl transition-colors">Открыть WeWatch</Link>
             <Link href="/ru/use-cases/dalnie-otnosheniya" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 font-medium px-6 py-3 rounded-xl transition-colors">На расстоянии →</Link>
           </GuideCTA>
+
+          <div className="border-t border-zinc-800 pt-8">
+            <Link href="/uz/guides/kino-ikkovlashib" className="text-sm text-zinc-500 hover:text-zinc-400 transition-colors">O&apos;zbekcha →</Link>
+          </div>
         </div>
       </main>
       <GuideArticleEnd locale="ru" currentPath="/ru/guides/smotret-film-vdvoem" />

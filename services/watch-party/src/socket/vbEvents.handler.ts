@@ -128,11 +128,8 @@ export const registerVBEvents = (
     if (!authSocket.roomId) return;
     const roomId = authSocket.roomId;
     if (getSessionOwner(roomId) !== userId) return; // silently ignore non-owner input
-    // Relay the owner's pointer position to everyone else so they can see a synced cursor —
-    // the JPEG screencast itself never contains an OS cursor (see VB_CURSOR comment).
-    if (input.type === 'mousemove') {
-      socket.to(roomId).emit(SERVER_EVENTS.VB_CURSOR, { x: input.x, y: input.y });
-    }
+    // 2026-08-25 (Saidazim): VB_CURSOR relay removed — VB_FRAME is owner-only now (see
+    // vbSession.helper.ts), so no other viewer has the screencast to overlay a synced cursor on.
     await sendInput(roomId, userId, input);
   });
 

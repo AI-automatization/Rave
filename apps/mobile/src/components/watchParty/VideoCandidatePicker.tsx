@@ -72,6 +72,18 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
   // a native-appropriate way to get it. Keyed by index, cached for the life of this sheet.
   const [thumbnails, setThumbnails] = useState<Record<number, string>>({});
   const thumbnailAttempted = useRef<Set<number>>(new Set());
+  // Real prod bug (live-test feedback, 2026-08-24): a poster/thumbnail URL that 404s or times out
+  // just rendered a dead/blank <Image> — no fallback to the placeholder icon.
+  const [failedUris, setFailedUris] = useState<Set<string>>(new Set());
+  const markUriFailed = useCallback((uri: string) => {
+    setFailedUris((prev) => (prev.has(uri) ? prev : new Set(prev).add(uri)));
+  }, []);
+
+  // Live-test feedback (2026-08-24): reopening the sheet on a candidate already previewed forced
+  // thumbnails to reload from scratch, because the reset-on-open effect below wiped the cache
+  // unconditionally. Only wipe when the candidate LIST itself actually changed (new CHANGE_MEDIA) —
+  // track it via a signature of the candidates' own URLs, not just the sheet's visible/hidden state.
+  const candidatesSignatureRef = useRef<string>('');
 
   // Fresh cycle-through every time the sheet opens — a stale mode/index from a previous
   // session would otherwise show the wrong candidate (or land straight in the grid).
@@ -80,10 +92,15 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
       setMode('cycle');
       setCycleIndex(0);
       setGridPreviewIndex(0);
-      setThumbnails({});
-      thumbnailAttempted.current = new Set();
+      const signature = candidates ? candidates.map((c) => c.url).join('|') : '';
+      if (signature !== candidatesSignatureRef.current) {
+        candidatesSignatureRef.current = signature;
+        setThumbnails({});
+        setFailedUris(new Set());
+        thumbnailAttempted.current = new Set();
+      }
     }
-  }, [visible]);
+  }, [visible, candidates]);
 
   // Lazy, on entering the grid (not eagerly on load) — generating a thumbnail costs a real
   // network fetch per candidate, not worth paying for candidates the owner never looks at because
@@ -162,7 +179,8 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
 
   const renderGridItem = ({ item, index }: ListRenderItemInfo<VideoCandidate>) => {
     const duration = formatDuration(item.duration);
-    const poster = item.poster ?? thumbnails[index];
+    const rawPoster = item.poster ?? thumbnails[index];
+    const poster = rawPoster && !failedUris.has(rawPoster) ? rawPoster : undefined;
     return (
       <TrackedTouchable
         trackId="candidate_picker:grid_select"
@@ -171,7 +189,7 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
         activeOpacity={0.8}
       >
         {poster ? (
-          <Image source={{ uri: poster }} style={styles.gridThumb} resizeMode="cover" />
+          <Image source={{ uri: poster }} style={styles.gridThumb} resizeMode="cover" onError={() => markUriFailed(poster)} />
         ) : (
           <View style={[styles.gridThumb, styles.gridThumbPlaceholder]}>
             <Ionicons name="film-outline" size={22} color="rgba(255,255,255,0.3)" />
@@ -197,6 +215,7 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <Text style={[styles.title, { color: colors.textPrimary }]}>
             {mode === 'grid' ? t('watchParty', 'candidatesGridTitle') : t('watchParty', 'candidatesTitle')}
+            {mode === 'cycle' && candidates && candidates.length > 0 ? ` (${cycleIndex + 1}/${candidates.length})` : null}
           </Text>
           <TrackedTouchable trackId="candidate_picker:close" onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="close" size={22} color={colors.textMuted} />

@@ -681,6 +681,7 @@
     "virtualBrowser": "Virtual browser",
     "vbOpen": "Open",
     "vbNotOpened": "The room owner hasn't opened the browser yet",
+    "vbOwnerPicking": "Room owner is picking a video...",
     "vbStartVideo": "Start the video on the site",
     "vbBlocked": "Can't open this site, try another",
     "vbQueued": "Waiting for a free slot — position {position} in line",

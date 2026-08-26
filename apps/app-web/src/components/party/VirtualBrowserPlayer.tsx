@@ -17,7 +17,6 @@ interface Props {
   /** 1-indexed position while waiting for a Free-tier slot — see use-virtual-browser.ts. null =
    * not queued (Pro never queues, or the session just hasn't hit the cap). */
   queuePosition: number | null;
-  remoteCursor: { x: number; y: number } | null;
   start: (url: string) => void;
   stop: () => void;
   sendInput: (input: VBInput) => void;
@@ -31,7 +30,7 @@ interface Props {
 // frame stream. See services/watch-party/src/services/virtualBrowser.service.ts for the server
 // side (CDP screencast + input dispatch). State/socket wiring lives in the parent's
 // useVirtualBrowser() call (RoomContent.tsx) — this component is presentational + input capture.
-export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocked, queuePosition, remoteCursor, start, stop, sendInput, onPickDifferentVideo }: Props) {
+export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocked, queuePosition, start, stop, sendInput, onPickDifferentVideo }: Props) {
   const t = useTranslations('party');
   const [urlInput, setUrlInput] = useState('');
   const imgRef = useRef<HTMLImageElement>(null);
@@ -59,18 +58,6 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
     (e: React.MouseEvent) => clientToViewport(e.clientX, e.clientY),
     [clientToViewport],
   );
-
-  // Inverse of toViewportCoords — used to place the OTHER viewers' synced cursor (received in
-  // server-viewport space via VB_CURSOR) at the right spot on THIS client's rendered <img>,
-  // whatever size it happens to be displayed at.
-  const viewportToCssCoords = useCallback((vx: number, vy: number): { x: number; y: number } | null => {
-    if (!imgRef.current || !dimensions) return null;
-    const rect = imgRef.current.getBoundingClientRect();
-    return {
-      x: (vx / dimensions.width) * rect.width,
-      y: (vy / dimensions.height) * rect.height,
-    };
-  }, [dimensions]);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (isOwner && imgRef.current) {
@@ -204,15 +191,20 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
     };
   }, [isOwner, sendInput, frame, clientToViewport]);
 
+  // 2026-08-25 (Saidazim: "виден только владельцу"). VB_FRAME is now emitted to the owner's
+  // socket only (vbSession.helper.ts), so a non-owner never receives frame/dimensions data at
+  // all — show a status message instead of the live screencast unconditionally, not just for the
+  // pre-session (!frame && !dimensions) state.
+  if (!isOwner) {
+    return (
+      <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-2 text-center px-6">
+        <Globe size={24} className="text-zinc-700" />
+        <p className="text-sm text-zinc-500">{t('vbOwnerPicking')}</p>
+      </div>
+    );
+  }
+
   if (!frame && !dimensions) {
-    if (!isOwner) {
-      return (
-        <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-2 text-center px-6">
-          <Globe size={24} className="text-zinc-700" />
-          <p className="text-sm text-zinc-500">{t('vbNotOpened')}</p>
-        </div>
-      );
-    }
     if (queuePosition !== null) {
       return (
         <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-2 text-center px-6">
@@ -245,8 +237,6 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
       </div>
     );
   }
-
-  const remoteCursorCss = !isOwner && remoteCursor ? viewportToCssCoords(remoteCursor.x, remoteCursor.y) : null;
 
   return (
     <div className="relative aspect-video bg-black rounded-xl overflow-hidden">
@@ -327,17 +317,6 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
               {t('vbBlocked')}
               {isOwner && onPickDifferentVideo && <span className="opacity-70">— {t('playerPickAnother')}</span>}
             </button>
-          )}
-
-          {/* Everyone else sees the OWNER's cursor, synced via VB_CURSOR — same reason Kosmi
-              shows one: otherwise nobody but the owner has any idea what they're pointing at. */}
-          {remoteCursorCss && (
-            <MousePointer2
-              size={18}
-              className="absolute pointer-events-none text-amber-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
-              style={{ left: remoteCursorCss.x, top: remoteCursorCss.y, transform: 'translate(-2px,-2px)' }}
-              fill="currentColor"
-            />
           )}
         </>
       )}

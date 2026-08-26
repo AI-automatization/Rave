@@ -86,6 +86,7 @@ export function useWatchParty(roomId: string) {
 
   // Mesh sync (P2P/TURN) — owner broadcasts here, members apply. Socket stays as fallback.
   const broadcasterRef = useRef<SyncBroadcaster | null>(null);
+  const seekSeqRef = useRef(0);
   // Date.now() of the last mesh message a member received — drives single-source selection.
   const lastMeshAtRef = useRef(0);
   const meshFresh = useCallback(() => Date.now() - lastMeshAtRef.current < MESH_FRESH_MS, []);
@@ -413,7 +414,8 @@ export function useWatchParty(roomId: string) {
 
   const emitSeek = useCallback(
     (currentTime: number) => {
-      getSocket()?.emit(CLIENT_EVENTS.SEEK, { roomId, currentTime });
+      const seq = ++seekSeqRef.current;
+      getSocket()?.emit(CLIENT_EVENTS.SEEK, { roomId, currentTime, seq });
       broadcasterRef.current?.broadcastSeek(currentTime, Date.now() + MESH_SCHEDULE_AHEAD_MS);
     },
     [roomId],
