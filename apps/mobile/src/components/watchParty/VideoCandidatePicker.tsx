@@ -112,9 +112,15 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
       thumbnailAttempted.current.add(i);
       VideoThumbnails.getThumbnailAsync(c.url, { time: 3000 })
         .then(({ uri }) => setThumbnails((prev) => ({ ...prev, [i]: uri })))
-        .catch(() => { /* some candidates (e.g. a DASH manifest with no direct-file byte range,
-          or a site that blocks the device's own fetch) just won't thumbnail — falls back to the
-          existing placeholder icon, same as a missing server-provided poster already did */ });
+        .catch((e: unknown) => {
+          // Some candidates (e.g. a DASH manifest with no direct-file byte range, or a site that
+          // blocks the device's own fetch) just won't thumbnail — falls back to the existing
+          // placeholder icon, same as a missing server-provided poster already did. Logged
+          // (dev-only, per CLAUDE.md) rather than fully silent — 2026-08-26 live report ("вижу
+          // только один кадр из нескольких") had no client-side trail at all to confirm which
+          // candidate failed or why, only a structural guess from reading the code.
+          if (__DEV__) console.log('[VideoCandidatePicker] thumbnail failed', { index: i, url: c.url.slice(0, 120), error: e instanceof Error ? e.message : String(e) });
+        });
     });
   }, [mode, candidates]);
 
