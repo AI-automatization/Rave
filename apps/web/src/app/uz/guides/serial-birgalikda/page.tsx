@@ -98,7 +98,7 @@ export default function SerialBirgalikdaPage() {
             bir vaqtda ko'rasiz.
               </p>
             </div>
-            <GuideRoomMockup locale="uz" />
+            <GuideRoomMockup locale="uz" photo="series-binge" priority />
           </div>
         </div>
 

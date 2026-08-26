@@ -77,7 +77,7 @@ export default function SmotretYoutubeVmestePage() {
             WeWatch позволяет смотреть YouTube синхронно с друзьями — бесплатно, без задержек. Один участник ставит паузу или перематывает — остальные видят то же самое мгновенно.
               </p>
             </div>
-            <GuideRoomMockup />
+            <GuideRoomMockup photo="laptop-night" priority />
           </div>
         </div>
 

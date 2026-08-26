@@ -106,7 +106,7 @@ export default function WhatIsWatchPartyEnPage() {
               at the same moment, as if they were sitting on the same sofa.
             </p>
               </div>
-              <GuideRoomMockup locale="en" />
+              <GuideRoomMockup locale="en" photo="cinema" priority />
             </div>
           </div>
 

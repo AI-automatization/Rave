@@ -80,7 +80,7 @@ export default function KinoSDrugoOnlaynPage() {
                 Хочешь провести вечер с другом за фильмом, но вы в разных городах? WeWatch решает это — синхронный просмотр кино в браузерах на телефонах и компьютерах. Как будто сидите рядом.
               </p>
             </div>
-            <GuideRoomMockup />
+            <GuideRoomMockup photo="friends-home" priority />
           </div>
         </div>
 

@@ -106,7 +106,7 @@ export default function KinoBirgalikdaPage() {
             onlayn sinxron kino ko'rish, bepul, istalgan qurilmada. Go'yo yonma-yon o'tirgandek.
               </p>
             </div>
-            <GuideRoomMockup locale="uz" />
+            <GuideRoomMockup locale="uz" photo="friends-home" priority />
           </div>
         </div>
 

@@ -144,7 +144,7 @@ export default function WatchYouTubeTogetherEnPage() {
               Synchronization is automatic.
             </p>
               </div>
-              <GuideRoomMockup locale="en" />
+              <GuideRoomMockup locale="en" photo="laptop-night" priority />
             </div>
           </div>
 

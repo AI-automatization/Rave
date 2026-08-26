@@ -70,7 +70,7 @@ export default function VkVmestePage() {
             WeWatch синхронизирует VK Видео (ВКонтакте) для всех участников через веб-версию в браузере. Приложения для iOS и Android находятся в разработке.
               </p>
             </div>
-            <GuideRoomMockup />
+            <GuideRoomMockup photo="couple-tv" priority />
           </div>
         </div>
 

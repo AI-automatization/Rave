@@ -112,7 +112,7 @@ export default function AnimeBirgalikdaPage() {
             istagan joydan. Jujutsu Kaisen, One Piece, Attack on Titan — WeWatch orqali hammasi mumkin.
               </p>
             </div>
-            <GuideRoomMockup locale="uz" />
+            <GuideRoomMockup locale="uz" photo="bed-laptop" priority />
           </div>
         </div>
 

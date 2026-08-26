@@ -66,7 +66,7 @@ export default function RutubeVmestePage() {
             WeWatch синхронизирует Rutube (Рутуб) для всех участников через веб-версию в браузере. Приложения для iOS и Android находятся в разработке.
               </p>
             </div>
-            <GuideRoomMockup />
+            <GuideRoomMockup photo="phone-video" priority />
           </div>
         </div>
 

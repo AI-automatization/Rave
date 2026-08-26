@@ -84,7 +84,7 @@ export default function SerialyVmestePage() {
             Соберите несколько друзей в сериальный клуб и смотрите выбранный эпизод синхронно. WeWatch держит одну позицию у всех — никто не убегает вперёд и не спойлерит.
               </p>
             </div>
-            <GuideRoomMockup />
+            <GuideRoomMockup photo="popcorn-watch" priority />
           </div>
         </div>
 

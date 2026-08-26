@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { type ReactNode } from 'react';
 import { FaPlay, FaComments, FaLink, FaUserPlus, FaUsers, FaBolt, FaShieldAlt, FaMobileAlt } from 'react-icons/fa';
 
@@ -215,16 +216,49 @@ export function GuideBenefits({ items, variant = 'grid' }: { items: GuideBenefit
  * that needs a licence or that overstates what the product does.
  */
 /**
+ * Which photo a guide uses. Files live in `/public/img/` — deliberately NOT
+ * `/public/guides/`, which collides with the `/guides` route: the locale
+ * middleware 308s that path and next/image then receives HTML instead of a JPEG.
+ *
+ * One per guide topic so no two pages in a cluster open on the same still.
+ * All Pexels — free for commercial use, attribution not required.
+ */
+export type GuidePhoto =
+  | 'cinema' | 'friends-home' | 'couple-tv' | 'series-binge'
+  | 'movie-3d' | 'popcorn-watch' | 'laptop-night' | 'group-watch'
+  | 'bed-laptop' | 'girl-laptop' | 'phone-video' | 'theatre-couple';
+
+const PHOTO_ALT: Record<GuidePhoto, Record<'ru' | 'uz' | 'en', string>> = {
+  'cinema':         { ru: 'Друзья смотрят фильм в тёмном зале',        uz: "Do'stlar qorong'i zalda kino ko'rmoqda",      en: 'Friends watching a film in a dim room' },
+  'friends-home':   { ru: 'Компания смотрит фильм дома на диване',      uz: "Do'stlar uyda divanda kino ko'rmoqda",        en: 'A group watching a film at home on the sofa' },
+  'couple-tv':      { ru: 'Пара смотрит видео на телевизоре дома',      uz: 'Juftlik uyda televizorda video ko‘rmoqda',    en: 'A couple watching video on a TV at home' },
+  'series-binge':   { ru: 'Пара смотрит сериал в гостиной',             uz: 'Juftlik mehmonxonada serial ko‘rmoqda',       en: 'A couple watching a series in the living room' },
+  'movie-3d':       { ru: 'Пара смотрит фильм в 3D-очках',              uz: 'Juftlik 3D ko‘zoynakda kino ko‘rmoqda',       en: 'A couple watching a film in 3D glasses' },
+  'popcorn-watch':  { ru: 'Девушка с попкорном смотрит фильм',          uz: 'Qiz popkorn bilan kino ko‘rmoqda',            en: 'A woman watching a film with popcorn' },
+  'laptop-night':   { ru: 'Просмотр на ноутбуке вечером',               uz: 'Kechqurun noutbukda tomosha',                 en: 'Watching on a laptop at night' },
+  'group-watch':    { ru: 'Друзья вместе смотрят экран',                uz: "Do'stlar birga ekranga qarab o'tirishibdi",   en: 'Friends watching a screen together' },
+  'bed-laptop':     { ru: 'Две подруги смотрят фильм с ноутбука',       uz: "Ikki dugona noutbukdan kino ko'rmoqda",       en: 'Two friends watching a film on a laptop' },
+  'girl-laptop':    { ru: 'Девушка смотрит видео за ноутбуком',         uz: 'Qiz noutbukda video ko‘rmoqda',               en: 'A girl watching video on a laptop' },
+  'phone-video':    { ru: 'Просмотр видео на телефоне',                 uz: 'Telefonda video ko‘rish',                     en: 'Watching video on a phone' },
+  'theatre-couple': { ru: 'Пара в кинозале смотрит фильм',              uz: 'Juftlik kinozalda kino ko‘rmoqda',            en: 'A couple watching a film in a theatre' },
+};
+
+/**
  * Wide, centred hero: heading stacked above a full-width mockup instead of the
  * side-by-side split. Used by the broad "what is / how to watch together"
  * guides so they don't open identically to the scenario ones.
  */
-export function GuideHeroWide({ children, locale = 'ru' }: { children: ReactNode; locale?: 'ru' | 'uz' | 'en' }) {
+export function GuideHeroWide({
+  children, locale = 'ru', photo,
+}: { children: ReactNode; locale?: 'ru' | 'uz' | 'en'; photo?: GuidePhoto }) {
   return (
     <>
       <div className="max-w-3xl">{children}</div>
-      <div className="mt-10 max-w-4xl mx-auto">
-        <GuideRoomMockup locale={locale} wide />
+      {/* One visual, not two: the still plays inside the player frame. An
+          earlier version put the photo behind the mockup, where the opaque
+          mockup simply covered it. */}
+      <div className="mt-10">
+        <GuideRoomMockup locale={locale} wide photo={photo} priority />
       </div>
     </>
   );
@@ -236,7 +270,9 @@ const MOCKUP_COPY = {
   en: { chat: 'Chat', lines: [['Alex', 'Great movie 🔥'], ['Mia', 'Yeah, the plot 👌']] },
 } as const;
 
-export function GuideRoomMockup({ locale = 'ru', wide = false }: { locale?: 'ru' | 'uz' | 'en'; wide?: boolean }) {
+export function GuideRoomMockup({
+  locale = 'ru', wide = false, photo, priority = false,
+}: { locale?: 'ru' | 'uz' | 'en'; wide?: boolean; photo?: GuidePhoto; priority?: boolean }) {
   const copy = MOCKUP_COPY[locale];
   return (
     // Plain <div>, no entrance animation: this sits in the hero, and hero
@@ -244,19 +280,45 @@ export function GuideRoomMockup({ locale = 'ru', wide = false }: { locale?: 'ru'
     // the exact pattern that tanked LCP on a sibling project. Hover states
     // are fine (post-load); reveal-on-mount is not.
     <div
-      // Decorative illustration of the product UI — the sample chat names and
-      // 10px labels inside are visual texture, not content a screen reader
-      // should read out mid-article.
-      aria-hidden="true"
       className={`relative rounded-2xl border border-white/[0.08] overflow-hidden ${wide ? 'aspect-[16/9]' : 'aspect-[4/3]'}`}
       style={{ background: 'linear-gradient(160deg, #15121f 0%, #0c0b12 100%)' }}
     >
-      {/* Fake player surface */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div
-          className="absolute inset-0"
-          style={{ background: 'radial-gradient(ellipse at 50% 40%, rgba(123,114,248,0.18) 0%, transparent 65%)' }}
-        />
+      {/* The photo IS the thing playing — it fills the player surface rather
+          than sitting beside the mockup, which reads as a real room instead of
+          an empty frame next to a picture. */}
+      {photo && (
+        <>
+          <Image
+            src={`/img/guide-${photo}.jpg`}
+            alt={PHOTO_ALT[photo][locale]}
+            fill
+            sizes="(max-width: 1024px) 100vw, 640px"
+            priority={priority}
+            className="object-cover"
+            style={{ filter: 'saturate(0.45) brightness(0.7) contrast(1.06)' }}
+          />
+          {/* Brand duotone so the still reads as WeWatch artwork, not raw stock. */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: 'linear-gradient(155deg, rgba(123,114,248,0.45) 0%, rgba(34,211,238,0.10) 100%)', mixBlendMode: 'color' }}
+            aria-hidden="true"
+          />
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: 'linear-gradient(to top, rgba(10,10,15,0.72) 0%, transparent 55%)' }}
+            aria-hidden="true"
+          />
+        </>
+      )}
+
+      {/* Player surface: play button, and a glow when there's no photo behind it. */}
+      <div className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
+        {!photo && (
+          <div
+            className="absolute inset-0"
+            style={{ background: 'radial-gradient(ellipse at 50% 40%, rgba(123,114,248,0.18) 0%, transparent 65%)' }}
+          />
+        )}
         <span
           className="relative flex items-center justify-center w-16 h-16 rounded-full text-white"
           style={{ background: 'rgba(123,114,248,0.9)', boxShadow: '0 0 40px rgba(123,114,248,0.5)' }}
@@ -266,12 +328,15 @@ export function GuideRoomMockup({ locale = 'ru', wide = false }: { locale?: 'ru'
       </div>
 
       {/* Bottom player chrome bar */}
-      <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-white/10">
+      <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-white/10" aria-hidden="true">
         <div className="h-full w-2/5" style={{ background: 'linear-gradient(90deg, #7B72F8, #a855f7)' }} />
       </div>
 
-      {/* Floating chat panel — static for the same hero/LCP reason as above. */}
+      {/* Floating chat panel — static for the same hero/LCP reason as above.
+          Decorative: the sample names and 10px labels are visual texture, not
+          content a screen reader should read out mid-article. */}
       <div
+        aria-hidden="true"
         className="absolute top-4 right-4 w-[46%] rounded-xl border border-white/10 p-3"
         style={{ background: 'rgba(13,13,20,0.85)', backdropFilter: 'blur(12px)' }}
       >

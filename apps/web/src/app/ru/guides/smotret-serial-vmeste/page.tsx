@@ -77,7 +77,7 @@ export default function SmotretSerialVmestePage() {
             Друг далеко, а новый сезон уже вышел? WeWatch помогает проходить один сериал вместе эпизод за эпизодом — синхронно, с чатом и реакциями.
               </p>
             </div>
-            <GuideRoomMockup />
+            <GuideRoomMockup photo="series-binge" priority />
           </div>
         </div>
 

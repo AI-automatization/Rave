@@ -97,7 +97,7 @@ export default function YoutubeBirgalikdaPage() {
             Masofa muhim emas.
               </p>
             </div>
-            <GuideRoomMockup locale="uz" />
+            <GuideRoomMockup locale="uz" photo="girl-laptop" priority />
           </div>
         </div>
 

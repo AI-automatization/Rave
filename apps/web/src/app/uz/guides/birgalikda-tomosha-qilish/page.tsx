@@ -99,7 +99,7 @@ export default function BirgalikdaTomashaPage() {
             </Link>
           </nav>
 
-          <GuideHeroWide locale="uz">
+          <GuideHeroWide locale="uz" photo="group-watch">
             <h1>Onlayn birgalikda tomosha qilish — bepul</h1>
             <p>
           WeWatch — do'stlaringiz bilan istagan film, serial yoki videoni onlayn sinxron tomosha qiling.

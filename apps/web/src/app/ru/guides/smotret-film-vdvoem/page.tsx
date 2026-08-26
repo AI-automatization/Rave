@@ -87,7 +87,7 @@ export default function FilmVdvoemPage() {
                 Хотите посмотреть фильм вдвоём, но вы не рядом? Откройте веб-версию на двух устройствах: один ставит паузу — у второго тоже пауза. Как будто на одном диване.
               </p>
             </div>
-            <GuideRoomMockup />
+            <GuideRoomMockup photo="theatre-couple" priority />
           </div>
         </div>
 

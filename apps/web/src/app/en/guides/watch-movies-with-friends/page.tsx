@@ -102,7 +102,7 @@ export default function WatchMoviesWithFriendsEnPage() {
               next street or on another continent.
             </p>
               </div>
-              <GuideRoomMockup locale="en" />
+              <GuideRoomMockup locale="en" photo="friends-home" priority />
             </div>
           </div>
 

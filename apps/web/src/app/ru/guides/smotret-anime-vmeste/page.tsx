@@ -78,7 +78,7 @@ export default function SmotretAnimeVmestePage() {
             WeWatch помогает смотреть аниме с другом онлайн через поддерживаемые источники: YouTube, VK Видео, Rutube и прямые MP4-ссылки. Синхронизация работает в реальном времени.
               </p>
             </div>
-            <GuideRoomMockup />
+            <GuideRoomMockup photo="movie-3d" priority />
           </div>
         </div>
 

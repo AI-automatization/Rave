@@ -98,7 +98,7 @@ export default function WatchPartyBesplatnoPage() {
             <span>Watch Party бесплатно</span>
           </nav>
 
-          <GuideHeroWide>
+          <GuideHeroWide photo="group-watch">
             <h1>Бесплатный Watch Party онлайн в 2026</h1>
             <p>
           Основные функции watch party WeWatch доступны бесплатно в веб-версии. Поддерживаются YouTube, VK Видео, Rutube и прямые MP4-ссылки; приложения для iOS и Android находятся в разработке.
