@@ -6,11 +6,11 @@
 // files strictly sequentially from byte 0 and never jumps ahead to fetch the tail — for a
 // 600MB+ movie that means "loading" for as long as it takes to download nearly the whole file,
 // which blows past the player's own load timeout and surfaces as a generic "video failed to
-// load" with no indication why. A real remux-to-faststart fix is a separate, bigger piece of
-// work (needs ffmpeg in the container, disk-bounded caching, and a client-side change so the
-// player never even sees the raw URL) — this is the interim, safe, backend-only version: detect
-// the condition cheaply and fail with an honest, immediate message instead of a silent 2-3
-// minute hang.
+// load" with no indication why.
+//
+// This module only detects the condition (cheap, ~2MB probe). faststartRemux.service.ts is the
+// actual fix — downloads + remuxes + caches a faststart copy — and uses `isLikelyFaststart` here
+// as its own first check before doing any of that expensive work.
 //
 // Deliberately probes the ORIGIN directly (not through our own vb-media-proxy) — this is a
 // small, one-shot server-to-server read to inspect box headers, not something that needs our
@@ -27,8 +27,9 @@ const CHROME_UA =
 
 /** Extracts the real upstream URL from one of our own vb-media-proxy URLs (the `url=` query
  * param, base64url-encoded — same scheme vbMediaProxy.controller.ts itself decodes). Returns
- * null if `proxyUrl` isn't one of ours or the param is missing/malformed. */
-function extractUpstreamUrl(proxyUrl: string): string | null {
+ * null if `proxyUrl` isn't one of ours or the param is missing/malformed. Exported for
+ * faststartRemux.service.ts, which needs the same extraction to know what to download. */
+export function extractUpstreamUrl(proxyUrl: string): string | null {
   try {
     const parsed = new URL(proxyUrl);
     const encoded = parsed.searchParams.get('url');
