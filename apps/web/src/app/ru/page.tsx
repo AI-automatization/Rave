@@ -218,7 +218,9 @@ export default function LandingPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(publishedJsonLd) }}
       />
-      <LandingContent locale="ru" />
+      <div className="brand-fonts">
+        <LandingContent locale="ru" />
+      </div>
     </>
   );
 }

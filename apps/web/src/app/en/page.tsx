@@ -134,7 +134,9 @@ export default function EnHomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(publishedJsonLd) }}
       />
-      <LandingContent locale="en" />
+      <div className="brand-fonts">
+        <LandingContent locale="en" />
+      </div>
     </>
   );
 }

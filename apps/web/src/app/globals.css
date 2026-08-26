@@ -41,6 +41,27 @@
   --prose: 42rem;
 }
 
+/* ── Brand fonts, repaired ────────────────────────────────────────────────
+   `--font-body` / `--font-display` are declared in `@theme`, which Tailwind
+   emits on `:root` (<html>) — but next/font puts `--font-dm-sans` and
+   `--font-oswald` on <body>, one level down. At :root those references are
+   undefined, so both variables compute to guaranteed-invalid and every
+   consumer silently falls back to the browser's system UI font. Measured
+   2026-08-26: /ru rendered -apple-system everywhere; DM Sans and Oswald have
+   never actually shipped.
+
+   Re-declaring them here, inside <body>, is where the next/font variables are
+   in scope. Applied to the landing only for now (owner's call) — the same bug
+   is live on ~40 other routes and is reported to the team separately. */
+.brand-fonts {
+  --font-body: var(--font-dm-sans), "Segoe UI", sans-serif;
+  --font-display: var(--font-oswald), "Arial Narrow", sans-serif;
+  font-family: var(--font-body);
+}
+.brand-fonts .font-display,
+.brand-fonts h1,
+.brand-fonts h2 { font-family: var(--font-display); }
+
 /* ── Guide typography ─────────────────────────────────────────────────────
    Inter + Plus Jakarta Sans, scoped to guide articles only (owner's call,
    2026-08-26). Deliberately NOT applied to `.article`/`.page-hero` on their

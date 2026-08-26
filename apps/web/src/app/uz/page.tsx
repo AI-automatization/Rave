@@ -126,7 +126,9 @@ export default function UzHomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(publishedJsonLd) }}
       />
-      <LandingContent locale="uz" />
+      <div className="brand-fonts">
+        <LandingContent locale="uz" />
+      </div>
     </>
   );
 }
