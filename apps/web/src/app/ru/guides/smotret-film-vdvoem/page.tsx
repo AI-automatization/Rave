@@ -71,7 +71,7 @@ export default function FilmVdvoemPage() {
         {/* `page-hero` is the sitewide header treatment (breadcrumb pill,
             display H1, lead paragraph) — same class /faq, /guides and /team
             use. The two-column split with the mockup is the guide-specific part. */}
-        <div className="page-hero relative max-w-5xl mx-auto px-4 pt-16 pb-8">
+        <div className="page-hero shell relative pt-16 pb-8">
           <nav className="text-sm text-zinc-500">
             <Link href="/ru" className="hover:text-white transition-colors">WeWatch</Link>
             <span className="mx-2">/</span>
@@ -91,7 +91,7 @@ export default function FilmVdvoemPage() {
           </div>
         </div>
 
-        <div className="article max-w-5xl mx-auto px-4 py-10">
+        <div className="article shell py-12">
           <section className="mb-12">
             <h2 className="text-2xl font-bold mb-6">Почему это удобно</h2>
             <GuideBenefits

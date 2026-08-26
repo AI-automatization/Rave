@@ -75,7 +75,7 @@ export default function WatchMoviesWithFriendsEnPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div className="flex-1 bg-page text-zinc-300">
 
-        <main className="max-w-5xl mx-auto px-4 sm:px-6 py-14">
+        <main className="shell py-14">
           <div className="mb-10">
             <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-zinc-500 text-sm mb-4">
               <Link href="/en" className="hover:text-zinc-300 transition-colors">Home</Link>

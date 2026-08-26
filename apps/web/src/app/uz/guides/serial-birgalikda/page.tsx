@@ -80,7 +80,7 @@ export default function SerialBirgalikdaPage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <main className="flex-1 bg-page text-white">
-        <div className="page-hero relative max-w-5xl mx-auto px-4 pt-16 pb-8">
+        <div className="page-hero shell relative pt-16 pb-8">
           <nav className="text-sm text-zinc-500">
             <Link href="/uz" className="hover:text-white transition-colors">WeWatch</Link>
             <span className="mx-2">/</span>
@@ -102,7 +102,7 @@ export default function SerialBirgalikdaPage() {
           </div>
         </div>
 
-        <div className="article max-w-5xl mx-auto px-4 py-10">
+        <div className="article shell py-12">
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">Qanday serial turlari mavjud?</h2>
