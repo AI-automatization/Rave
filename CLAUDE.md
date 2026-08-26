@@ -487,6 +487,8 @@ Mode B / >5 файлов? → .claude/skills/subagent-dispatch.md
 Frontend UI/UX:
   • DESIGN  → .claude/skills/frontend-design.md          (WeWatch dark glass UI, Bebas Neue, no AI slop)
   • UI/UX   → .claude/skills/ui-ux-pro-max.md            (99 правил, accessibility/touch CRITICAL)
+  • MOTION  → .claude/skills/design-motion-principles.md (создание/аудит motion — hover, transitions, micro-interactions; ловит AI-slop анимации)
+  • POLISH  → .claude/skills/emil-design-eng.md          (философия Emil Kowalski — невидимые детали, ощущение качества UI)
   • TEST    → .claude/skills/webapp-testing.md           (Playwright — скрины, auth flow, локали)
 
 Качество / DevOps:
