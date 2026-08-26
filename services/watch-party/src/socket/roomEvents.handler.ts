@@ -13,6 +13,7 @@ import { enqueueVBRequest } from './vbQueue.helper';
 import { cancelVbDisconnectGrace } from './vbEvents.handler';
 import { isOfficialEmbedHost, isOwnVbUrl, isPrivateUrl } from '../services/extractionClient';
 import { isDomainBlocked } from '../controllers/domain.admin.controller';
+import { isLikelyFaststart } from '../services/faststartCheck.service';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -322,6 +323,25 @@ export const registerRoomEvents = (
     }
 
     try {
+      // Real prod incident 2026-08-26 (fayllar1.ru sources, live test): a VB-caught 'url'-kind
+      // candidate (a directly-resolved CDN file, not our own vb-capture buffer) can have its
+      // moov atom at the very end of the file ("non-faststart") — confirmed live that this app's
+      // Android player reads such files strictly sequentially from byte 0 and never seeks ahead,
+      // so a 600MB+ movie just "loads" until the player's own timeout gives up with a generic
+      // error, minutes later, no indication why. A real fix (server-side remux to faststart) is
+      // a bigger, separate piece of work; this is the safe interim version — fail fast with an
+      // honest reason instead of the silent multi-minute hang. Scoped to exactly the candidate
+      // kind that actually hits this (own-VB, non-capture) — official embeds and the live
+      // vb-capture buffer are unaffected and skip the probe entirely.
+      if (isOwnVbUrl(data.videoUrl) && !data.videoUrl.includes('/vb-capture/')) {
+        const faststartOk = await isLikelyFaststart(data.videoUrl);
+        if (!faststartOk) {
+          socket.emit(SERVER_EVENTS.ERROR, { message: 'Этот источник не поддерживается (несовместимый формат файла) — попробуйте другой сайт или другое качество' });
+          logger.warn('CHANGE_MEDIA rejected — non-faststart source', { roomId, userId, url: data.videoUrl });
+          return;
+        }
+      }
+
       const updated = await watchPartyService.updateRoomMedia(userId, roomId, {
         videoUrl:      data.videoUrl,
         videoTitle:    data.videoTitle    ?? null,
