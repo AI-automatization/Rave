@@ -1006,6 +1006,7 @@ export async function stopSession(roomId: string): Promise<void> {
   const s = sessions.get(roomId);
   if (!s) return;
   sessions.delete(roomId);
+  inputQueues.delete(roomId);
   try { await s.cdp.send('Page.stopScreencast'); } catch { /* already gone */ }
   try { await s.context.close(); } catch { /* already gone */ }
   stopCapture(roomId);
@@ -1030,10 +1031,34 @@ export async function pauseScreencast(roomId: string): Promise<void> {
   logger.info('VB: screencast paused, session kept alive for ongoing capture', { roomId });
 }
 
+// Real prod bug 2026-08-26 (live test, Saidazim: taps not registering + text getting selected
+// on tap/scroll): vbEvents.handler.ts's VB_INPUT listener is `async` but Socket.io does not wait
+// for one call to finish before invoking the next — a mousedown immediately followed by mouseup
+// (exactly what a tap sends, see VirtualBrowserPlayer.tsx's onPanResponderRelease) could have
+// mouseup's page.mouse.up() run and complete BEFORE mousedown's own page.mouse.down() — the
+// mousedown case has had a deliberate 40-100ms randomized delay before `.down()` since 2026-08-20
+// (reCAPTCHA timing evasion, see that case's own comment), long enough for a same-tick mouseup to
+// race ahead of it. Net effect: the button never truly goes down for that tap (dead click), then
+// goes down for real ~50-100ms later with NO matching mouseup ever coming — left held through
+// every subsequent mousemove/wheel, which a real browser reads as a drag-select. Matches both
+// symptoms exactly. Fix: serialize all inputs for a given room through one promise chain so a
+// later event can never start running before an earlier one has fully finished, regardless of
+// how fast the socket delivers them or how long an individual input's own handling takes.
+const inputQueues = new Map<string, Promise<void>>();
+
 // Only the room owner may drive input — enforced by the caller (vbEvents.handler.ts) checking
 // getSessionOwner(roomId) === userId, but double-checked here too since this fires straight
 // into a real browser page (mistaken input source would let a random member navigate it).
 export async function sendInput(roomId: string, userId: string, input: VBInput): Promise<void> {
+  const previous = inputQueues.get(roomId) ?? Promise.resolve();
+  const next = previous.then(() => dispatchInput(roomId, userId, input));
+  // Swallow here so one bad input doesn't wedge the queue for every input after it — the real
+  // error is still logged inside dispatchInput's own catch, this just keeps the chain alive.
+  inputQueues.set(roomId, next.catch(() => {}));
+  return next;
+}
+
+async function dispatchInput(roomId: string, userId: string, input: VBInput): Promise<void> {
   const s = sessions.get(roomId);
   if (!s || s.ownerId !== userId) return;
   const { page } = s;
