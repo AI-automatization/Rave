@@ -642,11 +642,28 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   // Confirming a candidate replaces the room's video the same way quality/episode selection
   // does — a direct CHANGE_MEDIA emit, no separate mechanism.
+  //
+  // Real prod finding 2026-08-26 (live test, Saidazim): picking either of 2 candidates did
+  // nothing — no error, no playback. Server logs showed ZERO trace of the resulting CHANGE_MEDIA
+  // (no "Room media changed" success log, no warn, no error) for either room, meaning the emit
+  // never reached the server at all — `getSocket()?.emit(...)` on a null/disconnected socket
+  // (screen backgrounded/locked during the ~100s VB candidate-collection wait is the likely
+  // trigger) silently no-ops. The owner saw the picker close with nothing happening and no
+  // indication why. Same silent-failure class the silent-failure-hunter agent (T-193, today)
+  // exists to catch — surfacing it here instead of chasing every other emit call in this file.
   const handleCandidateSelect = useCallback((candidate: VideoCandidate) => {
     if (!isOwner || !room) return;
-    getSocket()?.emit(CLIENT_EVENTS.CHANGE_MEDIA, { roomId, videoUrl: candidate.url, videoTitle: room.videoTitle ?? 'Video', videoPlatform: room.videoPlatform ?? 'direct' });
+    const socket = getSocket();
+    if (!socket?.connected) {
+      appAlert(
+        t('common', 'error') ?? 'Xato',
+        t('watchParty', 'noConnectionRetry') ?? 'Нет соединения с сервером — проверьте интернет и попробуйте выбрать видео ещё раз.',
+      );
+      return;
+    }
+    socket.emit(CLIENT_EVENTS.CHANGE_MEDIA, { roomId, videoUrl: candidate.url, videoTitle: room.videoTitle ?? 'Video', videoPlatform: room.videoPlatform ?? 'direct' });
     setCurrentVideoUrl(candidate.url);
-  }, [isOwner, room, roomId]);
+  }, [isOwner, room, roomId, t]);
 
   const handleAddToQueue = useCallback(() => {
     if (!isOwner) return;
