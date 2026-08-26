@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import type { AbstractIntlMessages } from 'next-intl';
-import { DM_Sans, Oswald } from 'next/font/google';
+import { DM_Sans, Oswald, Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import Script from 'next/script';
 import { Providers } from '@/components/common/Providers';
 import { SOCIAL_PROFILE_URLS } from '@/data/brand';
@@ -23,6 +23,21 @@ const dmSans = DM_Sans({
 const oswald = Oswald({
   subsets: ['latin'],
   variable: '--font-oswald',
+  display: 'swap',
+});
+
+// Guide-article typography only — see the `.guide-page` scope in globals.css.
+// The rest of the site keeps Oswald + DM Sans; the owner asked for the newer
+// pair on the guides specifically (2026-08-26).
+const inter = Inter({
+  subsets: ['latin', 'cyrillic'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-jakarta',
   display: 'swap',
 });
 
@@ -181,7 +196,7 @@ export function RootDocument({
 }: Readonly<{ children: React.ReactNode; locale: 'ru' | 'uz' | 'en' }>) {
   return (
     <html lang={locale}>
-      <body className={`${dmSans.variable} ${oswald.variable} font-body antialiased bg-page text-white`}>
+      <body className={`${dmSans.variable} ${oswald.variable} ${inter.variable} ${jakarta.variable} font-body antialiased bg-page text-white`}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdApp) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdOrg) }} />
         <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="lazyOnload" />

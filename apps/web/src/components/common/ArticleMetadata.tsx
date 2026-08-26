@@ -84,7 +84,7 @@ export function ArticleMetadata({ currentPath }: { currentPath: string }) {
       />
       <aside
         data-editorial-meta
-        className="max-w-4xl mx-auto px-4 sm:px-6 mt-10 text-sm text-zinc-400"
+        className="shell mt-10 text-sm text-zinc-400"
         aria-label={`${labels.author}: WeWatch`}
       >
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-zinc-800/60 pt-6">

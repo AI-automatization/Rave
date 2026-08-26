@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { FaPlay, FaFilm } from 'react-icons/fa';
 import { GuideArticleEnd } from '@/components/common/GuideChrome';
+import { GuideRoomMockup } from '@/components/common/GuideArticleUI';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { socialMeta } from '@/lib/i18n/metadata';
 import { VisibleFaqs } from '@/components/common/VisibleFaqs';
@@ -72,9 +73,9 @@ export default function WatchMoviesWithFriendsEnPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <div className="flex-1 bg-page text-zinc-300">
+      <div className="guide-page flex-1 bg-page text-zinc-300">
 
-        <main className="max-w-4xl mx-auto px-4 sm:px-6 py-14">
+        <main className="shell py-14">
           <div className="mb-10">
             <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-zinc-500 text-sm mb-4">
               <Link href="/en" className="hover:text-zinc-300 transition-colors">Home</Link>
@@ -91,6 +92,8 @@ export default function WatchMoviesWithFriendsEnPage() {
               <span className="text-zinc-500 text-sm">Guide · 4 min read</span>
             </div>
 
+            <div className="grid lg:grid-cols-2 gap-10 items-center">
+              <div>
             <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-4">
               Watch movies with friends online
             </h1>
@@ -98,6 +101,9 @@ export default function WatchMoviesWithFriendsEnPage() {
               Free, in sync, from any device — and it does not matter whether your friend is in the
               next street or on another continent.
             </p>
+              </div>
+              <GuideRoomMockup locale="en" photo="friends-home" priority />
+            </div>
           </div>
 
           <div className="bg-[#111118] border border-[#7B72F8]/30 rounded-2xl px-6 py-5 mb-12">

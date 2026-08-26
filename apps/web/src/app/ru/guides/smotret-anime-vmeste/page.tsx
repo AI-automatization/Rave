@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideArticleEnd } from '@/components/common/GuideChrome';
+import { GuideRoomMockup, GuideSteps, GuideFAQ, GuideCTA } from '@/components/common/GuideArticleUI';
 
 export const metadata: Metadata = {
   title: 'Смотреть аниме вместе с другом онлайн бесплатно',
@@ -60,9 +61,9 @@ export default function SmotretAnimeVmestePage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <main className="flex-1 bg-page text-white">
-        <div className="article max-w-3xl mx-auto px-4 py-16">
-          <nav className="text-sm text-zinc-500 mb-8">
+      <main className="guide-page flex-1 bg-page text-white">
+        <div className="page-hero shell relative pt-16 pb-8">
+          <nav className="text-sm text-zinc-500">
             <Link href="/ru" className="hover:text-white transition-colors">WeWatch</Link>
             <span className="mx-2">/</span>
             <Link href="/ru/guides/smotret-vmeste-onlayn" className="hover:text-white transition-colors">Смотреть вместе</Link>
@@ -70,13 +71,18 @@ export default function SmotretAnimeVmestePage() {
             <span>Аниме вместе</span>
           </nav>
 
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
-            Смотреть аниме вместе с другом онлайн
-          </h1>
-
-          <p className="text-xl text-zinc-400 mb-10 leading-relaxed">
+          <div className="grid lg:grid-cols-2 gap-10 items-center">
+            <div>
+              <h1>Смотреть аниме вместе с другом онлайн</h1>
+              <p>
             WeWatch помогает смотреть аниме с другом онлайн через поддерживаемые источники: YouTube, VK Видео, Rutube и прямые MP4-ссылки. Синхронизация работает в реальном времени.
-          </p>
+              </p>
+            </div>
+            <GuideRoomMockup photo="movie-3d" priority />
+          </div>
+        </div>
+
+        <div className="article shell py-12">
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">Какие источники с аниме поддерживаются?</h2>
@@ -92,34 +98,19 @@ export default function SmotretAnimeVmestePage() {
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-6">Как смотреть аниме вместе — 4 шага</h2>
-            <ol className="space-y-5">
-              {[
+            <GuideSteps
+              steps={[
                 { n: 1, title: 'Откройте WeWatch', desc: 'Откройте wewatch.uz в браузере. Приложения для iOS и Android находятся в разработке.' },
                 { n: 2, title: 'Добавьте серию', desc: 'Вставьте ссылку YouTube, VK Видео, Rutube или прямую MP4-ссылку.' },
                 { n: 3, title: 'Создайте комнату', desc: 'Нажмите кнопку "Создать комнату" — WeWatch выдаст ссылку. Отправьте другу.' },
                 { n: 4, title: 'Смотрите синхронно', desc: 'Друг переходит по ссылке — просмотр синхронизируется автоматически. Можете обсуждать в чате прямо в WeWatch.' },
-              ].map(({ n, title, desc }) => (
-                <li key={n} className="flex gap-4">
-                  <span className="flex-shrink-0 w-8 h-8 rounded-full bg-[#7B72F8] flex items-center justify-center text-sm font-bold">{n}</span>
-                  <div>
-                    <h3 className="font-semibold text-white mb-1">{title}</h3>
-                    <p className="text-zinc-400 text-sm leading-relaxed">{desc}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
+              ]}
+            />
           </section>
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">Часто задаваемые вопросы</h2>
-            <div className="space-y-4">
-              {FAQS.map(({ q, a }) => (
-                <details key={q} className="border border-zinc-800 rounded-xl p-4">
-                  <summary className="text-white font-medium cursor-pointer">{q}</summary>
-                  <p className="text-zinc-400 text-sm mt-2 leading-relaxed">{a}</p>
-                </details>
-              ))}
-            </div>
+            <GuideFAQ items={FAQS.map(({ q, a }) => ({ q, a }))} />
           </section>
 
           <section className="mb-10">
@@ -131,13 +122,11 @@ export default function SmotretAnimeVmestePage() {
             </div>
           </section>
 
-          <div className="bg-[#7B72F8]/10 border border-[#7B72F8]/30 rounded-2xl p-8 text-center">
-            <h2 className="text-2xl font-bold text-white mb-3">Смотри аниме вместе уже сегодня</h2>
-            <p className="text-zinc-400 mb-6">Откройте WeWatch в браузере и смотрите синхронно с другом</p>
+          <GuideCTA title="Смотри аниме вместе уже сегодня" subtitle="Откройте WeWatch в браузере и смотрите синхронно с другом">
             <Link href="/ru" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-8 py-3 rounded-xl transition-colors">
               Открыть веб-версию
             </Link>
-          </div>
+          </GuideCTA>
         </div>
       </main>
       <GuideArticleEnd locale="ru" currentPath="/ru/guides/smotret-anime-vmeste" />

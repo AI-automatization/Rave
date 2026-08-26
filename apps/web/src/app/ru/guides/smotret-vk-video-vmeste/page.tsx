@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideArticleEnd } from '@/components/common/GuideChrome';
+import { GuideRoomMockup, GuideSteps, GuideFAQ, GuideCTA } from '@/components/common/GuideArticleUI';
 
 export const metadata: Metadata = {
   // No manual "| WeWatch" — the root layout's title template appends it.
@@ -54,37 +55,37 @@ export default function VkVmestePage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <main className="flex-1 bg-page text-white">
-        <div className="article max-w-3xl mx-auto px-4 py-16">
-          <nav className="text-sm text-zinc-500 mb-8">
+      <main className="guide-page flex-1 bg-page text-white">
+        <div className="page-hero shell relative pt-16 pb-8">
+          <nav className="text-sm text-zinc-500">
             <Link href="/ru" className="hover:text-white transition-colors">WeWatch</Link>
             <span className="mx-2">/</span>
             <span>VK Видео вместе</span>
           </nav>
 
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">Смотреть VK Видео вместе с друзьями</h1>
-          <p className="text-xl text-zinc-400 mb-10 leading-relaxed">
+          <div className="grid lg:grid-cols-2 gap-10 items-center">
+            <div>
+              <h1>Смотреть VK Видео вместе с друзьями</h1>
+              <p>
             WeWatch синхронизирует VK Видео (ВКонтакте) для всех участников через веб-версию в браузере. Приложения для iOS и Android находятся в разработке.
-          </p>
+              </p>
+            </div>
+            <GuideRoomMockup photo="couple-tv" priority />
+          </div>
+        </div>
+
+        <div className="article shell py-12">
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold mb-6">Как смотреть VK Видео вместе — 4 шага</h2>
-            <ol className="space-y-5">
-              {[
+            <GuideSteps
+              steps={[
                 { n: 1, title: 'Откройте WeWatch', desc: 'Откройте веб-версию в браузере; приложения iOS и Android разрабатываются.' },
                 { n: 2, title: 'Найдите видео во ВКонтакте', desc: 'В браузере WeWatch откройте VK Видео и выберите ролик, клип или фильм.' },
                 { n: 3, title: 'Создайте комнату', desc: 'Нажмите «Создать комнату» и отправьте ссылку-приглашение друзьям.' },
                 { n: 4, title: 'Смотрите синхронно', desc: 'WeWatch извлекает видеопоток VK и держит его синхронно у всех участников.' },
-              ].map(({ n, title, desc }) => (
-                <li key={n} className="flex gap-4">
-                  <span className="flex-shrink-0 w-8 h-8 rounded-full bg-[#7B72F8] flex items-center justify-center text-sm font-bold">{n}</span>
-                  <div>
-                    <h3 className="font-semibold text-white mb-1">{title}</h3>
-                    <p className="text-zinc-400 text-sm leading-relaxed">{desc}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
+              ]}
+            />
           </section>
 
           <section className="mb-10">
@@ -96,24 +97,15 @@ export default function VkVmestePage() {
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold mb-4">Вопросы</h2>
-            <div className="space-y-4">
-              {FAQS.map(({ q, a }) => (
-                <details key={q} className="border border-zinc-800 rounded-xl p-4">
-                  <summary className="text-white font-medium cursor-pointer">{q}</summary>
-                  <p className="text-zinc-400 text-sm mt-2 leading-relaxed">{a}</p>
-                </details>
-              ))}
-            </div>
+            <GuideFAQ items={FAQS.map(({ q, a }) => ({ q, a }))} />
           </section>
 
-          <div className="bg-[#7B72F8]/10 border border-[#7B72F8]/30 rounded-2xl p-8 text-center">
-            <h2 className="text-2xl font-bold mb-3">Смотрите VK Видео вместе</h2>
-            <p className="text-zinc-400 mb-6">Откройте веб-версию WeWatch</p>
+          <GuideCTA title="Смотрите VK Видео вместе" subtitle="Откройте веб-версию WeWatch">
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link href="/ru" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-6 py-3 rounded-xl transition-colors">Открыть WeWatch</Link>
               <Link href="/ru/guides/smotret-rutube-vmeste" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 font-medium px-6 py-3 rounded-xl transition-colors">Rutube вместе →</Link>
             </div>
-          </div>
+          </GuideCTA>
         </div>
       </main>
       <GuideArticleEnd locale="ru" currentPath="/ru/guides/smotret-vk-video-vmeste" />

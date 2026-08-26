@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { FaPlay, FaUsers } from 'react-icons/fa';
 import { GuideArticleEnd } from '@/components/common/GuideChrome';
+import { GuideRoomMockup } from '@/components/common/GuideArticleUI';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { socialMeta } from '@/lib/i18n/metadata';
 import { VisibleFaqs } from '@/components/common/VisibleFaqs';
@@ -76,9 +77,9 @@ export default function WhatIsWatchPartyEnPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <div className="flex-1 bg-page text-zinc-300">
+      <div className="guide-page flex-1 bg-page text-zinc-300">
 
-        <main className="max-w-4xl mx-auto px-4 sm:px-6 py-14">
+        <main className="shell py-14">
           <div className="mb-10">
             <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-zinc-500 text-sm mb-4">
               <Link href="/en" className="hover:text-zinc-300 transition-colors">Home</Link>
@@ -95,6 +96,8 @@ export default function WhatIsWatchPartyEnPage() {
               <span className="text-zinc-500 text-sm">Guide · 4 min read</span>
             </div>
 
+            <div className="grid lg:grid-cols-2 gap-10 items-center">
+              <div>
             <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-4">
               What is a watch party?
             </h1>
@@ -102,6 +105,9 @@ export default function WhatIsWatchPartyEnPage() {
               Synchronized co-watching over the internet — several people watching the same video
               at the same moment, as if they were sitting on the same sofa.
             </p>
+              </div>
+              <GuideRoomMockup locale="en" photo="cinema" priority />
+            </div>
           </div>
 
           <div className="bg-[#111118] border border-[#7B72F8]/30 rounded-2xl px-6 py-5 mb-12">

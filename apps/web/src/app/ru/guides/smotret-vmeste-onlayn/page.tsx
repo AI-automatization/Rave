@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideArticleEnd } from '@/components/common/GuideChrome';
+import { GuideHeroWide, GuideSteps, GuideFAQ, GuideCTA } from '@/components/common/GuideArticleUI';
 
 export const metadata: Metadata = {
   title: 'Смотреть видео вместе онлайн бесплатно — синхронно с друзьями',
@@ -74,21 +75,23 @@ export default function SmotretVmesteOnlaynPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <main className="flex-1 bg-page text-white">
-        <div className="article max-w-3xl mx-auto px-4 py-16">
-          <nav className="text-sm text-zinc-500 mb-8">
+      <main className="guide-page flex-1 bg-page text-white">
+        <div className="page-hero shell relative pt-16 pb-8">
+          <nav className="text-sm text-zinc-500">
             <Link href="/ru" className="hover:text-white transition-colors">WeWatch</Link>
             <span className="mx-2">/</span>
             <span>Смотреть вместе онлайн</span>
           </nav>
 
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
-            Смотреть видео вместе онлайн бесплатно
-          </h1>
+          <GuideHeroWide photo="cinema">
+            <h1>Смотреть видео вместе онлайн бесплатно</h1>
+            <p>
+          WeWatch позволяет смотреть видео вместе с друзьями онлайн — бесплатно, синхронно, без задержек. Фильм, сериал или короткий ролик: один участник ставит паузу — все ставят паузу. Расстояние не важно.
+            </p>
+          </GuideHeroWide>
+        </div>
 
-          <p className="text-xl text-zinc-400 mb-10 leading-relaxed">
-            WeWatch позволяет смотреть видео вместе с друзьями онлайн — бесплатно, синхронно, без задержек. Фильм, сериал или короткий ролик: один участник ставит паузу — все ставят паузу. Расстояние не важно.
-          </p>
+        <div className="article shell py-12">
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">Что такое совместный просмотр онлайн?</h2>
@@ -115,22 +118,15 @@ export default function SmotretVmesteOnlaynPage() {
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-6">Как смотреть вместе онлайн — 4 шага</h2>
-            <ol className="space-y-5">
-              {[
+            <GuideSteps
+              variant="timeline"
+              steps={[
                 { n: 1, title: 'Откройте WeWatch', desc: 'Веб-версия доступна в браузере; приложения для iOS и Android находятся в разработке.' },
                 { n: 2, title: 'Добавьте видео', desc: 'Вставьте ссылку YouTube, VK Видео, Rutube или прямую MP4-ссылку.' },
                 { n: 3, title: 'Создайте комнату', desc: 'Нажмите "Создать комнату". WeWatch выдаст ссылку-приглашение — отправьте её друзьям в любом мессенджере.' },
                 { n: 4, title: 'Смотрите синхронно', desc: 'Как только друг переходит по ссылке — просмотр синхронизируется автоматически. Пауза, перемотка — всё работает для всех одновременно.' },
-              ].map(({ n, title, desc }) => (
-                <li key={n} className="flex gap-4">
-                  <span className="flex-shrink-0 w-8 h-8 rounded-full bg-[#7B72F8] flex items-center justify-center text-sm font-bold">{n}</span>
-                  <div>
-                    <h3 className="font-semibold text-white mb-1">{title}</h3>
-                    <p className="text-zinc-400 text-sm leading-relaxed">{desc}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
+              ]}
+            />
           </section>
 
           <section className="mb-10">
@@ -155,14 +151,7 @@ export default function SmotretVmesteOnlaynPage() {
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">Часто задаваемые вопросы</h2>
-            <div className="space-y-4">
-              {FAQS.map(({ q, a }) => (
-                <details key={q} className="border border-zinc-800 rounded-xl p-4">
-                  <summary className="text-white font-medium cursor-pointer">{q}</summary>
-                  <p className="text-zinc-400 text-sm mt-2 leading-relaxed">{a}</p>
-                </details>
-              ))}
-            </div>
+            <GuideFAQ items={FAQS.map(({ q, a }) => ({ q, a }))} />
           </section>
 
           <section className="mb-10">
@@ -174,9 +163,7 @@ export default function SmotretVmesteOnlaynPage() {
             </div>
           </section>
 
-          <div className="bg-[#7B72F8]/10 border border-[#7B72F8]/30 rounded-2xl p-8 text-center">
-            <h2 className="text-2xl font-bold text-white mb-3">Готовы смотреть вместе?</h2>
-            <p className="text-zinc-400 mb-6">Откройте веб-версию WeWatch и начните совместный просмотр</p>
+          <GuideCTA title="Готовы смотреть вместе?" subtitle="Откройте веб-версию WeWatch и начните совместный просмотр">
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link href="/ru" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-6 py-3 rounded-xl transition-colors">
                 Открыть WeWatch
@@ -185,7 +172,7 @@ export default function SmotretVmesteOnlaynPage() {
                 Гайд: смотреть ютуб вместе →
               </Link>
             </div>
-          </div>
+          </GuideCTA>
         </div>
       </main>
       <GuideArticleEnd locale="ru" currentPath="/ru/guides/smotret-vmeste-onlayn" />
