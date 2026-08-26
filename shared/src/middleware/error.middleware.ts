@@ -38,6 +38,12 @@ export const errorHandler = (
         statusCode: error.statusCode,
         path: req.path,
         method: req.method,
+        // Real gap found live 2026-08-26: a 422 "Validation failed" on POST /watch-party/rooms
+        // logged nothing about WHICH field failed or why — error.errors (the actual Joi message
+        // list, e.g. from watchParty.validator.ts's validate()) was only ever sent to the client,
+        // never logged server-side, so a live failure report couldn't be diagnosed from Railway
+        // logs alone.
+        errors: error.errors,
       });
     }
 
