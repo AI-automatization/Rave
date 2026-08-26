@@ -14,6 +14,8 @@ import { cancelVbDisconnectGrace } from './vbEvents.handler';
 import { isOfficialEmbedHost, isOwnVbUrl, isPrivateUrl } from '../services/extractionClient';
 import { isDomainBlocked } from '../controllers/domain.admin.controller';
 import { isLikelyFaststart } from '../services/faststartCheck.service';
+import { getFaststartFixedFileName } from '../services/faststartRemux.service';
+import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -328,22 +330,29 @@ export const registerRoomEvents = (
       // moov atom at the very end of the file ("non-faststart") — confirmed live that this app's
       // Android player reads such files strictly sequentially from byte 0 and never seeks ahead,
       // so a 600MB+ movie just "loads" until the player's own timeout gives up with a generic
-      // error, minutes later, no indication why. A real fix (server-side remux to faststart) is
-      // a bigger, separate piece of work; this is the safe interim version — fail fast with an
-      // honest reason instead of the silent multi-minute hang. Scoped to exactly the candidate
-      // kind that actually hits this (own-VB, non-capture) — official embeds and the live
-      // vb-capture buffer are unaffected and skip the probe entirely.
+      // error, minutes later, no indication why. Fix: remux to faststart once and cache it
+      // (faststartRemux.service.ts) — safe to await here for minutes if needed, a socket handler
+      // has no HTTP-level timeout unlike the player request this replaces. The client never sees
+      // the raw URL at all: it only ever reacts to room.videoUrl from ROOM_UPDATED below, so
+      // substituting the fixed URL before that broadcast needs no client-side change.
+      let videoUrlToUse = data.videoUrl;
       if (isOwnVbUrl(data.videoUrl) && !data.videoUrl.includes('/vb-capture/')) {
         const faststartOk = await isLikelyFaststart(data.videoUrl);
         if (!faststartOk) {
-          socket.emit(SERVER_EVENTS.ERROR, { message: 'Этот источник не поддерживается (несовместимый формат файла) — попробуйте другой сайт или другое качество' });
-          logger.warn('CHANGE_MEDIA rejected — non-faststart source', { roomId, userId, url: data.videoUrl });
-          return;
+          const fixedFileName = await getFaststartFixedFileName(redis, data.videoUrl);
+          if (fixedFileName) {
+            videoUrlToUse = `${vbStreamPublicUrl}/api/v1/watch-party/vb-media-proxy/faststart/${fixedFileName}`;
+            logger.info('CHANGE_MEDIA: served faststart-remuxed copy', { roomId, userId, fixedFileName });
+          } else {
+            socket.emit(SERVER_EVENTS.ERROR, { message: 'Этот источник не поддерживается (несовместимый формат файла) — попробуйте другой сайт или другое качество' });
+            logger.warn('CHANGE_MEDIA rejected — non-faststart source, remux unavailable/failed', { roomId, userId, url: data.videoUrl });
+            return;
+          }
         }
       }
 
       const updated = await watchPartyService.updateRoomMedia(userId, roomId, {
-        videoUrl:      data.videoUrl,
+        videoUrl:      videoUrlToUse,
         videoTitle:    data.videoTitle    ?? null,
         videoPlatform: (data.videoPlatform as VideoPlatform) ?? null,
       });
@@ -367,7 +376,7 @@ export const registerRoomEvents = (
         io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'candidate_confirmed' });
       }
 
-      logger.info('Room media changed', { roomId, userId, videoUrl: data.videoUrl });
+      logger.info('Room media changed', { roomId, userId, videoUrl: videoUrlToUse });
     } catch (error) {
       socket.emit(SERVER_EVENTS.ERROR, { message: 'Failed to change room media' });
       logger.error('Socket media change error', { userId, error });

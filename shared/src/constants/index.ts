@@ -89,6 +89,11 @@ export const REDIS_KEYS = {
   publicRoomsCache: () => `party:public_rooms_cache`,
   vbMediaProxyRate: (ip: string) => `party:vb_media_proxy_rate:${ip}`,
   vbCaptureRate: (ip: string) => `party:vb_capture_rate:${ip}`,
+  // 2026-08-26: cached faststart-remuxed copy of a non-faststart CDN source, keyed by a hash of
+  // the ORIGIN url (not roomId) — see faststartRemux.service.ts. Same file gets reused across
+  // every room that ever plays that exact source, not remuxed once per room.
+  faststartStatus: (urlHash: string) => `party:faststart:${urlHash}`,
+  faststartLock: (urlHash: string) => `party:faststart_lock:${urlHash}`,
 
 } as const;
 
