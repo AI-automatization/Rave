@@ -401,7 +401,20 @@ async function attemptFetch(rawUrl: string, req: Request, res: Response, referer
     // its normal progressive-range-request pattern regardless of what it originally asked for —
     // upstream's real Content-Range (reflecting our capped request, not the client's original one)
     // is what gets forwarded back, so this is transparent to the client either way.
-    const MAX_RANGE_CHUNK_BYTES = 4 * 1024 * 1024; // 4MB — comfortably ahead of normal playback, not a full-file download
+    //
+    // Real prod bug 2026-08-26 (live test, fayllar1.ru "Deadpool Wolverine" 480p): this used to be
+    // 4MB, one class below MAX_EXPLICIT_RANGE_BYTES below. A player fetching a non-faststart
+    // file's tail moov atom via an OPEN-ENDED request (`bytes=<mdat_end>-`, "give me the rest of
+    // the file") rather than an explicit bounded one hit this cap instead of the 24MB one — and
+    // this exact file's moov is 4.008MB, ~9KB over the old 4MB ceiling. The truncated moov read as
+    // a corrupt index: 2-3 minutes of buffering, then a load error, on a file that was never
+    // actually failing to transfer (confirmed live: an explicit Range request for the same bytes
+    // succeeds fine, since that path already used the 24MB cap). There is no way to tell from the
+    // request alone whether an open-ended range is "from the start" (the original 738MB case) or
+    // "near the end for a moov" (this case) — matching MAX_EXPLICIT_RANGE_BYTES here, same
+    // reasoning as that constant already uses, covers both without going anywhere near a
+    // full-file download either way.
+    const MAX_RANGE_CHUNK_BYTES = 24 * 1024 * 1024; // 24MB — see 2026-08-26 comment above
     // See cappedRange's doc comment — an explicit bounded request (e.g. Safari fetching a
     // non-faststart file's tail moov atom) needs much more headroom than a progressive-playback
     // chunk, without going anywhere near a full-file download.
