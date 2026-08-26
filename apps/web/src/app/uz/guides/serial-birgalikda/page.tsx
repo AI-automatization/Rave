@@ -79,7 +79,7 @@ export default function SerialBirgalikdaPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <main className="flex-1 bg-page text-white">
+      <main className="guide-page flex-1 bg-page text-white">
         <div className="page-hero shell relative pt-16 pb-8">
           <nav className="text-sm text-zinc-500">
             <Link href="/uz" className="hover:text-white transition-colors">WeWatch</Link>

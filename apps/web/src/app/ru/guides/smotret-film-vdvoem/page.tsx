@@ -67,7 +67,7 @@ export default function FilmVdvoemPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <main className="flex-1 bg-page text-white">
+      <main className="guide-page flex-1 bg-page text-white">
         {/* `page-hero` is the sitewide header treatment (breadcrumb pill,
             display H1, lead paragraph) — same class /faq, /guides and /team
             use. The two-column split with the mockup is the guide-specific part. */}

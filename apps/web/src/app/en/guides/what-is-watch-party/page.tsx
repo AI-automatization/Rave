@@ -77,7 +77,7 @@ export default function WhatIsWatchPartyEnPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <div className="flex-1 bg-page text-zinc-300">
+      <div className="guide-page flex-1 bg-page text-zinc-300">
 
         <main className="shell py-14">
           <div className="mb-10">

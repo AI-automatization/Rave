@@ -41,6 +41,33 @@
   --prose: 42rem;
 }
 
+/* ── Guide typography ─────────────────────────────────────────────────────
+   Inter + Plus Jakarta Sans, scoped to guide articles only (owner's call,
+   2026-08-26). Deliberately NOT applied to `.article`/`.page-hero` on their
+   own: /faq, /guides, /how-it-works, /team and the use-case pages share those
+   classes and must keep the sitewide Oswald + DM Sans.
+
+   Oswald is a condensed face, so headings were set uppercase with positive
+   tracking. Plus Jakarta is geometric and much wider — the same uppercase
+   would run headings off the measure, so the scope resets both. */
+.guide-page {
+  --font-body: var(--font-inter), "Segoe UI", sans-serif;
+  --font-display: var(--font-jakarta), var(--font-inter), sans-serif;
+  font-family: var(--font-body);
+}
+.guide-page .article h1,
+.guide-page .page-hero h1,
+.guide-page .article h2 {
+  text-transform: none;
+  /* Loose enough for Cyrillic: at -0.022em (fine for Latin) the wider Cyrillic
+     letterforms visibly collide at display sizes — checked on "Смотреть фильм". */
+  letter-spacing: -0.008em;
+  font-weight: 700;
+}
+.guide-page .page-hero h1,
+.guide-page .article h1 { line-height: 1.06; }
+.guide-page .article h2 { line-height: 1.18; }
+
 /* Section container. Use on any full-width block that should line up with the
    header — replaces per-page `max-w-*xl mx-auto px-4` guesses. */
 .shell {
