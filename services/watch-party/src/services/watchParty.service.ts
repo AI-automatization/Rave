@@ -80,13 +80,14 @@ export class WatchPartyService {
       videoReferer?: string | null;
       maxMembers?: number;
       isPrivate?: boolean;
+      requireApproval?: boolean;
       password?: string;
       startTime?: number;
     },
   ): Promise<IWatchPartyRoomDocument> {
     const {
       name, movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform, videoReferer,
-      maxMembers = 10, isPrivate = false, password, startTime = 0,
+      maxMembers = 10, isPrivate = false, requireApproval = false, password, startTime = 0,
     } = options;
 
     if (!movieId && !videoUrl) {
@@ -165,6 +166,7 @@ export class WatchPartyService {
       maxMembers:       Math.min(maxMembers, await getAppSetting<number>('maxRoomSize') || LIMITS.MAX_WATCH_PARTY_MEMBERS),
       inviteCode,
       isPrivate,
+      requireApproval:  isPrivate && requireApproval,
       password:         passwordHash,
       currentTime:      startTime,
       domain:           domain ?? null,
@@ -202,15 +204,34 @@ export class WatchPartyService {
       if (!ok) throw new ForbiddenError('Noto\'g\'ri parol');
     }
 
+    // Google Meet-style "knock to enter" (2026-08-26): once past the password gate above (if
+    // any), a room with requireApproval doesn't add the requester to `members` directly — it
+    // queues them and the owner must explicitly admit them (see approveJoinRequest below).
+    // `ownerId` on the thrown error is set only for a genuinely NEW request, so the controller
+    // (which notifies the owner) doesn't re-notify on every retry of an already-queued request.
+    if (room.isPrivate && room.requireApproval) {
+      const alreadyPending = room.pendingRequests.some((r) => r.userId === userId);
+      if (!alreadyPending) {
+        await WatchPartyRoom.updateOne(
+          { _id: room._id },
+          { $push: { pendingRequests: { userId, requestedAt: new Date() } } },
+        );
+      }
+      throw Object.assign(new Error('Join request sent — waiting for owner approval'), {
+        statusCode: 202,
+        code: 'JOIN_PENDING',
+        roomId: room._id.toString(),
+        ownerId: alreadyPending ? undefined : room.ownerId,
+      });
+    }
+
     // room.maxMembers is the owner's nominal request (createRoom), independent of plan tier —
     // the Free/Pro cap is applied HERE, against the owner's plan right now, so an upgrade or
     // downgrade takes effect for the very next join attempt instead of only the owner's next
     // room. getUserPlan() is cached (~30s) in serviceClient.ts, so this doesn't add real
     // latency to the common case. Existing members are never evicted by a downgrade — this
     // only gates new joins.
-    const ownerPlan = await getUserPlan(room.ownerId);
-    const planCap = ownerPlan === 'pro' ? LIMITS.MAX_WATCH_PARTY_MEMBERS : LIMITS.MAX_WATCH_PARTY_MEMBERS_FREE;
-    const effectiveCap = Math.min(room.maxMembers, planCap);
+    const effectiveCap = await this.getEffectiveMemberCap(room);
 
     const updated = await WatchPartyRoom.findOneAndUpdate(
       {
@@ -236,6 +257,69 @@ export class WatchPartyService {
     void this.members.invalidateRecentRoomsCache([userId]);
     void this.invalidatePublicRoomsCache();
     logger.info('User joined watch party', { roomId: room._id, userId });
+    return updated;
+  }
+
+  private async getEffectiveMemberCap(room: Pick<IWatchPartyRoomDocument, 'ownerId' | 'maxMembers'>): Promise<number> {
+    const ownerPlan = await getUserPlan(room.ownerId);
+    const planCap = ownerPlan === 'pro' ? LIMITS.MAX_WATCH_PARTY_MEMBERS : LIMITS.MAX_WATCH_PARTY_MEMBERS_FREE;
+    return Math.min(room.maxMembers, planCap);
+  }
+
+  /** Owner admits a queued requester (see joinRoom's requireApproval branch) into `members`. */
+  async approveJoinRequest(ownerId: string, roomId: string, targetUserId: string): Promise<IWatchPartyRoomDocument> {
+    const room = await WatchPartyRoom.findOne({ _id: roomId, ownerId });
+    if (!room) throw new ForbiddenError('Only the room owner can manage join requests');
+    if (!room.pendingRequests.some((r) => r.userId === targetUserId)) {
+      throw new NotFoundError('No pending request for this user');
+    }
+
+    // Same plan-tier cap joinRoom() enforces at direct-join time — the room may have filled up
+    // in the time between the request and the owner's click, so re-check rather than trust the
+    // queue-time snapshot.
+    const effectiveCap = await this.getEffectiveMemberCap(room);
+    if (room.members.length >= effectiveCap) {
+      await WatchPartyRoom.updateOne({ _id: roomId }, { $pull: { pendingRequests: { userId: targetUserId } } });
+      throw new BadRequestError('Room is full');
+    }
+
+    const updated = await WatchPartyRoom.findOneAndUpdate(
+      { _id: roomId, ownerId },
+      {
+        $pull: { pendingRequests: { userId: targetUserId } },
+        $push: { members: targetUserId },
+        $set: { lastActivityAt: new Date() },
+      },
+      { new: true },
+    ).select('-password');
+    if (!updated) throw new NotFoundError('Room not found');
+
+    void this.members.invalidateRecentRoomsCache([targetUserId]);
+    void this.invalidatePublicRoomsCache();
+    logger.info('Join request approved', { roomId, ownerId, targetUserId });
+    return updated;
+  }
+
+  /** Owner rejects a queued requester — removed from the queue, never touches `members`. */
+  async denyJoinRequest(ownerId: string, roomId: string, targetUserId: string): Promise<IWatchPartyRoomDocument> {
+    const updated = await WatchPartyRoom.findOneAndUpdate(
+      { _id: roomId, ownerId },
+      { $pull: { pendingRequests: { userId: targetUserId } } },
+      { new: true },
+    ).select('-password');
+    if (!updated) throw new ForbiddenError('Only the room owner can manage join requests');
+    logger.info('Join request denied', { roomId, ownerId, targetUserId });
+    return updated;
+  }
+
+  /** Requester gives up waiting — pulls their own entry out of the queue. */
+  async cancelJoinRequest(userId: string, roomId: string): Promise<IWatchPartyRoomDocument> {
+    const updated = await WatchPartyRoom.findOneAndUpdate(
+      { _id: roomId },
+      { $pull: { pendingRequests: { userId } } },
+      { new: true },
+    ).select('-password');
+    if (!updated) throw new NotFoundError('Room not found');
     return updated;
   }
 

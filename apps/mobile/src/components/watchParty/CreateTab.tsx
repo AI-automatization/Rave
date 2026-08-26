@@ -83,6 +83,23 @@ export function CreateTab({ navigation, t }: Props) {
                 thumbColor={wp.isPrivate ? colors.primary : colors.textSecondary} />
             </View>
 
+            {wp.isPrivate && (
+              <View style={s.toggleCard}>
+                <View style={s.toggleLeft}>
+                  <View style={[s.toggleIcon, { backgroundColor: colors.secondary + '15' }]}>
+                    <Ionicons name="hand-left-outline" size={18} color={colors.secondary} />
+                  </View>
+                  <View>
+                    <Text style={s.rowTitle}>{t('watchParty', 'requireApproval')}</Text>
+                    <Text style={s.rowSub}>{t('watchParty', 'requireApprovalDesc')}</Text>
+                  </View>
+                </View>
+                <Switch value={wp.requireApproval} onValueChange={wp.setRequireApproval}
+                  trackColor={{ false: colors.bgMuted, true: colors.primary + '80' }}
+                  thumbColor={wp.requireApproval ? colors.primary : colors.textSecondary} />
+              </View>
+            )}
+
             <View style={s.sectionHeader}>
               <Ionicons name="people-outline" size={16} color={colors.primary} />
               <Text style={s.label}>{t('watchParty', 'maxMembers')}</Text>

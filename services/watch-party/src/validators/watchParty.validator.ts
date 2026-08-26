@@ -16,6 +16,7 @@ export const createRoomSchema = Joi.object({
   // drifted apart — this makes the validator match the model instead of relying on the clamp.
   maxMembers: Joi.number().integer().min(2).max(LIMITS.MAX_WATCH_PARTY_MEMBERS).optional(),
   isPrivate: Joi.boolean().optional(),
+  requireApproval: Joi.boolean().optional(),
   password: Joi.string().min(1).max(100).optional(),
   startTime: Joi.number().integer().min(0).optional(),
   videoReferer: Joi.string().uri().allow('').max(2048).optional(),
