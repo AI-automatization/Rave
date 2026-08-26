@@ -223,6 +223,17 @@ export const GUIDES: Guide[] = [
     datePublished: '2026-08-25',
     priority: 0.9,
   },
+  {
+    path: '/uz/guides/bepul-watch-party',
+    headline: 'Bepul Watch Party — 2026-da qanday boshlash',
+    title: 'Bepul Watch Party',
+    summary: "Bepul veb Watch Party — YouTube, VK Video, Rutube sinxron, do'stlar bilan.",
+    primaryIntent: 'bepul watch party',
+    locale: 'uz',
+    lastModified: '2026-08-25',
+    datePublished: '2026-08-25',
+    priority: 0.8,
+  },
 
   // ── English guides ─────────────────────────────────────────────────────────
   // These replace the three English-slug pages that used to live under /guides
@@ -275,6 +286,7 @@ export const GUIDE_GROUPS: { ru: string; uz?: string; en?: string }[] = [
   { ru: '/ru/guides/smotret-serial-vmeste', uz: '/uz/guides/serial-birgalikda' },
   { ru: '/ru/guides/kino-s-drugom-onlayn', uz: '/uz/guides/kino-birgalikda', en: '/en/guides/watch-movies-with-friends' },
   { ru: '/ru/guides/smotret-film-vdvoem', uz: '/uz/guides/kino-ikkovlashib' },
+  { ru: '/ru/guides/watch-party-besplatno', uz: '/uz/guides/bepul-watch-party' },
 ];
 
 /** ru↔uz counterparts. Derived from GUIDE_GROUPS — kept for existing callers. */

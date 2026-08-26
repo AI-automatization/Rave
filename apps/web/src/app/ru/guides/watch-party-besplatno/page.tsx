@@ -37,6 +37,7 @@ const RELATED = [
   { href: '/ru/guides/smotret-vmeste-onlayn', label: 'Смотреть вместе онлайн' },
   { href: '/ru/pricing', label: 'Тарифы WeWatch' },
   { href: '/ru/guides/smotret-youtube-vmeste', label: 'YouTube вместе' },
+  { href: '/uz/guides/bepul-watch-party', label: "O'zbekcha" },
 ];
 
 /**
