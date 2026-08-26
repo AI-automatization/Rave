@@ -71,6 +71,34 @@ async function validateTarget(rawUrl: string): Promise<string | null> {
 
 const MAX_REDIRECTS = 3;
 
+// Real prod bug 2026-08-26: found via a Railway log trace of a live stuck session — neither
+// safeFetch() below nor fetchViaBunny() ever bounded how long they'd wait on `fetch()` itself.
+// A slow-TTFB upstream (fayllar1.ru-class mirrors under load) just left this handler awaiting
+// forever; the mobile player has its OWN much shorter client-side timeout, so it aborted and
+// retried the same request every few seconds — 15+ aborted attempts logged in one 5-minute
+// session, never once reaching the existing getFreshMediaUrl() retry path below because the
+// first attemptFetch() call never actually failed, it just never returned. Wrapping fetch() in
+// an explicit timeout makes a slow upstream fail FAST instead of hanging, so the request can
+// actually reach (and benefit from) the retry-with-fresh-URL logic that already existed.
+const UPSTREAM_FETCH_TIMEOUT_MS = 12_000;
+
+async function fetchWithTimeout(url: string, init: globalThis.RequestInit): Promise<globalThis.Response> {
+  const controller = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; controller.abort(); }, UPSTREAM_FETCH_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (e) {
+    // Labeled explicitly rather than left as the AbortError's own generic "This operation was
+    // aborted" — unwrapCause() below only has .message/.code to go on, and an unlabeled abort is
+    // indistinguishable from any other abort reason in the logs.
+    if (timedOut) throw new Error(`upstream fetch timed out after ${UPSTREAM_FETCH_TIMEOUT_MS}ms`);
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Walks a possibly-multi-level `.cause` chain (undici's fetch() errors are two deep — see the
  *  call site's comment) down to the deepest Error, returning its message plus `.code` (Node's
  *  errno-style tag, e.g. ECONNREFUSED/ETIMEDOUT) when present. Stops at a depth limit rather than
@@ -97,7 +125,7 @@ async function safeFetch(url: string, headers: Record<string, string>): Promise<
 
     let res: globalThis.Response;
     try {
-      res = await fetch(current, { headers, redirect: 'manual' });
+      res = await fetchWithTimeout(current, { headers, redirect: 'manual' });
     } catch (e) {
       // Real prod case 2026-08-08: this used to lose which hop failed and on what host — every
       // failure surfaced upstream as the same generic "fetch failed", indistinguishable whether
@@ -139,7 +167,7 @@ async function fetchViaBunny(url: string, headers: Record<string, string>): Prom
   if (headers.Range) params.set('range', headers.Range);
   if (headers.Referer) params.set('referer', Buffer.from(headers.Referer, 'utf8').toString('base64url'));
   if (headers.Cookie) params.set('cookie', Buffer.from(headers.Cookie, 'utf8').toString('base64url'));
-  return fetch(`${vbEdgeFetchUrl}/vb-edge-fetch?${params.toString()}`, { redirect: 'follow' });
+  return fetchWithTimeout(`${vbEdgeFetchUrl}/vb-edge-fetch?${params.toString()}`, { redirect: 'follow' });
 }
 
 function proxyBase(req: Request): string {
