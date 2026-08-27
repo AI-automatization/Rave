@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { FaInstagram, FaXTwitter, FaTelegram } from 'react-icons/fa6';
 import { WeWatchLogo } from './WeWatchLogo';
 import { SOCIAL_PROFILES } from '@/data/brand';
+import { footerRotation, type GuideLocale } from '@/data/guides';
 import { type Locale } from '@/lib/i18n/config';
 import { useLocalizedHref } from '@/lib/i18n/use-localized-href';
 
@@ -26,34 +28,32 @@ const LOCALE_ROOTS: readonly { locale: Locale; href: string; label: string }[] =
 // Locale-aware guide links: sitewide internal links are the main crawl path
 // to the SEO guide pages, so each locale points to its own language versions.
 //
+// These three are the cluster hubs — the pillars in FOOTER_PILLARS — and they are
+// linked from every page unconditionally. Two further slots rotate through the
+// locale's remaining guides (see `footerRotation`); the five slugs that used to be
+// hardcoded here collected 28-29 inbound links each while the guides outside the
+// list sat at 7-10.
+//
 // `en` used to point at the Russian guides, because the only English-slug pages
-// were noindex duplicates. Real English guides now exist under /en/guides, so it
-// points there. There are three of them and five slots — anime and series both
-// map to the movies guide, which covers series and anime episodes explicitly.
-const GUIDE_LINKS: Record<string, { hub: string; watchTogether: string; movie: string; youtube: string; anime: string; serial: string }> = {
+// were noindex duplicates. Real English guides now exist under /en/guides.
+const GUIDE_LINKS: Record<string, { hub: string; watchTogether: string; movie: string; youtube: string }> = {
   ru: {
     hub: '/ru/guides',
     watchTogether: '/ru/guides/smotret-vmeste-onlayn',
     movie: '/ru/guides/kino-s-drugom-onlayn',
     youtube: '/ru/guides/smotret-youtube-vmeste',
-    anime: '/ru/guides/smotret-anime-vmeste',
-    serial: '/ru/guides/smotret-serial-vmeste',
   },
   uz: {
     hub: '/uz/guides',
     watchTogether: '/uz/guides/birgalikda-tomosha-qilish',
     movie: '/uz/guides/kino-birgalikda',
     youtube: '/uz/guides/youtube-birgalikda',
-    anime: '/uz/guides/anime-birgalikda',
-    serial: '/uz/guides/serial-birgalikda',
   },
   en: {
     hub: '/en/guides',
     watchTogether: '/en/guides/what-is-watch-party',
     movie: '/en/guides/watch-movies-with-friends',
     youtube: '/en/guides/watch-youtube-together',
-    anime: '/en/guides/watch-movies-with-friends',
-    serial: '/en/guides/watch-movies-with-friends',
   },
 };
 
@@ -65,6 +65,15 @@ export function Footer() {
   // locale prefixes from one file, so a literal path is wrong in two of them.
   const L = useLocalizedHref();
   const guides = GUIDE_LINKS[locale] ?? GUIDE_LINKS.ru;
+
+  // The two rotating slots. The offset comes from the path, so the server and the
+  // client render the same pair — anything random here is a hydration mismatch.
+  const pathname = usePathname();
+  // Narrowed, not cast: useLocale() is typed as string, and an unknown value must
+  // fall back the same way GUIDE_LINKS above does rather than index the registry
+  // with a locale that has no guides.
+  const guideLocale: GuideLocale = locale === 'uz' || locale === 'en' ? locale : 'ru';
+  const rotating = footerRotation(pathname ?? `/${guideLocale}`, guideLocale);
 
   return (
     <footer className="bg-page border-t border-zinc-800/60 mt-auto">
@@ -110,8 +119,13 @@ export function Footer() {
                 <li><Link href={guides.watchTogether} className="text-zinc-400 text-sm hover:text-zinc-200 transition-colors">{t('guideWatchTogether')}</Link></li>
                 <li><Link href={guides.movie} className="text-zinc-400 text-sm hover:text-zinc-200 transition-colors">{t('guideMovie')}</Link></li>
                 <li><Link href={guides.youtube} className="text-zinc-400 text-sm hover:text-zinc-200 transition-colors">{t('guideYoutube')}</Link></li>
-                <li><Link href={guides.anime} className="text-zinc-400 text-sm hover:text-zinc-200 transition-colors">{t('guideAnime')}</Link></li>
-                <li><Link href={guides.serial} className="text-zinc-400 text-sm hover:text-zinc-200 transition-colors">{t('guideSerial')}</Link></li>
+                {/* Rotating slots — anchor text is the guide's own `title`, so a new
+                    guide joins the footer without a new translation key. */}
+                {rotating.map((g) => (
+                  <li key={g.path}>
+                    <Link href={g.path} className="text-zinc-400 text-sm hover:text-zinc-200 transition-colors">{g.title}</Link>
+                  </li>
+                ))}
                 <li><Link href={guides.hub} className="text-zinc-300 text-sm hover:text-white transition-colors">{t('allGuides')} →</Link></li>
               </ul>
             </div>
