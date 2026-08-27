@@ -43,15 +43,24 @@
 
 ## ГОЛОСОВЫЕ СООБЩЕНИЯ — ЗАКОН
 
-Когда приходит сообщение с `attachment_file_id` (голосовое/аудио):
+Когда приходит сообщение с `attachment_file_id` (голосовое/аудио) — основной метод **NotebookLM**,
+не локальный Whisper (у `transcribe.py` баг: язык захардкожен `ru`, на не-русском даёт галлюцинации —
+см. `.claude/skills/notebooklm/`, память `reference_voice_transcription_methods.md`):
 
 ```
 1. Скачать: mcp__plugin_telegram_telegram__download_attachment(file_id)
-2. Транскрибировать: python3 .claude/scripts/transcribe.py <путь_к_файлу>
-3. Ответить на содержимое транскрипции как на обычный текст
+2. Если формат .oga/Opus → сконвертировать в .mp3 (ffmpeg) — NotebookLM не принимает Opus напрямую
+3. notebooklm create "Voice memo - <дата/тема>" --json   → source add <file> --follow-symlinks --json
+   → source wait <source_id>
+4. notebooklm ask "Дай полную дословную транскрипцию на языке оригинала, без изменений и сокращений" --json
+5. Ответить на содержимое транскрипции как на обычный текст
 ```
 
-Не спрашивать "что ты сказал?" — всегда транскрибировать и отвечать сразу.
+Не спрашивать "что ты сказал?" — всегда транскрибировать и отвечать сразу, автоматически, без уточнений.
+
+**Fallback (только если NotebookLM недоступен — auth/сеть):** `python3 .claude/scripts/transcribe.py <файл>`
+с `language=None` (auto-detect), НЕ с захардкоженным `ru`. Явно предупредить в ответе, что использован
+запасной метод и транскрипция может быть менее точной.
 
 ---
 

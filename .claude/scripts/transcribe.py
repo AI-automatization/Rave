@@ -14,7 +14,7 @@ def transcribe(audio_path: str) -> str:
         sys.exit(1)
 
     model = whisper.load_model("base")
-    result = model.transcribe(audio_path, language="ru")
+    result = model.transcribe(audio_path, language=None)
     return result["text"].strip()
 
 if __name__ == "__main__":
