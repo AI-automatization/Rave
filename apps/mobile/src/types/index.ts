@@ -104,6 +104,7 @@ export type ProfileStackParamList = {
   Settings: undefined;
   WatchHistory: undefined;
   BindEmail: { mode?: 'bind' | 'change' } | undefined;
+  PurchaseHistory: undefined;
 };
 
 export type ModalStackParamList = {
