@@ -83,8 +83,19 @@ export async function isLikelyFaststart(proxyUrl: string): Promise<boolean> {
     const buf = Buffer.from(await res.arrayBuffer());
     return moovFoundEarly(buf);
   } catch (e) {
-    logger.warn('faststart probe failed — assuming OK', { url: upstreamUrl.slice(0, 120), error: (e as Error).message });
-    return true;
+    // A timeout here is not a neutral "couldn't tell" — live incident (2026-08-27, fayllar1.ru)
+    // showed the slow-CDN sources this whole module exists for are exactly the ones that don't
+    // answer an 8s Range probe. Failing open on that would skip the remux for the one case it's
+    // meant to catch, so a timeout treats the source as needing remux; any other probe error
+    // (DNS failure, malformed response, etc.) still fails open — remux would hit the same wall.
+    const timedOut = (e as Error).name === 'AbortError';
+    logger.warn(
+      timedOut
+        ? 'faststart probe timed out — treating as non-faststart (needs remux)'
+        : 'faststart probe failed — assuming OK',
+      { url: upstreamUrl.slice(0, 120), error: (e as Error).message },
+    );
+    return !timedOut;
   } finally {
     clearTimeout(timer);
   }
