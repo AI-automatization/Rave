@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { TeamAvatar } from '@/components/common/TeamAvatar';
+import { TEAM as WEWATCH_TEAM } from '../team/team-data';
 
 const TEZCODE_URL = 'https://tezcode.dev';
 
@@ -103,6 +105,37 @@ export default function TezcodePage() {
                   </div>
                   <p className="text-zinc-400 text-sm leading-relaxed">{p.desc}</p>
                 </a>
+              ))}
+            </div>
+          </section>
+
+          {/*
+            Inbound-link fix (2026-08-27): the person pages under /ru/team/<slug> sat at
+            4-5 internal inbound links each, and GSC reported every one of them as
+            "Discovered — currently not indexed". This page is about the studio yet linked
+            none of the people in it. Reads the same TEAM registry the hub does, so a new
+            member is linked from here automatically.
+          */}
+          <section className="mb-12">
+            <div className="flex items-end justify-between gap-4 mb-5">
+              <h2 className="text-2xl font-bold">Кто делает WeWatch</h2>
+              <Link href="/ru/team" className="text-sm text-zinc-400 hover:text-white transition-colors whitespace-nowrap">
+                Вся команда →
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+              {WEWATCH_TEAM.map((m, i) => (
+                <Link
+                  key={m.slug}
+                  href={`/ru/team/${m.slug}`}
+                  className="group block rounded-2xl overflow-hidden border border-white/10 bg-white/[0.02] hover:border-[#7B72F8]/50 transition-colors"
+                >
+                  <TeamAvatar name={m.name} photo={m.photo} index={i} />
+                  <div className="p-3">
+                    <h3 className="text-sm font-semibold text-white group-hover:text-[#7B72F8] transition-colors leading-tight">{m.name}</h3>
+                    <p className="text-xs text-zinc-500 mt-0.5 line-clamp-2 leading-snug">{m.role}</p>
+                  </div>
+                </Link>
               ))}
             </div>
           </section>

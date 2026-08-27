@@ -44,19 +44,19 @@ export const TEAM: Member[] = [
     key: 'Founder',
     name: 'Bekzod Mirzaaliyev',
     tag: 'lead',
-    photo: '/ru/team/begzod_mirzaliyev.webp',
+    photo: '/team-photos/begzod_mirzaliyev.webp',
   },
   {
     key: 'Coo',
     name: 'Abdulaziz Yormatov',
     tag: 'lead',
-    photo: '/ru/team/abdulaziz_yormatov.webp',
+    photo: '/team-photos/abdulaziz_yormatov.webp',
   },
   {
     key: 'Wewatch',
     name: 'Emirhan Ertan',
     tag: 'wewatch',
-    photo: '/ru/team/ertan_emirhan.jpg',
+    photo: '/team-photos/ertan_emirhan.jpg',
   },
 ];
 

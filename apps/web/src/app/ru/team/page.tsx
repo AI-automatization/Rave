@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { TeamAvatar } from '@/components/common/TeamAvatar';
 import { TEAM, TEZCODE_TEAM_URL } from './team-data';
 
 export const metadata: Metadata = {
@@ -58,17 +59,14 @@ export default function TeamPage() {
             WeWatch создаёт <Link href="/ru/tezcode" className="text-[#7B72F8] hover:underline">tezcode</Link> — AI-first студия разработки из Ташкента. Инженеры и основатели продукта:
           </p>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-16">
-            {TEAM.map((m) => (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-16">
+            {TEAM.map((m, i) => (
               <Link
                 key={m.slug}
                 href={`/ru/team/${m.slug}`}
                 className="group block rounded-3xl overflow-hidden border border-white/10 bg-white/[0.02] hover:border-[#7B72F8]/50 transition-colors"
               >
-                <div
-                  className="aspect-square bg-zinc-900 bg-cover bg-center"
-                  style={{ backgroundImage: `url(${m.photo})` }}
-                />
+                <TeamAvatar name={m.name} photo={m.photo} index={i} />
                 <div className="p-4">
                   <h2 className="font-semibold text-white group-hover:text-[#7B72F8] transition-colors leading-tight">{m.name}</h2>
                   <p className="text-sm text-[#7B72F8]/90 mt-0.5">{m.role}</p>
