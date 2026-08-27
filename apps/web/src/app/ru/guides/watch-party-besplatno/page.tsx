@@ -8,16 +8,23 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 const PATH = '/ru/guides/watch-party-besplatno';
 
 export const metadata: Metadata = {
-  title: 'Бесплатный Watch Party онлайн — как начать в 2026',
-  description: 'Бесплатный веб Watch Party: смотри YouTube, VK и Rutube синхронно с друзьями. Приложения iOS и Android находятся в разработке.',
+  // CTR rewrite 2026-08-27. GSC (3 months): position 5.4, 62 impressions, 1 click.
+  // Same defect as smotret-vmeste-onlayn — the description closed on the missing mobile
+  // apps instead of giving a reason to click. Claims verified: free core product
+  // (PRODUCT_FACTS.pricing), guest needs no account, 10 per room.
+  // Keeps the exact owned phrase "бесплатный watch party" in the title — dropping it
+  // for a punchier line would trade relevance for CTR, and the point here is to gain
+  // clicks at the same position, not to move the position.
+  title: 'Бесплатный Watch Party — без регистрации',
+  description: 'Создайте комнату за минуту и смотрите YouTube, VK Видео или Rutube синхронно: пауза у одного — пауза у всех. До 10 человек, гостю аккаунт не нужен.',
   keywords: ['watch party бесплатно', 'бесплатный watch party', 'watch party онлайн', 'как создать watch party', 'совместный просмотр бесплатно'],
   alternates: {
     canonical: `${APP_URL}${PATH}`,
     languages: hreflangFor(PATH, APP_URL),
   },
   openGraph: {
-    title: 'Watch Party бесплатно | WeWatch',
-    description: 'Бесплатный веб watch party для синхронного просмотра YouTube, VK и Rutube. Приложения iOS и Android в разработке.',
+    title: 'Watch Party бесплатно — без регистрации и расширений',
+    description: 'Комната за минуту, ссылка-приглашение друзьям, синхронный просмотр YouTube, VK Видео и Rutube.',
     url: 'https://wewatch.uz/ru/guides/watch-party-besplatno',
     type: 'article',
   },

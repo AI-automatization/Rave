@@ -4,8 +4,15 @@ import { GuideArticleEnd } from '@/components/common/GuideChrome';
 import { GuideHeroWide, GuideSteps, GuideFAQ, GuideCTA } from '@/components/common/GuideArticleUI';
 
 export const metadata: Metadata = {
-  title: 'Смотреть видео вместе онлайн бесплатно — синхронно с друзьями',
-  description: 'Смотреть видео вместе с друзьями онлайн — синхронно, прямо в браузере: YouTube, VK Видео, Rutube и прямые MP4-ссылки. Приложения iOS и Android в разработке.',
+  // CTR rewrite 2026-08-27. GSC (3 months): position 4.1, 107 impressions, 1 click —
+  // ~1% CTR where position 4 normally earns 7-10%. The old description spent its last
+  // clause on what the product does NOT have ("Приложения iOS и Android в разработке"),
+  // which is the final thing a searcher reads before deciding. Replaced with the
+  // differentiators that survive fact-checking: a guest needs no account
+  // (smotret-youtube-vmeste FAQ), no browser extension (guides hub), and the 0.5 s sync
+  // threshold (PRODUCT_FACTS.sync). Mobile status still stated on the page itself.
+  title: 'Смотреть видео вместе онлайн — без регистрации',
+  description: 'Включите YouTube, VK Видео или Rutube одновременно с друзьями: пауза у одного — пауза у всех, рассинхрон до 0,5 секунды. Гостю аккаунт не нужен.',
   keywords: [
     'смотреть видео вместе', 'смотреть вместе онлайн', 'смотреть вместе онлайн бесплатно',
     'смотреть вместе', 'совместный просмотр онлайн', 'синхронный просмотр',
@@ -20,8 +27,8 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: 'Смотреть видео вместе онлайн бесплатно | WeWatch',
-    description: 'Смотреть видео вместе с друзьями — синхронно, через веб-версию. Мобильные приложения разрабатываются.',
+    title: 'Смотреть видео вместе онлайн — бесплатно, без регистрации',
+    description: 'Пауза у одного — пауза у всех. YouTube, VK Видео, Rutube и прямые MP4-ссылки, до 10 человек в комнате.',
     url: 'https://wewatch.uz/ru/guides/smotret-vmeste-onlayn',
     type: 'article',
   },
