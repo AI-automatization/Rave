@@ -5,17 +5,20 @@ import { GuideRoomMockup, GuideSteps, GuideFAQ, GuideCTA } from '@/components/co
 
 export const metadata: Metadata = {
   // No manual "| WeWatch" — the root layout's title template appends it.
-  title: 'Смотреть Rutube вместе с друзьями онлайн — синхронно',
+  // CTR rewrite 2026-08-27. GSC (3 months): position 5.8 with 101 impressions and
+  // 5 clicks (~5% CTR). The old description restated the title and closed on the missing
+  // mobile apps; nothing in it answered "why click this result".
+  title: 'Смотреть Rutube вместе — без регистрации',
   description:
-    'Как смотреть Рутуб вместе с друзьями через веб-версию WeWatch. Приложения iOS и Android находятся в разработке.',
+    'Вставьте ссылку на видео Rutube и смотрите одновременно: пауза и перемотка срабатывают у всех, рассинхрон до 0,5 секунды. Другу аккаунт не нужен.',
   keywords: [
     'смотреть rutube вместе', 'рутьюб вместе с друзьями', 'смотреть rutube синхронно',
     'watch party rutube', 'совместный просмотр rutube', 'смотреть видео rutube вместе онлайн',
   ],
   alternates: { canonical: 'https://wewatch.uz/ru/guides/smotret-rutube-vmeste' },
   openGraph: {
-    title: 'Смотреть Rutube вместе | WeWatch',
-    description: 'Синхронный просмотр Rutube с друзьями — на любом устройстве.',
+    title: 'Смотреть Rutube вместе — синхронно, без регистрации',
+    description: 'Ссылка на видео Rutube, комната на двоих или на десятерых, пауза и перемотка у всех сразу.',
     url: 'https://wewatch.uz/ru/guides/smotret-rutube-vmeste',
     type: 'article',
   },
