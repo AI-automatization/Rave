@@ -54,13 +54,22 @@ jobs:
         working-directory: apps/mobile
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        # production profile's android.buildType is "app-bundle" (.aab, required for Play Store
+        # submission) — preview/development build a plain .apk. --output must match that format
+        # or eas-cli's local build errors out on the mismatched extension.
         run: |
+          if [ "${{ github.event.inputs.profile }}" = "production" ]; then
+            ext=aab
+          else
+            ext=apk
+          fi
+          echo "OUTPUT_EXT=$ext" >> "$GITHUB_ENV"
           npx eas-cli build --platform android --profile ${{ github.event.inputs.profile }} \
-            --local --output ./wewatch.apk --non-interactive
+            --local --output "./wewatch.$ext" --non-interactive
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wewatch-${{ github.event.inputs.profile }}-apk
-          path: apps/mobile/wewatch.apk
+          name: wewatch-${{ github.event.inputs.profile }}-${{ env.OUTPUT_EXT }}
+          path: apps/mobile/wewatch.${{ env.OUTPUT_EXT }}
           retention-days: 14
