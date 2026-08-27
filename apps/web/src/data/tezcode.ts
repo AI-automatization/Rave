@@ -1,7 +1,7 @@
 import type { IconType } from 'react-icons';
 import {
   FaRobot, FaStore, FaHeartbeat, FaUsersCog, FaChartLine,
-  FaPlay, FaCube, FaBolt, FaEnvelope, FaTelegram, FaInstagram, FaLinkedin,
+  FaPlay, FaCube, FaBolt,
 } from 'react-icons/fa';
 
 // ── Факты с tezcode.dev (AI Software Factory, Ташкент) ──────────────────────
@@ -44,42 +44,25 @@ export const TEAM: Member[] = [
     key: 'Founder',
     name: 'Bekzod Mirzaaliyev',
     tag: 'lead',
-    photo: '/ru/team/begzod_mirzaliyev.webp',
+    photo: '/team-photos/begzod_mirzaliyev.webp',
   },
   {
     key: 'Coo',
     name: 'Abdulaziz Yormatov',
     tag: 'lead',
-    photo: '/ru/team/abdulaziz_yormatov.webp',
+    photo: '/team-photos/abdulaziz_yormatov.webp',
   },
   {
     key: 'Wewatch',
     name: 'Emirhan Ertan',
     tag: 'wewatch',
-    photo: '/ru/team/ertan_emirhan.jpg',
+    photo: '/team-photos/ertan_emirhan.jpg',
   },
 ];
 
 export const TECH = [
   'Next.js', 'React', 'TypeScript', 'Python', 'FastAPI', 'Node.js',
   'PostgreSQL', 'Redis', 'Tailwind', 'OpenAI', 'Anthropic', 'Docker', 'Railway', 'Stripe', 'Vercel',
-];
-
-export interface Contact {
-  name: string;
-  icon: IconType;
-  label: string;
-  href: string;
-  color: string;
-}
-
-export const CONTACT_EMAIL = 'tezcode@tezcode.dev';
-
-export const CONTACTS: Contact[] = [
-  { name: 'Email', icon: FaEnvelope, label: CONTACT_EMAIL, href: `mailto:${CONTACT_EMAIL}`, color: '#7B72F8' },
-  { name: 'Telegram', icon: FaTelegram, label: '@webdevelopertk', href: 'https://t.me/webdevelopertk', color: '#22d3ee' },
-  { name: 'Instagram', icon: FaInstagram, label: '@tezcode_dev', href: 'https://instagram.com/tezcode_dev', color: '#a855f7' },
-  { name: 'LinkedIn', icon: FaLinkedin, label: 'tezcode.dev', href: TEZCODE_URL, color: '#38bdf8' },
 ];
 
 // Палитра для аватаров-инициалов (когда фото нет)

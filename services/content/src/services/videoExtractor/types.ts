@@ -56,6 +56,15 @@ export interface VideoExtractResult {
   cacheable?: boolean;
   // Episode list for series (Playerjs multi-episode format)
   episodes?: EpisodeInfo[];
+  // 2026-08-22, GitHub issue #84 follow-up: hls-proxy/proxy/stream used to accept ANY url from
+  // any logged-in user's plain JWT — effectively an open proxy for arbitrary HTTPS targets, not
+  // just this video. Signing `videoUrl` here (same HMAC mechanism already used for
+  // vb-media-proxy, issue #76 — shared/src/utils/proxySignature.ts) lets the two proxy
+  // controllers verify the request is for a URL WE actually resolved, not an arbitrary one a
+  // client supplies. Added by videoExtract.controller.ts right before the response is sent, not
+  // by the extractors themselves — one insertion point instead of one per extractor.
+  proxyExp?: number;
+  proxySig?: string;
 }
 
 // Re-export shared types for convenience within this service

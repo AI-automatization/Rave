@@ -18,24 +18,26 @@
 // (signProxyUrl/verifyProxyUrlDetailed) — same HMAC-SHA256(`${target}|${exp}`), same secret
 // (INTERNAL_SECRET, set as an environment variable in this script's Bunny dashboard settings,
 // not committed here). Railway mints the URL exactly as before; this script only re-verifies it.
+//
+// 2026-08-23: this used to read the client's Range header directly (`request.headers.get('range')`)
+// — confirmed live (debug console.log dumping every key in request.headers.forEach) that Bunny's
+// own edge/CDN layer strips Range before this script ever runs; it was always reading `null`, no
+// matter what the real client sent, so the 206/Content-Range logic below never actually fired.
+// Nothing inside this script can fix that — the information just isn't there. Railway's
+// vbMediaProxy.controller.ts (this script's only caller now, never a client directly — see that
+// file's fetchViaBunny) works around it by sending the SAME already-capped Range value as a
+// `range` QUERY PARAM instead, which survives fine. Referer/Cookie travel the same way, since
+// there's no other channel for them either. Because the caller is always Railway now (not a
+// browser/player), these extra params don't need their own signature — url/exp/sig already gate
+// whether ANY of this happens at all; range/referer/cookie only affect what Railway asks for once
+// it's already allowed through.
 import * as BunnySDK from 'npm:@bunny.net/edgescript-sdk@0.12.1';
 import crypto from 'node:crypto';
 import process from 'node:process';
 
-const MAX_RANGE_CHUNK_BYTES = 4 * 1024 * 1024; // 4MB — same cap as vbMediaProxy.controller.ts
 const CHROME_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
   '(KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36';
-
-function cappedRange(rangeHeader: string, maxBytes: number): string {
-  const match = /^bytes=(\d+)-(\d*)$/.exec(rangeHeader.trim());
-  if (!match) return rangeHeader;
-  const start = Number(match[1]);
-  const requestedEnd = match[2] ? Number(match[2]) : undefined;
-  const cappedEnd = start + maxBytes - 1;
-  const end = requestedEnd !== undefined ? Math.min(requestedEnd, cappedEnd) : cappedEnd;
-  return `bytes=${start}-${end}`;
-}
 
 // Same HMAC verification as proxySignature.ts's verifyProxyUrlDetailed — fails closed on any
 // missing secret, expired exp, or malformed/mismatched sig.
@@ -60,11 +62,25 @@ function jsonError(status: number, message: string): Response {
   });
 }
 
+function decodeBase64url(value: string): string {
+  return new TextDecoder().decode(
+    Uint8Array.from(atob(value.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0)),
+  );
+}
+
 BunnySDK.net.http.serve(async (request: Request): Promise<Response> => {
   const reqUrl = new URL(request.url);
   const urlParam = reqUrl.searchParams.get('url');
   const expParam = Number(reqUrl.searchParams.get('exp'));
   const sigParam = reqUrl.searchParams.get('sig') ?? '';
+  // See the 2026-08-23 comment at the top of this file — Bunny strips the real Range/Referer/
+  // Cookie headers before this script ever runs, so Railway (the only caller) sends them as query
+  // params instead. `range` travels plain (it's just `bytes=0-4194303`, no unsafe URL characters);
+  // referer/cookie are base64url same as `url` since a raw Referer/Cookie value could contain
+  // '&' or other characters that would otherwise corrupt the query string.
+  const rangeParam = reqUrl.searchParams.get('range');
+  const refererParam = reqUrl.searchParams.get('referer');
+  const cookieParam = reqUrl.searchParams.get('cookie');
 
   if (!urlParam) return jsonError(400, 'url required');
 
@@ -96,8 +112,23 @@ BunnySDK.net.http.serve(async (request: Request): Promise<Response> => {
     'Accept': '*/*',
     'Accept-Encoding': 'identity',
   };
-  const range = request.headers.get('range');
-  if (range) headers['Range'] = cappedRange(range, MAX_RANGE_CHUNK_BYTES);
+  // 2026-08-23 correction: this used to re-cap rangeParam to MAX_RANGE_CHUNK_BYTES (4MB) here,
+  // on the assumption that was "just a harmless safety net" since Railway already capped it —
+  // wrong. Railway's cappedRange (vbMediaProxy.controller.ts) allows up to 24MB for an EXPLICIT
+  // bounded request (Safari/native players fetching a non-faststart file's moov atom, which can
+  // legitimately be several MB, near the end of the file) and only 4MB for an open-ended one.
+  // Re-capping everything back down to 4MB here silently threw that headroom away — an explicit
+  // 24MB request Railway had already decided was safe came back truncated to 4MB anyway, which
+  // is exactly the "player keeps re-requesting the same first chunk and never actually starts"
+  // symptom seen live (fayllar1.ru, 2026-08-23: repeated identical 4194304-byte 206 responses,
+  // playback never progressed). Railway is this script's only caller now — trust its cap as-is.
+  if (rangeParam) headers['Range'] = rangeParam;
+  if (refererParam) {
+    try { headers['Referer'] = decodeBase64url(refererParam); } catch { /* malformed — skip, not fatal */ }
+  }
+  if (cookieParam) {
+    try { headers['Cookie'] = decodeBase64url(cookieParam); } catch { /* malformed — skip, not fatal */ }
+  }
 
   let upstream: Response;
   try {

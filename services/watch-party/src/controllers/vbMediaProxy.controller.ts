@@ -71,6 +71,34 @@ async function validateTarget(rawUrl: string): Promise<string | null> {
 
 const MAX_REDIRECTS = 3;
 
+// Real prod bug 2026-08-26: found via a Railway log trace of a live stuck session — neither
+// safeFetch() below nor fetchViaBunny() ever bounded how long they'd wait on `fetch()` itself.
+// A slow-TTFB upstream (fayllar1.ru-class mirrors under load) just left this handler awaiting
+// forever; the mobile player has its OWN much shorter client-side timeout, so it aborted and
+// retried the same request every few seconds — 15+ aborted attempts logged in one 5-minute
+// session, never once reaching the existing getFreshMediaUrl() retry path below because the
+// first attemptFetch() call never actually failed, it just never returned. Wrapping fetch() in
+// an explicit timeout makes a slow upstream fail FAST instead of hanging, so the request can
+// actually reach (and benefit from) the retry-with-fresh-URL logic that already existed.
+const UPSTREAM_FETCH_TIMEOUT_MS = 12_000;
+
+async function fetchWithTimeout(url: string, init: globalThis.RequestInit): Promise<globalThis.Response> {
+  const controller = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; controller.abort(); }, UPSTREAM_FETCH_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (e) {
+    // Labeled explicitly rather than left as the AbortError's own generic "This operation was
+    // aborted" — unwrapCause() below only has .message/.code to go on, and an unlabeled abort is
+    // indistinguishable from any other abort reason in the logs.
+    if (timedOut) throw new Error(`upstream fetch timed out after ${UPSTREAM_FETCH_TIMEOUT_MS}ms`);
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Walks a possibly-multi-level `.cause` chain (undici's fetch() errors are two deep — see the
  *  call site's comment) down to the deepest Error, returning its message plus `.code` (Node's
  *  errno-style tag, e.g. ECONNREFUSED/ETIMEDOUT) when present. Stops at a depth limit rather than
@@ -97,7 +125,7 @@ async function safeFetch(url: string, headers: Record<string, string>): Promise<
 
     let res: globalThis.Response;
     try {
-      res = await fetch(current, { headers, redirect: 'manual' });
+      res = await fetchWithTimeout(current, { headers, redirect: 'manual' });
     } catch (e) {
       // Real prod case 2026-08-08: this used to lose which hop failed and on what host — every
       // failure surfaced upstream as the same generic "fetch failed", indistinguishable whether
@@ -118,6 +146,29 @@ async function safeFetch(url: string, headers: Record<string, string>): Promise<
 const CHROME_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
   '(KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36';
+
+// 2026-08-23: some VB-caught mp4 hosts (fayllar1.ru-class) block/throttle this service's own
+// Railway egress IP — vbSession.helper.ts marks those candidates `viaBunny=1` so this proxy
+// re-sends the SAME request server-to-server through the Bunny Edge Script on the already-paid-
+// for wewatch-stream pull zone (a different egress IP, same trick as before) instead of fetching
+// the origin directly. Bunny's edge platform strips the client's `Range` header before its script
+// ever sees it (confirmed live via a debug log dump of the script's own request.headers — 'range'
+// is simply absent), so the already-capped Range this function computed gets passed as a QUERY
+// PARAM instead — a value Bunny's script reads fine and forwards to ITS OWN origin fetch as a real
+// header (that direction works, already proven). Referer/Cookie travel the same way, since Bunny's
+// script has no notion of either otherwise. Bunny only ever sees this call from Railway now (never
+// a client directly), so it doesn't need its own SSRF guard — validateTarget() above already
+// vetted `url` before this is ever called.
+async function fetchViaBunny(url: string, headers: Record<string, string>): Promise<globalThis.Response> {
+  const vbEdgeFetchUrl = process.env.VB_EDGE_FETCH_URL;
+  const { exp, sig } = signProxyUrl(url);
+  const encodedUrl = Buffer.from(url, 'utf8').toString('base64url');
+  const params = new URLSearchParams({ url: encodedUrl, exp: String(exp), sig });
+  if (headers.Range) params.set('range', headers.Range);
+  if (headers.Referer) params.set('referer', Buffer.from(headers.Referer, 'utf8').toString('base64url'));
+  if (headers.Cookie) params.set('cookie', Buffer.from(headers.Cookie, 'utf8').toString('base64url'));
+  return fetchWithTimeout(`${vbEdgeFetchUrl}/vb-edge-fetch?${params.toString()}`, { redirect: 'follow' });
+}
 
 function proxyBase(req: Request): string {
   return `${req.protocol}://${req.get('host')}/api/v1/watch-party/vb-media-proxy`;
@@ -350,7 +401,20 @@ async function attemptFetch(rawUrl: string, req: Request, res: Response, referer
     // its normal progressive-range-request pattern regardless of what it originally asked for —
     // upstream's real Content-Range (reflecting our capped request, not the client's original one)
     // is what gets forwarded back, so this is transparent to the client either way.
-    const MAX_RANGE_CHUNK_BYTES = 4 * 1024 * 1024; // 4MB — comfortably ahead of normal playback, not a full-file download
+    //
+    // Real prod bug 2026-08-26 (live test, fayllar1.ru "Deadpool Wolverine" 480p): this used to be
+    // 4MB, one class below MAX_EXPLICIT_RANGE_BYTES below. A player fetching a non-faststart
+    // file's tail moov atom via an OPEN-ENDED request (`bytes=<mdat_end>-`, "give me the rest of
+    // the file") rather than an explicit bounded one hit this cap instead of the 24MB one — and
+    // this exact file's moov is 4.008MB, ~9KB over the old 4MB ceiling. The truncated moov read as
+    // a corrupt index: 2-3 minutes of buffering, then a load error, on a file that was never
+    // actually failing to transfer (confirmed live: an explicit Range request for the same bytes
+    // succeeds fine, since that path already used the 24MB cap). There is no way to tell from the
+    // request alone whether an open-ended range is "from the start" (the original 738MB case) or
+    // "near the end for a moov" (this case) — matching MAX_EXPLICIT_RANGE_BYTES here, same
+    // reasoning as that constant already uses, covers both without going anywhere near a
+    // full-file download either way.
+    const MAX_RANGE_CHUNK_BYTES = 24 * 1024 * 1024; // 24MB — see 2026-08-26 comment above
     // See cappedRange's doc comment — an explicit bounded request (e.g. Safari fetching a
     // non-faststart file's tail moov atom) needs much more headroom than a progressive-playback
     // chunk, without going anywhere near a full-file download.
@@ -365,9 +429,10 @@ async function attemptFetch(rawUrl: string, req: Request, res: Response, referer
     if (referer) headers['Referer'] = referer;
     if (cookieHeader) headers['Cookie'] = cookieHeader;
 
+    const viaBunny = req.query.viaBunny === '1' && Boolean(process.env.VB_EDGE_FETCH_URL);
     let upstream: globalThis.Response;
     try {
-      upstream = await safeFetch(parsedUrl.href, headers);
+      upstream = viaBunny ? await fetchViaBunny(parsedUrl.href, headers) : await safeFetch(parsedUrl.href, headers);
     } catch (e) {
       // Node's fetch() wraps the real underlying error (DNS failure, connection refused, TLS
       // error, etc.) in `.cause` rather than putting it in `.message` — logging only `.message`

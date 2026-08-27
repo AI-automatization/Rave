@@ -51,7 +51,7 @@ export const GUIDES: Guide[] = [
     primaryIntent: 'смотреть вместе онлайн',
     secondaryIntents: ['смотреть видео вместе'],
     locale: 'ru',
-    lastModified: '2026-08-15',
+    lastModified: '2026-08-20',
     datePublished: '2026-06-15',
     priority: 0.9,
   },
@@ -164,7 +164,7 @@ export const GUIDES: Guide[] = [
     summary: "Do'stlar bilan onlayn sinxron tomosha qilishni boshlash.",
     primaryIntent: 'birgalikda onlayn tomosha qilish',
     locale: 'uz',
-    lastModified: '2026-07-07',
+    lastModified: '2026-08-20',
     datePublished: '2026-06-16',
     priority: 0.9,
   },
@@ -212,6 +212,28 @@ export const GUIDES: Guide[] = [
     datePublished: '2026-07-07',
     priority: 0.9,
   },
+  {
+    path: '/uz/guides/kino-ikkovlashib',
+    headline: "Ikkovlashib kino ko'rish — masofada ham sinxron",
+    title: 'Ikkovlashib kino',
+    summary: "Ikkovlashib kino ko'rish, lekin turli joyda: veb-versiyada sinxron pauza va bitta havola.",
+    primaryIntent: "ikkovlashib kino ko'rish",
+    locale: 'uz',
+    lastModified: '2026-08-25',
+    datePublished: '2026-08-25',
+    priority: 0.9,
+  },
+  {
+    path: '/uz/guides/bepul-watch-party',
+    headline: 'Bepul Watch Party — 2026-da qanday boshlash',
+    title: 'Bepul Watch Party',
+    summary: "Bepul veb Watch Party — YouTube, VK Video, Rutube sinxron, do'stlar bilan.",
+    primaryIntent: 'bepul watch party',
+    locale: 'uz',
+    lastModified: '2026-08-25',
+    datePublished: '2026-08-25',
+    priority: 0.8,
+  },
 
   // ── English guides ─────────────────────────────────────────────────────────
   // These replace the three English-slug pages that used to live under /guides
@@ -235,7 +257,7 @@ export const GUIDES: Guide[] = [
     summary: 'What a watch party is, how synced playback works and how to start one.',
     primaryIntent: 'what is a watch party',
     locale: 'en',
-    lastModified: '2026-07-25',
+    lastModified: '2026-08-20',
     datePublished: '2026-06-01',
     priority: 0.8,
   },
@@ -263,6 +285,8 @@ export const GUIDE_GROUPS: { ru: string; uz?: string; en?: string }[] = [
   { ru: '/ru/guides/smotret-anime-vmeste', uz: '/uz/guides/anime-birgalikda' },
   { ru: '/ru/guides/smotret-serial-vmeste', uz: '/uz/guides/serial-birgalikda' },
   { ru: '/ru/guides/kino-s-drugom-onlayn', uz: '/uz/guides/kino-birgalikda', en: '/en/guides/watch-movies-with-friends' },
+  { ru: '/ru/guides/smotret-film-vdvoem', uz: '/uz/guides/kino-ikkovlashib' },
+  { ru: '/ru/guides/watch-party-besplatno', uz: '/uz/guides/bepul-watch-party' },
 ];
 
 /** ru↔uz counterparts. Derived from GUIDE_GROUPS — kept for existing callers. */
@@ -301,4 +325,79 @@ export const relatedGuides = (currentPath: string, locale: GuideLocale, limit = 
 
   const take = Math.min(limit, all.length - 1);
   return Array.from({ length: take }, (_, i) => all[(start + 1 + i) % all.length]);
+};
+
+/**
+ * The three guides every footer links unconditionally, per locale.
+ *
+ * They are the cluster hubs — the pages that already hold position for the
+ * broadest intent in their language — so they keep a link from every page on
+ * the site. The rest of the locale's guides share the two remaining slots via
+ * `footerRotation` below.
+ */
+export const FOOTER_PILLARS: Record<GuideLocale, readonly string[]> = {
+  ru: [
+    '/ru/guides/smotret-vmeste-onlayn',
+    '/ru/guides/kino-s-drugom-onlayn',
+    '/ru/guides/smotret-youtube-vmeste',
+  ],
+  uz: [
+    '/uz/guides/birgalikda-tomosha-qilish',
+    '/uz/guides/kino-birgalikda',
+    '/uz/guides/youtube-birgalikda',
+  ],
+  en: [
+    '/en/guides/what-is-watch-party',
+    '/en/guides/watch-movies-with-friends',
+    '/en/guides/watch-youtube-together',
+  ],
+};
+
+/**
+ * FNV-1a over the path. The rotation needs an offset that is stable (the same
+ * page must render the same footer on the server and on the client, or React
+ * hydration reports a mismatch) and spread out (consecutive paths must not all
+ * land on the same pair). A hash gives both without the footer having to know
+ * the site's page registry — importing sitemap-entries here would pull the whole
+ * registry, TEAM included, into the client bundle for two links.
+ */
+function pathOffset(path: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < path.length; i++) {
+    h ^= path.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h;
+}
+
+/**
+ * The non-pillar guides to show in the footer's two rotating slots on `path`.
+ *
+ * Measured on prod 2026-08-26: the footer used to hardcode five slugs per
+ * locale, so those five collected 28-29 internal inbound links each while the
+ * five RU guides outside the list sat at 7-10 — a ×4 gap decided by a literal in
+ * this file, not by the content. That is the same defect `relatedGuides` was
+ * fixed for in PR #142, one component further down.
+ *
+ * Unlike the ring, evenness here is statistical, not guaranteed: the offset is a
+ * hash, so over the ~32 RU pages the seven pool members receive roughly 6-15
+ * footer links each rather than an exact 1/7 share. That is the price of not
+ * importing the page registry, and it is still far tighter than 28-vs-7.
+ *
+ * `path` itself is excluded, the way `relatedGuides` excludes the current guide:
+ * a footer link to the page already being read is a wasted slot, and it does not
+ * even register as an inbound link in check-inlinks.mjs.
+ *
+ * Returns an empty array when a locale has no guides beyond its pillars — `en`
+ * has exactly three guides today, and padding the slots there meant linking the
+ * movies guide from three separate `<li>`s.
+ */
+export const footerRotation = (path: string, locale: GuideLocale, slots = 2): Guide[] => {
+  const pillars = FOOTER_PILLARS[locale];
+  const pool = guidesFor(locale).filter((g) => !pillars.includes(g.path) && g.path !== path);
+  if (pool.length === 0) return [];
+
+  const take = Math.min(slots, pool.length);
+  const start = pathOffset(path) % pool.length;
+  return Array.from({ length: take }, (_, i) => pool[(start + i) % pool.length]);
 };

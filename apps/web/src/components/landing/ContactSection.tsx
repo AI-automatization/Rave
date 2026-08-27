@@ -3,7 +3,7 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { FaEnvelope, FaArrowRight } from 'react-icons/fa';
 import { useTranslations } from 'next-intl';
-import { CONTACTS, CONTACT_EMAIL } from '@/data/tezcode';
+import { BRAND_CONTACTS, SUPPORT_EMAIL } from '@/data/brand';
 import { fadeUp, stagger } from './motion';
 
 export function ContactSection() {
@@ -48,13 +48,13 @@ export function ContactSection() {
             {/* Основная кнопка — email */}
             <motion.a
               variants={fadeUp}
-              href={`mailto:${CONTACT_EMAIL}`}
+              href={`mailto:${SUPPORT_EMAIL}`}
               className="inline-flex items-center gap-2.5 h-[54px] px-9 rounded-2xl text-white font-semibold transition-transform hover:scale-[1.04] active:scale-[0.98]"
               style={{ background: 'linear-gradient(135deg, #7B72F8, #6B63E8)', boxShadow: '0 0 44px rgba(123,114,248,0.55)' }}
             >
               <FaEnvelope size={16} aria-hidden="true" /> {t('contactCta')}
             </motion.a>
-            <motion.p variants={fadeUp} className="text-zinc-600 text-sm mt-3 select-all">{CONTACT_EMAIL}</motion.p>
+            <motion.p variants={fadeUp} className="text-zinc-600 text-sm mt-3 select-all">{SUPPORT_EMAIL}</motion.p>
 
             {/* разделитель */}
             <motion.div variants={fadeUp} className="flex items-center gap-4 my-9 max-w-sm mx-auto">
@@ -65,7 +65,7 @@ export function ContactSection() {
 
             {/* Соцсети */}
             <motion.div variants={fadeUp} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {CONTACTS.filter((c) => c.name !== 'Email').map(({ name, icon: Icon, label, href, color }) => (
+              {BRAND_CONTACTS.filter((c) => c.name !== 'Email').map(({ name, icon: Icon, label, href, color }) => (
                 <a
                   key={name}
                   href={href}

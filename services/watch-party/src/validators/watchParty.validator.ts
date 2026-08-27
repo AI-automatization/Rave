@@ -16,9 +16,20 @@ export const createRoomSchema = Joi.object({
   // drifted apart — this makes the validator match the model instead of relying on the clamp.
   maxMembers: Joi.number().integer().min(2).max(LIMITS.MAX_WATCH_PARTY_MEMBERS).optional(),
   isPrivate: Joi.boolean().optional(),
+  requireApproval: Joi.boolean().optional(),
   password: Joi.string().min(1).max(100).optional(),
   startTime: Joi.number().integer().min(0).optional(),
   videoReferer: Joi.string().uri().allow('').max(2048).optional(),
+  // Real prod bug found live 2026-08-26: apps/mobile's watchPartyApi.createRoom() has sent this
+  // field since "E67-3" (webview-session mode, shared/src/types/index.ts) — Netscape-format
+  // cookies from a WebView, for auth-protected sites the same way services/content's
+  // videoExtract.controller.ts already accepts (matching its 4096-char cap here). Joi rejects
+  // unrecognized keys by default, so every createRoom call that included this field 422'd with
+  // a bare "Validation failed" — no detail, since the shared error handler didn't log
+  // error.errors either (see the error.middleware.ts fix in the same investigation). This only
+  // stops the request from being rejected; actually threading cookies through to VB session
+  // auth (controller/service/model) is a separate, larger change, not done here.
+  cookies: Joi.string().max(4096).optional(),
 });
 
 export const joinRoomSchema = Joi.object({

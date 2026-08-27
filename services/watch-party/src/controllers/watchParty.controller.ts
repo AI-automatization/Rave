@@ -4,14 +4,16 @@ import Redis from 'ioredis';
 import { WatchPartyService } from '../services/watchParty.service';
 import { apiResponse, buildPaginationMeta } from '@shared/utils/apiResponse';
 import { AuthenticatedRequest, VideoPlatform } from '@shared/types';
-import { sendInternalNotification } from '@shared/utils/serviceClient';
+import { sendInternalNotification, getUserPlan } from '@shared/utils/serviceClient';
 import { SERVER_EVENTS } from '@shared/constants/socketEvents';
 import { WatchPartyRoom } from '../models/watchPartyRoom.model';
 import { logger } from '@shared/utils/logger';
 import { getAppSetting } from '@shared/utils/appSettings';
 import { ForbiddenError, NotFoundError } from '@shared/utils/errors';
 import { startVBForRoom } from '../socket/vbSession.helper';
+import { enqueueVBRequest } from '../socket/vbQueue.helper';
 import { isOfficialEmbedHost, isOwnVbUrl } from '../services/extractionClient';
+import { isDomainBlocked } from './domain.admin.controller';
 
 export class WatchPartyController {
   constructor(
@@ -48,7 +50,7 @@ export class WatchPartyController {
 
       const {
         name, movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,
-        maxMembers, isPrivate, password, startTime, videoReferer,
+        maxMembers, isPrivate, requireApproval, password, startTime, videoReferer,
       } = req.body as {
         name?: string;
         movieId?: string;
@@ -58,6 +60,7 @@ export class WatchPartyController {
         videoPlatform?: VideoPlatform;
         maxMembers?: number;
         isPrivate?: boolean;
+        requireApproval?: boolean;
         password?: string;
         startTime?: number;
         videoReferer?: string;
@@ -65,7 +68,7 @@ export class WatchPartyController {
 
       const room = await this.watchPartyService.createRoom(userId, {
         name, movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,
-        maxMembers, isPrivate, password, startTime, videoReferer,
+        maxMembers, isPrivate, requireApproval, password, startTime, videoReferer,
       });
       res.status(201).json(apiResponse.success(room, 'Room created'));
 
@@ -80,10 +83,27 @@ export class WatchPartyController {
       // already play instantly client-side via their own iframe.
       if (videoUrl && !isOfficialEmbedHost(videoUrl) && !isOwnVbUrl(videoUrl)) {
         const roomId = String(room._id);
-        void startVBForRoom(this.io, this.redis, roomId, userId, videoUrl)
-          .catch((e) => logger.warn('createRoom: VB auto-start failed', {
-            roomId, url: videoUrl, error: (e as Error).message,
-          }));
+        void (async () => {
+          // #84 follow-up: this VB-start path (room creation) never consulted the admin domain
+          // blocklist — vbEvents.handler.ts's manual button and roomEvents.handler.ts's
+          // CHANGE_MEDIA already did, this one didn't, so a blocked domain could still be reached
+          // by creating a room with it directly instead of switching media after the fact.
+          if (await isDomainBlocked(this.redis, videoUrl)) {
+            logger.warn('createRoom: VB auto-start skipped — blocked domain', { roomId, url: videoUrl });
+            return;
+          }
+          const tier = await getUserPlan(userId);
+          try {
+            await startVBForRoom(this.io, this.redis, roomId, userId, videoUrl, tier);
+          } catch (e) {
+            if ((e as Error).message === 'virtual_browser_limit') {
+              enqueueVBRequest({ roomId, ownerId: userId, url: videoUrl, io: this.io, redis: this.redis });
+              logger.info('createRoom: VB queued — free pool full', { roomId, userId });
+              return;
+            }
+            logger.warn('createRoom: VB auto-start failed', { roomId, url: videoUrl, error: (e as Error).message });
+          }
+        })();
       }
     } catch (error) {
       // Handled here rather than by the shared error middleware because the client needs the
@@ -119,6 +139,22 @@ export class WatchPartyController {
       const room = await this.watchPartyService.joinRoom(userId, inviteCode, password);
       res.json(apiResponse.success(room, 'Joined room'));
     } catch (error) {
+      // requireApproval room: queued instead of joined (see joinRoom's JOIN_PENDING throw).
+      // ownerId is only present on a genuinely new request — see that comment for why.
+      const err = error as Error & { code?: string; roomId?: string; ownerId?: string };
+      if (err.code === 'JOIN_PENDING') {
+        const { userId } = (req as AuthenticatedRequest).user;
+        if (err.ownerId) {
+          this.io.to(`user:${err.ownerId}`).emit(SERVER_EVENTS.JOIN_REQUESTED, { roomId: err.roomId, userId });
+        }
+        res.status(202).json({
+          success: true,
+          data: { pending: true, roomId: err.roomId },
+          message: 'JOIN_PENDING',
+          errors: null,
+        });
+        return;
+      }
       next(error);
     }
   };
@@ -258,10 +294,27 @@ export class WatchPartyController {
       // advancing the queue did not, which is the gap this closes.
       if (room.videoUrl && (room as { nextNeedsVirtualBrowser?: boolean }).nextNeedsVirtualBrowser) {
         const videoUrl = room.videoUrl;
-        void startVBForRoom(this.io, this.redis, roomId, userId, videoUrl)
-          .catch((e) => logger.warn('playNext: VB fallback failed to start', {
-            roomId, url: videoUrl, error: (e as Error).message,
-          }));
+        void (async () => {
+          // #84 follow-up, defense in depth: watchPartyPlaylist.service.ts already checks the
+          // blocklist when an item is ADDED, but a domain can be blocked by an admin any time
+          // after that and before this item's turn comes up — re-check right before VB actually
+          // opens it, same as every other VB-start path now does.
+          if (await isDomainBlocked(this.redis, videoUrl)) {
+            logger.warn('playNext: VB fallback skipped — blocked domain', { roomId, url: videoUrl });
+            return;
+          }
+          const tier = await getUserPlan(userId);
+          try {
+            await startVBForRoom(this.io, this.redis, roomId, userId, videoUrl, tier);
+          } catch (e) {
+            if ((e as Error).message === 'virtual_browser_limit') {
+              enqueueVBRequest({ roomId, ownerId: userId, url: videoUrl, io: this.io, redis: this.redis });
+              logger.info('playNext: VB queued — free pool full', { roomId, userId });
+              return;
+            }
+            logger.warn('playNext: VB fallback failed to start', { roomId, url: videoUrl, error: (e as Error).message });
+          }
+        })();
       }
     } catch (error) {
       next(error);
@@ -277,6 +330,30 @@ export class WatchPartyController {
       const limit = Math.min(Math.max(1, parseInt((req.query.limit as string) ?? '10', 10) || 10), 20);
       const rooms = await this.watchPartyService.getRecentRooms(userId, limit);
       res.json(apiResponse.success(rooms));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // ── 2026-08-22: Pro "continue watching" ───────────────────────────────
+
+  // GET /watch-party/rooms/my/resumable
+  getResumableRooms = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const rooms = await this.watchPartyService.listResumableRooms(userId);
+      res.json(apiResponse.success(rooms));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // POST /watch-party/rooms/:id/resume
+  resumeRoom = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const room = await this.watchPartyService.resumeRoom(userId, req.params.id);
+      res.status(201).json(apiResponse.success(room, 'Room resumed'));
     } catch (error) {
       next(error);
     }

@@ -8,7 +8,7 @@ import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { useT } from '@i18n/index';
 import { ModalStackParamList } from '@app-types/index';
-import { watchPartyApi } from '@api/watchParty.api';
+import { watchPartyApi, JoinRequestPendingError } from '@api/watchParty.api';
 import { analyticsService } from '@services/analyticsService';
 import { appAlert } from '@components/common/AppAlert';
 
@@ -54,7 +54,11 @@ export function WatchPartyJoinScreen() {
       const room = await watchPartyApi.joinByInviteCode(joinCode);
       analyticsService.track('action:room_join', undefined, { roomId: room._id });
       navigation.replace('WatchParty', { roomId: room._id });
-    } catch {
+    } catch (err) {
+      if (err instanceof JoinRequestPendingError) {
+        navigation.replace('WatchPartyJoinPending', { roomId: err.roomId });
+        return;
+      }
       appAlert(t('common', 'error'), t('watchParty', 'joinFailed'));
     } finally {
       setLoading(false);

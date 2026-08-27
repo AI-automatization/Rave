@@ -44,7 +44,45 @@ function getProxyForUrl(url: string): { server: string; username?: string; passw
   return { server: VB_PROXY_SERVER, username: VB_PROXY_USERNAME, password: VB_PROXY_PASSWORD };
 }
 
-const MAX_CONCURRENT = 3;
+// Detects that the page VB just loaded IS a bot-challenge wall — not an attempt to get past one
+// (that stays out of scope, see the anti-detection comment below). `cf-mitigated: challenge` is
+// Cloudflare's own response header for this, most reliable signal when present; the title/content
+// checks are a fallback for challenges that don't set it (or for reCAPTCHA, which isn't Cloudflare
+// at all) and for challenges injected client-side after an already-200 response.
+async function detectBotChallenge(
+  page: Page,
+  response: import('playwright-chromium').Response | null,
+): Promise<'cloudflare' | 'recaptcha' | null> {
+  try {
+    if (response?.headers()['cf-mitigated'] === 'challenge') return 'cloudflare';
+    const title = await page.title().catch(() => '');
+    if (/just a moment/i.test(title)) return 'cloudflare';
+    const html = await page.content().catch(() => '');
+    if (html.includes('challenges.cloudflare.com') || html.includes('cf-turnstile')) return 'cloudflare';
+    if (html.includes('g-recaptcha') || html.includes('recaptcha/api.js')) return 'recaptcha';
+  } catch {
+    // Page navigated away/closed mid-check — not a challenge, just lost the race. Not an error.
+  }
+  return null;
+}
+
+// 2026-08-22 product decision: Pro subscribers get a VB session on demand, no cap, no queue —
+// the whole point of paying is never waiting behind Free traffic. Free is capped and queues past
+// this; see vbQueue.helper.ts for the FIFO that handles the overflow instead of just rejecting it
+// like this used to (single MAX_CONCURRENT for everyone, hard reject past it).
+const MAX_CONCURRENT_FREE = 10;
+// Pro being uncapped is a business decision, not "no limit exists anywhere" — this is the one
+// hard backstop, sized far above any realistic Free+Pro combined load today, that exists purely
+// to stop a genuine bug/runaway (not real usage) from taking the whole container down. Should
+// never fire in practice; if it does, that's a bug to investigate, not a capacity plan to revisit.
+const MAX_TOTAL_SAFETY_CEILING = 60;
+
+// Called after a slot actually frees (stopSession) so the Free queue (vbQueue.helper.ts) can try
+// its next request immediately instead of waiting for the next unrelated VB_START to notice.
+let onSlotFreed: (() => void) | null = null;
+export function setOnSlotFreed(cb: () => void): void {
+  onSlotFreed = cb;
+}
 
 // Real prod finding 2026-08-20: a fresh `browser.newContext()` on every VB open means Google's
 // reCAPTCHA sees a brand-new, history-less Chromium instance every single time — its risk engine
@@ -168,6 +206,10 @@ interface VBSession {
    * client that treats "session exists" as "frames incoming" gets stuck on an infinite loading
    * spinner here — see getSessionSnapshot's `paused` field, added for exactly this. */
   paused: boolean;
+  /** Which concurrency pool this session counts against — see MAX_CONCURRENT_FREE below. Pro has
+   * no cap (a deliberate product decision, not an oversight — see MAX_TOTAL_SAFETY_CEILING for
+   * the one hard backstop that still applies to everyone). */
+  tier: 'free' | 'pro';
 }
 
 const sessions = new Map<string, VBSession>(); // roomId -> session
@@ -507,6 +549,19 @@ export async function startSession(
   // page-load Set-Cookie plus any later XHR-set ones), so this is the most complete snapshot
   // available without re-fetching per candidate.
   onSessionCookies?: (cookieHeader: string) => void,
+  // 2026-08-22: replaces the earlier residential-proxy/anti-detection push (see the VB_PROXY_*
+  // block above and the persistent-context comment) as the answer to "the source site shows a
+  // challenge". That approach tried to keep the challenge from appearing at all; this one accepts
+  // it can still appear and reports it instead of silently sitting on a stuck page — the owner
+  // gets a "can't open this site, try another" badge rather than staring at a frozen screencast.
+  // Fired at most once per navigation (initial goto + each subsequent in-page navigation), never
+  // throws, best-effort only — a failed detection check just means no badge, not a broken session.
+  onBotChallenge?: (reason: 'cloudflare' | 'recaptcha') => void,
+  // 2026-08-22: caller (vbSession.helper.ts, from getUserPlan()) tells us which pool this
+  // request counts against — see MAX_CONCURRENT_FREE/MAX_TOTAL_SAFETY_CEILING above. Defaults to
+  // 'free' so probeUrl() and any other caller that doesn't pass this stays on the safe/capped
+  // side rather than silently getting Pro's uncapped treatment.
+  tier: 'free' | 'pro' = 'free',
 ): Promise<void> {
   if (startingRooms.has(roomId)) {
     throw new Error('virtual_browser_starting');
@@ -530,8 +585,17 @@ export async function startSession(
     if (existing) {
       await stopSession(roomId);
     }
-    if (sessions.size >= MAX_CONCURRENT) {
-      throw new Error('virtual_browser_limit');
+    if (tier === 'pro') {
+      // Uncapped by design — only the shared safety backstop applies.
+      if (sessions.size >= MAX_TOTAL_SAFETY_CEILING) {
+        throw new Error('virtual_browser_safety_limit');
+      }
+    } else {
+      let freeCount = 0;
+      for (const s of sessions.values()) if (s.tier === 'free') freeCount++;
+      if (freeCount >= MAX_CONCURRENT_FREE) {
+        throw new Error('virtual_browser_limit');
+      }
     }
 
     const profileDir = vbProfileDir(roomId);
@@ -549,6 +613,22 @@ export async function startSession(
     await applyStealthPatches(context);
     const page = await context.newPage();
     const cdp = await context.newCDPSession(page);
+
+    // Owner can navigate deeper into the site after the initial load (click a link, follow a
+    // "watch" button) — a challenge can appear on any of those, not just the first goto below.
+    // `response`/`load` fire per-navigation for the whole page lifetime, so this covers all of
+    // them with one pair of listeners instead of re-checking only at session start.
+    if (onBotChallenge) {
+      let lastMainFrameResponse: import('playwright-chromium').Response | null = null;
+      page.on('response', (res) => {
+        if (res.request().resourceType() === 'document') lastMainFrameResponse = res;
+      });
+      page.on('load', () => {
+        void detectBotChallenge(page, lastMainFrameResponse).then((reason) => {
+          if (reason) onBotChallenge(reason);
+        });
+      });
+    }
 
     if (onMediaFound) {
       // Collection window (see COLLECTION_WINDOW_MS above): starts on the FIRST candidate from
@@ -835,7 +915,7 @@ export async function startSession(
       everyNthFrame: 1,
     });
 
-    sessions.set(roomId, { context, page, cdp, ownerId, url, paused: false });
+    sessions.set(roomId, { context, page, cdp, ownerId, url, paused: false, tier });
 
     try {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 });
@@ -877,7 +957,7 @@ export async function startSession(
  * only means "we don't know yet", which the caller records as needing the interactive fallback.
  */
 export async function probeUrl(url: string): Promise<{ mediaUrl: string; type: MediaType } | null> {
-  if (activeProbes >= MAX_BACKGROUND_PROBES || sessions.size + activeProbes >= MAX_CONCURRENT) {
+  if (activeProbes >= MAX_BACKGROUND_PROBES || sessions.size + activeProbes >= MAX_TOTAL_SAFETY_CEILING) {
     logger.info('VB probe: skipped, no spare capacity', { url, sessions: sessions.size, activeProbes });
     return null;
   }
@@ -926,11 +1006,13 @@ export async function stopSession(roomId: string): Promise<void> {
   const s = sessions.get(roomId);
   if (!s) return;
   sessions.delete(roomId);
+  inputQueues.delete(roomId);
   try { await s.cdp.send('Page.stopScreencast'); } catch { /* already gone */ }
   try { await s.context.close(); } catch { /* already gone */ }
   stopCapture(roomId);
   clearCapture(roomId);
   logger.info('VB session stopped', { roomId });
+  onSlotFreed?.();
 }
 
 export async function stopAllSessions(): Promise<void> {
@@ -949,10 +1031,34 @@ export async function pauseScreencast(roomId: string): Promise<void> {
   logger.info('VB: screencast paused, session kept alive for ongoing capture', { roomId });
 }
 
+// Real prod bug 2026-08-26 (live test, Saidazim: taps not registering + text getting selected
+// on tap/scroll): vbEvents.handler.ts's VB_INPUT listener is `async` but Socket.io does not wait
+// for one call to finish before invoking the next — a mousedown immediately followed by mouseup
+// (exactly what a tap sends, see VirtualBrowserPlayer.tsx's onPanResponderRelease) could have
+// mouseup's page.mouse.up() run and complete BEFORE mousedown's own page.mouse.down() — the
+// mousedown case has had a deliberate 40-100ms randomized delay before `.down()` since 2026-08-20
+// (reCAPTCHA timing evasion, see that case's own comment), long enough for a same-tick mouseup to
+// race ahead of it. Net effect: the button never truly goes down for that tap (dead click), then
+// goes down for real ~50-100ms later with NO matching mouseup ever coming — left held through
+// every subsequent mousemove/wheel, which a real browser reads as a drag-select. Matches both
+// symptoms exactly. Fix: serialize all inputs for a given room through one promise chain so a
+// later event can never start running before an earlier one has fully finished, regardless of
+// how fast the socket delivers them or how long an individual input's own handling takes.
+const inputQueues = new Map<string, Promise<void>>();
+
 // Only the room owner may drive input — enforced by the caller (vbEvents.handler.ts) checking
 // getSessionOwner(roomId) === userId, but double-checked here too since this fires straight
 // into a real browser page (mistaken input source would let a random member navigate it).
 export async function sendInput(roomId: string, userId: string, input: VBInput): Promise<void> {
+  const previous = inputQueues.get(roomId) ?? Promise.resolve();
+  const next = previous.then(() => dispatchInput(roomId, userId, input));
+  // Swallow here so one bad input doesn't wedge the queue for every input after it — the real
+  // error is still logged inside dispatchInput's own catch, this just keeps the chain alive.
+  inputQueues.set(roomId, next.catch(() => {}));
+  return next;
+}
+
+async function dispatchInput(roomId: string, userId: string, input: VBInput): Promise<void> {
   const s = sessions.get(roomId);
   if (!s || s.ownerId !== userId) return;
   const { page } = s;

@@ -535,6 +535,40 @@ test.describe('SEO / GEO / AEO regression checks', () => {
     expect(text).not.toMatch(UNVERIFIED_PRODUCT_CLAIMS);
   });
 
+  // The brand name is shared with unrelated companies, so a search for "wewatch" only
+  // surfaces our profiles if the site, the schema and llms.txt all point at the same
+  // accounts. Measured 2026-08-23: the footer linked a private t.me invite that Google
+  // cannot index, and sameAs listed no Telegram at all.
+  test('official social profiles are one consistent set across footer, sameAs and llms.txt', async ({ request }) => {
+    const html = await (await request.get('/ru')).text();
+
+    const organization = schemaNodes(jsonLdObjects(html)).find(
+      (node) => node['@type'] === 'Organization' && node.name === 'WeWatch',
+    );
+    expect(organization, 'the WeWatch Organization entity must be present').toBeTruthy();
+    const sameAs = (organization?.sameAs as string[] | undefined) ?? [];
+
+    const linkedProfiles = [
+      ...html.matchAll(/href="(https:\/\/(?:instagram\.com|x\.com|t\.me)\/[^"]+)"/g),
+    ].map((match) => match[1]);
+    expect(linkedProfiles.length, 'the footer must link the social profiles').toBeGreaterThan(0);
+
+    for (const href of new Set(linkedProfiles)) {
+      expect(sameAs, `${href} is linked sitewide but missing from Organization.sameAs`).toContain(href);
+    }
+
+    // A t.me/+hash is an invite to a private chat: it has no username, carries no content
+    // and is never indexed, so it identifies the brand to nobody.
+    for (const href of [...linkedProfiles, ...sameAs]) {
+      expect(href, 'social links must be public handles, not private invites').not.toContain('t.me/+');
+    }
+
+    const llms = await (await request.get('/llms.txt')).text();
+    for (const href of new Set(linkedProfiles)) {
+      expect(llms, `${href} must be listed in llms.txt so assistants cite the right account`).toContain(href);
+    }
+  });
+
   test('non-equivalent guide intents are not connected by hreflang', async ({ request }) => {
     const cases = [
       ['/ru/guides/watch-party-besplatno', '/en/guides/what-is-watch-party'],

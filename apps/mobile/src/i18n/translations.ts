@@ -17,6 +17,7 @@ export const translations = {
     ok: { uz: 'OK', ru: 'OK', en: 'OK' },
     contact: { uz: "Bog'lanish", ru: 'Связаться', en: 'Contact' },
     soon: { uz: 'TEZDA', ru: 'СКОРО', en: 'SOON' },
+    webOnly: { uz: 'VEB', ru: 'ВЕБ', en: 'WEB' },
     close: { uz: 'Yopish', ru: 'Закрыть', en: 'Close' },
     reportSent: { uz: 'Shikoyat yuborildi', ru: 'Жалоба отправлена', en: 'Report sent' },
     reportReview: { uz: "Tez orada ko'rib chiqamiz", ru: 'Мы рассмотрим её в ближайшее время', en: 'We will review it shortly' },

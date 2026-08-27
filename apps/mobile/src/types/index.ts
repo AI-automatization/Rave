@@ -118,6 +118,7 @@ export type ModalStackParamList = {
   };
   WatchPartyCreate: undefined;
   WatchPartyJoin: { inviteCode?: string } | undefined;
+  WatchPartyJoinPending: { roomId: string };
   Notifications: undefined;
   SourcePicker: {
     mode: 'create' | 'change' | 'queue';

@@ -15,6 +15,10 @@ export const createPaymentRouter = (): Router => {
   // GET /payment/plan — current user's plan (free/pro)
   router.get('/plan', verifyToken, controller.getPlan);
 
+  // GET /payment/history — subscription lifecycle events (activated/refunded) for the current
+  // user, newest first. Own record, not a mirror of tezcode-billing — see paymentHistory.model.ts.
+  router.get('/history', verifyToken, controller.getHistory);
+
   // GET /payment/internal/plan/:userId — service-to-service (X-Internal-Secret)
   router.get('/internal/plan/:userId', requireInternalSecret, controller.getPlanInternal);
 

@@ -90,6 +90,14 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   const playerRef = useRef<UniversalPlayerRef>(null);
   const isSyncing = useRef(false);
+  // Real prod bug (Railway logs, 2026-08-24): rapid skip taps each scheduled their own bare
+  // `setTimeout(() => isSyncing.current = false, 1500)`. An EARLIER tap's timer could fire AFTER a
+  // LATER tap had already re-armed isSyncing for its own in-flight seek, clearing the guard out
+  // from under the still-settling newer seek — handleProgress then applied a stale position tick,
+  // visible as the seek snapping back ("perematyvka" rollback). scheduleSyncRelease cancels any
+  // previously-scheduled release before arming a new one, so only the MOST RECENT seek's timer
+  // ever actually clears isSyncing.
+  //
   // 2026-08-23: the fixed 1.5s "sync settled" timer in handleProgressSeek below assumed a normal
   // HLS re-buffer (1-2s on Android, per that function's own comment) — real prod retest showed the
   // rollback bug persisting on these slow VB/Bunny-routed mp4 sources, where actual re-buffering
@@ -98,7 +106,8 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   // gets PUSHED FURTHER OUT every time onPlaybackStatusUpdate below still sees isBuffering:true
   // while a seek is settling, so isSyncing only actually releases once buffering genuinely stops —
   // fast sources behave exactly as before (one 1.5s tick, nothing to push out), slow ones just keep
-  // extending instead of releasing early into a stale position report.
+  // extending instead of releasing early into a stale position report — capped at MAX_SEEK_SETTLE_MS
+  // total so a source that never stops signalling isBuffering can't freeze sync forever.
   const seekSettleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Set on the first scheduleSyncRelease call of a settling episode, cleared once it actually
   // releases — lets scheduleSyncRelease clamp against MAX_SEEK_SETTLE_MS from the true start,
@@ -681,11 +690,28 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   // Confirming a candidate replaces the room's video the same way quality/episode selection
   // does — a direct CHANGE_MEDIA emit, no separate mechanism.
+  //
+  // Real prod finding 2026-08-26 (live test, Saidazim): picking either of 2 candidates did
+  // nothing — no error, no playback. Server logs showed ZERO trace of the resulting CHANGE_MEDIA
+  // (no "Room media changed" success log, no warn, no error) for either room, meaning the emit
+  // never reached the server at all — `getSocket()?.emit(...)` on a null/disconnected socket
+  // (screen backgrounded/locked during the ~100s VB candidate-collection wait is the likely
+  // trigger) silently no-ops. The owner saw the picker close with nothing happening and no
+  // indication why. Same silent-failure class the silent-failure-hunter agent (T-193, today)
+  // exists to catch — surfacing it here instead of chasing every other emit call in this file.
   const handleCandidateSelect = useCallback((candidate: VideoCandidate) => {
     if (!isOwner || !room) return;
-    getSocket()?.emit(CLIENT_EVENTS.CHANGE_MEDIA, { roomId, videoUrl: candidate.url, videoTitle: room.videoTitle ?? 'Video', videoPlatform: room.videoPlatform ?? 'direct' });
+    const socket = getSocket();
+    if (!socket?.connected) {
+      appAlert(
+        t('common', 'error') ?? 'Xato',
+        t('watchParty', 'noConnectionRetry') ?? 'Нет соединения с сервером — проверьте интернет и попробуйте выбрать видео ещё раз.',
+      );
+      return;
+    }
+    socket.emit(CLIENT_EVENTS.CHANGE_MEDIA, { roomId, videoUrl: candidate.url, videoTitle: room.videoTitle ?? 'Video', videoPlatform: room.videoPlatform ?? 'direct' });
     setCurrentVideoUrl(candidate.url);
-  }, [isOwner, room, roomId]);
+  }, [isOwner, room, roomId, t]);
 
   const handleAddToQueue = useCallback(() => {
     if (!isOwner) return;

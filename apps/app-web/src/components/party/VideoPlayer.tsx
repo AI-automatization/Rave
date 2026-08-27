@@ -7,6 +7,7 @@ import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { toast } from '@/hooks/use-toast';
 import { trackClick } from '@/lib/analytics';
+import { formatDuration } from '@/lib/format-duration';
 import { YouTubePlayer } from './YouTubePlayer';
 import { VKPlayer } from './VKPlayer';
 import { RutubePlayer } from './RutubePlayer';
@@ -140,7 +141,7 @@ interface Props {
   onPlay: (time: number) => void;
   onPause: (time: number) => void;
   onSeek: (time: number) => void;
-  onHeartbeat: (time: number) => void;
+  onHeartbeat: (time: number, frame?: string) => void;
   onBufferStart: () => void;
   onBufferEnd: () => void;
   /** Real playback failure (not just autoplay needing a click) on the generic extract+proxy path
@@ -1104,11 +1105,6 @@ function NativeVideoPlayer({
     return <Volume2 size={size} />;
   }
 
-  function fmtTime(s: number) {
-    if (!isFinite(s) || s < 0) return '0:00';
-    return `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
-  }
-
   const controlsVisible = showControls;
 
   return (
@@ -1279,8 +1275,8 @@ function NativeVideoPlayer({
 
               {/* Time */}
               <span className="text-white/60 text-xs tabular-nums flex-shrink-0">
-                {fmtTime(currentTime)}
-                {duration > 0 && <span className="text-white/30"> / {fmtTime(duration)}</span>}
+                {formatDuration(currentTime)}
+                {duration > 0 && <span className="text-white/30"> / {formatDuration(duration)}</span>}
               </span>
 
               {/* Spacer */}
@@ -1459,13 +1455,11 @@ export function VideoPlayer({
         const data = (body as { data?: { position?: number } }).data;
         const position = data?.position ?? 0;
         if (position > 30) {
-          const fmtTime = (s: number) =>
-            `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
           // The `action` this used to carry was an empty object cast through `as any` — it
           // rendered no button and did nothing. The seek happens unconditionally just below, so
           // the toast is purely an explanation of what is about to happen; it now says so, and
           // in the user's language (it was hardcoded English).
-          toast({ title: t('resumedFrom', { time: fmtTime(position) }) });
+          toast({ title: t('resumedFrom', { time: formatDuration(position) }) });
           // Expose seek via a brief delay so videoRef is attached to src
           setTimeout(() => {
             if (videoRef.current) videoRef.current.currentTime = position;
@@ -1510,11 +1504,35 @@ export function VideoPlayer({
   // Owner heartbeat every 1s — dep on directSrc so interval starts once VB has resolved a
   // playable url and videoRef.current is guaranteed set (NativeVideoPlayer renders when
   // directSrc is ready)
+  //
+  // Every 15th tick (~15s, matching watchParty.service.ts's Mongo-write throttle — no point
+  // capturing more often than the server would ever persist) also grabs a small frame for the
+  // Pro "continue watching" thumbnail. Best-effort: a cross-origin video source without CORS
+  // headers taints the canvas and throws on toDataURL() — caught and skipped rather than crashing
+  // the heartbeat, since most sources (vb-capture/vb-media-proxy, same-origin) work fine and a
+  // missing thumbnail for the rest just means no preview, not a broken room.
   useEffect(() => {
     const video = videoRef.current;
     if (!isOwner || isEmbed || !video) return;
+    let tick = 0;
     const id = setInterval(() => {
-      if (!video.paused) onHeartbeat(video.currentTime);
+      if (video.paused) return;
+      tick++;
+      let frame: string | undefined;
+      if (tick % 15 === 0 && video.videoWidth > 0) {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = 160;
+          canvas.height = Math.round((160 * video.videoHeight) / video.videoWidth);
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+          frame = canvas.toDataURL('image/jpeg', 0.5);
+        } catch {
+          // Tainted canvas (cross-origin source without CORS) or any other capture failure —
+          // just skip the thumbnail this tick, position sync below is unaffected.
+        }
+      }
+      onHeartbeat(video.currentTime, frame);
     }, 1000);
     return () => clearInterval(id);
   }, [isOwner, isEmbed, onHeartbeat, directSrc]);

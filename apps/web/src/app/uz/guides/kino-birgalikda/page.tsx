@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideArticleEnd } from '@/components/common/GuideChrome';
+import { GuideRoomMockup, GuideSteps, GuideFAQ, GuideCTA } from '@/components/common/GuideArticleUI';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { appUrl } from '@/lib/app-url';
 import { socialMeta } from '@/lib/i18n/metadata';
@@ -85,9 +86,9 @@ export default function KinoBirgalikdaPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <main className="flex-1 bg-page text-white">
-        <div className="article max-w-3xl mx-auto px-4 py-16">
-          <nav className="text-sm text-zinc-500 mb-8">
+      <main className="guide-page flex-1 bg-page text-white">
+        <div className="page-hero shell relative pt-16 pb-8">
+          <nav className="text-sm text-zinc-500">
             <Link href="/uz" className="hover:text-white transition-colors">WeWatch</Link>
             <span className="mx-2">/</span>
             <Link href="/uz/guides/birgalikda-tomosha-qilish" className="hover:text-white transition-colors">
@@ -97,14 +98,19 @@ export default function KinoBirgalikdaPage() {
             <span>Kino birgalikda</span>
           </nav>
 
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
-            Do'stlar bilan onlayn kino ko'rish — bepul
-          </h1>
-
-          <p className="text-xl text-zinc-400 mb-10 leading-relaxed">
+          <div className="grid lg:grid-cols-2 gap-10 items-center">
+            <div>
+              <h1>Do'stlar bilan onlayn kino ko'rish — bepul</h1>
+              <p>
             Do'stingiz bilan kino ko'rmoqchisiz, lekin har xil joydasizmi? WeWatch buni hal qiladi —
             onlayn sinxron kino ko'rish, bepul, istalgan qurilmada. Go'yo yonma-yon o'tirgandek.
-          </p>
+              </p>
+            </div>
+            <GuideRoomMockup locale="uz" photo="friends-home" priority />
+          </div>
+        </div>
+
+        <div className="article shell py-12">
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">WeWatch'ning boshqalardan farqi nimada?</h2>
@@ -120,17 +126,7 @@ export default function KinoBirgalikdaPage() {
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-6">Do'stim bilan kino qanday ko'raman — 4 qadam</h2>
-            <ol className="space-y-4">
-              {HOW_TO_STEPS.map(({ n, t, d }) => (
-                <li key={n} className="flex gap-4">
-                  <span className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-sm font-bold shrink-0 mt-0.5">{n}</span>
-                  <div>
-                    <strong className="text-white">{t}</strong>
-                    <p className="text-zinc-400 text-sm mt-1">{d}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
+            <GuideSteps variant="timeline" steps={HOW_TO_STEPS.map(({ n, t, d }) => ({ n, title: t, desc: d }))} />
           </section>
 
           <section className="mb-10">
@@ -151,26 +147,17 @@ export default function KinoBirgalikdaPage() {
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">Ko'p so'raladigan savollar</h2>
-            <div className="space-y-4">
-              {FAQS.map(({ q, a }) => (
-                <div key={q} className="bg-zinc-900 rounded-xl p-5 border border-zinc-800">
-                  <div className="font-semibold text-white mb-2">{q}</div>
-                  <div className="text-zinc-400 text-sm">{a}</div>
-                </div>
-              ))}
-            </div>
+            <GuideFAQ items={FAQS.map(({ q, a }) => ({ q, a }))} />
           </section>
 
-          <div className="bg-gradient-to-r from-purple-900/40 to-indigo-900/40 rounded-2xl p-8 text-center border border-purple-800/30 mb-10">
-            <h2 className="text-2xl font-bold text-white mb-3">Hoziroq birga kino ko'ring</h2>
-            <p className="text-zinc-400 mb-6">Bepul, istagan qurilmadan.</p>
+          <GuideCTA title="Hoziroq birga kino ko'ring" subtitle="Bepul, istagan qurilmadan.">
             <a
               href={appUrl('/register')}
               className="inline-block bg-purple-600 hover:bg-purple-500 text-white font-semibold px-8 py-3 rounded-xl transition-colors"
             >
               Xona yaratish
             </a>
-          </div>
+          </GuideCTA>
 
           <div className="border-t border-zinc-800 pt-8">
             <p className="text-zinc-500 text-sm mb-4">Boshqa maqolalar:</p>

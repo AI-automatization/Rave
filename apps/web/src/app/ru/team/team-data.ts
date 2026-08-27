@@ -15,7 +15,8 @@ export type TeamMember = {
   knowsAbout: string[];  // expertise tags / schema knowsAbout
   focus: FocusArea[];    // "Направления" cards
   sameAs: string[];      // social profiles for Person.sameAs
-  photo: string;         // /team-photos/<slug>.jpg
+  /** /team-photos/<slug>.jpg — omit until a headshot exists; TeamAvatar draws initials instead. */
+  photo?: string;
 };
 
 export const TEZCODE_TEAM_URL = 'https://tezcode.dev/team';
@@ -81,6 +82,28 @@ export const TEAM: TeamMember[] = [
     ],
     sameAs: ['https://github.com/Foreger'],
     photo: '/team-photos/saidazim-buriboyev.jpg',
+  },
+  {
+    slug: 'abdulaziz-yakubov',
+    name: 'Abdulaziz Yakubov',
+    nameAlt: 'Абдулазиз Якубов',
+    role: 'SEO & Full Stack Engineer',
+    tagline: 'Веду поисковое направление WeWatch — от технического SEO до контента, который находят люди и цитируют ИИ.',
+    location: LOCATION,
+    bio: [
+      'Abdulaziz Yakubov (Абдулазиз Якубов) — инженер WeWatch, отвечает за поисковое направление продукта: техническое SEO, структуру контента и видимость сайта в поиске и в ответах ИИ-ассистентов.',
+      'Его работа — то, из-за чего WeWatch находят: кластеры гайдов на трёх языках, внутренняя перелинковка, разметка Schema.org, индексация и скорость. Отдельное направление — GEO и AEO: контент, на который ссылаются ИИ-ассистенты, а не только классическая выдача.',
+      'Помимо поиска участвует в веб-разработке продукта на Next.js и TypeScript — правки в поиске почти всегда означают правки в коде.',
+    ],
+    knowsAbout: ['SEO', 'GEO', 'AEO', 'Next.js', 'TypeScript', 'Schema.org', 'Core Web Vitals', 'веб-аналитика'],
+    focus: [
+      { title: 'Техническое SEO', desc: 'Индексация, sitemap, hreflang, Core Web Vitals, разметка Schema.org.' },
+      { title: 'Контент и кластеры', desc: 'Гайды на русском, узбекском и английском под реальные запросы.' },
+      { title: 'GEO и AEO', desc: 'Видимость в ответах ИИ-ассистентов, а не только в поисковой выдаче.' },
+    ],
+    sameAs: ['https://www.linkedin.com/in/abdulaziz-yakubov'],
+    // No headshot on file yet — TeamAvatar renders gradient initials until one is added
+    // at /public/team-photos/abdulaziz-yakubov.jpg.
   },
   {
     slug: 'abdulaziz-yormatov',

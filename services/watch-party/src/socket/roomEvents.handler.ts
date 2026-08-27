@@ -5,13 +5,17 @@ import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { REDIS_KEYS } from '@shared/constants';
 import { JwtPayload, VideoPlatform } from '@shared/types';
-import { recordWatchHistoryInternal } from '@shared/utils/serviceClient';
+import { recordWatchHistoryInternal, getUserPlan } from '@shared/utils/serviceClient';
 import { bufferTimeouts, resumeBufferedRoom } from './videoEvents.handler';
 import { stopSession, getSessionSnapshot, hasSession } from '../services/virtualBrowser.service';
 import { startVBForRoom } from './vbSession.helper';
+import { enqueueVBRequest } from './vbQueue.helper';
 import { cancelVbDisconnectGrace } from './vbEvents.handler';
 import { isOfficialEmbedHost, isOwnVbUrl, isPrivateUrl } from '../services/extractionClient';
 import { isDomainBlocked } from '../controllers/domain.admin.controller';
+import { isLikelyFaststart } from '../services/faststartCheck.service';
+import { getFaststartFixedFileName } from '../services/faststartRemux.service';
+import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -300,21 +304,55 @@ export const registerRoomEvents = (
     // which starts VB server-side directly), so a URL needing VB just showed "failed to load
     // video" with no fallback ever attempted.
     if (!isOfficialEmbedHost(data.videoUrl) && !isOwnVbUrl(data.videoUrl)) {
+      const tier = await getUserPlan(userId);
       try {
-        await startVBForRoom(io, redis, roomId, userId, data.videoUrl);
-        logger.info('CHANGE_MEDIA: VB started (sole extraction mechanism)', { roomId, userId, url: data.videoUrl });
+        await startVBForRoom(io, redis, roomId, userId, data.videoUrl, tier);
+        logger.info('CHANGE_MEDIA: VB started (sole extraction mechanism)', { roomId, userId, url: data.videoUrl, tier });
         return; // room is now watching the live VB stream — don't also broadcast the raw URL
       } catch (e) {
-        // e.g. virtual_browser_limit (MAX_CONCURRENT) — fall through to the normal broadcast so
-        // the owner at least gets today's behavior (a clear load error) instead of the request
-        // silently doing nothing.
+        if ((e as Error).message === 'virtual_browser_limit') {
+          // Free pool full — queue instead of falling through to a raw-URL broadcast that will
+          // just show a load error (Pro never hits this, it's uncapped).
+          const position = enqueueVBRequest({ roomId, ownerId: userId, url: data.videoUrl, io, redis });
+          socket.emit(SERVER_EVENTS.VB_QUEUED, { position });
+          logger.info('CHANGE_MEDIA: VB queued — free pool full', { roomId, userId, position });
+          return;
+        }
+        // Any other failure — fall through to the normal broadcast so the owner at least gets
+        // today's behavior (a clear load error) instead of the request silently doing nothing.
         logger.warn('CHANGE_MEDIA: VB failed to start', { roomId, error: (e as Error).message });
       }
     }
 
     try {
+      // Real prod incident 2026-08-26 (fayllar1.ru sources, live test): a VB-caught 'url'-kind
+      // candidate (a directly-resolved CDN file, not our own vb-capture buffer) can have its
+      // moov atom at the very end of the file ("non-faststart") — confirmed live that this app's
+      // Android player reads such files strictly sequentially from byte 0 and never seeks ahead,
+      // so a 600MB+ movie just "loads" until the player's own timeout gives up with a generic
+      // error, minutes later, no indication why. Fix: remux to faststart once and cache it
+      // (faststartRemux.service.ts) — safe to await here for minutes if needed, a socket handler
+      // has no HTTP-level timeout unlike the player request this replaces. The client never sees
+      // the raw URL at all: it only ever reacts to room.videoUrl from ROOM_UPDATED below, so
+      // substituting the fixed URL before that broadcast needs no client-side change.
+      let videoUrlToUse = data.videoUrl;
+      if (isOwnVbUrl(data.videoUrl) && !data.videoUrl.includes('/vb-capture/')) {
+        const faststartOk = await isLikelyFaststart(data.videoUrl);
+        if (!faststartOk) {
+          const fixedFileName = await getFaststartFixedFileName(redis, data.videoUrl);
+          if (fixedFileName) {
+            videoUrlToUse = `${vbStreamPublicUrl}/api/v1/watch-party/vb-media-proxy/faststart/${fixedFileName}`;
+            logger.info('CHANGE_MEDIA: served faststart-remuxed copy', { roomId, userId, fixedFileName });
+          } else {
+            socket.emit(SERVER_EVENTS.ERROR, { message: 'Этот источник не поддерживается (несовместимый формат файла) — попробуйте другой сайт или другое качество' });
+            logger.warn('CHANGE_MEDIA rejected — non-faststart source, remux unavailable/failed', { roomId, userId, url: data.videoUrl });
+            return;
+          }
+        }
+      }
+
       const updated = await watchPartyService.updateRoomMedia(userId, roomId, {
-        videoUrl:      data.videoUrl,
+        videoUrl:      videoUrlToUse,
         videoTitle:    data.videoTitle    ?? null,
         videoPlatform: (data.videoPlatform as VideoPlatform) ?? null,
       });
@@ -338,7 +376,7 @@ export const registerRoomEvents = (
         io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'candidate_confirmed' });
       }
 
-      logger.info('Room media changed', { roomId, userId, videoUrl: data.videoUrl });
+      logger.info('Room media changed', { roomId, userId, videoUrl: videoUrlToUse });
     } catch (error) {
       socket.emit(SERVER_EVENTS.ERROR, { message: 'Failed to change room media' });
       logger.error('Socket media change error', { userId, error });
@@ -412,6 +450,56 @@ export const registerRoomEvents = (
     } catch (error) {
       socket.emit(SERVER_EVENTS.ERROR, { message: 'Failed to kick member' });
       logger.error('Socket kick error', { userId, error });
+    }
+  });
+
+  // Google Meet-style "knock to enter" (2026-08-26) — owner-only, same shape/auth pattern as
+  // KICK_MEMBER above. Requires the owner's socket to already be joined to the room (authSocket.
+  // roomId), matching every other owner-management event here.
+  socket.on(CLIENT_EVENTS.APPROVE_JOIN_REQUEST, async (data: { targetUserId: string }) => {
+    if (!authSocket.roomId) return;
+    try {
+      const room = await watchPartyService.getRoom(authSocket.roomId);
+      if (room.ownerId !== userId) {
+        socket.emit(SERVER_EVENTS.ERROR, { message: 'Only the room owner can approve join requests' });
+        return;
+      }
+      const updated = await watchPartyService.approveJoinRequest(userId, authSocket.roomId, data.targetUserId);
+      io.to(`user:${data.targetUserId}`).emit(SERVER_EVENTS.JOIN_REQUEST_APPROVED, { roomId: authSocket.roomId });
+      // Lets the owner's own UI drop the request from their pending list without a manual refetch.
+      io.to(authSocket.roomId).emit(SERVER_EVENTS.ROOM_UPDATED, updated);
+    } catch (error) {
+      socket.emit(SERVER_EVENTS.ERROR, { message: (error as Error).message || 'Failed to approve join request' });
+      logger.error('Socket approve join request error', { userId, error });
+    }
+  });
+
+  socket.on(CLIENT_EVENTS.DENY_JOIN_REQUEST, async (data: { targetUserId: string }) => {
+    if (!authSocket.roomId) return;
+    try {
+      const room = await watchPartyService.getRoom(authSocket.roomId);
+      if (room.ownerId !== userId) {
+        socket.emit(SERVER_EVENTS.ERROR, { message: 'Only the room owner can deny join requests' });
+        return;
+      }
+      const updated = await watchPartyService.denyJoinRequest(userId, authSocket.roomId, data.targetUserId);
+      io.to(`user:${data.targetUserId}`).emit(SERVER_EVENTS.JOIN_REQUEST_DENIED, { roomId: authSocket.roomId });
+      io.to(authSocket.roomId).emit(SERVER_EVENTS.ROOM_UPDATED, updated);
+    } catch (error) {
+      socket.emit(SERVER_EVENTS.ERROR, { message: (error as Error).message || 'Failed to deny join request' });
+      logger.error('Socket deny join request error', { userId, error });
+    }
+  });
+
+  // Requester-side: give up waiting. No authSocket.roomId check — a pending requester was never
+  // authorized into the room's socket channel in the first place, so roomId travels in the
+  // payload instead (same reason CANCEL takes it explicitly rather than reading authSocket).
+  socket.on(CLIENT_EVENTS.CANCEL_JOIN_REQUEST, async (data: { roomId: string }) => {
+    try {
+      const room = await watchPartyService.cancelJoinRequest(userId, data.roomId);
+      io.to(`user:${room.ownerId}`).emit(SERVER_EVENTS.ROOM_UPDATED, room);
+    } catch (error) {
+      logger.error('Socket cancel join request error', { userId, error });
     }
   });
 

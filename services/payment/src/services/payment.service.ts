@@ -1,5 +1,6 @@
 import { Subscription, isPlanActive, SubscriptionStatus } from '../models/subscription.model';
 import { BillingWebhookEvent, BillingWebhookNonce } from '../models/webhookSecurity.model';
+import { PaymentHistoryEntry, IPaymentHistoryEntry } from '../models/paymentHistory.model';
 import {
   createCheckout, getSubscription, BillingProvider, BillingWebhookPayload,
 } from './billingClient';
@@ -38,6 +39,20 @@ export class PaymentService {
       status: sub.status,
       currentPeriodEnd: sub.currentPeriodEnd ? sub.currentPeriodEnd.toISOString() : null,
     };
+  }
+
+  async getHistory(userId: string): Promise<Array<{
+    event: string; planSlug: string; provider: string | null; status: string; currentPeriodEnd: string | null; createdAt: string;
+  }>> {
+    const entries = await PaymentHistoryEntry.find({ userId }).sort({ createdAt: -1 }).limit(100);
+    return entries.map((e: IPaymentHistoryEntry) => ({
+      event: e.event,
+      planSlug: e.planSlug,
+      provider: e.provider,
+      status: e.status,
+      currentPeriodEnd: e.currentPeriodEnd ? e.currentPeriodEnd.toISOString() : null,
+      createdAt: e.createdAt.toISOString(),
+    }));
   }
 
   async startCheckout(userId: string, provider: BillingProvider): Promise<{ checkoutUrl: string; paymentId: string }> {
@@ -129,6 +144,7 @@ export class PaymentService {
         { upsert: true },
       );
       logger.info('[PaymentService] subscription activated', { userId, expiresAt: payload.expiresAt });
+      await this.logHistory(userId, payload, 'active');
       return true;
     }
 
@@ -142,7 +158,27 @@ export class PaymentService {
       { upsert: true },
     );
     logger.info('[PaymentService] subscription refunded', { userId });
+    await this.logHistory(userId, payload, 'refunded');
     return true;
+  }
+
+  // Best-effort — a failure here must never fail the webhook (the Subscription mutation above
+  // already committed, and that's the state that actually matters for plan gating). Provider
+  // isn't on the webhook payload, so it's read off the Subscription doc that was just written.
+  private async logHistory(userId: string, payload: BillingWebhookPayload, status: string): Promise<void> {
+    try {
+      const sub = await Subscription.findOne({ userId });
+      await PaymentHistoryEntry.create({
+        userId,
+        event: payload.event,
+        planSlug: payload.planSlug,
+        provider: sub?.provider ?? null,
+        status,
+        currentPeriodEnd: payload.expiresAt ? new Date(payload.expiresAt) : null,
+      });
+    } catch (err) {
+      logger.error('[PaymentService] failed to write payment history entry', { userId, message: (err as Error).message });
+    }
   }
 
   // Pull-reconciliation fallback (docs/INTEGRATION.md §Шаг 3) — for subscriptions whose

@@ -16,6 +16,11 @@ export interface IWatchPartyRoomDocument extends Document {
   isPlaying: boolean;
   inviteCode: string;
   isPrivate: boolean;
+  // Google Meet-style "knock to enter" (2026-08-26) — only enforced when isPrivate is also true
+  // (see joinRoom() in watchParty.service.ts). Independent of password: password (if set) still
+  // gates entry to the request queue itself; this gates the queue → membership.
+  requireApproval: boolean;
+  pendingRequests: { userId: string; requestedAt: Date }[];
   password: string | null;  // bcrypt hash — null for public rooms
   playlist: VideoItem[];
   lastActivityAt: Date;
@@ -24,6 +29,15 @@ export interface IWatchPartyRoomDocument extends Document {
   isAdminBlocked: boolean;
   videoReferer: string | null;
   domain: string | null;
+  // 2026-08-22, Pro perk: "continue watching" — captured periodically from the owner's own
+  // <video> element (see videoEvents.handler.ts's HEARTBEAT), not extracted server-side, since
+  // VB is the sole extraction mechanism and much of what it plays (MSE/blob-kind candidates) has
+  // no stable, independently-fetchable URL a server-side job could seek into after the fact.
+  // Small base64 JPEG data URL — stored inline rather than in object storage, no new infra for
+  // one small image per room. Only ever set for Pro-owned rooms (see closeRoomBySystem).
+  lastFrame: string | null;
+  resumable: boolean;
+  resumeExpiresAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -56,6 +70,15 @@ const watchPartyRoomSchema = new Schema<IWatchPartyRoomDocument>(
     isPlaying: { type: Boolean, default: false },
     inviteCode: { type: String, required: true, unique: true },
     isPrivate: { type: Boolean, default: false },
+    requireApproval: { type: Boolean, default: false },
+    pendingRequests: {
+      type: [{
+        userId:      { type: String, required: true },
+        requestedAt: { type: Date, default: Date.now },
+      }],
+      default: [],
+      _id: false,
+    },
     password: { type: String, default: null, maxlength: 128 },
     playlist: {
       type: [{
@@ -77,6 +100,9 @@ const watchPartyRoomSchema = new Schema<IWatchPartyRoomDocument>(
     isAdminBlocked:   { type: Boolean, default: false },
     videoReferer:     { type: String,  default: null },
     domain:           { type: String,  default: null },
+    lastFrame:        { type: String,  default: null },
+    resumable:        { type: Boolean, default: false },
+    resumeExpiresAt:  { type: Date,    default: null },
   },
   {
     timestamps: true,

@@ -66,7 +66,19 @@ export const createApp = (redis: Redis, elastic: ElasticsearchClient): express.A
     let redisOk = false;
     let esOk = false;
     try { await redis.ping(); redisOk = true; } catch { redisOk = false; }
-    try { await elastic.ping(); esOk = true; } catch { esOk = false; }
+    // Real prod finding 2026-08-26 (canary-watch's first run): this ping had no timeout of its
+    // own, so a slow/unreachable Elasticsearch made the whole /health response take 7-9s instead
+    // of failing fast — Elasticsearch is already "optional" for the `healthy` verdict below, but
+    // a slow "optional" check still blocks every caller of this endpoint (deploy health checks,
+    // canary-watch, load balancers) for as long as it takes to time out. Same bug class as the
+    // vb-media-proxy fix (PR #191): bound every external-dependency call, don't just mark it optional.
+    //
+    // Follow-up finding, same day (live curl after deploy still showed 7.7s): requestTimeout only
+    // bounds ONE attempt — the @elastic/elasticsearch client's own default maxRetries (3) was
+    // silently retrying the ping against a dead ES host underneath, so a fully unreachable ES
+    // still took ~3s × several attempts. maxRetries: 0 here means "one try, then give up" — ES is
+    // already advisory for `healthy`, so a retry buys nothing but latency on every /health call.
+    try { await elastic.ping({}, { requestTimeout: 3000, maxRetries: 0 }); esOk = true; } catch { esOk = false; }
     const healthy = mongoOk && redisOk; // Elasticsearch is optional (not available in all envs)
     res.status(healthy ? 200 : 503).json({
       status: healthy ? 'ok' : 'degraded',

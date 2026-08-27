@@ -53,7 +53,7 @@ export function RelatedGuides({
     // A <section>, not a <nav>: these are contextual links into related reading, and
     // search engines discount links inside navigation landmarks relative to links in
     // body content. The block sits at the end of the article and belongs to it.
-    <section aria-labelledby="related-guides" className="max-w-4xl mx-auto px-4 sm:px-6 mt-14">
+    <section aria-labelledby="related-guides" className="shell mt-16">
       <div className="border-t border-zinc-800/60 pt-8">
         <div className="flex items-baseline justify-between gap-4 mb-5">
           <h2 id="related-guides" className="text-white font-semibold text-lg">{t.related}</h2>

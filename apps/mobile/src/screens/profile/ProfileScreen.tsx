@@ -178,6 +178,7 @@ export function ProfileScreen() {
               icon="card-outline"
               label={t('profile', 'subHistory')}
               subtitle={t('profile', 'subHistorySub')}
+              badgeKey="webOnly"
               delay={500}
             />
             <NavItem

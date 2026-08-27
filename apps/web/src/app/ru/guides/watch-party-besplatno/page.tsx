@@ -1,22 +1,30 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideArticleEnd } from '@/components/common/GuideChrome';
+import { GuideHeroWide, GuideFAQ, GuideCTA } from '@/components/common/GuideArticleUI';
 import { hreflangFor } from '@/lib/i18n/routes';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 const PATH = '/ru/guides/watch-party-besplatno';
 
 export const metadata: Metadata = {
-  title: 'Бесплатный Watch Party онлайн — как начать в 2026',
-  description: 'Бесплатный веб Watch Party: смотри YouTube, VK и Rutube синхронно с друзьями. Приложения iOS и Android находятся в разработке.',
+  // CTR rewrite 2026-08-27. GSC (3 months): position 5.4, 62 impressions, 1 click.
+  // Same defect as smotret-vmeste-onlayn — the description closed on the missing mobile
+  // apps instead of giving a reason to click. Claims verified: free core product
+  // (PRODUCT_FACTS.pricing), guest needs no account, 10 per room.
+  // Keeps the exact owned phrase "бесплатный watch party" in the title — dropping it
+  // for a punchier line would trade relevance for CTR, and the point here is to gain
+  // clicks at the same position, not to move the position.
+  title: 'Бесплатный Watch Party — без регистрации',
+  description: 'Создайте комнату за минуту и смотрите YouTube, VK Видео или Rutube синхронно: пауза у одного — пауза у всех. До 10 человек, гостю аккаунт не нужен.',
   keywords: ['watch party бесплатно', 'бесплатный watch party', 'watch party онлайн', 'как создать watch party', 'совместный просмотр бесплатно'],
   alternates: {
     canonical: `${APP_URL}${PATH}`,
     languages: hreflangFor(PATH, APP_URL),
   },
   openGraph: {
-    title: 'Watch Party бесплатно | WeWatch',
-    description: 'Бесплатный веб watch party для синхронного просмотра YouTube, VK и Rutube. Приложения iOS и Android в разработке.',
+    title: 'Watch Party бесплатно — без регистрации и расширений',
+    description: 'Комната за минуту, ссылка-приглашение друзьям, синхронный просмотр YouTube, VK Видео и Rutube.',
     url: 'https://wewatch.uz/ru/guides/watch-party-besplatno',
     type: 'article',
   },
@@ -37,6 +45,7 @@ const RELATED = [
   { href: '/ru/guides/smotret-vmeste-onlayn', label: 'Смотреть вместе онлайн' },
   { href: '/ru/pricing', label: 'Тарифы WeWatch' },
   { href: '/ru/guides/smotret-youtube-vmeste', label: 'YouTube вместе' },
+  { href: '/uz/guides/bepul-watch-party', label: "O'zbekcha" },
 ];
 
 /**
@@ -87,9 +96,9 @@ export default function WatchPartyBesplatnoPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <main className="flex-1 bg-page text-white">
-        <div className="article max-w-3xl mx-auto px-4 py-16">
-          <nav className="text-sm text-zinc-500 mb-8">
+      <main className="guide-page flex-1 bg-page text-white">
+        <div className="page-hero shell relative pt-16 pb-8">
+          <nav className="text-sm text-zinc-500">
             <Link href="/ru" className="hover:text-white transition-colors">WeWatch</Link>
             <span className="mx-2">/</span>
             <Link href="/ru/guides/smotret-vmeste-onlayn" className="hover:text-white transition-colors">Смотреть вместе</Link>
@@ -97,13 +106,15 @@ export default function WatchPartyBesplatnoPage() {
             <span>Watch Party бесплатно</span>
           </nav>
 
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
-            Бесплатный Watch Party онлайн в 2026
-          </h1>
+          <GuideHeroWide photo="group-watch">
+            <h1>Бесплатный Watch Party онлайн в 2026</h1>
+            <p>
+          Основные функции watch party WeWatch доступны бесплатно в веб-версии. Поддерживаются YouTube, VK Видео, Rutube и прямые MP4-ссылки; приложения для iOS и Android находятся в разработке.
+            </p>
+          </GuideHeroWide>
+        </div>
 
-          <p className="text-xl text-zinc-400 mb-10 leading-relaxed">
-            Основные функции watch party WeWatch доступны бесплатно в веб-версии. Поддерживаются YouTube, VK Видео, Rutube и прямые MP4-ссылки; приложения для iOS и Android находятся в разработке.
-          </p>
+        <div className="article shell py-12">
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">Что доступно в бесплатном Watch Party WeWatch</h2>
@@ -121,14 +132,7 @@ export default function WatchPartyBesplatnoPage() {
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">Часто задаваемые вопросы</h2>
-            <div className="space-y-4">
-              {FAQS.map(({ q, a }) => (
-                <details key={q} className="border border-zinc-800 rounded-xl p-4">
-                  <summary className="text-white font-medium cursor-pointer">{q}</summary>
-                  <p className="text-zinc-400 text-sm mt-2 leading-relaxed">{a}</p>
-                </details>
-              ))}
-            </div>
+            <GuideFAQ items={FAQS.map(({ q, a }) => ({ q, a }))} />
           </section>
 
           <section className="mb-10">
@@ -140,13 +144,11 @@ export default function WatchPartyBesplatnoPage() {
             </div>
           </section>
 
-          <div className="bg-[#7B72F8]/10 border border-[#7B72F8]/30 rounded-2xl p-8 text-center">
-            <h2 className="text-2xl font-bold text-white mb-3">Начните Watch Party бесплатно</h2>
-            <p className="text-zinc-400 mb-6">Откройте бесплатную веб-версию WeWatch; приложения iOS и Android разрабатываются</p>
+          <GuideCTA title="Начните Watch Party бесплатно" subtitle="Откройте бесплатную веб-версию WeWatch; приложения iOS и Android разрабатываются">
             <Link href="/ru" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-8 py-3 rounded-xl transition-colors">
               Открыть веб-версию
             </Link>
-          </div>
+          </GuideCTA>
         </div>
       </main>
       <GuideArticleEnd locale="ru" currentPath="/ru/guides/watch-party-besplatno" />

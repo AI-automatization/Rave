@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { FaGithub, FaLinkedinIn, FaTelegram, FaArrowRightLong, FaLocationDot } from 'react-icons/fa6';
+import { TeamAvatar } from '@/components/common/TeamAvatar';
 import { TEAM, getMember, TEZCODE_TEAM_URL } from '../team-data';
 
 export function generateStaticParams() {
@@ -28,7 +29,11 @@ export async function generateMetadata({ params }: PersonPageProps): Promise<Met
       description: m.tagline,
       url,
       type: 'profile',
-      images: [{ url: m.photo, width: 800, height: 800, alt: m.name }],
+      // Members without a headshot fall back to the site OG card rather than
+      // emitting og:image="undefined", which crawlers report as a broken image.
+      images: [m.photo
+        ? { url: m.photo, width: 800, height: 800, alt: m.name }
+        : { url: '/og-image', width: 1200, height: 630, alt: m.name }],
     },
     robots: { index: true, follow: true },
   };
@@ -46,6 +51,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
   const m = getMember(slug);
   if (!m) notFound();
 
+  const memberIndex = TEAM.findIndex((p) => p.slug === m.slug);
   const others = TEAM.filter((p) => p.slug !== m.slug);
   const url = `https://wewatch.uz/ru/team/${m.slug}`;
   const jsonLd = {
@@ -53,7 +59,8 @@ export default async function PersonPage({ params }: PersonPageProps) {
     '@graph': [
       {
         '@type': 'Person', name: m.name, alternateName: m.nameAlt, jobTitle: m.role,
-        description: m.tagline, url, image: `https://wewatch.uz${m.photo}`,
+        description: m.tagline, url,
+        image: `https://wewatch.uz${m.photo ?? '/og-image'}`,
         homeLocation: { '@type': 'Place', name: m.location }, knowsAbout: m.knowsAbout,
         ...(m.sameAs.length ? { sameAs: m.sameAs } : {}),
         worksFor: { '@type': 'Organization', name: 'tezcode', url: 'https://tezcode.dev',
@@ -95,8 +102,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
             <div className="relative mx-auto md:mx-0 w-full max-w-[320px]">
               <div className="absolute -inset-3 -z-10 rounded-[28px] bg-gradient-to-br from-[#7B72F8]/40 to-[#a855f7]/10 blur-2xl" />
               <div className="rounded-[24px] p-[1.5px] bg-gradient-to-br from-[#7B72F8]/70 via-white/10 to-transparent">
-                <div className="aspect-square w-full rounded-[22px] bg-zinc-900 bg-cover bg-center"
-                  style={{ backgroundImage: `url(${m.photo})` }} />
+                <TeamAvatar name={m.name} photo={m.photo} index={memberIndex} rounded="rounded-[22px]" className="w-full" />
               </div>
             </div>
 
@@ -180,11 +186,11 @@ export default async function PersonPage({ params }: PersonPageProps) {
               <h2 className="text-sm font-semibold tracking-widest text-zinc-500 uppercase">Команда WeWatch</h2>
               <Link href="/ru/team" className="text-sm text-zinc-400 hover:text-white transition-colors">Все →</Link>
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              {others.map((p) => (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {others.map((p, i) => (
                 <Link key={p.slug} href={`/ru/team/${p.slug}`}
                   className={`${glass} group overflow-hidden transition-all duration-300 hover:border-[#7B72F8]/50 hover:-translate-y-1`}>
-                  <div className="aspect-square bg-zinc-900 bg-cover bg-center" style={{ backgroundImage: `url(${p.photo})` }} />
+                  <TeamAvatar name={p.name} photo={p.photo} index={i} />
                   <div className="p-3">
                     <h3 className="text-sm font-semibold text-white group-hover:text-[#a99cff] transition-colors leading-tight truncate">{p.name}</h3>
                     <p className="text-xs text-zinc-500 mt-0.5 truncate">{p.role}</p>

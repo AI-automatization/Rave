@@ -1,20 +1,24 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideArticleEnd } from '@/components/common/GuideChrome';
+import { GuideRoomMockup, GuideSteps, GuideFAQ, GuideCTA } from '@/components/common/GuideArticleUI';
 
 export const metadata: Metadata = {
   // No manual "| WeWatch" — the root layout's title template appends it.
-  title: 'Смотреть Rutube вместе с друзьями онлайн — синхронно',
+  // CTR rewrite 2026-08-27. GSC (3 months): position 5.8 with 101 impressions and
+  // 5 clicks (~5% CTR). The old description restated the title and closed on the missing
+  // mobile apps; nothing in it answered "why click this result".
+  title: 'Смотреть Rutube вместе — без регистрации',
   description:
-    'Как смотреть Рутуб вместе с друзьями через веб-версию WeWatch. Приложения iOS и Android находятся в разработке.',
+    'Вставьте ссылку на видео Rutube и смотрите одновременно: пауза и перемотка срабатывают у всех, рассинхрон до 0,5 секунды. Другу аккаунт не нужен.',
   keywords: [
     'смотреть rutube вместе', 'рутьюб вместе с друзьями', 'смотреть rutube синхронно',
     'watch party rutube', 'совместный просмотр rutube', 'смотреть видео rutube вместе онлайн',
   ],
   alternates: { canonical: 'https://wewatch.uz/ru/guides/smotret-rutube-vmeste' },
   openGraph: {
-    title: 'Смотреть Rutube вместе | WeWatch',
-    description: 'Синхронный просмотр Rutube с друзьями — на любом устройстве.',
+    title: 'Смотреть Rutube вместе — синхронно, без регистрации',
+    description: 'Ссылка на видео Rutube, комната на двоих или на десятерых, пауза и перемотка у всех сразу.',
     url: 'https://wewatch.uz/ru/guides/smotret-rutube-vmeste',
     type: 'article',
   },
@@ -50,37 +54,37 @@ export default function RutubeVmestePage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <main className="flex-1 bg-page text-white">
-        <div className="article max-w-3xl mx-auto px-4 py-16">
-          <nav className="text-sm text-zinc-500 mb-8">
+      <main className="guide-page flex-1 bg-page text-white">
+        <div className="page-hero shell relative pt-16 pb-8">
+          <nav className="text-sm text-zinc-500">
             <Link href="/ru" className="hover:text-white transition-colors">WeWatch</Link>
             <span className="mx-2">/</span>
             <span>Rutube вместе</span>
           </nav>
 
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">Смотреть Rutube вместе с друзьями</h1>
-          <p className="text-xl text-zinc-400 mb-10 leading-relaxed">
+          <div className="grid lg:grid-cols-2 gap-10 items-center">
+            <div>
+              <h1>Смотреть Rutube вместе с друзьями</h1>
+              <p>
             WeWatch синхронизирует Rutube (Рутуб) для всех участников через веб-версию в браузере. Приложения для iOS и Android находятся в разработке.
-          </p>
+              </p>
+            </div>
+            <GuideRoomMockup photo="phone-video" priority />
+          </div>
+        </div>
+
+        <div className="article shell py-12">
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold mb-6">Как смотреть Rutube вместе — 4 шага</h2>
-            <ol className="space-y-5">
-              {[
+            <GuideSteps
+              steps={[
                 { n: 1, title: 'Откройте WeWatch', desc: 'Откройте веб-версию в браузере; приложения iOS и Android разрабатываются.' },
                 { n: 2, title: 'Найдите видео на Рутубе', desc: 'В браузере WeWatch откройте Rutube и выберите фильм, сериал или ролик.' },
                 { n: 3, title: 'Создайте комнату', desc: 'Нажмите «Создать комнату» и отправьте ссылку-приглашение друзьям.' },
                 { n: 4, title: 'Смотрите синхронно', desc: 'WeWatch извлекает поток Rutube и держит его синхронно у всех.' },
-              ].map(({ n, title, desc }) => (
-                <li key={n} className="flex gap-4">
-                  <span className="flex-shrink-0 w-8 h-8 rounded-full bg-[#7B72F8] flex items-center justify-center text-sm font-bold">{n}</span>
-                  <div>
-                    <h3 className="font-semibold text-white mb-1">{title}</h3>
-                    <p className="text-zinc-400 text-sm leading-relaxed">{desc}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
+              ]}
+            />
           </section>
 
           <section className="mb-10">
@@ -92,24 +96,15 @@ export default function RutubeVmestePage() {
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold mb-4">Вопросы</h2>
-            <div className="space-y-4">
-              {FAQS.map(({ q, a }) => (
-                <details key={q} className="border border-zinc-800 rounded-xl p-4">
-                  <summary className="text-white font-medium cursor-pointer">{q}</summary>
-                  <p className="text-zinc-400 text-sm mt-2 leading-relaxed">{a}</p>
-                </details>
-              ))}
-            </div>
+            <GuideFAQ items={FAQS.map(({ q, a }) => ({ q, a }))} />
           </section>
 
-          <div className="bg-[#7B72F8]/10 border border-[#7B72F8]/30 rounded-2xl p-8 text-center">
-            <h2 className="text-2xl font-bold mb-3">Смотрите Rutube вместе</h2>
-            <p className="text-zinc-400 mb-6">Откройте веб-версию WeWatch</p>
+          <GuideCTA title="Смотрите Rutube вместе" subtitle="Откройте веб-версию WeWatch">
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link href="/ru" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-6 py-3 rounded-xl transition-colors">Открыть WeWatch</Link>
               <Link href="/ru/guides/smotret-vk-video-vmeste" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 font-medium px-6 py-3 rounded-xl transition-colors">VK Видео вместе →</Link>
             </div>
-          </div>
+          </GuideCTA>
         </div>
       </main>
       <GuideArticleEnd locale="ru" currentPath="/ru/guides/smotret-rutube-vmeste" />

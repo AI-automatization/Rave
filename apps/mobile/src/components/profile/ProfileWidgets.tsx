@@ -115,6 +115,9 @@ interface ComingSoonItemProps {
   subtitle?: string;
   delay?: number;
   iconColor?: string;
+  /** Overrides the default "soon" badge — e.g. 'webOnly' for a row that isn't coming to
+   * mobile at all, just lives on web (a "SOON" badge there would promise the wrong thing). */
+  badgeKey?: 'soon' | 'webOnly';
 }
 
 export const ComingSoonItem = React.memo(function ComingSoonItem({
@@ -123,6 +126,7 @@ export const ComingSoonItem = React.memo(function ComingSoonItem({
   subtitle,
   delay = 0,
   iconColor,
+  badgeKey = 'soon',
 }: ComingSoonItemProps) {
   const { colors } = useTheme();
   const { t } = useT();
@@ -139,7 +143,7 @@ export const ComingSoonItem = React.memo(function ComingSoonItem({
           {subtitle ? <Text style={s.comingSoonSub}>{subtitle}</Text> : null}
         </View>
         <View style={s.soonBadge}>
-          <Text style={s.soonBadgeText}>{t('common', 'soon')}</Text>
+          <Text style={s.soonBadgeText}>{t('common', badgeKey)}</Text>
         </View>
       </View>
     </FadeInView>

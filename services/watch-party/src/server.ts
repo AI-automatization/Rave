@@ -10,6 +10,7 @@ import { createApp } from './app';
 import { config } from './config/index';
 import { logger } from '@shared/utils/logger';
 import { seedStaticBlockedDomains } from './controllers/domain.admin.controller';
+import { cleanupStaleCache } from './services/faststartRemux.service';
 
 const main = async (): Promise<void> => {
   await mongoose.connect(config.mongoUri, MONGO_OPTIONS);
@@ -36,6 +37,12 @@ const main = async (): Promise<void> => {
   httpServer.listen(config.port, () => {
     logger.info('Watch-party service running', { port: config.port, env: config.nodeEnv });
   });
+
+  // Faststart remux cache disk sweep (2026-08-26) — Redis's own TTL on the status metadata
+  // expires on the same schedule, this is the matching disk-side cleanup so cached files don't
+  // outlive it. Runs on this single Railway replica only (numReplicas: 1) — no cross-instance
+  // coordination needed.
+  setInterval(() => { void cleanupStaleCache(); }, 60 * 60 * 1000);
 
   process.on('SIGTERM', async () => {
     await mongoose.connection.close();

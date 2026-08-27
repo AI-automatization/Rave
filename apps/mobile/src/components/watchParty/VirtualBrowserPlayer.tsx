@@ -173,7 +173,7 @@ const s = StyleSheet.create({
   },
   centered: { alignItems: 'center', justifyContent: 'center', gap: 10 },
   errorText: { color: '#F87171', fontSize: 12, textAlign: 'center', paddingHorizontal: 20 },
-  statusText: { color: 'rgba(255,255,255,0.7)', fontSize: 13, textAlign: 'center', paddingHorizontal: 24 },
+  statusText: { color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: '600', textAlign: 'center', paddingHorizontal: 24 },
   frameWrap: { flex: 1 },
   frameImg: { width: '100%', height: '100%' },
   closeBtn: {

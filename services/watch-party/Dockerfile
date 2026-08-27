@@ -42,7 +42,12 @@ RUN ln -s /app/shared/dist /app/node_modules/@shared
 # Playwright/Chromium for the shared virtual browser feature — same Alpine setup already
 # proven working in services/content/Dockerfile (T-S043). System chromium avoids downloading
 # the ~150MB browser bundle; chromium-driver doesn't exist in Alpine, only chromium is needed.
-RUN apk add --no-cache chromium \
+#
+# ffmpeg (2026-08-26): one-shot `-c copy -movflags +faststart` remux for non-faststart CDN
+# sources (fayllar1.ru-class movie rips, moov atom at EOF — see faststartRemux.service.ts). No
+# re-encode, just an atom reorder, so this is cheap on CPU; Alpine's package is a normal handful
+# of MB, no separate download step needed like Chromium above.
+RUN apk add --no-cache chromium ffmpeg \
     nss freetype harfbuzz ca-certificates ttf-freefont
 ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
@@ -50,7 +55,8 @@ ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S cinesync -u 1001 && \
     mkdir -p /app/services/watch-party/logs && \
-    chown -R cinesync:nodejs /app/services/watch-party
+    mkdir -p /tmp/faststart-cache && \
+    chown -R cinesync:nodejs /app/services/watch-party /tmp/faststart-cache
 
 USER cinesync
 WORKDIR /app/services/watch-party

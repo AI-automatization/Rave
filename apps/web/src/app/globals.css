@@ -2,6 +2,13 @@
 @plugin "tailwindcss-animate";
 
 @theme {
+  /* `--font-dm-sans` / `--font-oswald` are next/font's own variables, defined
+     wherever RootDocument.tsx applies their `.variable` class. They must be
+     in scope at :root (Tailwind emits @theme tokens there) for these two
+     tokens to resolve — real bug found 2026-08-26: they used to live on
+     <body>, one level below :root, so both computed to invalid everywhere
+     and every page silently fell back to the system UI font. Fixed by moving
+     next/font's variable classes onto <html> itself in RootDocument.tsx. */
   --font-body: var(--font-dm-sans), "Segoe UI", sans-serif;
   --font-display: var(--font-oswald), "Arial Narrow", sans-serif;
   /* The page background, as `bg-page`. There used to be two near-identical
@@ -25,6 +32,59 @@
   --surface: rgba(10, 10, 18, 0.9);
   --border: rgba(255, 255, 255, 0.06);
   --border-hover: rgba(255, 255, 255, 0.14);
+
+  /* ── Layout scale ──────────────────────────────────────────────────────
+     One shell width for the whole site. The header card (LandingNav) and the
+     footer are both max-w-7xl; content pages were drifting between 4xl, 5xl
+     and 6xl, so the header visibly overhung the article by up to 384px and
+     the page read as a narrow column with dead margins.
+
+     --shell  : outer bound, matches the header/footer card
+     --prose  : reading measure for body copy inside that shell. Measured at
+                1920px: 46rem gave ~88 characters a line, past the comfortable
+                45–75; 42rem lands around 75. Grids, cards and media are not
+                capped and use the full shell width. */
+  --shell: 80rem;
+  --prose: 42rem;
+}
+
+/* ── Guide typography ─────────────────────────────────────────────────────
+   Inter + Plus Jakarta Sans, scoped to guide articles only (owner's call,
+   2026-08-26). Deliberately NOT applied to `.article`/`.page-hero` on their
+   own: /faq, /guides, /how-it-works, /team and the use-case pages share those
+   classes and must keep the sitewide Oswald + DM Sans.
+
+   Oswald is a condensed face, so headings were set uppercase with positive
+   tracking. Plus Jakarta is geometric and much wider — the same uppercase
+   would run headings off the measure, so the scope resets both. */
+.guide-page {
+  --font-body: var(--font-inter), "Segoe UI", sans-serif;
+  --font-display: var(--font-jakarta), var(--font-inter), sans-serif;
+  font-family: var(--font-body);
+}
+.guide-page .article h1,
+.guide-page .page-hero h1,
+.guide-page .article h2 {
+  text-transform: none;
+  /* Loose enough for Cyrillic: at -0.022em (fine for Latin) the wider Cyrillic
+     letterforms visibly collide at display sizes — checked on "Смотреть фильм". */
+  letter-spacing: -0.008em;
+  font-weight: 700;
+}
+.guide-page .page-hero h1,
+.guide-page .article h1 { line-height: 1.06; }
+.guide-page .article h2 { line-height: 1.18; }
+
+/* Section container. Use on any full-width block that should line up with the
+   header — replaces per-page `max-w-*xl mx-auto px-4` guesses. */
+.shell {
+  width: 100%;
+  max-width: var(--shell);
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+@media (min-width: 640px) {
+  .shell { padding-inline: 1.75rem; }
 }
 
 @layer base {
@@ -374,24 +434,29 @@ main.bg-page nav.text-zinc-500 {
 .article h1 + p,
 .page-hero h1 + p {
   font-size: 1.2rem;
-  line-height: 1.75;
+  line-height: 1.7;
   color: #d4d4d8;
-  max-width: 46rem;
+  /* The lead runs a touch wider than body copy on purpose — it is short, and
+     matching the token exactly made it look clipped beside the hero media. */
+  max-width: calc(var(--prose) + 3rem);
   margin-bottom: 3.5rem;
 }
 /* The hero-only variant sits in a block with its own bottom padding. */
 .page-hero h1 + p { margin-bottom: 0; }
 
+/* Heading scale. The h1→h2→h3 steps were 3.4rem → 1.85rem → 1.05rem: a large
+   jump then almost none, so h3 read as bold body text and the hierarchy went
+   flat below the fold. Now roughly a 1.3 ratio between each level. */
 .article h2 {
   font-family: var(--font-display);
   text-transform: uppercase;
   font-weight: 700;
-  font-size: clamp(1.45rem, 2.4vw, 1.85rem);
-  line-height: 1.15;
-  letter-spacing: 0.01em;
+  font-size: clamp(1.7rem, 2.8vw, 2.3rem);
+  line-height: 1.12;
+  letter-spacing: 0.005em;
   color: #fff;
   padding-top: 0.9rem;
-  margin-bottom: 1.1rem;
+  margin-bottom: 1.35rem;
   position: relative;
   text-wrap: balance;
 }
@@ -412,15 +477,25 @@ main.bg-page nav.text-zinc-500 {
 .article h3 {
   font-weight: 600;
   color: #fff;
-  font-size: 1.05rem;
+  font-size: 1.25rem;
+  line-height: 1.35;
+  letter-spacing: -0.005em;
 }
 
-.article section { margin-bottom: 3.5rem; }
+/* Section rhythm scales with the viewport — a fixed 3.5rem that reads as
+   generous on a laptop looks cramped on a wide desktop. */
+.article section { margin-bottom: clamp(3.5rem, 5vw, 5.5rem); }
 
 /* Body copy: one step larger and lighter than the stock zinc-400, so the pages
    read like the marketing ones rather than like documentation. */
-.article p { font-size: 1.02rem; line-height: 1.8; }
-.article section p { color: #b6b6c0; }
+.article p { font-size: 1.05rem; line-height: 1.75; }
+/* The shell is as wide as the header so grids and media can use the screen;
+   prose inside it is capped at the reading measure instead. Without this, body
+   copy ran past 140 characters a line on a desktop — far beyond the 45–75 that
+   stays comfortable. Grids, cards and media are unaffected. */
+.article section p,
+.article section > ul,
+.article section > ol:not([class*="grid"]) { color: #b6b6c0; max-width: var(--prose); }
 
 /* ── Fact / feature lists → chips, the way the marketing sections list them ──
    Scoped to the spaced lists the guides use. The legal pages inherit
@@ -466,9 +541,11 @@ main.bg-page nav.text-zinc-500 {
 
 /* ── FAQ disclosures → glass cards ── */
 .article details {
-  border-color: rgba(63, 63, 70, 0.6);
+  border-color: rgba(255, 255, 255, 0.08);
   border-radius: 1rem;
-  background: rgba(13, 13, 22, 0.9);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   padding: 1.1rem 1.25rem;
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }

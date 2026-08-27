@@ -16,6 +16,7 @@ import { validateProxyUrl, resolveSafeUpstream } from '@shared/utils/ssrfGuard';
 import type { SafeUpstream } from '@shared/utils/ssrfGuard';
 import type { AuthenticatedRequest } from '@shared/types';
 import { config } from '../config/index';
+import { signProxyUrl, verifyProxyUrlDetailed } from '@shared/utils/proxySignature';
 
 const getPublicKey = () => (process.env.JWT_PUBLIC_KEY ?? '').replace(/\\n/g, '\n');
 
@@ -191,10 +192,18 @@ function rewriteM3u8(content: string, baseUrl: string, referer: string, token: s
       logger.warn('HLS rewrite: SSRF guard blocked URL', { url: absoluteUrl, ssrfError });
       return rawUrl;
     }
+    // #84 follow-up: WE are the ones discovering this variant-playlist/segment URL (parsed out
+    // of the upstream manifest, never client-supplied), so we sign it ourselves right here —
+    // proxyM3u8/proxySegment then only need to verify a signature against the exact url in the
+    // request, same mechanism as the client-facing signing in videoExtract.controller.ts, just
+    // minted server-side instead of client-presented. Additive alongside tokenParam for now (see
+    // proxyM3u8/proxySegment's authMethod logging) — not a replacement yet.
+    const { exp, sig } = signProxyUrl(absoluteUrl);
+    const sigParam = `&exp=${exp}&sig=${sig}`;
     // Absolute URL (full origin) — ExoPlayer resolves relative refs against the *proxied*
     // master URL (which itself carries a ?url= query), so absolute-path refs are ambiguous.
     // A full https URL removes any base-resolution doubt.
-    return `${publicBase}${proxyPath}?url=${encodeURIComponent(absoluteUrl)}&referer=${encodeURIComponent(referer)}${tokenParam}`;
+    return `${publicBase}${proxyPath}?url=${encodeURIComponent(absoluteUrl)}&referer=${encodeURIComponent(referer)}${tokenParam}${sigParam}`;
   };
 
   const isPlaylistRef = (url: string): boolean =>
@@ -260,7 +269,7 @@ export const hlsProxyController = {
    *  Fetches the remote m3u8 and rewrites all segment URLs to go through /hls-proxy/segment.
    */
   async proxyM3u8(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const { url, referer, token } = req.query as { url?: string; referer?: string; token?: string };
+    const { url, referer, token, exp, sig } = req.query as { url?: string; referer?: string; token?: string; exp?: string; sig?: string };
 
     if (!url) {
       res.status(400).json({ success: false, message: 'url query param is required' });
@@ -272,10 +281,19 @@ export const hlsProxyController = {
     // (embedded by rewriteM3u8). Accept either, matching proxySegment.
     const bearerToken = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '') || undefined;
     const rawToken = (verifyQueryToken(token) ? token : undefined) ?? bearerToken;
-    if (!verifyQueryToken(token) && !verifyQueryToken(bearerToken)) {
+    // #84 follow-up: a valid signature for THIS url (minted by videoExtract.controller.ts for the
+    // master, or by rewriteM3u8's proxyVia for a nested variant playlist) proves it's a target we
+    // ourselves resolved — see the design note on rewriteM3u8. Plain-JWT stays accepted alongside
+    // it for now (older clients that haven't picked up signed responses yet); authMethod logging
+    // is what lets a follow-up confirm real traffic has moved over before that path is removed.
+    const signatureCheck = exp && sig ? verifyProxyUrlDetailed(decodeURIComponent(url), Number(exp), sig) : null;
+    const authMethod = signatureCheck?.ok ? 'signature' : (verifyQueryToken(token) || verifyQueryToken(bearerToken)) ? 'jwt' : null;
+    if (!authMethod) {
+      logger.warn('HLS proxy: m3u8 rejected — no valid signature or token', { sigReason: signatureCheck?.reason });
       res.status(401).json({ success: false, message: 'Unauthorized' });
       return;
     }
+    logger.info('HLS proxy: m3u8 authorized', { authMethod });
 
     const decodedUrl     = decodeURIComponent(url);
     const decodedReferer = referer ? decodeURIComponent(referer) : decodedUrl;
@@ -386,7 +404,7 @@ export const hlsProxyController = {
    *  a watch-party room doesn't each trigger their own upstream fetch (#8 perf/cost).
    */
   async proxySegment(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const { url, referer, token } = req.query as { url?: string; referer?: string; token?: string };
+    const { url, referer, token, exp, sig } = req.query as { url?: string; referer?: string; token?: string; exp?: string; sig?: string };
 
     if (!url) {
       res.status(400).json({ success: false, message: 'url query param is required' });
@@ -396,7 +414,15 @@ export const hlsProxyController = {
     // Auth: accept token from query param (embedded by rewriteM3u8 for Android ExoPlayer)
     // or from Authorization header (iOS AVPlayer forwards headers to all requests).
     const bearerToken = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '') || undefined;
-    if (!verifyQueryToken(token) && !verifyQueryToken(bearerToken)) {
+    // #84 follow-up: exp/sig here were minted by rewriteM3u8's proxyVia for THIS exact segment
+    // URL (server discovered it while rewriting the manifest, never client-supplied) — see the
+    // design note there. Plain-JWT stays accepted alongside it for now, same rollout as
+    // proxyM3u8/videoProxy.controller.ts.
+    const decodedUrlForAuth = decodeURIComponent(url);
+    const signatureCheck = exp && sig ? verifyProxyUrlDetailed(decodedUrlForAuth, Number(exp), sig) : null;
+    const authMethod = signatureCheck?.ok ? 'signature' : (verifyQueryToken(token) || verifyQueryToken(bearerToken)) ? 'jwt' : null;
+    if (!authMethod) {
+      logger.warn('HLS proxy segment: rejected — no valid signature or token', { sigReason: signatureCheck?.reason });
       res.status(401).json({ success: false, message: 'Unauthorized' });
       return;
     }

@@ -125,8 +125,16 @@ export interface IWatchPartyRoom {
   isPlaying: boolean;
   inviteCode: string;
   isPrivate: boolean;
+  // Google Meet-style "knock to enter" (2026-08-26) — only meaningful when isPrivate is true.
+  // See joinRoom()/approveJoinRequest() in watchParty.service.ts.
+  requireApproval?: boolean;
+  pendingRequests?: { userId: string; requestedAt: Date }[];
   memberCount?: number;  // included in getRooms response
   playlist?: VideoItem[]; // T-E107
+  // 2026-08-22, Pro "continue watching" — see watchParty.service.ts's closeRoomBySystem.
+  lastFrame?: string | null;
+  resumable?: boolean;
+  resumeExpiresAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
