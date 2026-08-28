@@ -207,6 +207,19 @@ interface VBSession {
    * client that treats "session exists" as "frames incoming" gets stuck on an infinite loading
    * spinner here — see getSessionSnapshot's `paused` field, added for exactly this. */
   paused: boolean;
+  /** Set once the room has actually switched to a candidate from this session (auto-commit in
+   * vbSession.helper.ts, or the owner's manual pick in roomEvents.handler.ts). A 'capture'-kind
+   * candidate deliberately keeps its browser alive — it IS the growing byte buffer being played —
+   * so `sessions` still holds an entry that has nothing left to show anyone.
+   *
+   * Real bug 2026-08-28 (Saidazim, live on mobile: "когда я уже выбрал видео, он опять открывает
+   * вб"). ROOM_JOINED carries getSessionSnapshot() so a late/reconnecting client can catch up on a
+   * VB the owner started before they arrived — and a mobile socket reconnects often. With the
+   * session still listed and un-paused, that snapshot told every reconnect "a VB is running",
+   * which re-opened the browser overlay on top of the video the room was already watching. Marking
+   * it committed lets getSessionSnapshot report nothing, which is the truth: there is no VB for
+   * this client to join anymore, only a buffer feeding the player it already has. */
+  committed?: boolean;
   /** Which concurrency pool this session counts against — see MAX_CONCURRENT_FREE below. Pro has
    * no cap (a deliberate product decision, not an oversight — see MAX_TOTAL_SAFETY_CEILING for
    * the one hard backstop that still applies to everyone). */
@@ -318,6 +331,11 @@ export function getSessionPageTitle(roomId: string): string | undefined {
 export function getSessionSnapshot(roomId: string): { url: string; width: number; height: number; ownerId: string; paused: boolean } | null {
   const s = sessions.get(roomId);
   if (!s) return null;
+  // A committed session is alive only to keep feeding bytes to the player the room is already
+  // watching — there is nothing here for a joining client to open. Reporting it would re-open the
+  // VB overlay (paused=false) or the candidate picker (paused=true) over a working video; see the
+  // `committed` field's own note for the live mobile bug this prevents.
+  if (s.committed) return null;
   return { url: s.url, width: VB_VIEWPORT.width, height: VB_VIEWPORT.height, ownerId: s.ownerId, paused: s.paused };
 }
 
@@ -1050,6 +1068,13 @@ export async function stopAllSessions(): Promise<void> {
 // the room is switching to watch the growing vb-capture buffer, so the underlying browser/page
 // must keep running and playing — closing it would stop new bytes arriving mid-movie. Only the
 // JPEG screencast (nobody's watching it anymore) is torn down, to stop burning bandwidth on it.
+/** Marks the room as having switched to one of this session's candidates — see VBSession.committed.
+ *  No-op if the session is already gone (the non-capture path stops it outright). */
+export function markSessionCommitted(roomId: string): void {
+  const s = sessions.get(roomId);
+  if (s) s.committed = true;
+}
+
 export async function pauseScreencast(roomId: string): Promise<void> {
   const s = sessions.get(roomId);
   if (!s) return;

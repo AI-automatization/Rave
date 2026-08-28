@@ -7,7 +7,7 @@ import { REDIS_KEYS } from '@shared/constants';
 import { JwtPayload, VideoPlatform } from '@shared/types';
 import { recordWatchHistoryInternal, getUserPlan } from '@shared/utils/serviceClient';
 import { bufferTimeouts, resumeBufferedRoom } from './videoEvents.handler';
-import { stopSession, getSessionSnapshot, hasSession } from '../services/virtualBrowser.service';
+import { stopSession, getSessionSnapshot, hasSession, markSessionCommitted } from '../services/virtualBrowser.service';
 import { startVBForRoom } from './vbSession.helper';
 import { enqueueVBRequest } from './vbQueue.helper';
 import { cancelVbDisconnectGrace } from './vbEvents.handler';
@@ -350,6 +350,12 @@ export const registerRoomEvents = (
           }
         }
       }
+
+      // Same reconnect problem the auto-commit path has (2026-08-28): a confirmed 'capture'
+      // candidate deliberately leaves its session running to keep feeding the buffer, and
+      // ROOM_JOINED's snapshot would otherwise keep telling every reconnecting client to open a VB
+      // over the video they're already watching. See VBSession.committed.
+      if (isOwnVbUrl(data.videoUrl)) markSessionCommitted(roomId);
 
       const updated = await watchPartyService.updateRoomMedia(userId, roomId, {
         videoUrl:      videoUrlToUse,
