@@ -384,6 +384,7 @@ export function WatchPartyScreen() {
           stop={vb.stop}
           sendInput={vb.sendInput}
           onPickDifferentVideo={handleOpenCandidatePicker}
+          roomId={params.roomId}
         />
       ) : (
       <VideoSection
