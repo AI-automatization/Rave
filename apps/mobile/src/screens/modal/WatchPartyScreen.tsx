@@ -399,8 +399,12 @@ export function WatchPartyScreen() {
         // staying "not ready" here keeps the loading box up instead of letting UniversalPlayer
         // mount with nothing extracted, which used to fall back to rendering the raw source
         // page (uncontrollable, no sync — see T-S189 follow-up).
+        // showCandidatePicker: VB already stopped and is waiting on the owner's pick — stale
+        // "Открываем виртуальный браузер..." otherwise kept showing here underneath/behind the
+        // picker even though VB had already finished running (live report 2026-08-28). isReady
+        // stays false either way (nothing to actually play yet), only the loading text changes.
         isReady={extractionError === 'video_source_expired' ? true : !!room && !isExtracting && (isWebViewMode || !extractFallback)}
-        loadingStage={extractFallback && !isWebViewMode ? 'vb' : 'extracting'}
+        loadingStage={extractFallback && !isWebViewMode && !showCandidatePicker ? 'vb' : 'extracting'}
         isOwner={isOwner}
         isPlaying={isPlaying}
         isFullscreen={isFullscreen}
