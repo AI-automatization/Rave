@@ -16,6 +16,7 @@ import { EmojiPickerBar } from '@components/watchParty/EmojiFloat';
 import { VideoSection } from '@components/watchParty/VideoSection';
 import { VirtualBrowserPlayer } from '@components/watchParty/VirtualBrowserPlayer';
 import { useVirtualBrowser } from '@hooks/useVirtualBrowser';
+import { VB_ENABLED } from '@constants/features';
 import { RoomInfoBar } from '@components/watchParty/RoomInfoBar';
 import { InviteCard } from '@components/watchParty/InviteCard';
 import { QualityMenu } from '@components/watchParty/QualityMenu';
@@ -369,8 +370,11 @@ export function WatchPartyScreen() {
 
       {/* Video — Virtual Browser (T-S188) takes over whenever the server auto-falls back to it;
           fullscreen isn't supported for VB yet (VideoSection's fullscreen variant doesn't apply
-          here), so it only renders in the normal, non-fullscreen layout. */}
-      {vb.active && !isFullscreen ? (
+          here), so it only renders in the normal, non-fullscreen layout.
+          VB_ENABLED (constants/features.ts, issue #84) keeps it out of store builds entirely:
+          the server may still fall back to VB for web members of the same room, mobile just
+          doesn't render that stream or forward input into it. */}
+      {VB_ENABLED && vb.active && !isFullscreen ? (
         <VirtualBrowserPlayer
           isOwner={isOwner}
           frame={vb.frame}
