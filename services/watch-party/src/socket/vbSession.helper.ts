@@ -12,11 +12,8 @@ import { REDIS_KEYS } from '@shared/constants';
 import { VideoCandidate } from '@shared/types';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { signProxyUrl } from '@shared/utils/proxySignature';
-import { VB_VIEWPORT, startSession, stopSession, pauseScreencast, markSessionCommitted, getSessionPageTitle, MediaType } from '../services/virtualBrowser.service';
+import { VB_VIEWPORT, startSession, getSessionPageTitle, MediaType } from '../services/virtualBrowser.service';
 import { WatchPartyRoom } from '../models/watchPartyRoom.model';
-import { WatchPartyService } from '../services/watchParty.service';
-import { isLikelyFaststart } from '../services/faststartCheck.service';
-import { getFaststartFixedFileName } from '../services/faststartRemux.service';
 
 // TTL for the candidates Redis entry — matches how long "the current video session" is a
 // meaningful concept; deliberately generous since a room can sit on one video for hours. Defined
@@ -24,16 +21,12 @@ import { getFaststartFixedFileName } from '../services/faststartRemux.service';
 // startVBForRoom from this one — importing back would be a circular dependency.
 export const CANDIDATES_TTL_SEC = 6 * 60 * 60; // 6h
 
-// 2026-08-28 (Saidazim, live-tested against Kosmi): Kosmi never shows a candidate picker — the
-// owner clicks play on the real video inside the live VB session, and ~4-5s later everyone gets
-// auto-switched to it, no manual confirm step. T-S196's real-playback confirmation
-// (onRealPlaybackConfirmed below) already detects exactly that "a real <video>/<audio> element
-// actually started playing" signal — until now it only ever used that to rank a candidate higher
-// in the picker, never to skip the picker outright. TEST (Saidazim, 2026-08-28): auto-commit once
-// a real-playback-confirmed candidate has been stable for this long, instead of always waiting for
-// the full collection window + a manual pick. Revert to always-show-picker (drop this block) if
-// this turns out to fire on the wrong candidate in practice.
-const AUTO_COMMIT_DELAY_MS = 4500;
+// REVERTED (Saidazim, 2026-08-28, same-day live test): there used to be an auto-commit-on-
+// real-playback path here (commit a candidate ~4.5s after real <video>/<audio> playback was
+// confirmed, skipping the picker entirely — Kosmi-style). It fired before the 40s collection
+// window had a real chance to gather candidates, so it's gone — always show the picker after the
+// full window instead. `confirmed` marking from onRealPlaybackConfirmed still feeds the picker's
+// own ranking (T-S196), that part was never the problem.
 
 // Some CDNs 403 anything not coming from the IP that first requested the URL (same class of
 // protection already seen on VK/Rutube). VB's Playwright browser ran inside THIS service's
@@ -131,20 +124,12 @@ export async function startVBForRoom(
   // matched by URL, so it's treated as "whatever capture-kind candidate exists is confirmed".
   let mseConfirmed = false;
 
-  // TEST (2026-08-28): guards the auto-commit path below — set once we've committed a candidate
-  // directly, so the normal end-of-collection-window picker doesn't also fire for the same room.
+  // Leftover from the reverted auto-commit path (see the note above) — always false now, kept
+  // only because the dead `if (committed) return;` checks below still read it.
   let committed = false;
   let autoCommitTimer: NodeJS.Timeout | null = null;
-  // Set the moment the 40s collection window closes. Two things depend on it: auto-commit must
-  // not fire after the owner has been handed the picker (it would silently overwrite whatever they
-  // just chose), and the rollback path inside commitCandidate needs to know whether the picker has
-  // already been presented or whether it still has to present it itself.
-  let collectionEnded = false;
 
-  // Hands the owner the picker with whatever was found. Extracted from the collection-window
-  // callback (2026-08-28) so the auto-commit rollback path can call it too: if the window closed
-  // while a commit attempt was still in flight, that callback already returned early on
-  // committed=true, and without this nobody would ever present anything.
+  // Hands the owner the picker with whatever was found.
   async function presentCandidates(): Promise<void> {
     // Real prod case 2026-08-07: a room got swept as "inactive" 15 seconds after candidates
     // became ready — closeInactiveRooms's hasSession() guard only covers the search itself, but
@@ -188,93 +173,9 @@ export async function startVBForRoom(
     logger.info('VB: collection window closed, candidates ready for owner confirmation', { roomId, count: candidates.length });
   }
 
-  async function commitCandidate(candidate: VideoCandidate): Promise<void> {
-    if (committed) return;
-    committed = true;
-    if (autoCommitTimer) { clearTimeout(autoCommitTimer); autoCommitTimer = null; }
-
-    // Same faststart check CHANGE_MEDIA's manual-pick path runs (roomEvents.handler.ts) — a
-    // non-faststart 'url'-kind candidate needs the remux cache before it's safe to hand to
-    // mobile's sequential-read player. vb-capture candidates never need this (already our own
-    // buffer, always faststart by construction).
-    let videoUrlToUse = candidate.url;
-    if (!candidate.url.includes('/vb-capture/')) {
-      const faststartOk = await isLikelyFaststart(candidate.url);
-      if (!faststartOk) {
-        const fixedFileName = await getFaststartFixedFileName(redis, candidate.url);
-        if (fixedFileName) {
-          videoUrlToUse = `${vbStreamPublicUrl}/api/v1/watch-party/vb-media-proxy/faststart/${fixedFileName}`;
-        } else {
-          // Can't auto-commit cleanly — fall back to the normal picker instead of switching the
-          // room to something that won't play. Un-flip `committed` so onCollectionEnd proceeds.
-          committed = false;
-          logger.warn('VB auto-commit: non-faststart candidate with no remux available, falling back to picker', { roomId });
-          // ...but if the window ALREADY closed while the faststart probe was running, then
-          // onCollectionEnd saw committed=true and returned early — nobody is left to present the
-          // picker, and the room would sit on a dead screencast forever. Present it here instead.
-          if (collectionEnded) await presentCandidates();
-          return;
-        }
-      }
-    }
-
-    try {
-      const watchPartyService = new WatchPartyService(redis);
-      const updated = await watchPartyService.updateRoomMedia(ownerId, roomId, {
-        videoUrl: videoUrlToUse,
-        videoTitle: candidate.title ?? null,
-        videoPlatform: null,
-      });
-
-      // Real bug 2026-08-28 (Saidazim, live on mobile: "когда я уже выбрал видео, он опять
-      // открывает вб"). The screencast MUST be silenced BEFORE VB_STOPPED goes out, not after.
-      // Clients treat any arriving VB_FRAME as proof the session is live and flip the overlay back
-      // on (use-virtual-browser.ts / useVirtualBrowser.ts set active=true on every frame — a
-      // deliberate self-healing behaviour for a missed VB_STARTED). So a frame still in flight
-      // after VB_STOPPED silently re-opens the VB overlay over the video we just switched to, and
-      // since no further VB_STOPPED is ever sent, it stays there.
-      //   - capture candidates: the browser must keep running (it IS the growing byte buffer), so
-      //     pauseScreencast — which is exactly what the manual-pick path relies on. This case was
-      //     missing entirely before, so the overlay came back for the whole rest of the window.
-      //   - everything else: stopSession, same as the manual path (roomEvents.handler.ts), which
-      //     always stopped the session BEFORE emitting. Matching that order here is the fix.
-      if (candidate.url.includes('/vb-capture/')) {
-        // Order matters: mark BEFORE the awaits below, so a client reconnecting in between can't
-        // catch a snapshot that still advertises a joinable VB (see VBSession.committed).
-        markSessionCommitted(roomId);
-        await pauseScreencast(roomId).catch((e) => {
-          logger.warn('VB auto-commit: failed to pause screencast after commit', { roomId, error: (e as Error).message });
-        });
-      } else {
-        await stopSession(roomId).catch((e) => {
-          logger.warn('VB auto-commit: failed to stop session after commit', { roomId, error: (e as Error).message });
-        });
-      }
-
-      io.to(roomId).emit(SERVER_EVENTS.ROOM_UPDATED, updated);
-      // Deliberately NOT 'media_found' — that reason is what makes the frontend open the picker
-      // (use-virtual-browser.ts/useVirtualBrowser.ts: `reason === 'media_found' && needsConfirmation`).
-      // Any other reason just closes the VB overlay, which is exactly right here since ROOM_UPDATED
-      // above already switched everyone to the real player.
-      io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'auto_confirmed' });
-      logger.info('VB auto-commit: switched room to real-playback-confirmed candidate without picker', { roomId, videoUrl: videoUrlToUse });
-    } catch (e) {
-      logger.error('VB auto-commit failed', { roomId, error: (e as Error).message });
-    }
-  }
-
-  function scheduleAutoCommit(): void {
-    // collectionEnded: once the owner has the picker in front of them, the choice is theirs. A
-    // capture-kind session keeps its page alive and playing after the window closes, so
-    // onRealPlaybackConfirmed can still fire minutes later — without this guard that late signal
-    // would auto-commit over whatever the owner had already picked, and tear down the session.
-    if (committed || collectionEnded) return;
-    if (autoCommitTimer) clearTimeout(autoCommitTimer);
-    autoCommitTimer = setTimeout(() => {
-      const best = candidates.find((c) => c.confirmed);
-      if (best) void commitCandidate(best);
-    }, AUTO_COMMIT_DELAY_MS);
-  }
+  // commitCandidate()/scheduleAutoCommit() removed here on revert (2026-08-28) — see the note near
+  // the top of this file. `committed` stays false forever now; the checks that read it below are
+  // dead in practice but harmless, left alone rather than touched further under time pressure.
 
   // Same TTL as the candidates themselves — lets vb-media-proxy re-probe this exact page later
   // (possibly hours later, if the room sits on the picker or a viewer joins late) if a candidate
@@ -309,10 +210,7 @@ export async function startVBForRoom(
     candidates.push({ url: roomVideoUrl, type: mediaType, source: 'vb', title: getSessionPageTitle(roomId), duration, confirmed });
     rawUrlByCandidateIndex.push(mediaUrl);
   }, () => {
-    // TEST (2026-08-28): the collection window closing naturally means auto-commit didn't get a
-    // clean confirmed candidate in time — always fall back to the normal picker from here,
-    // regardless of what the auto-commit timer might still be about to do.
-    collectionEnded = true;
+    // Collection window closed — always show the picker with whatever was found.
     if (autoCommitTimer) { clearTimeout(autoCommitTimer); autoCommitTimer = null; }
     if (committed) return;
     void presentCandidates();
@@ -320,14 +218,14 @@ export async function startVBForRoom(
     if (src.startsWith('blob:')) {
       mseConfirmed = true;
       candidates.forEach((c, i) => { if (c.url.includes('/vb-capture/')) candidates[i] = { ...c, confirmed: true }; });
-      scheduleAutoCommit();
+      // scheduleAutoCommit() call removed here — see the REVERTED note above AUTO_COMMIT_DELAY_MS.
       return;
     }
     confirmedRawUrls.add(src);
     rawUrlByCandidateIndex.forEach((rawUrl, i) => {
       if (rawUrl === src) candidates[i] = { ...candidates[i], confirmed: true };
     });
-    scheduleAutoCommit();
+    // scheduleAutoCommit() call removed here — see the REVERTED note above AUTO_COMMIT_DELAY_MS.
   }, (cookieHeader) => {
     // Same TTL/lookup pattern as vbSourceUrl above — read back by vbMediaProxy.controller.ts to
     // replay the session a 'url'-kind candidate turned out to need (see virtualBrowser.service.ts's
