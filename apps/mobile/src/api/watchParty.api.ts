@@ -50,19 +50,33 @@ export const watchPartyApi = {
     /** E67-3: WebView session cookies — faqat webview-session rejimida */
     cookies?: string;
   }): Promise<IWatchPartyRoom> {
-    try {
-      const res = await watchPartyClient.post<ApiResponse<IWatchPartyRoom>>('/watch-party/rooms', data);
-      return res.data.data!;
-    } catch (err) {
-      const body = axios.isAxiosError(err) ? (err.response?.data as { code?: string; roomId?: string } | undefined) : undefined;
-      if (err && axios.isAxiosError(err) && err.response?.status === 409 && body?.code === 'ROOM_ALREADY_EXISTS' && body.roomId) {
-        // Fetch the room so callers get the same shape they would from a successful create and
-        // can navigate immediately. If THAT fails, fall through to the original error rather than
-        // inventing a room object.
-        const existing = await this.getRoomById(body.roomId).catch(() => null);
-        if (existing) throw new RoomAlreadyExistsError(existing);
+    // One silent retry on a request that never got a response at all (err.response undefined —
+    // timeout or a dropped connection, not a real server answer). Live report 2026-08-28: room
+    // creation from the in-app WebView browser intermittently failed with "check your internet"
+    // on otherwise-working wifi — server logs showed zero trace of the request ever arriving, so
+    // it never reached us in the first place (nothing to retry server-side, has to happen here).
+    // Never retries a request that DID get a response (4xx/5xx) — that's a real answer, not a
+    // transient drop, and retrying could double-submit against a server that already processed it.
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const res = await watchPartyClient.post<ApiResponse<IWatchPartyRoom>>('/watch-party/rooms', data);
+        return res.data.data!;
+      } catch (err) {
+        const body = axios.isAxiosError(err) ? (err.response?.data as { code?: string; roomId?: string } | undefined) : undefined;
+        if (err && axios.isAxiosError(err) && err.response?.status === 409 && body?.code === 'ROOM_ALREADY_EXISTS' && body.roomId) {
+          // Fetch the room so callers get the same shape they would from a successful create and
+          // can navigate immediately. If THAT fails, fall through to the original error rather than
+          // inventing a room object.
+          const existing = await this.getRoomById(body.roomId).catch(() => null);
+          if (existing) throw new RoomAlreadyExistsError(existing);
+        }
+        const gotNoResponse = axios.isAxiosError(err) && !err.response;
+        if (gotNoResponse && attempt === 0) {
+          await new Promise((resolve) => setTimeout(resolve, 800));
+          continue;
+        }
+        throw err;
       }
-      throw err;
     }
   },
 
