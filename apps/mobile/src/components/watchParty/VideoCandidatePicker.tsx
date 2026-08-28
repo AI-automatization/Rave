@@ -167,7 +167,7 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
     })();
 
     return () => { cancelled = true; };
-  }, [open, candidates]);
+  }, [visible, candidates]);
 
   // Loading badge pulse — same animation as VideoSection's "waiting for the video" overlay,
   // reused here for the equivalent "waiting for the candidates list" moment.
