@@ -3,6 +3,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { captureError } from '@utils/errorLogger';
+import { crash } from '@utils/crash';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { useT } from '@i18n/index';
 
@@ -41,7 +42,11 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
+    // React error boundaries catch the error before it ever reaches Sentry's global
+    // ErrorUtils handler (it never becomes "unhandled") — must forward explicitly or
+    // render-time crashes silently skip Sentry entirely.
     captureError(error, { componentStack: info.componentStack ?? '' });
+    crash.captureException(error, { componentStack: info.componentStack ?? '' });
   }
 
   handleRetry = (): void => {
