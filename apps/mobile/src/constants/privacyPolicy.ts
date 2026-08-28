@@ -88,6 +88,8 @@ WeWatch — ichki brauzer (WebView) bilan jihozlangan Watch Party platformasi.
 • Bunny.net (CDN) — video oqimni yetkazish — faqat texnik so'rovlar, akkaunt ma'lumotlarisiz
 • Cloudinary — yuklangan rasmlarni (avatarlar) saqlash va qayta ishlash
 • PAYME / CLICK — to'lovlarni qayta ishlash (faqat veb-versiyada; mobil ilova faqat tarixni ko'rsatadi)
+• Expo (EAS Update, u.expo.dev) — ilova yangilanishlarini yetkazish — har bir ishga tushirishda platforma, ilova versiyasi va qurilma identifikatorlari uzatiladi
+• Metered.ca (TURN) — ovozli chat uchun tarmoq relay — to'g'ridan-to'g'ri ulanish o'rnatilmasa, ovoz ularning serverlari orqali o'tadi. Media DTLS-SRTP bilan shifrlangan, ular uni ocha olmaydi
 
 Biz ma'lumotlarni SOTMAYMIZ. Reklama tarmoqlari yoki AI-xizmatlarga UZATMAYMIZ.
 
@@ -227,6 +229,8 @@ WeWatch — платформа для совместного просмотра 
 • Bunny.net (CDN) — доставка видеопотока — только технические запросы, без данных аккаунта
 • Cloudinary — хранение и обработка загруженных изображений (аватары)
 • PAYME / CLICK — обработка платежей (только в веб-версии; мобильное приложение показывает лишь историю)
+• Expo (EAS Update, u.expo.dev) — доставка обновлений приложения — при каждом запуске передаются платформа, версия приложения и идентификаторы устройства
+• Metered.ca (TURN) — сетевой релей для голосового чата — если прямое соединение не устанавливается, голос проходит через их серверы. Медиа зашифровано по DTLS-SRTP, они не могут его расшифровать
 
 Мы НЕ продаём данные. Мы НЕ передаём данные рекламным сетям или AI-сервисам.
 
@@ -367,6 +371,8 @@ We share data only with:
 • Bunny.net (CDN) — video stream delivery — technical requests only, no account data
 • Cloudinary — storage and processing of uploaded images (avatars)
 • PAYME / CLICK — payment processing (web version only; the mobile app shows history only)
+• Expo (EAS Update, u.expo.dev) — app update delivery — platform, app version and device identifiers are sent on every launch
+• Metered.ca (TURN) — network relay for voice chat — if a direct connection cannot be established, voice passes through their servers. Media is DTLS-SRTP encrypted; they cannot decrypt it
 
 We do NOT sell data. We do NOT share data with advertising networks or AI services.
 
