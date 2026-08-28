@@ -1,20 +1,25 @@
 // WeWatch — Privacy Policy content (uz/ru/en)
 // App Store compliant + GDPR + CCPA + Uzbekistan Personal Data Law (29.07.2019 №ЎРҚ-547)
-// Version: 2.0 (key: wewatch_privacy_v2)
-// Effective: 2026-06-11
+// Version: 3.0 (key: wewatch_privacy_v3)
+// Effective: 2026-08-28
+//
+// v3 (2026-08-28): section 3 rewritten to describe the server-side virtual browser and media
+// proxy truthfully — v2 stated the opposite of what the code does. Also corrected the URL/
+// analytics collection claims, added Bunny/Cloudinary/PAYME-CLICK as recipients, and made the
+// minimum age consistent at 17. Version bumped so users re-consent to the corrected text.
 //
 // Infrastructure note: MongoDB, Redis, Elasticsearch are self-hosted on Railway.
 // MongoDB Inc. (Atlas) is NOT used — do not list it as a data recipient.
 
-export const PRIVACY_POLICY_VERSION = 'v2';
+export const PRIVACY_POLICY_VERSION = 'v3';
 export const PRIVACY_POLICY_STORAGE_KEY = `wewatch_privacy_${PRIVACY_POLICY_VERSION}`;
 
 export const PRIVACY_POLICY: Record<'uz' | 'ru' | 'en', string> = {
 
   // ─── UZBEKCHA ───────────────────────────────────────────────────────────────
   uz: `WeWatch — Maxfiylik Siyosati
-Oxirgi yangilanish: 11-iyun 2026-yil
-Versiya: 2.0
+Oxirgi yangilanish: 28-avgust 2026-yil
+Versiya: 3.0
 
 WeWatch ("biz", "bizning") sizning maxfiyligingizni hurmat qiladi. Ushbu Maxfiylik Siyosati WeWatch mobil ilovasi va veb-saytidan (https://wewatch.uz) foydalanganda qanday shaxsiy ma'lumotlar to'planishini, ulardan qanday foydalanilishini va sizning huquqlaringizni tavsiflaydi. Xizmatdan foydalanib, siz ushbu Siyosat shartlarini qabul qilasiz.
 
@@ -33,7 +38,9 @@ Avtomatik to'planadi:
 • IP-manzil — faqat server kirish jurnallarida, xavfsizlik va brute-force himoyasi uchun (90 kun saqlanadi)
 • Anonim xato hisobotlari (90 kun saqlanadi)
 • Ball, daraja, yutuqlar va o'yin faolligi
-• Ichki brauzer orqali tashrif buyurilgan saytlarning domen nomlari (masalan, youtube.com) — faqat suiiste'molni aniqlash uchun; to'liq URL yoki sahifa mazmuni saqlanmaydi
+• Ichki brauzer orqali tashrif buyurilgan saytlarning domen nomlari (masalan, youtube.com) — suiiste'molni aniqlash uchun
+• Siz ochgan yoki xonaga qo'shgan videolarning to'liq URL manzillari — ko'rish tarixida va xona holatida saqlanadi
+• Ilova ichidagi harakatlaringiz (qaysi ekranlar ochilgani, qaysi tugmalar bosilgani) — akkauntingizga bog'langan holda, faqat xizmatni yaxshilash uchun
 
 Biz HECH QACHON TO'PLAMAYMIZ:
 • Aniq joylashuv (GPS)
@@ -55,17 +62,19 @@ Biz faqat provider identifikatori, email va ko'rsatish nomini olamiz. OAuth toke
 • Kontent moderatsiyasi va Foydalanish shartlariga rioya
 • Qo'llab-quvvatlash so'rovlarini ko'rib chiqish
 • Qonun talablariga rioya
-• Xizmatni yaxshilash (faqat umumlashtirilgan, identifikatsiyalanmagan tahlil)
+• Xizmatni yaxshilash — ilova ichidagi harakatlar tahlili (akkauntingizga bog'langan)
 
 Biz sizning ma'lumotlaringizdan reklama maqsadida FOYDALANMAYMIZ va uchinchi shaxslarga SOTMAYMIZ.
 
 📱  3. Video kontent va ichki brauzer
 
 WeWatch — ichki brauzer (WebView) bilan jihozlangan Watch Party platformasi.
-• WeWatch proxy-server emas. Video to'g'ridan-to'g'ri manba serverdan qurilmangizga uzatiladi. Bizning serverlarimiz video kontentni qabul qilmaydi va saqlamaydi.
-• Aniqlash mijoz tomonida amalga oshiriladi. Ilova brauzer tomonidan allaqachon yuklangan media stream URL-larini faqat qurilmangizda aniqlaydi.
+• Video qismi bizning serverlarimiz orqali o'tadi. Agar havolani to'g'ridan-to'g'ri ijro etib bo'lmasa, biz sahifani o'z serverimizdagi brauzerda ochamiz, media oqimni aniqlaymiz va uni sizga o'z proksimiz orqali uzatamiz (konteynerni qayta o'rash bilan, qayta kodlashsiz). Bu zarur, chunki ko'p manbalar havolani uni so'ragan IP-manzilga bog'laydi.
+• Vaqtinchalik keshlash. To'g'ri ijro etish uchun fayl serverimizda vaqtincha saqlanishi va sessiya tugagach avtomatik o'chirilishi mumkin.
+• Aniqlash bizning serverimizda amalga oshiriladi, qurilmangizda emas.
 • DRM chetlab o'tilmaydi. Widevine, FairPlay yoki PlayReady chetlab o'tilmaydi. Faqat ochiq oqimlar aniqlanadi.
-• Yuklab olish yo'q. Ilova video fayllarni yuklab olish funksiyasini ta'minlamaydi.
+• Foydalanuvchiga video fayllarni yuklab olish funksiyasi taqdim etilmaydi.
+• Biz video kontentni joylashtirmaymiz va indekslamaymiz: faqat foydalanuvchining o'zi ochgan sahifa ijro etiladi.
 • Watch Party xonalarida ulashilgan URL-lar xona holatini saqlash uchun saqlanadi va xona yopilganidan 30 kun o'tgach avtomatik o'chiriladi.
 
 🤝  4. Ma'lumotlarni uchinchi shaxslarga uzatish
@@ -76,6 +85,11 @@ WeWatch — ichki brauzer (WebView) bilan jihozlangan Watch Party platformasi.
 • Sentry.io — anonim xato monitoringi — shaxsiy identifikatorlarsiz
 • Google Sign-In — autentifikatsiya — faqat siz ushbu usulni tanlasangiz
 • Apple Sign In — autentifikatsiya — faqat siz ushbu usulni tanlasangiz
+• Bunny.net (CDN) — video oqimni yetkazish — faqat texnik so'rovlar, akkaunt ma'lumotlarisiz
+• Cloudinary — yuklangan rasmlarni (avatarlar) saqlash va qayta ishlash
+• PAYME / CLICK — to'lovlarni qayta ishlash (faqat veb-versiyada; mobil ilova faqat tarixni ko'rsatadi)
+• Expo (EAS Update, u.expo.dev) — ilova yangilanishlarini yetkazish — har bir ishga tushirishda platforma, ilova versiyasi va qurilma identifikatorlari uzatiladi
+• Metered.ca (TURN) — ovozli chat uchun tarmoq relay — to'g'ridan-to'g'ri ulanish o'rnatilmasa, ovoz ularning serverlari orqali o'tadi. Media DTLS-SRTP bilan shifrlangan, ular uni ocha olmaydi
 
 Biz ma'lumotlarni SOTMAYMIZ. Reklama tarmoqlari yoki AI-xizmatlarga UZATMAYMIZ.
 
@@ -110,7 +124,7 @@ O'zbekiston: Foydalanuvchilar "Shaxsiy ma'lumotlar to'g'risida"gi Qonun (29.07.2
 
 👶  7. Yosh talablari
 
-WeWatch 17 yoshdan katta foydalanuvchilar uchun mo'ljallangan (17+ reyting). Biz 13 yoshdan kichik bolalarning ma'lumotlarini atayin to'plamaymiz. Agar voyaga etmagan shaxs ro'yxatdan o'tgan deb hisoblasangiz — darhol support@wewatch.uz manziliga murojaat qiling.
+WeWatch 17 yoshdan katta foydalanuvchilar uchun mo'ljallangan (17+ reyting). Biz 17 yoshdan kichik shaxslarning ma'lumotlarini atayin to'plamaymiz. Agar voyaga etmagan shaxs ro'yxatdan o'tgan deb hisoblasangiz — darhol support@wewatch.uz manziliga murojaat qiling.
 
 🔐  8. Xavfsizlik
 
@@ -123,10 +137,10 @@ WeWatch 17 yoshdan katta foydalanuvchilar uchun mo'ljallangan (17+ reyting). Biz
 
 📡  9. Kuzatuv va reklama
 
-• Ilovalar o'rtasida kuzatuv yo'q
+• Boshqa kompaniyalarning ilovalari va saytlari bo'ylab kuzatuv yo'q
 • IDFA va reklama identifikatorlari yo'q
-• App Tracking Transparency (ATT) so'rovi yo'q — biz kuzatmaymiz
-• Reklama va analitika cookie fayllari yo'q
+• Reklama tarmoqlari va reklama cookie fayllari yo'q
+• Ilova ichida biz o'z mahsulot tahlilimizni yuritamiz (qaysi ekranlar va tugmalar ishlatilgani), u akkauntingizga bog'langan va faqat xizmatni yaxshilash uchun ishlatiladi, reklama tarmoqlariga uzatilmaydi
 
 🌍  10. Xalqaro ma'lumot uzatish
 
@@ -146,8 +160,8 @@ Veb-sayt: https://wewatch.uz`,
 
   // ─── РУССКИЙ ────────────────────────────────────────────────────────────────
   ru: `WeWatch — Политика конфиденциальности
-Последнее обновление: 11 июня 2026 г.
-Версия: 2.0
+Последнее обновление: 28 августа 2026 г.
+Версия: 3.0
 
 WeWatch («мы», «наш», «нас») уважает вашу конфиденциальность. Настоящая Политика описывает, какие персональные данные мы собираем при использовании приложения WeWatch и сайта (https://wewatch.uz), как мы их используем и каковы ваши права. Используя Сервис, вы принимаете условия настоящей Политики.
 
@@ -166,7 +180,9 @@ WeWatch («мы», «наш», «нас») уважает вашу конфид�
 • IP-адрес — только в журналах доступа сервера, для безопасности и защиты от перебора (хранится 90 дней)
 • Анонимные отчёты об ошибках и сбоях (хранятся 90 дней)
 • Очки, ранги, достижения и игровая активность
-• Доменные имена сайтов, посещённых через встроенный браузер (например, youtube.com) — только для обнаружения злоупотреблений; полный URL и содержимое страниц не сохраняются
+• Доменные имена сайтов, посещённых через встроенный браузер (например, youtube.com) — для обнаружения злоупотреблений
+• Полные URL видео, которые вы открывали или добавляли в комнату — в истории просмотров и в состоянии комнаты
+• Ваши действия в приложении (какие экраны открывались, какие кнопки нажимались) — связанные с вашим аккаунтом, только для улучшения сервиса
 
 Мы НИКОГДА не собираем:
 • Точное местоположение (GPS)
@@ -188,17 +204,19 @@ WeWatch («мы», «наш», «нас») уважает вашу конфид�
 • Модерация контента и соблюдение Условий использования
 • Обработка запросов в поддержку
 • Исполнение требований законодательства
-• Улучшение сервиса (только агрегированная, неидентифицирующая аналитика)
+• Улучшение сервиса — продуктовая аналитика действий в приложении (связана с вашим аккаунтом)
 
 Мы НЕ используем ваши данные для рекламы и НЕ продаём их третьим лицам.
 
 📱  3. Видеоконтент и встроенный браузер
 
 WeWatch — платформа для совместного просмотра со встроенным браузером (WebView).
-• WeWatch не является прокси-сервером. Видео передаётся напрямую с сервера источника на ваше устройство. Наши серверы не принимают и не хранят видеоконтент.
-• Обнаружение происходит на стороне клиента. Приложение определяет URL медиапотоков, уже загруженных браузером — только на вашем устройстве.
+• Часть видео проходит через наши серверы. Если ссылку не удаётся воспроизвести напрямую, мы открываем страницу в браузере на нашем сервере, определяем медиапоток и передаём его вам через собственный прокси (с переупаковкой контейнера, без перекодирования). Это необходимо, потому что многие источники привязывают ссылку к IP-адресу, который её запросил.
+• Временное кэширование. Для корректного воспроизведения файл может временно сохраняться на нашем сервере и удаляется автоматически после завершения сеанса.
+• Обнаружение происходит на нашем сервере, а не на вашем устройстве.
 • Нет обхода DRM. Мы не обходим Widevine, FairPlay или PlayReady. Обнаруживаются только общедоступные потоки.
-• Нет загрузки. Приложение не предоставляет функций загрузки или сохранения видеофайлов.
+• Пользователю не предоставляется функция скачивания видеофайлов.
+• Мы не размещаем и не индексируем видеоконтент: воспроизводится только та страница, ссылку на которую открыл сам пользователь.
 • URL-адреса, которыми делятся в комнатах Watch Party, хранятся для поддержания состояния комнаты и автоматически удаляются через 30 дней после закрытия комнаты.
 
 🤝  4. Передача данных третьим лицам
@@ -208,6 +226,11 @@ WeWatch — платформа для совместного просмотра 
 • Sentry.io — анонимный мониторинг ошибок — без личных идентификаторов
 • Google Sign-In — аутентификация — только если вы выбрали этот метод
 • Apple Sign In — аутентификация — только если вы выбрали этот метод
+• Bunny.net (CDN) — доставка видеопотока — только технические запросы, без данных аккаунта
+• Cloudinary — хранение и обработка загруженных изображений (аватары)
+• PAYME / CLICK — обработка платежей (только в веб-версии; мобильное приложение показывает лишь историю)
+• Expo (EAS Update, u.expo.dev) — доставка обновлений приложения — при каждом запуске передаются платформа, версия приложения и идентификаторы устройства
+• Metered.ca (TURN) — сетевой релей для голосового чата — если прямое соединение не устанавливается, голос проходит через их серверы. Медиа зашифровано по DTLS-SRTP, они не могут его расшифровать
 
 Мы НЕ продаём данные. Мы НЕ передаём данные рекламным сетям или AI-сервисам.
 
@@ -242,7 +265,7 @@ CCPA (Калифорния): Мы не продаём и не передаём �
 
 👶  7. Возрастные требования
 
-WeWatch предназначен для пользователей 17 лет и старше (рейтинг 17+). Мы сознательно не собираем данные лиц до 13 лет. Если вы считаете, что несовершеннолетний прошёл регистрацию — немедленно напишите нам: support@wewatch.uz.
+WeWatch предназначен для пользователей 17 лет и старше (рейтинг 17+). Мы сознательно не собираем данные лиц младше 17 лет. Если вы считаете, что несовершеннолетний прошёл регистрацию — немедленно напишите нам: support@wewatch.uz.
 
 🔐  8. Безопасность
 
@@ -255,10 +278,10 @@ WeWatch предназначен для пользователей 17 лет и 
 
 📡  9. Отслеживание и реклама
 
-• Нет отслеживания между приложениями
+• Нет отслеживания между приложениями и сайтами других компаний
 • Нет IDFA и рекламных идентификаторов
-• Нет запроса App Tracking Transparency (ATT) — мы не отслеживаем
-• Нет рекламных и аналитических куки
+• Нет рекламных сетей и рекламных куки
+• Внутри приложения мы ведём собственную продуктовую аналитику (какие экраны и кнопки использовались), привязанную к вашему аккаунту — она используется только для улучшения сервиса и не передаётся рекламным сетям
 
 🌍  10. Международная передача данных
 
@@ -278,8 +301,8 @@ Email: support@wewatch.uz
 
   // ─── ENGLISH ────────────────────────────────────────────────────────────────
   en: `WeWatch — Privacy Policy
-Last updated: June 11, 2026
-Version: 2.0
+Last updated: August 28, 2026
+Version: 3.0
 
 WeWatch ("we", "our", "us") respects your privacy. This Privacy Policy describes what personal data we collect when you use the WeWatch mobile application and website (https://wewatch.uz), how we use it, and your rights. By using the Service, you agree to the practices described here.
 
@@ -298,7 +321,9 @@ Collected automatically:
 • IP address — in server access logs only, for security and rate limiting (retained 90 days)
 • Anonymous crash and error reports (retained 90 days)
 • Points, ranks, achievements, and gamification activity
-• Domain names of websites visited via the in-app browser (e.g., youtube.com) — for abuse detection only; not the full URL or page content
+• Domain names of websites visited via the in-app browser (e.g., youtube.com) — for abuse detection
+• Full URLs of videos you opened or added to a room — in watch history and room state
+• Your in-app actions (which screens were opened, which buttons were pressed) — linked to your account, used only to improve the service
 
 We NEVER collect:
 • Precise location (GPS)
@@ -320,17 +345,19 @@ We receive your provider ID, email, and display name. We do NOT store OAuth toke
 • Content moderation and Terms of Service enforcement
 • Support request handling
 • Legal compliance
-• Service improvement (aggregated, non-identifiable analytics only)
+• Service improvement — product analytics of in-app actions (linked to your account)
 
 We do NOT use your data for advertising or sell it to any third party.
 
 📱  3. Video Content & In-App Browser
 
 WeWatch is a social watch party platform with an integrated browser (WebView).
-• WeWatch is not a video proxy. Video travels directly from source servers to your device. Our servers never receive or store video content.
-• Client-side detection. The app detects media stream URLs already loaded by your browser — locally on your device only.
+• Some video passes through our servers. When a link cannot be played directly, we open the page in a browser on our server, detect the media stream, and deliver it to you through our own proxy (remuxing the container, without re-encoding). This is necessary because many sources tie a link to the IP address that requested it.
+• Temporary caching. To play correctly, a file may be stored temporarily on our server and is deleted automatically after the session ends.
+• Detection happens on our server, not on your device.
 • No DRM circumvention. We do not bypass Widevine, FairPlay, or PlayReady. Only publicly playable streams are detectable.
-• No downloading. The app provides no functionality to download or save video files.
+• No download feature is offered to users.
+• We do not host or index video content: only the page whose link the user opened themselves is played.
 • URLs shared in Watch Party rooms are stored to maintain room state and auto-deleted 30 days after the room closes.
 
 🤝  4. Data Sharing
@@ -341,6 +368,11 @@ We share data only with:
 • Sentry.io — anonymous error monitoring — no personal identifiers
 • Google Sign-In — authentication — only if you choose this method
 • Apple Sign In — authentication — only if you choose this method
+• Bunny.net (CDN) — video stream delivery — technical requests only, no account data
+• Cloudinary — storage and processing of uploaded images (avatars)
+• PAYME / CLICK — payment processing (web version only; the mobile app shows history only)
+• Expo (EAS Update, u.expo.dev) — app update delivery — platform, app version and device identifiers are sent on every launch
+• Metered.ca (TURN) — network relay for voice chat — if a direct connection cannot be established, voice passes through their servers. Media is DTLS-SRTP encrypted; they cannot decrypt it
 
 We do NOT sell data. We do NOT share data with advertising networks or AI services.
 
