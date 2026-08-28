@@ -76,6 +76,16 @@ function writeRangeResponse(
   // a matching, active Cache Rule, until this was removed. Must come after cors() ran (it's
   // global middleware, applied before this controller) to actually override it.
   res.removeHeader('Vary');
+  // Static `*`, set AFTER the Vary removal above and deliberately not origin-dependent (2026-08-28).
+  // Two reasons it has to be the literal star here: (1) a <video crossOrigin="anonymous"> — which
+  // VideoCandidatePicker now needs, so its canvas isn't tainted and a real thumbnail frame can be
+  // grabbed — requires an explicit ACAO on the media response, and the global cors() allow-list
+  // doesn't cover this public/no-auth route's callers (a CDN fetch sends no Origin at all);
+  // (2) with Vary stripped for cacheability, an origin-dependent value would let the cache serve
+  // one caller's ACAO to a different origin — a static `*` is the only value that stays correct
+  // under a shared cache. Safe precisely because this route is already public and unauthenticated:
+  // `*` grants nothing a plain unauthenticated GET didn't already grant.
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Length', String(buffer.length));
   if (range) res.setHeader('Content-Range', `bytes ${start}-${end}/${totalBytes}`);
   res.end(buffer);

@@ -7,7 +7,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
 import { trackClick } from '@/lib/analytics';
-import { buildProxyUrl } from './VideoPlayer';
+import { buildProxyUrl, setupCaptureMse } from './VideoPlayer';
 import { formatDuration } from '@/lib/format-duration';
 import type { VideoCandidate } from '@/types';
 
@@ -68,6 +68,7 @@ function CandidatePreview({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<import('hls.js').default | null>(null);
   const dashRef = useRef<import('dashjs').MediaPlayerClass | null>(null);
+  const captureMseRef = useRef<Awaited<ReturnType<typeof setupCaptureMse>>>(null);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -113,6 +114,29 @@ function CandidatePreview({
         return;
       }
 
+      // Real bug 2026-08-28 (Saidazim, live): every vb-capture candidate previewed as a BLACK BOX,
+      // and it's the one the picker deliberately shows FIRST (vbSession.helper.ts ranks capture-kind
+      // ahead of expiring signed URLs). A vb-capture URL is a live, still-growing fMP4 buffer —
+      // Chrome refuses it through a plain `video.src` with MEDIA_ERR_SRC_NOT_SUPPORTED, which is
+      // exactly why the main player routes it through MSE (VideoPlayer.tsx). The preview was still
+      // taking the plain-src branch below because capture candidates are typed 'mp4'. Same helper,
+      // same "null means fall back to plain src" contract as the player.
+      if (candidate.url.includes('/vb-capture/')) {
+        void setupCaptureMse(video, proxiedUrl, {
+          onFatal: () => {},
+          onReady: () => { video.play().catch(() => {}); },
+          isCancelled: () => cancelled,
+        }).then((result) => {
+          if (cancelled) { result?.teardown(); return; }
+          captureMseRef.current = result;
+          if (!result) {
+            video.src = proxiedUrl;
+            video.play().catch(() => {});
+          }
+        }).catch(() => {});
+        return;
+      }
+
       if (candidate.type === 'mp4' || video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = proxiedUrl;
         video.play().catch(() => {});
@@ -139,6 +163,10 @@ function CandidatePreview({
       hlsRef.current = null;
       dashRef.current?.reset();
       dashRef.current = null;
+      // Releases the MediaSource object URL — without this, cycling through several capture
+      // candidates leaks one live MediaSource per preview.
+      captureMseRef.current?.teardown();
+      captureMseRef.current = null;
     };
   }, [candidate.url, candidate.type, onCapture]);
 
@@ -163,6 +191,12 @@ function CandidatePreview({
       muted
       playsInline
       controls
+      // Real bug 2026-08-28: without this, captureVideoFrame's canvas is ALWAYS tainted (candidate
+      // URLs are served from stream.wewatch.uz, a different origin than app.wewatch.uz), so
+      // toDataURL throws on every single candidate and the catch silently returns null — meaning
+      // no grid thumbnail ever appeared for any source, independent of the vb-capture playback bug
+      // above. Requires the matching Access-Control-Allow-Origin on the VB media routes.
+      crossOrigin="anonymous"
       className="w-full aspect-video bg-black rounded-xl"
     />
   );
