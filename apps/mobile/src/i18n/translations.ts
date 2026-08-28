@@ -486,6 +486,7 @@ export const translations = {
     legalSection: { uz: "HUQUQIY MA'LUMOT", ru: 'ПРАВОВАЯ ИНФОРМАЦИЯ', en: 'LEGAL' },
     privacyLabel: { uz: 'Maxfiylik siyosati', ru: 'Политика конфиденциальности', en: 'Privacy Policy' },
     termsLabel: { uz: 'Foydalanish shartlari', ru: 'Условия использования', en: 'Terms of Service' },
+    dmcaLabel: { uz: 'Mualliflik huquqi da\'volari (DMCA)', ru: 'Претензии по авторским правам (DMCA)', en: 'Copyright Claims (DMCA)' },
     logoutAll: { uz: 'Barcha qurilmalardan chiqish', ru: 'Выйти со всех устройств', en: 'Sign Out All Devices' },
     logoutAllTitle: { uz: 'Barcha qurilmalardan chiqish', ru: 'Выйти со всех устройств', en: 'Sign Out All Devices' },
     logoutAllMsg: { uz: 'Barcha sessiyalar tugatiladi. Davom etasizmi?', ru: 'Все сессии будут завершены. Продолжить?', en: 'All sessions will be terminated. Continue?' },

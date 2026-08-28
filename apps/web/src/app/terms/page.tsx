@@ -10,8 +10,8 @@ export const metadata: Metadata = {
 
 const EFFECTIVE_DATE = 'May 20, 2026';
 const COMPANY = 'WeWatch (Rave)';
-const SUPPORT_EMAIL = 'support@wewatch.app';
-const LEGAL_EMAIL = 'legal@wewatch.app';
+const SUPPORT_EMAIL = 'support@wewatch.uz';
+const LEGAL_EMAIL = 'legal@wewatch.uz';
 const APP_URL = 'https://wewatch.uz';
 
 export default function TermsPage() {
@@ -252,7 +252,7 @@ export default function TermsPage() {
             <strong className="text-zinc-200 block">{COMPANY}</strong>
             <p>General: <a href={`mailto:${SUPPORT_EMAIL}`} className="text-[#7B72F8] hover:underline">{SUPPORT_EMAIL}</a></p>
             <p>Legal: <a href={`mailto:${LEGAL_EMAIL}`} className="text-[#7B72F8] hover:underline">{LEGAL_EMAIL}</a></p>
-            <p>Copyright: <a href="mailto:copyright@wewatch.app" className="text-[#7B72F8] hover:underline">copyright@wewatch.app</a></p>
+            <p>Copyright: <a href="mailto:copyright@wewatch.uz" className="text-[#7B72F8] hover:underline">copyright@wewatch.uz</a></p>
             <p className="mt-3">
               Related policies:{' '}
               <Link href="/privacy-policy" className="text-[#7B72F8] hover:underline">Privacy Policy</Link>

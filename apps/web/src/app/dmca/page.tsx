@@ -10,8 +10,8 @@ export const metadata: Metadata = {
 
 const EFFECTIVE_DATE = 'May 20, 2026';
 const COMPANY = 'WeWatch (Rave)';
-const DMCA_EMAIL = 'copyright@wewatch.app';
-const SUPPORT_EMAIL = 'support@wewatch.app';
+const DMCA_EMAIL = 'copyright@wewatch.uz';
+const SUPPORT_EMAIL = 'support@wewatch.uz';
 
 export default function DmcaPage() {
   return (
