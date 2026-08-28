@@ -7,8 +7,10 @@
 // deliberately out of scope here: the described flow is "tap play on the real page", which touch
 // already covers; typing into the remote page would need a hidden TextInput + soft-keyboard
 // bridge, a separate follow-up if ever needed.
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, Image, ActivityIndicator, StyleSheet, PanResponder, GestureResponderEvent, PanResponderGestureState, LayoutChangeEvent } from 'react-native';
+import { VideoView, useVideoPlayer as createExpoPlayer } from 'expo-video';
+import { useEvent } from 'expo';
 import { Ionicons } from '@expo/vector-icons';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useT } from '@i18n/index';
@@ -28,19 +30,74 @@ interface Props {
   sendInput: (input: VBInput) => void;
   /** Owner-only escape hatch out of a blocked session — opens the same "Это не то видео" picker. */
   onPickDifferentVideo?: () => void;
+  /** For the optional HLS upgrade below — the JPEG frame stream needs no room context (it arrives
+   * pre-addressed over the owner's own socket room), but the HLS stream is fetched by URL and has
+   * to know which room's stream to ask for. */
+  roomId: string;
 }
+
+// services/watch-party/src/services/vbStream.service.ts — same server session, mux'd to a real
+// H.264/AAC HLS stream via ffmpeg (Xvfb + PulseAudio capture) alongside the JPEG screencast, gated
+// server-side behind VB_STREAM_ENABLED (default off — if it's off, every attempt below just 404s
+// forever and this silently stays on frames, which is exactly the intended fallback). Genuinely
+// smoother than a few-frames-per-second JPEG stream once available: real video decode/frame pacing
+// instead of a still image getting replaced a few times a second.
+const VB_STREAM_RETRY_MS = 2000;
+const VB_STREAM_MAX_ATTEMPTS = 10; // ~20s — long enough for ffmpeg's first HLS segment to land
 
 // Below this the finger hasn't really moved — treat the gesture as a tap (mousedown+mouseup),
 // same slop threshold as web's touch handler.
 const TAP_SLOP_PX = 10;
 const MOVE_THROTTLE_MS = 40; // ~25fps for mousemove — matches web
 
-export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocked, stop, sendInput, onPickDifferentVideo }: Props) {
+export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocked, stop, sendInput, onPickDifferentVideo, roomId }: Props) {
   const { t } = useT();
   const [layout, setLayout] = useState<{ width: number; height: number } | null>(null);
   const lastMoveRef = useRef(0);
   const startRef = useRef({ x: 0, y: 0 });
   const movedRef = useRef(false);
+
+  // HLS upgrade attempt — see the constants/comment above. `hlsReady` flips true once expo-video
+  // actually starts playing the stream; until then (or if it never does) the JPEG frames below
+  // keep rendering exactly as before, so this can only make things better, never worse.
+  const [hlsReady, setHlsReady] = useState(false);
+  const hlsAttemptsRef = useRef(0);
+  const hlsGaveUpRef = useRef(false);
+  const hlsUrl = `${process.env.EXPO_PUBLIC_WATCH_PARTY_URL}/api/v1/watch-party/vb-stream/${roomId}/index.m3u8`;
+  const hlsPlayer = createExpoPlayer(null, (p) => { p.loop = false; });
+  const { status: hlsStatus } = useEvent(hlsPlayer, 'statusChange', { status: hlsPlayer.status });
+
+  useEffect(() => {
+    // Non-owners never receive VB_FRAME either (server-side, owner-only broadcast) — same
+    // restriction applies here, no reason to spend a member's bandwidth on a stream only the
+    // owner's controls ever get shown for.
+    if (!isOwner || hlsGaveUpRef.current || hlsReady) return;
+    hlsPlayer.replace({ uri: hlsUrl, contentType: 'hls' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hlsPlayer identity is stable per createExpoPlayer's own contract
+  }, [roomId, isOwner]);
+
+  useEffect(() => {
+    if (!isOwner || hlsGaveUpRef.current) return;
+    if (hlsStatus === 'readyToPlay') {
+      setHlsReady(true);
+      hlsPlayer.play();
+      return;
+    }
+    if (hlsStatus === 'error') {
+      hlsAttemptsRef.current += 1;
+      if (hlsAttemptsRef.current >= VB_STREAM_MAX_ATTEMPTS) {
+        // Feature is off server-side, or genuinely broken — stop trying for the rest of this VB
+        // session rather than hammering a 404 every couple seconds.
+        hlsGaveUpRef.current = true;
+        return;
+      }
+      const retryTimer = setTimeout(() => {
+        hlsPlayer.replace({ uri: hlsUrl, contentType: 'hls' });
+      }, VB_STREAM_RETRY_MS);
+      return () => clearTimeout(retryTimer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hlsPlayer identity is stable per createExpoPlayer's own contract
+  }, [hlsStatus, hlsUrl, isOwner]);
 
   // PanResponder.create() below runs ONCE (frozen via useRef) so its gesture identity survives
   // re-renders — but that also freezes any closure it reads. `layout` starts null and only gets
@@ -139,26 +196,37 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
       </TrackedTouchable>
 
       {/* Nothing auto-plays here on purpose — the whole point of falling back to VB is a real
-          page the owner has to tap through (play button, ads, captcha). */}
-      <View style={s.hint} pointerEvents="none">
-        <View style={s.hintDot} />
-        <Text style={s.hintText}>{t('watchParty', 'vbStartVideo')}</Text>
-      </View>
+          page the owner has to tap through (play button, ads, captcha). Not shown once the HLS
+          upgrade takes over — that stream already carries real audio/video motion, the frozen-
+          frame problem this hint exists for doesn't apply to it. */}
+      {!hlsReady && (
+        <View style={s.hint} pointerEvents="none">
+          <View style={s.hintDot} />
+          <Text style={s.hintText}>{t('watchParty', 'vbStartVideo')}</Text>
+        </View>
+      )}
 
+      {/* Touch/layout wrapper stays the same regardless of which of the two renders below is
+          active — input still targets the same remote VB_VIEWPORT either way, only the visual
+          representation of it changes. */}
       <View style={s.frameWrap} onLayout={onLayout} {...panResponder.panHandlers}>
-        {/* eslint-disable-next-line react-native/no-inline-styles -- base64 data URI, not a static asset */}
-        <Image
-          source={{ uri: `data:image/jpeg;base64,${frame}` }}
-          style={s.frameImg}
-          resizeMode="contain"
-          // Each new frame is a fresh base64 data URI (never the same string twice), so RN's
-          // Image treats every VB_FRAME as a brand-new source. Android's Image defaults
-          // fadeDuration to 300ms, cross-fading from transparent on every source change —
-          // at several frames/sec that reads as a constant black flicker/brightness pulse
-          // (found via a live report 2026-08-03: "мерцает чёрным как будто яркость меняет").
-          // iOS already defaults fadeDuration to 0, so this only mattered on Android.
-          fadeDuration={0}
-        />
+        {hlsReady ? (
+          <VideoView player={hlsPlayer} style={s.frameImg} contentFit="contain" nativeControls={false} />
+        ) : (
+          // eslint-disable-next-line react-native/no-inline-styles -- base64 data URI, not a static asset
+          <Image
+            source={{ uri: `data:image/jpeg;base64,${frame}` }}
+            style={s.frameImg}
+            resizeMode="contain"
+            // Each new frame is a fresh base64 data URI (never the same string twice), so RN's
+            // Image treats every VB_FRAME as a brand-new source. Android's Image defaults
+            // fadeDuration to 300ms, cross-fading from transparent on every source change —
+            // at several frames/sec that reads as a constant black flicker/brightness pulse
+            // (found via a live report 2026-08-03: "мерцает чёрным как будто яркость меняет").
+            // iOS already defaults fadeDuration to 0, so this only mattered on Android.
+            fadeDuration={0}
+          />
+        )}
       </View>
 
       {/* Bot-challenge wall — not solved/bypassed (out of scope on purpose, see
