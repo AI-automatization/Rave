@@ -11,8 +11,8 @@ export const metadata: Metadata = {
 
 const EFFECTIVE_DATE = 'June 12, 2026';
 const APP_NAME = 'WeWatch';
-const PRIVACY_EMAIL = 'privacy@wewatch.app';
-const SUPPORT_EMAIL = 'support@wewatch.app';
+const PRIVACY_EMAIL = 'privacy@wewatch.uz';
+const SUPPORT_EMAIL = 'support@wewatch.uz';
 
 export default function DeleteAccountPage() {
   return (

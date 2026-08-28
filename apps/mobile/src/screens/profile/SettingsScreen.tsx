@@ -282,12 +282,27 @@ export function SettingsScreen() {
             </TrackedTouchable>
             <TrackedTouchable
               trackId="settings:open_terms"
-              style={styles.navRow}
+              style={[styles.navRow, styles.rowBorder]}
               onPress={() => Linking.openURL('https://wewatch.uz/terms')}
               activeOpacity={0.8}
             >
               <Ionicons name="document-text-outline" size={18} color={colors.textMuted} />
               <Text style={styles.navLabel}>{t('settings', 'termsLabel')}</Text>
+              <Ionicons name="open-outline" size={16} color={colors.textMuted} />
+            </TrackedTouchable>
+            {/* 2026-08-28: the web app has had a DMCA takedown-procedure page (apps/web/src/app/
+                dmca) since before this screen existed, but nothing in the mobile app ever linked
+                to it — Play reviews the APK's own content, not the website, so an app whose only
+                path for a copyright holder to file a claim required already knowing the URL read
+                as having no procedure at all. Same nav-row pattern as Privacy/Terms above. */}
+            <TrackedTouchable
+              trackId="settings:open_dmca"
+              style={styles.navRow}
+              onPress={() => Linking.openURL('https://wewatch.uz/dmca')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="alert-circle-outline" size={18} color={colors.textMuted} />
+              <Text style={styles.navLabel}>{t('settings', 'dmcaLabel')}</Text>
               <Ionicons name="open-outline" size={16} color={colors.textMuted} />
             </TrackedTouchable>
           </View>
