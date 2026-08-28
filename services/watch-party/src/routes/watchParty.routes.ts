@@ -114,6 +114,10 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   router.get('/rooms/my/recent', verifyToken, notBlocked, watchPartyController.getRecentRooms);
 
   // GET /watch-party/rooms/my/resumable — Pro "continue watching" list (2026-08-22)
+  // GET /watch-party/rooms/my/active — the caller's OWN live rooms (owned or joined). Distinct
+  // from /rooms below, which is the general public grid with no owner filter.
+  router.get('/rooms/my/active', verifyToken, notBlocked, watchPartyController.getMyActiveRooms);
+
   router.get('/rooms/my/resumable', verifyToken, notBlocked, watchPartyController.getResumableRooms);
 
   // POST /watch-party/rooms/:id/resume — reopen a resumable room as a new one (2026-08-22)

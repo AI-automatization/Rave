@@ -68,6 +68,33 @@ export class WatchPartyMembersService {
     return rooms as unknown as IWatchPartyRoomDocument[];
   }
 
+  /**
+   * Rooms this user actually owns or belongs to, still live. Exists because the mobile "Мои
+   * комнаты" tab was calling getRooms() — the general public-room grid, which has no owner or
+   * member filter at all — so it showed everyone's rooms under a heading saying they were yours
+   * (reported 2026-08-26, still reproducing 2026-08-28).
+   *
+   * Deliberately NOT reusing getRecentRooms(): that one is history (any room you were ever in,
+   * including ended ones) and is cached for 5 minutes, which is wrong for a list the owner
+   * expects to update as their rooms start and stop. Owner is matched explicitly alongside
+   * members rather than assuming the creator is always in `members`.
+   */
+  async getMyActiveRooms(userId: string, limit = 50): Promise<Array<IWatchPartyRoomDocument & { memberCount: number }>> {
+    const rooms = await WatchPartyRoom.find({
+      $or: [{ ownerId: userId }, { members: userId }],
+      status: { $ne: 'ended' },
+    })
+      .select('-password')
+      .sort({ lastActivityAt: -1 })
+      .limit(limit)
+      .lean();
+
+    return rooms.map((r) => ({
+      ...r,
+      memberCount: r.members.length,
+    })) as unknown as Array<IWatchPartyRoomDocument & { memberCount: number }>;
+  }
+
   async invalidateRecentRoomsCache(userIds: string[]): Promise<void> {
     if (userIds.length === 0) return;
     await Promise.all(userIds.map((id) => this.redis.del(REDIS_KEYS.recentRooms(id))));

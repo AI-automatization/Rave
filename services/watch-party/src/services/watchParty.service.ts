@@ -38,6 +38,7 @@ export class WatchPartyService {
   getMutedMembers!: WatchPartyMembersService['getMutedMembers'];
   isMuted!: WatchPartyMembersService['isMuted'];
   getRecentRooms!: WatchPartyMembersService['getRecentRooms'];
+  getMyActiveRooms!: WatchPartyMembersService['getMyActiveRooms'];
   getPublicActiveRooms!: WatchPartyMembersService['getPublicActiveRooms'];
   invalidatePublicRoomsCache!: WatchPartyMembersService['invalidatePublicRoomsCache'];
 
@@ -62,6 +63,7 @@ export class WatchPartyService {
     this.getMutedMembers = this.members.getMutedMembers.bind(this.members);
     this.isMuted = this.members.isMuted.bind(this.members);
     this.getRecentRooms = this.members.getRecentRooms.bind(this.members);
+    this.getMyActiveRooms = this.members.getMyActiveRooms.bind(this.members);
     this.getPublicActiveRooms = this.members.getPublicActiveRooms.bind(this.members);
     this.invalidatePublicRoomsCache = this.members.invalidatePublicRoomsCache.bind(this.members);
   }
