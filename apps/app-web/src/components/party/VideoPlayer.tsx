@@ -499,7 +499,12 @@ function runCaptureTailPump(
 // happens, unsupported by THIS browser's MSE implementation, or the initial probe request
 // failed) — the caller's contract is: null means "fall back to plain video.src", never worse than
 // not having this at all.
-async function setupCaptureMse(
+// Exported (2026-08-28) because VideoCandidatePicker's preview needs exactly this: its previews of
+// /vb-capture/ candidates were rendering as a black box, since it played them through a plain
+// `video.src` — the very thing the comment above explains Chrome cannot do with a live growing
+// fMP4 buffer. Same function, same fallback contract, so the picker preview and the real player
+// can never disagree about whether a candidate is playable.
+export async function setupCaptureMse(
   video: HTMLVideoElement,
   src: string,
   cb: { onFatal: () => void; onReady: () => void; isCancelled: () => boolean },

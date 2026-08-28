@@ -583,6 +583,11 @@ async function attemptFetch(rawUrl: string, req: Request, res: Response, referer
     // a non-default Vary value. Confirmed live 2026-08-06: cf-cache-status was BYPASS on every
     // request through stream.wewatch.uz despite a matching, active Cache Rule, until this line.
     res.removeHeader('Vary');
+    // Same static-`*` reasoning as vbCapture.controller.ts (2026-08-28): needed so a
+    // <video crossOrigin="anonymous"> can be drawn to a canvas for the candidate-picker thumbnail,
+    // and it must be origin-independent because Vary is stripped above for cacheability. Safe on
+    // an already-public, signature-gated route — `*` grants nothing the signature didn't.
+    res.setHeader('Access-Control-Allow-Origin', '*');
     const cr = upstream.headers.get('content-range');
     if (cr) res.setHeader('Content-Range', cr);
 
