@@ -225,8 +225,11 @@ export function WatchPartyScreen() {
   // every `room?.videoUrl` change (the original, since-rolled-back implementation) self-defeats,
   // because VB mutates room.videoUrl every time it finds new media — the very event the guard
   // needs to survive. Tracking the set of URLs already attempted means each distinct source gets
-  // at most one retry.
+  // at most one retry. The size cap is a second, independent backstop in case some future URL
+  // variation (query-param reordering, trailing slash, etc.) slips past the exact-string dedup —
+  // ported from web's RoomContent.tsx after a flow audit (2026-08-28) found mobile never got it.
   const vbAttemptedUrlsRef = useRef<Set<string>>(new Set());
+  const VB_MAX_ATTEMPTS_PER_SESSION = 3;
 
   // Tracks the last genuine owner-submitted SOURCE PAGE (never a vb-media-proxy rewrite) so a
   // fatal-error retry can re-open VB on the actual page instead of the raw sniffed media file.
@@ -247,6 +250,7 @@ export function WatchPartyScreen() {
     const targetUrl = originalSourceUrlRef.current;
     if (!targetUrl) return; // no known source page to retry (e.g. fatal error before any CHANGE_MEDIA)
     if (vbAttemptedUrlsRef.current.has(targetUrl)) return; // this exact source was already tried
+    if (vbAttemptedUrlsRef.current.size >= VB_MAX_ATTEMPTS_PER_SESSION) return; // hard cap backstop
     vbAttemptedUrlsRef.current.add(targetUrl);
     // 2026-08-24 (Saidazim, live-test feedback): was calling vb.start(targetUrl) directly, which
     // reopens the Virtual Browser screencast on fatal playback error — but VB never auto-commits
