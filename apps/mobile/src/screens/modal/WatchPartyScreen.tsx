@@ -245,19 +245,14 @@ export function WatchPartyScreen() {
     if (url && unwrapVbProxyUrl(url) === url) originalSourceUrlRef.current = url;
   }, [room?.videoUrl, originalVideoUrl]);
 
-  const handleVideoFatalError = useCallback(() => {
-    if (!isOwner || vb.active) return;
-    const targetUrl = originalSourceUrlRef.current;
-    if (!targetUrl) return; // no known source page to retry (e.g. fatal error before any CHANGE_MEDIA)
-    if (vbAttemptedUrlsRef.current.has(targetUrl)) return; // this exact source was already tried
-    if (vbAttemptedUrlsRef.current.size >= VB_MAX_ATTEMPTS_PER_SESSION) return; // hard cap backstop
-    vbAttemptedUrlsRef.current.add(targetUrl);
-    // 2026-08-24 (Saidazim, live-test feedback): was calling vb.start(targetUrl) directly, which
-    // reopens the Virtual Browser screencast on fatal playback error — but VB never auto-commits
-    // what it finds, so the owner just watched it re-search then had to open the picker manually
-    // anyway. Go straight to the picker instead.
-    handleOpenCandidatePicker();
-  }, [isOwner, vb.active, handleOpenCandidatePicker]);
+  // DISABLED (Saidazim, 2026-08-28: "ретрай вб вообще надо убрать") — this used to auto-open the
+  // VB fallback/picker on a fatal playback error. UniversalPlayer already shows its own error
+  // state with a manual "Retry" button (videoError branch) regardless of this handler, so turning
+  // the auto-recovery off doesn't leave the owner stuck with no way forward, just no automatic
+  // one. Left the tracking refs/effect above and unwrapVbProxyUrl in place rather than ripping out
+  // the whole (real-bug-tested) apparatus — trivial to re-enable by restoring the body below if
+  // this turns out to be wanted back.
+  const handleVideoFatalError = useCallback(() => {}, []);
 
   // T-S189: room was created with a raw, unverified URL (user forced it via "try current
   // page anyway" — no client/server detection confirmed it beforehand). Mirrors web's
