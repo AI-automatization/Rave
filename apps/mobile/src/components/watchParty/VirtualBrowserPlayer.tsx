@@ -20,8 +20,14 @@ interface Props {
   frame: string | null;
   dimensions: { width: number; height: number } | null;
   error: string | null;
+  /** Page VB is showing is a bot-challenge wall — mirrors web's VirtualBrowserPlayer.tsx. Needs to
+   * show ON TOP of a live, still-streaming frame (Twitch/Rutube keep sending screencast frames of
+   * the challenge page itself, which without this just reads as the stream flickering/stuck). */
+  blocked: 'cloudflare' | 'recaptcha' | null;
   stop: () => void;
   sendInput: (input: VBInput) => void;
+  /** Owner-only escape hatch out of a blocked session — opens the same "Это не то видео" picker. */
+  onPickDifferentVideo?: () => void;
 }
 
 // Below this the finger hasn't really moved — treat the gesture as a tap (mousedown+mouseup),
@@ -29,7 +35,7 @@ interface Props {
 const TAP_SLOP_PX = 10;
 const MOVE_THROTTLE_MS = 40; // ~25fps for mousemove — matches web
 
-export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, stop, sendInput }: Props) {
+export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocked, stop, sendInput, onPickDifferentVideo }: Props) {
   const { t } = useT();
   const [layout, setLayout] = useState<{ width: number; height: number } | null>(null);
   const lastMoveRef = useRef(0);
@@ -154,6 +160,28 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, stop, 
           fadeDuration={0}
         />
       </View>
+
+      {/* Bot-challenge wall — not solved/bypassed (out of scope on purpose, see
+          virtualBrowser.service.ts), just surfaced. Without this the owner just watches raw
+          screencast frames of a captcha/challenge page with no indication what's happening and no
+          way out except force-closing the room (live report 2026-08-28, Twitch/Rutube: "мигает,
+          застряло"). Owner can tap straight through to the candidate picker instead of waiting out
+          a screencast that will never resolve on its own. */}
+      {blocked && (
+        <TrackedTouchable
+          trackId="watchparty:vb_blocked_pick_another"
+          style={s.blockedBadge}
+          onPress={() => onPickDifferentVideo?.()}
+          disabled={!isOwner || !onPickDifferentVideo}
+          activeOpacity={0.8}
+        >
+          <View style={s.blockedDot} />
+          <Text style={s.blockedText}>
+            {t('watchParty', 'vbBlocked')}
+            {isOwner && onPickDifferentVideo ? ` — ${t('watchParty', 'playerPickAnother')}` : ''}
+          </Text>
+        </TrackedTouchable>
+      )}
     </View>
   );
 }
@@ -186,4 +214,14 @@ const s = StyleSheet.create({
   },
   hintDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#A78BFA' },
   hintText: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '600' },
+  blockedBadge: {
+    position: 'absolute', bottom: 10, left: '50%', zIndex: 10,
+    transform: [{ translateX: -110 }],
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    maxWidth: 220,
+  },
+  blockedDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#F87171' },
+  blockedText: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '600' },
 });
