@@ -335,6 +335,20 @@ export class WatchPartyController {
     }
   };
 
+  // GET /watch-party/rooms/my/active — rooms the caller owns or is a member of, still live.
+  // Backs the mobile "Мои комнаты" tab, which until 2026-08-28 called the general public-room
+  // list and therefore showed everyone's rooms under a "yours" heading.
+  getMyActiveRooms = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const limit = Math.min(Math.max(1, parseInt((req.query.limit as string) ?? '50', 10) || 50), 100);
+      const rooms = await this.watchPartyService.getMyActiveRooms(userId, limit);
+      res.json(apiResponse.success(rooms));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   // ── 2026-08-22: Pro "continue watching" ───────────────────────────────
 
   // GET /watch-party/rooms/my/resumable

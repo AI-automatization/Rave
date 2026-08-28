@@ -71,6 +71,14 @@ export const watchPartyApi = {
     return res.data.data ?? [];
   },
 
+  // The caller's OWN live rooms (owned or joined). getRooms() above is the general public grid
+  // with no owner filter at all — using it for the "Мои комнаты" tab is exactly the bug this
+  // exists to fix (reported 2026-08-26: the tab listed everyone's rooms).
+  async getMyRooms(): Promise<IWatchPartyRoom[]> {
+    const res = await watchPartyClient.get<ApiResponse<IWatchPartyRoom[]>>('/watch-party/rooms/my/active');
+    return res.data.data ?? [];
+  },
+
   // ICE servers for WebRTC (mesh sync + voice). Backend proxies Metered TURN —
   // returns { iceServers } directly (not ApiResponse-wrapped). STUN-only if TURN unset.
   async getTurnCredentials(): Promise<RTCIceServer[]> {

@@ -5,7 +5,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, spacing, createThemedStyles, borderRadius, typography } from '@theme/index';
-import { useWatchPartyRooms } from '@hooks/useWatchPartyRooms';
+import { useMyRooms } from '@hooks/useMyRooms';
 import { useRecentRooms } from '@hooks/useRecentRooms';
 import { usePublicRooms } from '@hooks/usePublicRooms';
 import { watchPartyApi, JoinRequestPendingError } from '@api/watchParty.api';
@@ -39,7 +39,7 @@ export function RoomsTab({ navigation, t }: Props) {
   const [activeTab, setActiveTab] = useState<SubTab>('my');
   const [joining, setJoining] = useState<string | null>(null);
 
-  const myQuery     = useWatchPartyRooms();
+  const myQuery     = useMyRooms();
   const recentQuery = useRecentRooms();
   const publicQuery = usePublicRooms();
 
