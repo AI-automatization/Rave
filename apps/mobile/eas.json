@@ -16,6 +16,7 @@
         "EXPO_PUBLIC_WATCH_PARTY_URL": "https://watch-part-production.up.railway.app",
         "EXPO_PUBLIC_ADMIN_URL": "https://admin-production-8d2a.up.railway.app/api/v1",
         "EXPO_PUBLIC_PAYMENT_URL": "https://payment-production-225b.up.railway.app/api/v1",
+        "EXPO_PUBLIC_VB_ENABLED": "true",
         "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1",
         "SENTRY_DISABLE_AUTO_UPLOAD": "true",
         "EXPO_PUBLIC_SENTRY_DSN": "https://799228e15322a64718774120b6ea50ee@o4511988362051584.ingest.us.sentry.io/4511988368146432"
@@ -39,6 +40,7 @@
         "EXPO_PUBLIC_WATCH_PARTY_URL": "https://watch-part-production.up.railway.app",
         "EXPO_PUBLIC_ADMIN_URL": "https://admin-production-8d2a.up.railway.app/api/v1",
         "EXPO_PUBLIC_PAYMENT_URL": "https://payment-production-225b.up.railway.app/api/v1",
+        "EXPO_PUBLIC_VB_ENABLED": "true",
         "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1",
         "SENTRY_DISABLE_AUTO_UPLOAD": "true",
         "EXPO_PUBLIC_SENTRY_DSN": "https://799228e15322a64718774120b6ea50ee@o4511988362051584.ingest.us.sentry.io/4511988368146432"
@@ -58,6 +60,7 @@
         "EXPO_PUBLIC_WATCH_PARTY_URL": "https://watch-part-production.up.railway.app",
         "EXPO_PUBLIC_ADMIN_URL": "https://admin-production-8d2a.up.railway.app/api/v1",
         "EXPO_PUBLIC_PAYMENT_URL": "https://payment-production-225b.up.railway.app/api/v1",
+        "EXPO_PUBLIC_VB_ENABLED": "false",
         "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1",
         "SENTRY_DISABLE_AUTO_UPLOAD": "true",
         "EXPO_PUBLIC_SENTRY_DSN": "https://799228e15322a64718774120b6ea50ee@o4511988362051584.ingest.us.sentry.io/4511988368146432"
