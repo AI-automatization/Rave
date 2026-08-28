@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Alert, Linking, AppState } from 'react-native';
 import Constants from 'expo-constants';
+import * as Updates from 'expo-updates';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import * as Notifications from 'expo-notifications';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
@@ -251,6 +252,13 @@ export function SettingsScreen() {
           <View style={styles.card}>
             {[
               { label: t('settings', 'version'), value: Constants.expoConfig?.version ?? '1.0.0' },
+              // Debug aid (2026-08-28, Saidazim: "чтобы я мог знать пришло ли обновление") — OTA
+              // pushes the same app version number, so the version row alone can't distinguish
+              // "still on the old bundle" from "update applied". updateId is null on the bundle
+              // embedded in the binary at build time (no OTA fetched yet); a real value confirms
+              // an OTA update actually landed, and the tail matches the "Android/iOS update ID"
+              // eas update prints on publish, so it's directly checkable against a specific push.
+              { label: 'OTA', value: Updates.updateId ? Updates.updateId.slice(-8) : 'embedded' },
             ].map((item, i) => (
               <View key={item.label} style={[styles.infoRow, i === 0 && styles.rowBorder]}>
                 <Text style={styles.infoLabel}>{item.label}</Text>
