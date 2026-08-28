@@ -377,8 +377,10 @@ export function WatchPartyScreen() {
           frame={vb.frame}
           dimensions={vb.dimensions}
           error={vb.error}
+          blocked={vb.blocked}
           stop={vb.stop}
           sendInput={vb.sendInput}
+          onPickDifferentVideo={handleOpenCandidatePicker}
         />
       ) : (
       <VideoSection
