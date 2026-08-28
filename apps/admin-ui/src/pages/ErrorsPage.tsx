@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import { Search, Mail, User, X, AlertTriangle, Clock, Smartphone, ChevronDown, ChevronRight, Cpu, Globe, Layers, Zap, Tag, MonitorSmartphone, Code2, Database, Shield, MessageCircle, Send, ExternalLink } from 'lucide-react';
 import { errorsApi, MobileIssue, MobileEvent, IssueStatus, ErrorStats } from '../api/errors.api';
+import { sentryApi, SentryIssue } from '../api/sentry.api';
 import { usersApi } from '../api/users.api';
 import { supportApi, SupportMessage } from '../api/support.api';
 import { Badge } from '../components/ui/Badge';
@@ -636,6 +637,94 @@ function EventDrawer({ issue, onClose }: { issue: MobileIssue; onClose: () => vo
   );
 }
 
+// ── SentryPanel ──────────────────────────────────────────────────────────────
+// Separate from the table above: our own /errors pipeline only sees what our own
+// ErrorBoundary/global handler explicitly forward. Sentry also catches native
+// crashes our JS-only pipeline never sees at all — complementary source, not a
+// replacement, so it lives as its own tab rather than merged into one table.
+
+const LEVEL_COLOR: Record<string, { bg: string; text: string; border: string }> = {
+  fatal:   { bg: 'bg-red-500/10',    text: 'text-red-400',    border: 'border-red-500/20' },
+  error:   { bg: 'bg-orange-500/10', text: 'text-orange-400', border: 'border-orange-500/20' },
+  warning: { bg: 'bg-amber-500/10',  text: 'text-amber-400',  border: 'border-amber-500/20' },
+};
+
+function SentryPanel() {
+  const [issues, setIssues] = useState<SentryIssue[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notConfigured, setNotConfigured] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    sentryApi.listIssues()
+      .then((data) => { setIssues(data); setNotConfigured(false); })
+      .catch(() => setNotConfigured(true))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-2.5">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-16 bg-card rounded-2xl animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  if (notConfigured) {
+    return (
+      <div className="bg-card rounded-2xl p-8 text-center text-text-muted text-sm">
+        Sentry ещё не подключён на бэкенде (нет SENTRY_AUTH_TOKEN / SENTRY_ORG_SLUG / SENTRY_PROJECT_SLUG).
+      </div>
+    );
+  }
+
+  if (issues.length === 0) {
+    return <div className="bg-card rounded-2xl p-8 text-center text-text-muted text-sm">Открытых issues в Sentry нет 🎉</div>;
+  }
+
+  return (
+    <div className="flex flex-col gap-2.5">
+      {issues.map((issue) => {
+        const colors = LEVEL_COLOR[issue.level] ?? LEVEL_COLOR.error;
+        return (
+          <a
+            key={issue.id}
+            href={issue.permalink}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-4 bg-card rounded-2xl px-4 py-3.5 border border-white/[0.06] hover:border-white/[0.12] transition-colors"
+          >
+            <span className={`text-[10px] font-bold px-2 py-1 rounded-lg border uppercase tracking-widest shrink-0 ${colors.bg} ${colors.text} ${colors.border}`}>
+              {issue.level || '—'}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-white truncate">{issue.title}</p>
+              {issue.culprit && <p className="text-xs text-text-muted truncate mt-0.5">{issue.culprit}</p>}
+            </div>
+            <div className="text-right shrink-0 flex items-center gap-4">
+              <div>
+                <p className="text-xs text-text-dim">События</p>
+                <p className="text-sm font-mono font-semibold text-white">{issue.count}</p>
+              </div>
+              <div>
+                <p className="text-xs text-text-dim">Юзеров</p>
+                <p className="text-sm font-mono font-semibold text-white">{issue.userCount}</p>
+              </div>
+              <div className="w-24">
+                <p className="text-xs text-text-dim">Последний</p>
+                <p className="text-xs text-text-muted whitespace-nowrap">{relativeTime(issue.lastSeen)}</p>
+              </div>
+              <ExternalLink size={14} className="text-text-dim" />
+            </div>
+          </a>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export function ErrorsPage() {
@@ -654,6 +743,7 @@ export function ErrorsPage() {
   const [searchInput, setSearchInput] = useState('');
   const [selected, setSelected] = useState<MobileIssue | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [source, setSource] = useState<'ours' | 'sentry'>('ours');
 
   const loadStats = useCallback(() => {
     errorsApi.stats().then(setStats).catch(() => {});
@@ -703,11 +793,31 @@ export function ErrorsPage() {
           <h1 className="text-2xl font-bold text-white">Ошибки</h1>
           <p className="text-text-muted text-sm mt-0.5">Мобильные краши и исключения</p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-text-dim bg-card rounded-xl px-3 py-2 border border-white/[0.06]">
-          <Smartphone size={13} />
-          <span>{total.toLocaleString('ru')} всего</span>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 bg-card rounded-xl p-1 border border-white/[0.06]">
+            <button
+              onClick={() => setSource('ours')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${source === 'ours' ? 'bg-accent/15 text-accent' : 'text-text-muted hover:text-white'}`}
+            >
+              Наши логи
+            </button>
+            <button
+              onClick={() => setSource('sentry')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${source === 'sentry' ? 'bg-accent/15 text-accent' : 'text-text-muted hover:text-white'}`}
+            >
+              Sentry
+            </button>
+          </div>
+          {source === 'ours' && (
+            <div className="flex items-center gap-2 text-xs text-text-dim bg-card rounded-xl px-3 py-2 border border-white/[0.06]">
+              <Smartphone size={13} />
+              <span>{total.toLocaleString('ru')} всего</span>
+            </div>
+          )}
         </div>
       </div>
+
+      {source === 'sentry' ? <SentryPanel /> : <>
 
       {/* User filter banner */}
       {userIdFromUrl && (
@@ -848,6 +958,7 @@ export function ErrorsPage() {
       </div>
 
       {selected && <EventDrawer issue={selected} onClose={() => setSelected(null)} />}
+      </>}
     </div>
   );
 }

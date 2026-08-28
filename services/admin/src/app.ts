@@ -16,6 +16,7 @@ import { apiLogger } from '@shared/middleware/apiLogger.middleware';
 import { createAdminRouter } from './routes/admin.routes';
 import { createOperatorRouter } from './routes/operator.routes';
 import { createErrorsRouter } from './routes/errors.routes';
+import { createSentryProxyRouter } from './routes/sentryProxy.routes';
 import { createSupportRouter } from './routes/support.routes';
 import { createModerationRouter } from './routes/moderation.routes';
 import { createAnalyticsRouter } from './routes/analytics.routes';
@@ -63,6 +64,7 @@ export const createApp = (redis: Redis): express.Application => {
   app.use('/api/v1/admin', createAdminRouter(redis));
   app.use('/api/v1/operator', createOperatorRouter(redis));
   app.use('/api/v1/errors', createErrorsRouter());
+  app.use('/api/v1/sentry', createSentryProxyRouter());
   app.use('/api/v1', createAnalyticsRouter());
   app.use('/api/v1', createSyncStatsRouter());
   app.use('/api/v1', createSupportRouter());
