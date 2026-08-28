@@ -8,6 +8,7 @@ import { createTurnController } from '../controllers/turn.controller';
 import { vbCaptureController } from '../controllers/vbCapture.controller';
 import { createVbMediaProxyController } from '../controllers/vbMediaProxy.controller';
 import { createFaststartProxyController } from '../controllers/faststartProxy.controller';
+import { createVbStreamController } from '../controllers/vbStream.controller';
 import { verifyToken, requireNotBlocked } from '@shared/middleware/auth.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
 import { createRoomLimiter, joinRoomLimiter, vbMediaProxyLimiter, vbCaptureLimiter } from '../middleware/rateLimiter';
@@ -26,6 +27,7 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   const vbCaptureLim = vbCaptureLimiter(redis);
   const vbMediaProxyController = createVbMediaProxyController(redis);
   const faststartProxyController = createFaststartProxyController();
+  const vbStreamController = createVbStreamController();
 
   // Internal — force-disconnect blocked user from all sockets
   router.post('/internal/users/:userId/disconnect', requireInternalSecret, watchPartyController.disconnectUser);
@@ -99,6 +101,14 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   // hash this service generated itself, not attacker input — same public/no-auth trust model as
   // the routes above, same rate limiter.
   router.get('/vb-media-proxy/faststart/:fileName', vbProxyLimiter, faststartProxyController.stream);
+
+  // GET /watch-party/vb-stream/:roomId/(index.m3u8|segN.ts) — live HLS of the VB session itself,
+  // video AND audio (vbStream.service.ts). Unlike every route above, this doesn't serve media the
+  // browser found on a page; it serves the browser session as a video stream, which is what makes
+  // "watch the whole thing through VB" possible for sources no extractor can handle. Same
+  // public/no-auth trust model and rate limiter as the neighbouring VB routes — it exists to be
+  // fetched by players and by a CDN, and every file it serves was written by our own ffmpeg.
+  router.get('/vb-stream/:roomId/:file', vbCaptureLim, vbStreamController.serve);
 
   // GET /watch-party/rooms/my/recent — user's last 10 rooms (T-S061)
   router.get('/rooms/my/recent', verifyToken, notBlocked, watchPartyController.getRecentRooms);
