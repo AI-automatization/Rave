@@ -49,6 +49,10 @@ type Mode = 'cycle' | 'grid' | 'gridPreview';
 const SCREEN_W = Dimensions.get('window').width;
 const SCREEN_H = Dimensions.get('window').height;
 const PREVIEW_H = Math.round(SCREEN_W * (9 / 16));
+// Deep enough to skip a black/fade-in first frame (the same reason the web picker waits for the
+// second timeupdate before grabbing its frame), shallow enough that the player only has to pull a
+// small byte range to reach it.
+const THUMBNAIL_TIME_MS = 3000;
 
 function formatDuration(secs?: number): string | null {
   if (!secs || secs <= 0) return null;
@@ -72,6 +76,12 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
   // a native-appropriate way to get it. Keyed by index, cached for the life of this sheet.
   const [thumbnails, setThumbnails] = useState<Record<number, string>>({});
   const thumbnailAttempted = useRef<Set<number>>(new Set());
+  // Guards the sequential thumbnail run below against being started twice — see its own comment.
+  const thumbRunningRef = useRef(false);
+  // URL of the candidate whose preview player has actually reported ready. Drives hiding the
+  // poster overlay in renderPreview; keyed by URL rather than index so it can't go stale when the
+  // list changes underneath.
+  const [previewReadyUrl, setPreviewReadyUrl] = useState<string | null>(null);
   // Real prod bug (live-test feedback, 2026-08-24): a poster/thumbnail URL that 404s or times out
   // just rendered a dead/blank <Image> — no fallback to the placeholder icon.
   const [failedUris, setFailedUris] = useState<Set<string>>(new Set());
@@ -102,27 +112,62 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
     }
   }, [visible, candidates]);
 
-  // Lazy, on entering the grid (not eagerly on load) — generating a thumbnail costs a real
-  // network fetch per candidate, not worth paying for candidates the owner never looks at because
-  // the first one in cycle mode was already the right one.
+  // Starts as soon as the sheet opens, NOT on entering the grid (2026-08-28, Saidazim: "надо
+  // сделать чтобы кадры быстрее появлялись"). Two separate reasons the old timing felt slow:
+  //   1. Nothing was generated until the owner had already cycled past every candidate, so the
+  //      grid always opened empty and only then began fetching — the wait was fully in front of
+  //      the user instead of behind them. Starting at open means the frames are usually already
+  //      there by the time the grid is reached.
+  //   2. It fired every candidate at once. N parallel range-fetches over one mobile connection
+  //      don't finish sooner, they just all finish late — including whichever one the owner is
+  //      actually looking at. Sequential, in display order, gets the FIRST frame on screen much
+  //      sooner, which is the one that matters; the rest fill in behind it.
+  // The original "don't pay for candidates nobody looks at" concern is real but was the wrong
+  // trade: these are byte-range reads of a few hundred KB, against a picker the owner opened
+  // precisely because they intend to look through it.
   useEffect(() => {
-    if (mode !== 'grid' || !candidates) return;
-    candidates.forEach((c, i) => {
-      if (c.poster || c.type === 'embed' || thumbnailAttempted.current.has(i)) return;
-      thumbnailAttempted.current.add(i);
-      VideoThumbnails.getThumbnailAsync(c.url, { time: 3000 })
-        .then(({ uri }) => setThumbnails((prev) => ({ ...prev, [i]: uri })))
-        .catch((e: unknown) => {
-          // Some candidates (e.g. a DASH manifest with no direct-file byte range, or a site that
-          // blocks the device's own fetch) just won't thumbnail — falls back to the existing
-          // placeholder icon, same as a missing server-provided poster already did. Logged
-          // (dev-only, per CLAUDE.md) rather than fully silent — 2026-08-26 live report ("вижу
-          // только один кадр из нескольких") had no client-side trail at all to confirm which
-          // candidate failed or why, only a structural guess from reading the code.
-          if (__DEV__) console.log('[VideoCandidatePicker] thumbnail failed', { index: i, url: c.url.slice(0, 120), error: e instanceof Error ? e.message : String(e) });
-        });
-    });
-  }, [mode, candidates]);
+    if (!visible || !candidates) return;
+    let cancelled = false;
+
+    void (async () => {
+      // `candidates` can change identity without its contents changing (the reset effect above
+      // exists precisely because of that), which re-runs this effect. Bail out instead of starting
+      // a second interleaved run — the first one is still working through the same list, and two
+      // sequential loops racing would defeat the point of being sequential.
+      if (thumbRunningRef.current) return;
+      thumbRunningRef.current = true;
+      try {
+        for (let i = 0; i < candidates.length; i++) {
+          if (cancelled) return;
+          const c = candidates[i];
+          if (c.poster || c.type === 'embed' || thumbnailAttempted.current.has(i)) continue;
+          thumbnailAttempted.current.add(i);
+          try {
+            const { uri } = await VideoThumbnails.getThumbnailAsync(c.url, { time: THUMBNAIL_TIME_MS });
+            if (cancelled) {
+              // Generated but never stored (sheet closed mid-flight). Un-mark it, or the retry on
+              // reopen would skip this index forever and that card would stay a placeholder.
+              thumbnailAttempted.current.delete(i);
+              return;
+            }
+            setThumbnails((prev) => ({ ...prev, [i]: uri }));
+          } catch (e: unknown) {
+            // Some candidates (e.g. a DASH manifest with no direct-file byte range, or a site that
+            // blocks the device's own fetch) just won't thumbnail — falls back to the existing
+            // placeholder icon, same as a missing server-provided poster already did. Logged
+            // (dev-only, per CLAUDE.md) rather than fully silent — 2026-08-26 live report ("вижу
+            // только один кадр из нескольких") had no client-side trail at all to confirm which
+            // candidate failed or why, only a structural guess from reading the code.
+            if (__DEV__) console.log('[VideoCandidatePicker] thumbnail failed', { index: i, url: c.url.slice(0, 120), error: e instanceof Error ? e.message : String(e) });
+          }
+        }
+      } finally {
+        thumbRunningRef.current = false;
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [open, candidates]);
 
   // Loading badge pulse — same animation as VideoSection's "waiting for the video" overlay,
   // reused here for the equivalent "waiting for the candidates list" moment.
@@ -153,7 +198,11 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
     setCycleIndex((i) => i + 1);
   }, [candidates, cycleIndex]);
 
-  const renderPreview = (candidate: VideoCandidate, secondary: { label: string; icon: IconName; onPress: () => void }) => (
+  const renderPreview = (candidate: VideoCandidate, secondary: { label: string; icon: IconName; onPress: () => void }, index: number) => {
+    const rawPoster = candidate.poster ?? thumbnails[index];
+    const poster = rawPoster && !failedUris.has(rawPoster) ? rawPoster : undefined;
+    const showPoster = poster && previewReadyUrl !== candidate.url;
+    return (
     <View style={styles.previewWrap}>
       <View style={[styles.previewBox, { height: PREVIEW_H }]}>
         <UniversalPlayer
@@ -167,8 +216,23 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
           onPlay={() => {}}
           onPause={() => {}}
           onSeek={() => {}}
-          onReady={() => { void previewRef.current?.play(); }}
+          onReady={() => { setPreviewReadyUrl(candidate.url); void previewRef.current?.play(); }}
         />
+        {/* 2026-08-28 (Saidazim: "в листании не видно кадры, даже лоадинг"). Cycle mode mounted the
+            player and nothing else, so a candidate whose stream is slow — or that this player
+            cannot start at all — left a plain black box with no signal of any kind. The thumbnail
+            we now generate up-front (see the effect above) is shown until the player reports it's
+            actually ready, so there's a real frame of the real candidate to look at immediately
+            instead of black. Purely additive: it sits ON TOP and disappears on the first onReady,
+            so a working preview looks exactly as it did before. */}
+        {showPoster && (
+          <Image
+            source={{ uri: poster }}
+            style={StyleSheet.absoluteFill}
+            resizeMode="contain"
+            onError={() => markUriFailed(poster)}
+          />
+        )}
       </View>
       <View style={styles.previewActions}>
         <TrackedTouchable trackId="candidate_picker:secondary" style={styles.secondaryBtn} onPress={secondary.onPress} activeOpacity={0.8}>
@@ -181,7 +245,8 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
         </TrackedTouchable>
       </View>
     </View>
-  );
+    );
+  };
 
   const renderGridItem = ({ item, index }: ListRenderItemInfo<VideoCandidate>) => {
     const duration = formatDuration(item.duration);
@@ -247,13 +312,13 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
             label: t('watchParty', 'candidateNext'),
             icon: 'play-skip-forward-outline',
             onPress: handleNext,
-          })
+          }, cycleIndex)
         ) : mode === 'gridPreview' && gridPreviewCandidate ? (
           renderPreview(gridPreviewCandidate, {
             label: t('common', 'back'),
             icon: 'arrow-back-outline',
             onPress: () => setMode('grid'),
-          })
+          }, gridPreviewIndex)
         ) : (
           <FlatList
             data={candidates}
