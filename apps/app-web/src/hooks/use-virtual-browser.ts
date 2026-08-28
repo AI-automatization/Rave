@@ -41,7 +41,18 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
   useEffect(() => {
     if (!socket || !isConnected) return;
 
+    // Latch cleared only by an explicit VB_STARTED. onFrame below treats any arriving frame as
+    // proof the session is live (deliberate self-healing for a missed VB_STARTED) — but that also
+    // means a frame still in flight when the session ends silently re-opens the overlay, on top of
+    // the video the room just switched to, with no further VB_STOPPED coming to close it again.
+    // Real bug 2026-08-28 (Saidazim: "когда я уже выбрал видео, он опять открывает вб"). The server
+    // now stops the screencast before announcing the stop, which removes the race at the source;
+    // this is the client-side belt to go with those braces, since the self-healing behaviour makes
+    // the failure permanent whenever it does happen.
+    const endedRef = { current: false };
+
     const onStarted = (data: { url: string; width: number; height: number }) => {
+      endedRef.current = false;
       setActive(true);
       setDimensions({ width: data.width, height: data.height });
       setError(null);
@@ -57,8 +68,13 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
     // proof-of-active makes this self-healing regardless of which specific race caused the miss —
     // the very next frame corrects the UI instead of requiring VB_STARTED/ROOM_JOINED to have
     // landed at exactly the right moment.
-    const onFrame = (data: { data: string }) => { setFrame(data.data); setActive(true); };
+    const onFrame = (data: { data: string }) => {
+      if (endedRef.current) return; // late frame from a session that already ended — see endedRef
+      setFrame(data.data);
+      setActive(true);
+    };
     const onStopped = (data?: { reason?: string; needsConfirmation?: boolean }) => {
+      endedRef.current = true;
       setActive(false);
       setFrame(null);
       setBlocked(null);
@@ -94,6 +110,9 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
         return;
       }
       if (data.vb) {
+        // A snapshot arriving means a genuinely joinable session exists (the server omits it once
+        // the room has committed to a candidate), so this is a real (re)start for this client.
+        endedRef.current = false;
         setActive(true);
         setDimensions({ width: data.vb.width, height: data.vb.height });
       }

@@ -12,7 +12,7 @@ import { REDIS_KEYS } from '@shared/constants';
 import { VideoCandidate } from '@shared/types';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { signProxyUrl } from '@shared/utils/proxySignature';
-import { VB_VIEWPORT, startSession, stopSession, getSessionPageTitle, MediaType } from '../services/virtualBrowser.service';
+import { VB_VIEWPORT, startSession, stopSession, pauseScreencast, markSessionCommitted, getSessionPageTitle, MediaType } from '../services/virtualBrowser.service';
 import { WatchPartyRoom } from '../models/watchPartyRoom.model';
 import { WatchPartyService } from '../services/watchParty.service';
 import { isLikelyFaststart } from '../services/faststartCheck.service';
@@ -135,6 +135,58 @@ export async function startVBForRoom(
   // directly, so the normal end-of-collection-window picker doesn't also fire for the same room.
   let committed = false;
   let autoCommitTimer: NodeJS.Timeout | null = null;
+  // Set the moment the 40s collection window closes. Two things depend on it: auto-commit must
+  // not fire after the owner has been handed the picker (it would silently overwrite whatever they
+  // just chose), and the rollback path inside commitCandidate needs to know whether the picker has
+  // already been presented or whether it still has to present it itself.
+  let collectionEnded = false;
+
+  // Hands the owner the picker with whatever was found. Extracted from the collection-window
+  // callback (2026-08-28) so the auto-commit rollback path can call it too: if the window closed
+  // while a commit attempt was still in flight, that callback already returned early on
+  // committed=true, and without this nobody would ever present anything.
+  async function presentCandidates(): Promise<void> {
+    // Real prod case 2026-08-07: a room got swept as "inactive" 15 seconds after candidates
+    // became ready — closeInactiveRooms's hasSession() guard only covers the search itself, but
+    // lastActivityAt never moved even once during the ENTIRE VB run (no play/pause/seek/
+    // heartbeat happened, since nothing was playing yet), so the room was already past the
+    // 5-minute cutoff the instant VB finished. The owner needs real time to actually look at the
+    // picker and decide — touch the timestamp now so that time isn't borrowed from a clock that
+    // was already expired before they got a chance to see anything.
+    await WatchPartyRoom.updateOne({ _id: roomId }, { lastActivityAt: new Date() }).catch((e) => {
+      logger.warn('VB: failed to refresh room activity before presenting candidates', { roomId, error: (e as Error).message });
+    });
+    if (candidates.length > 0) {
+      // Real prod finding 2026-08-07 (uzmovi.net/uzdown.space): this site re-signs its .mpd
+      // URLs roughly every 10s (anti-hotlink) — by the time a 'url'-kind candidate survives
+      // the collection window + Redis round-trip + the owner actually opening the picker, the
+      // token baked into it is already dead, and vb-media-proxy 502s trying to fetch it. A
+      // 'capture'-kind candidate (vb-capture URL) has no such problem — it serves bytes VB's
+      // own browser already played, not a re-fetch of the original signed URL — so it's
+      // strictly more reliable whenever both kinds were found in the same session. Put it
+      // first so it's what the owner sees/tries first instead of an expiring one buried in a
+      // stack of them.
+      // T-S196: a candidate confirmed by real play/timeupdate activity (see
+      // onRealPlaybackConfirmed above) is a strictly stronger signal than "network response
+      // shaped like media" — rank it first. Falls back to the existing vb-capture tiebreak
+      // among non-confirmed candidates, unchanged.
+      candidates.sort((a, b) => Number(b.confirmed) - Number(a.confirmed)
+        || Number(b.url.includes('/vb-capture/')) - Number(a.url.includes('/vb-capture/')));
+      try {
+        await redis.setex(REDIS_KEYS.videoCandidates(roomId), CANDIDATES_TTL_SEC, JSON.stringify(candidates));
+      } catch (e) {
+        logger.warn('VB: failed to store candidates in Redis', { roomId, error: (e as Error).message });
+      }
+    } else {
+      void redis.del(REDIS_KEYS.videoCandidates(roomId)).catch(() => {});
+    }
+    // needsConfirmation: true even when empty — auto-opens the SAME picker (its existing "нет
+    // вариантов" state, see VideoCandidatePicker.tsx) instead of the screencast just quietly
+    // stopping with no feedback at all.
+    io.to(roomId).emit(SERVER_EVENTS.VIDEO_CANDIDATES, { candidates });
+    io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'media_found', needsConfirmation: true });
+    logger.info('VB: collection window closed, candidates ready for owner confirmation', { roomId, count: candidates.length });
+  }
 
   async function commitCandidate(candidate: VideoCandidate): Promise<void> {
     if (committed) return;
@@ -157,6 +209,10 @@ export async function startVBForRoom(
           // room to something that won't play. Un-flip `committed` so onCollectionEnd proceeds.
           committed = false;
           logger.warn('VB auto-commit: non-faststart candidate with no remux available, falling back to picker', { roomId });
+          // ...but if the window ALREADY closed while the faststart probe was running, then
+          // onCollectionEnd saw committed=true and returned early — nobody is left to present the
+          // picker, and the room would sit on a dead screencast forever. Present it here instead.
+          if (collectionEnded) await presentCandidates();
           return;
         }
       }
@@ -169,17 +225,38 @@ export async function startVBForRoom(
         videoTitle: candidate.title ?? null,
         videoPlatform: null,
       });
+
+      // Real bug 2026-08-28 (Saidazim, live on mobile: "когда я уже выбрал видео, он опять
+      // открывает вб"). The screencast MUST be silenced BEFORE VB_STOPPED goes out, not after.
+      // Clients treat any arriving VB_FRAME as proof the session is live and flip the overlay back
+      // on (use-virtual-browser.ts / useVirtualBrowser.ts set active=true on every frame — a
+      // deliberate self-healing behaviour for a missed VB_STARTED). So a frame still in flight
+      // after VB_STOPPED silently re-opens the VB overlay over the video we just switched to, and
+      // since no further VB_STOPPED is ever sent, it stays there.
+      //   - capture candidates: the browser must keep running (it IS the growing byte buffer), so
+      //     pauseScreencast — which is exactly what the manual-pick path relies on. This case was
+      //     missing entirely before, so the overlay came back for the whole rest of the window.
+      //   - everything else: stopSession, same as the manual path (roomEvents.handler.ts), which
+      //     always stopped the session BEFORE emitting. Matching that order here is the fix.
+      if (candidate.url.includes('/vb-capture/')) {
+        // Order matters: mark BEFORE the awaits below, so a client reconnecting in between can't
+        // catch a snapshot that still advertises a joinable VB (see VBSession.committed).
+        markSessionCommitted(roomId);
+        await pauseScreencast(roomId).catch((e) => {
+          logger.warn('VB auto-commit: failed to pause screencast after commit', { roomId, error: (e as Error).message });
+        });
+      } else {
+        await stopSession(roomId).catch((e) => {
+          logger.warn('VB auto-commit: failed to stop session after commit', { roomId, error: (e as Error).message });
+        });
+      }
+
       io.to(roomId).emit(SERVER_EVENTS.ROOM_UPDATED, updated);
       // Deliberately NOT 'media_found' — that reason is what makes the frontend open the picker
       // (use-virtual-browser.ts/useVirtualBrowser.ts: `reason === 'media_found' && needsConfirmation`).
       // Any other reason just closes the VB overlay, which is exactly right here since ROOM_UPDATED
       // above already switched everyone to the real player.
       io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'auto_confirmed' });
-      if (!candidate.url.includes('/vb-capture/')) {
-        await stopSession(roomId).catch((e) => {
-          logger.warn('VB auto-commit: failed to stop session after commit', { roomId, error: (e as Error).message });
-        });
-      }
       logger.info('VB auto-commit: switched room to real-playback-confirmed candidate without picker', { roomId, videoUrl: videoUrlToUse });
     } catch (e) {
       logger.error('VB auto-commit failed', { roomId, error: (e as Error).message });
@@ -187,7 +264,11 @@ export async function startVBForRoom(
   }
 
   function scheduleAutoCommit(): void {
-    if (committed) return;
+    // collectionEnded: once the owner has the picker in front of them, the choice is theirs. A
+    // capture-kind session keeps its page alive and playing after the window closes, so
+    // onRealPlaybackConfirmed can still fire minutes later — without this guard that late signal
+    // would auto-commit over whatever the owner had already picked, and tear down the session.
+    if (committed || collectionEnded) return;
     if (autoCommitTimer) clearTimeout(autoCommitTimer);
     autoCommitTimer = setTimeout(() => {
       const best = candidates.find((c) => c.confirmed);
@@ -231,50 +312,10 @@ export async function startVBForRoom(
     // TEST (2026-08-28): the collection window closing naturally means auto-commit didn't get a
     // clean confirmed candidate in time — always fall back to the normal picker from here,
     // regardless of what the auto-commit timer might still be about to do.
+    collectionEnded = true;
     if (autoCommitTimer) { clearTimeout(autoCommitTimer); autoCommitTimer = null; }
     if (committed) return;
-    void (async () => {
-      // Real prod case 2026-08-07: a room got swept as "inactive" 15 seconds after candidates
-      // became ready — closeInactiveRooms's hasSession() guard only covers the search itself, but
-      // lastActivityAt never moved even once during the ENTIRE VB run (no play/pause/seek/
-      // heartbeat happened, since nothing was playing yet), so the room was already past the
-      // 5-minute cutoff the instant VB finished. The owner needs real time to actually look at the
-      // picker and decide — touch the timestamp now so that time isn't borrowed from a clock that
-      // was already expired before they got a chance to see anything.
-      await WatchPartyRoom.updateOne({ _id: roomId }, { lastActivityAt: new Date() }).catch((e) => {
-        logger.warn('VB: failed to refresh room activity before presenting candidates', { roomId, error: (e as Error).message });
-      });
-      if (candidates.length > 0) {
-        // Real prod finding 2026-08-07 (uzmovi.net/uzdown.space): this site re-signs its .mpd
-        // URLs roughly every 10s (anti-hotlink) — by the time a 'url'-kind candidate survives
-        // the collection window + Redis round-trip + the owner actually opening the picker, the
-        // token baked into it is already dead, and vb-media-proxy 502s trying to fetch it. A
-        // 'capture'-kind candidate (vb-capture URL) has no such problem — it serves bytes VB's
-        // own browser already played, not a re-fetch of the original signed URL — so it's
-        // strictly more reliable whenever both kinds were found in the same session. Put it
-        // first so it's what the owner sees/tries first instead of an expiring one buried in a
-        // stack of them.
-        // T-S196: a candidate confirmed by real play/timeupdate activity (see
-        // onRealPlaybackConfirmed above) is a strictly stronger signal than "network response
-        // shaped like media" — rank it first. Falls back to the existing vb-capture tiebreak
-        // among non-confirmed candidates, unchanged.
-        candidates.sort((a, b) => Number(b.confirmed) - Number(a.confirmed)
-          || Number(b.url.includes('/vb-capture/')) - Number(a.url.includes('/vb-capture/')));
-        try {
-          await redis.setex(REDIS_KEYS.videoCandidates(roomId), CANDIDATES_TTL_SEC, JSON.stringify(candidates));
-        } catch (e) {
-          logger.warn('VB: failed to store candidates in Redis', { roomId, error: (e as Error).message });
-        }
-      } else {
-        void redis.del(REDIS_KEYS.videoCandidates(roomId)).catch(() => {});
-      }
-      // needsConfirmation: true even when empty — auto-opens the SAME picker (its existing "нет
-      // вариантов" state, see VideoCandidatePicker.tsx) instead of the screencast just quietly
-      // stopping with no feedback at all.
-      io.to(roomId).emit(SERVER_EVENTS.VIDEO_CANDIDATES, { candidates });
-      io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'media_found', needsConfirmation: true });
-      logger.info('VB: collection window closed, candidates ready for owner confirmation', { roomId, count: candidates.length });
-    })();
+    void presentCandidates();
   }, (src) => {
     if (src.startsWith('blob:')) {
       mseConfirmed = true;
