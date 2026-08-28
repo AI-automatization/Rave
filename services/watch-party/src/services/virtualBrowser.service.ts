@@ -12,6 +12,7 @@ import { logger } from '@shared/utils/logger';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { startCapture, appendCapture, appendCaptureTrack, stopCapture, clearCapture } from './vbCapture.service';
 import { isPrivateUrl, isOwnVbUrl } from './extractionClient';
+import * as vbStream from './vbStream.service';
 
 export const VB_VIEWPORT = { width: 1280, height: 720 } as const;
 
@@ -600,8 +601,16 @@ export async function startSession(
 
     const profileDir = vbProfileDir(roomId);
     fs.mkdirSync(profileDir, { recursive: true });
+
+    // Live A/V stream (2026-08-28) — brings up this session's own Xvfb display + PulseAudio sink,
+    // or returns null when VB_STREAM_ENABLED is off/unavailable. Chrome must run HEADFUL to render
+    // into that display and to produce any audio at all; headless Chrome has neither an X surface
+    // to grab nor an audio stream to route, which is exactly why the existing screencast path is
+    // silent. Null handle = unchanged headless behaviour, so this is inert until the flag is on.
+    const stream = await vbStream.startStream(roomId);
+
     const context = await chromium.launchPersistentContext(profileDir, {
-      headless: true,
+      headless: !stream,
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', ...STEALTH_LAUNCH_ARGS, ...ANTI_THROTTLE_LAUNCH_ARGS],
       viewport: VB_VIEWPORT,
@@ -609,6 +618,17 @@ export async function startSession(
       locale: VB_LOCALE,
       timezoneId: VB_TIMEZONE_ID,
       proxy: getProxyForUrl(url),
+      // XDG_RUNTIME_DIR is not optional here — it's how Chromium finds the PulseAudio daemon at
+      // all. Without it the browser silently never connects and the encoder captures a silent
+      // track (verified in a container test, see vbStream.service.ts's PULSE_RUNTIME_DIR note).
+      env: stream
+        ? {
+            ...process.env,
+            DISPLAY: stream.display,
+            PULSE_SINK: stream.sinkName,
+            XDG_RUNTIME_DIR: stream.runtimeDir,
+          }
+        : undefined,
     });
     await applyStealthPatches(context);
     const page = await context.newPage();
@@ -931,6 +951,10 @@ export async function startSession(
         return;
       }
       logger.info('VB session started', { roomId, url, active: sessions.size });
+      // Encoder starts only now, once the page has actually painted — starting it back when the
+      // display came up would spend CPU encoding a black screen and pad the live HLS window with
+      // dead segments the first viewer would have to sit through.
+      vbStream.startEncoder(roomId);
       const s = sessions.get(roomId);
       if (s) {
         // Best-effort — a title read failing (page navigated away again, closed, etc.) shouldn't
@@ -1011,6 +1035,9 @@ export async function stopSession(roomId: string): Promise<void> {
   try { await s.context.close(); } catch { /* already gone */ }
   stopCapture(roomId);
   clearCapture(roomId);
+  // Tears down ffmpeg, Xvfb, the PulseAudio sink and the HLS directory — all no-ops when this
+  // session never had a stream (flag off).
+  await vbStream.stopStream(roomId);
   logger.info('VB session stopped', { roomId });
   onSlotFreed?.();
 }
