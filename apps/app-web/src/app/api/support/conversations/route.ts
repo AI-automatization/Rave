@@ -21,8 +21,11 @@ export async function GET(req: NextRequest) {
     const userId = getUserIdFromToken(accessToken);
     if (!userId) return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
 
+    // Backend route (services/admin/src/routes/support.routes.ts) registers this WITHOUT a
+    // trailing /conversations — a mismatched path here falls through to the moderation router's
+    // global requireRole('admin', 'superadmin', 'moderator'), which is why this used to 403.
     const res = await fetch(
-      `${baseUrl()}/internal/support/user/${userId}/conversations`,
+      `${baseUrl()}/internal/support/user/${userId}`,
       { headers: { Authorization: `Bearer ${accessToken}` } },
     );
     const data = await res.json() as unknown;

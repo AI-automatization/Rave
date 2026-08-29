@@ -100,9 +100,9 @@ export function SupportContent() {
       const res = await apiClient<SupportConversation[]>('/api/support/conversations');
       return res.data ?? [];
     },
-    // The list 403s for ordinary users in production ("Access requires one of roles: admin,
-    // superadmin, moderator" — a backend route-auth bug, services/admin). Retrying just multiplies
-    // the failed calls; the error state below is what the user needs to see.
+    // Was 403ing for ordinary users — the proxy route called a URL that doesn't match any
+    // backend route, and the mismatch fell through to the moderation router's global role
+    // check. Fixed in api/support/conversations/route.ts (2026-08-29).
     retry: false,
   });
 

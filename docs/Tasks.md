@@ -391,16 +391,20 @@
 - **Prod audit topilmalari (2026-08-01):**
   - **P0 tashqi (kod emas):** `/notifications` 401 — yuqoridagi PROD bo'limiga qarang
     (notification servisi `JWT_PUBLIC_KEY` mos emas, Railway env). Hali ochiq.
-  - **P0 (ochiq, backend, zona tashqarisida):** `/support` — `GET /api/support/conversations`
-    403 `"Access requires one of roles: admin, superadmin, moderator"`, ammo `POST` 201 o'tadi
-    → har bosishda DB'da bo'sh suhbat yaratiladi. `apps/app-web`dagi route (`api/support/
-    conversations/route.ts`) faqat proxy — haqiqiy auth xatosi `ADMIN_SERVICE_URL`dagi
-    backend servisda (`services/*`, T-S195 zonasi tashqarisida — "⛔ TEGMASLIK KERAK" ro'yxatida).
-    Tuzatish shu servisning `/internal/support/user/:id/conversations` GET rout'idagi rol
-    tekshiruvini yumshatish kerak.
-    **2026-08-29:** hali kimga topshirilishi aniqlanmagan — `services/*` T-S195 zonasi
-    tashqarisida ("⛔ TEGMASLIK KERAK"), shu sabab Jasur tegmaydi; topshiriq egasi
-    Saidazim bilan aniqlashtirilishi kerak.
+  - ✅ **P0 (TUZATILGAN, 2026-08-29):** `/support` — `GET /api/support/conversations` 403
+    `"Access requires one of roles: admin, superadmin, moderator"`, ammo `POST` 201 o'tib
+    har bosishda DB'da bo'sh suhbat yaratardi. **Haqiqiy sabab backend emas edi** — avvalgi
+    audit noto'g'ri xulosaga kelgan ekan. `apps/app-web`dagi proxy (`api/support/
+    conversations/route.ts`) `GET`da `/internal/support/user/:id/conversations`ga so'rov
+    yuborar edi, ammo backend'da (`services/admin/src/routes/support.routes.ts:11`) shu
+    route `/internal/support/user/:id` deb ro'yxatdan o'tgan — **trailing `/conversations`
+    yo'q**. Mos kelmagan yo'l Express'da hech qaysi route'ga tushmay, keyingi router'ga
+    (`createModerationRouter`) o'tib ketardi — u yerda `router.use(requireRole('admin',
+    'superadmin', 'moderator')))` YO'L CHEKLOVISIZ, HAR QANDAY so'rovga qo'llanadi — shu
+    yerdan 403 chiqar edi. `POST` esa `/internal/support/user/:id/conversations` sifatida
+    to'g'ri route'ga tushardi (shuning uchun 201 o'tardi). Tuzatish: proxy'dagi `GET`
+    so'rovidan `/conversations` olib tashlandi — `services/*`ga tegilmadi, T-S195 zonasi
+    ichida qoldi. `SupportContent.tsx`dagi eskirgan izoh ham yangilandi.
   - ✅ **P0 (TUZATILGAN):** parol tiklashni **so'rash** sahifasi yo'qligi. Redesign commiti
     (`eed5578b`) bilan birga qo'shilgan — `/auth/forgot-password` sahifasi va formasi mavjud,
     `/login`dagi "Забыли?" havolasi to'g'ri shu manzilga yo'naltiradi (`LoginForm.tsx`da
