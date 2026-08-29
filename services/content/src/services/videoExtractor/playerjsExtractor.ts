@@ -95,20 +95,11 @@ function extractQualityLabel(str: string): string | undefined {
   return m?.[1];
 }
 
-// Domains that require a spoofed Referer (T-S048)
-// ashdi.vip and bazon.tv validate Referer on embed requests
-const REFERER_OVERRIDE: Record<string, string> = {
-  'ashdi.vip':  'https://kinogo.cc/',
-  'bazon.tv':   'https://kinogo.cc/',
-  'bazon.biz':  'https://kinogo.cc/',
-};
-
 async function fetchHtml(url: string, refererOverride?: string): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   const parsed = new URL(url);
-  const hostname = parsed.hostname.replace(/^www\./, '');
-  const referer = refererOverride ?? REFERER_OVERRIDE[hostname] ?? (parsed.origin + '/');
+  const referer = refererOverride ?? (parsed.origin + '/');
   try {
     const resp = await fetch(url, {
       signal: controller.signal,

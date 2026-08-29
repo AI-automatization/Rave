@@ -78,8 +78,6 @@ const PLATFORM_PATTERNS: Array<{ re: RegExp; platform: VideoPlatform }> = [
   { re: /cdnvideohub\.(me|net|tv)/i, platform: 'playerjs' },
   // iframe.video / iframemovie — common embed wrappers
   { re: /iframe\.(video|online|tv)/i, platform: 'playerjs' },
-  // lookmovie2 Security API
-  { re: /lookmovie2\.(to|ag|io)/i, platform: 'lookmovie2' },
   // moviesapi.club JSON API
   { re: /moviesapi\.club/i, platform: 'moviesapi' },
 ];
