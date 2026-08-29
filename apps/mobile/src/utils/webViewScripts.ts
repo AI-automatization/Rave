@@ -29,7 +29,7 @@ const AUTH_DOMAINS = [
   'auth.vk.com', 'oauth.vk.com', 'recaptcha.google.com',
 ];
 
-// Fires after page load to detect cross-origin player iframes (ashdi.vip, bazon.tv, etc.)
+// Fires after page load to detect cross-origin player iframes
 // Skipped on auth/sign-in pages to prevent redirect to reCAPTCHA/analytics iframes
 export const IFRAME_SCAN_JS = `
 (function() {
