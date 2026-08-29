@@ -4,7 +4,6 @@
 //   URL → validateUrl() + SSRF check → detectPlatform()
 //     → youtube    : official embed (IFrame API) — always, no yt-dlp (T-S091)
 //     → playerjs   : playerjsExtractor() (inline <script> JSON parse)
-//     → lookmovie2 : lookmovie2Extractor() (Security API)
 //     → moviesapi  : moviesapiExtractor() (JSON API by TMDB ID)
 //     → yt-dlp platforms (vimeo/tiktok/twitch/vk/etc): ytDlpExtractor()
 //     → geo_blocked: throw VideoExtractError('geo_blocked')
@@ -21,10 +20,8 @@ import { playwrightExtractor } from './playwrightExtractor';
 import { genericExtractor } from './genericExtractor';
 import { ytDlpExtractor, YtDlpDrmError } from './ytDlpExtractor';
 import { playerjsExtractor } from './playerjsExtractor';
-import { lookmovie2Extractor } from './lookmovie2Extractor';
 import { moviesapiExtractor } from './moviesapiExtractor';
 import { VideoExtractResult, VideoPlatform, VideoExtractError } from './types';
-import { geoExtractor, hasGeoProxy } from './geoExtractor';
 import { loadCookies } from '../cookieStore';
 
 const CACHE_PREFIX = 'vextract:';
@@ -62,7 +59,6 @@ function extractYouTubeVideoId(url: string): string | null {
 const CACHE_TTL_BY_PLATFORM: Partial<Record<VideoPlatform, number>> & { default: number } = {
   youtube:    7_200,   // 2h — YouTube URLs expire in ~6h
   playerjs:   86_400,  // 24h — static MP4, no expiry
-  lookmovie2: 28_800,  // 8h — Security API returns 29h valid URLs, 8h conservative margin
   moviesapi:  3_600,   // 1h — API token-signed URLs rotate ~1-2h
   generic:    21_600,  // 6h — CIS sites (kinogo, filmix via proxy) slow to re-extract
   default:    7_200,   // 2h fallback
@@ -117,45 +113,11 @@ async function extractVideoUncached(
   // 1. Validate URL + SSRF guard
   const parsedUrl = validateUrl(rawUrl);
 
-  // 2. Geo-block check (T-S046 / T-S049)
+  // 2. Geo-block check (T-S046) — these sites only serve Russian IPs; unsupported, no bypass
   if (GEO_BLOCKED_DOMAINS.has(parsedUrl.hostname.replace(/^www\./, ''))) {
-    // T-S049: if GEO_PROXY_URL is configured → try extraction via proxy
-    if (hasGeoProxy()) {
-      let geoResult: Awaited<ReturnType<typeof geoExtractor>>;
-      try {
-        geoResult = await geoExtractor(rawUrl);
-      } catch (geoErr) {
-        logger.warn('geo-proxy extraction failed, falling through to geo_blocked error', {
-          url: rawUrl,
-          error: (geoErr as Error).message,
-        });
-        geoResult = null;
-      }
-
-      if (geoResult?.video) {
-        // Playerjs found directly on geo-blocked page — cache & return
-        const geoVideo = geoResult.video;
-        if (geoVideo.cacheable !== false) {
-          const geoCacheKey = CACHE_PREFIX + createHash('sha256').update(rawUrl).digest('hex');
-          const geoTtl = CACHE_TTL_BY_PLATFORM[geoVideo.platform] ?? CACHE_TTL_BY_PLATFORM.default;
-          try { await redis.setex(geoCacheKey, geoTtl, JSON.stringify(geoVideo)); } catch { /* ignore */ }
-        }
-        return geoVideo;
-      }
-
-      if (geoResult?.iframeUrl) {
-        // Found an embed iframe (e.g. ashdi.vip) → re-extract without proxy
-        try {
-          return await extractVideo(geoResult.iframeUrl, redis, options);
-        } catch {
-          // iframe extraction failed — fall through to geo_blocked error
-        }
-      }
-    }
-
     throw new VideoExtractError(
       'geo_blocked',
-      `${parsedUrl.hostname} is geo-blocked from our server. This site is only accessible from Russia.${hasGeoProxy() ? ' Proxy extraction also failed.' : ' Set GEO_PROXY_URL env var to enable proxy extraction.'}`,
+      `${parsedUrl.hostname} is geo-blocked from our server. This site is only accessible from Russia.`,
     );
   }
 
@@ -231,18 +193,6 @@ async function extractVideoUncached(
           playwrightRunning--;
         }
       }
-    }
-
-  } else if (platform === 'lookmovie2') {
-    result = await lookmovie2Extractor(rawUrl);
-    if (!result) {
-      try {
-        result = await ytDlpExtractor(rawUrl);
-      } catch (dlpErr) {
-        if (dlpErr instanceof YtDlpDrmError) throw new VideoExtractError('drm');
-        throw dlpErr;
-      }
-      if (result) result = { ...result, platform: 'lookmovie2', sourceType: 'type1', extractionMethod: 'yt-dlp', cacheable: true };
     }
 
   } else if (platform === 'moviesapi') {

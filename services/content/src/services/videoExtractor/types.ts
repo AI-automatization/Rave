@@ -27,7 +27,6 @@ export type VideoPlatform =
   | 'reddit'
   | 'twitter'
   | 'playerjs'    // Playerjs-based sites (uzmovie.tv, kinooteka.uz, etc.)
-  | 'lookmovie2'  // lookmovie2.to Security API
   | 'moviesapi'   // moviesapi.club JSON API
   | 'generic'
   | 'unknown';
