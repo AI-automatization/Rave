@@ -398,17 +398,25 @@ export function WatchPartyScreen() {
         isYouTubeEmbed={extractionError === 'video_source_expired' ? false : isYouTubeWebViewMode}
         // extractFallback means the extraction attempt gave up with nothing to play — for a
         // known embed platform (isWebViewMode true) that's fine, UniversalPlayer's own embed
-        // WebView takes over. For everything else it's the gap before the server-side VB
-        // auto-fallback kicks in (vb.active flips true and swaps this whole component out) —
-        // staying "not ready" here keeps the loading box up instead of letting UniversalPlayer
-        // mount with nothing extracted, which used to fall back to rendering the raw source
-        // page (uncontrollable, no sync — see T-S189 follow-up).
+        // WebView takes over. For everything else, on a VB_ENABLED build it's the gap before
+        // the server-side VB auto-fallback kicks in (vb.active flips true and swaps this whole
+        // component out) — staying "not ready" here keeps the loading box up instead of letting
+        // UniversalPlayer mount with nothing extracted, which used to fall back to rendering the
+        // raw source page (uncontrollable, no sync — see T-S189 follow-up). On a store build
+        // (VB_ENABLED false) there is no hand-off coming — loadingStage 'failed' below shows a
+        // terminal "couldn't find video" message instead of implying a virtual browser is about
+        // to open (live report 2026-08-29: the old text stayed "Открываем виртуальный
+        // браузер..." even when VB could never actually render on this build).
         // showCandidatePicker: VB already stopped and is waiting on the owner's pick — stale
         // "Открываем виртуальный браузер..." otherwise kept showing here underneath/behind the
         // picker even though VB had already finished running (live report 2026-08-28). isReady
         // stays false either way (nothing to actually play yet), only the loading text changes.
         isReady={extractionError === 'video_source_expired' ? true : !!room && !isExtracting && (isWebViewMode || !extractFallback)}
-        loadingStage={extractFallback && !isWebViewMode && !showCandidatePicker ? 'vb' : 'extracting'}
+        loadingStage={
+          extractFallback && !isWebViewMode && !showCandidatePicker
+            ? (VB_ENABLED ? 'vb' : 'failed')
+            : 'extracting'
+        }
         isOwner={isOwner}
         isPlaying={isPlaying}
         isFullscreen={isFullscreen}
