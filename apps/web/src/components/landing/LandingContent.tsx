@@ -887,7 +887,7 @@ function ScreenRoom({ t }: { t: TFn }) {
       {/* Invite link */}
       <div className="mx-4 mt-4 rounded-xl px-3.5 py-3 flex items-center gap-3"
         style={{ background: 'rgba(123,114,248,0.08)', border: '1px solid rgba(123,114,248,0.22)' }}>
-        <span className="text-[9px] text-zinc-400 font-mono flex-1 truncate">wewatch.app/join/xK9pQr</span>
+        <span className="text-[9px] text-zinc-400 font-mono flex-1 truncate">wewatch.uz/join/xK9pQr</span>
         <div className="rounded-full px-2.5 py-1 flex-shrink-0"
           style={{ background: 'rgba(123,114,248,0.22)', border: '1px solid rgba(123,114,248,0.45)' }}>
           <span className="text-[9px] font-bold" style={{ color: '#7B72F8' }}>{t('screenCopy')}</span>

@@ -33,7 +33,7 @@ export const config = {
     port: parseInt(process.env.SMTP_PORT ?? '587', 10),
     user: process.env.SMTP_USER ?? '',
     pass: process.env.SMTP_PASS ?? '',
-    from: process.env.EMAIL_FROM ?? 'noreply@wewatch.app',
+    from: process.env.EMAIL_FROM ?? 'noreply@wewatch.uz',
   },
 
   telegram: {
@@ -41,7 +41,7 @@ export const config = {
     botUsername: process.env.TELEGRAM_BOT_USERNAME ?? 'RaveBot',
     webhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET ?? '',
     appScheme: process.env.APP_SCHEME ?? 'wewatch',
-    webBaseUrl: process.env.WEB_BASE_URL ?? 'https://wewatch.app',
+    webBaseUrl: process.env.WEB_BASE_URL ?? 'https://wewatch.uz',
     authServiceUrl: process.env.AUTH_SERVICE_URL ?? 'http://localhost:3001',
     swarmGroupChatId: parseInt(process.env.SWARM_GROUP_CHAT_ID ?? '-1003874059304', 10),
   },

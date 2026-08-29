@@ -31,7 +31,7 @@ function campaignEmail(_subject: string, body: string): string {
     </table>
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr><td align="center" style="padding:20px 44px;">
-        <p style="margin:0;font-size:12px;color:${C.faint};">© 2025 <a href="https://wewatch.uz" style="color:${C.faint};text-decoration:none;">WeWatch</a> · noreply@wewatch.app</p>
+        <p style="margin:0;font-size:12px;color:${C.faint};">© 2025 <a href="https://wewatch.uz" style="color:${C.faint};text-decoration:none;">WeWatch</a> · noreply@wewatch.uz</p>
       </td></tr>
     </table>
   </td></tr>

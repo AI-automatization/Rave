@@ -26,7 +26,7 @@ const SMTP_HOST   = process.env.SMTP_HOST ?? 'smtp.sendgrid.net';
 const SMTP_PORT   = parseInt(process.env.SMTP_PORT ?? '587', 10);
 const SMTP_USER   = process.env.SMTP_USER ?? '';
 const SMTP_PASS   = process.env.SMTP_PASS ?? '';
-const EMAIL_FROM  = process.env.EMAIL_FROM ?? 'noreply@wewatch.app';
+const EMAIL_FROM  = process.env.EMAIL_FROM ?? 'noreply@wewatch.uz';
 const DRY_RUN     = process.env.DRY_RUN === 'true';
 const BATCH_DELAY = 200; // ms между письмами — не спамим SendGrid
 
@@ -139,7 +139,7 @@ function template(
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr><td align="center" style="padding:20px 44px;">
         <p style="margin:0;font-size:12px;color:${C.ghost};">
-          © 2025 <a href="https://wewatch.uz" style="color:${C.ghost};text-decoration:none;">WeWatch</a> · noreply@wewatch.app
+          © 2025 <a href="https://wewatch.uz" style="color:${C.ghost};text-decoration:none;">WeWatch</a> · noreply@wewatch.uz
         </p>
         <p style="margin:6px 0 0;font-size:11px;color:#2A2840;">Это письмо получено потому что вы подписались на Android waitlist.</p>
       </td></tr>

@@ -53,7 +53,7 @@ function base(body: string): string {
             <td align="center" style="padding:20px 44px;">
               <p style="margin:0;font-size:12px;color:${C.faint};line-height:1.6;">
                 © 2025 <a href="https://wewatch.uz" style="color:${C.faint};text-decoration:none;">WeWatch</a>
-                &nbsp;·&nbsp; noreply@wewatch.app
+                &nbsp;·&nbsp; noreply@wewatch.uz
               </p>
               <p style="margin:6px 0 0;font-size:11px;color:#C4C4CE;">Это автоматическое письмо — пожалуйста, не отвечайте на него.</p>
             </td>
