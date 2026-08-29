@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const EFFECTIVE_DATE = 'May 20, 2026';
+const EFFECTIVE_DATE = 'August 29, 2026';
 const COMPANY = 'WeWatch (Rave)';
 const SUPPORT_EMAIL = 'support@wewatch.uz';
 const LEGAL_EMAIL = 'legal@wewatch.uz';
@@ -63,8 +63,10 @@ export default function TermsPage() {
           <p className="mb-3">
             WeWatch provides a social platform enabling users to watch video content simultaneously in
             synchronized &quot;watch party&quot; rooms. The Service functions as a{' '}
-            <strong className="text-zinc-200">social coordination and in-app browser layer</strong> —
-            we do not own, host, upload, store, or distribute video content.
+            <strong className="text-zinc-200">social coordination and in-app browser layer</strong>.
+            We do not own, upload, publish, or make available any video catalogue of our own, and we
+            do not retain video content: the limited, temporary cases in which video passes through
+            or is briefly copied onto our servers are described in section 3.2 below.
           </p>
 
           <SubHeading>3.1 How Video Playback Works</SubHeading>
@@ -73,34 +75,66 @@ export default function TermsPage() {
             <li>
               <strong className="text-zinc-200">User browses via in-app browser.</strong> The app
               contains an integrated web browser (WebView). Users navigate to any website, which
-              loads entirely on their device — exactly as in Safari or Chrome. WeWatch does not
-              intercept, proxy, or modify the traffic between the user&apos;s device and the website.
+              loads entirely on their device — exactly as in Safari or Chrome. Page traffic between
+              the device and the website is not modified by WeWatch. Video playback itself may in
+              limited cases be relayed through our servers — see section 3.2.
             </li>
             <li>
               <strong className="text-zinc-200">Client-side video URL detection.</strong> When the
               in-app browser loads a page containing video, the app detects the media stream URL
               (e.g., HLS manifest) that the browser has already fetched from the source website.
               This detection is local to the user&apos;s device — no network request is made by WeWatch
-              servers for this step. No copy of the video is made.
+              servers for the detection step itself.
             </li>
             <li>
               <strong className="text-zinc-200">Playback synchronization.</strong> WeWatch transmits
               only playback control signals (play, pause, seek timestamp) between room participants.
-              Video data travels directly from the source website&apos;s servers to each user&apos;s device.
-              WeWatch servers never receive or retransmit video data.
+              In the ordinary case video data travels directly from the source website&apos;s servers to
+              each user&apos;s device. The two exceptions in which our servers do handle video data are
+              set out in section 3.2.
             </li>
           </ol>
 
-          <SubHeading>3.2 What the Service Does NOT Do</SubHeading>
+          <SubHeading>3.2 When Video Passes Through Our Servers</SubHeading>
+          <p className="mb-2">
+            There are exactly two cases in which video data is handled by WeWatch infrastructure.
+            We list them because an accurate description of the Service matters more than a
+            flattering one:
+          </p>
+          <ol className="list-decimal pl-5 space-y-2">
+            <li>
+              <strong className="text-zinc-200">Header-restricted streams are relayed.</strong> Some
+              content delivery networks refuse requests for individual stream segments unless every
+              request carries a <em>Referer</em> header, which mobile players do not send on segment
+              requests. For those streams the segments are fetched by our server and relayed to the
+              user&apos;s device in transit. Relayed segments are passed through, not archived.
+            </li>
+            <li>
+              <strong className="text-zinc-200">Non-faststart files are copied temporarily.</strong>{' '}
+              Some MP4 files are published in a layout that cannot begin playing until the entire
+              file has been received. In that case our server downloads the file once, reorders its
+              index using <em>ffmpeg</em> in copy mode — the video and audio streams are not
+              re-encoded or otherwise altered — and serves the reordered copy. The original download
+              is deleted as soon as it has been read, and the reordered copy is deleted
+              automatically within 6 hours.
+            </li>
+          </ol>
+          <p className="mt-3 mb-2">
+            A server-assisted browsing mode also exists in our source code. It is switched off in
+            the builds distributed through app stores and does not run for users of those builds.
+          </p>
+
+          <SubHeading>3.3 What the Service Does NOT Do</SubHeading>
           <ul>
-            <li><strong className="text-zinc-200">Does not download or save video files</strong> to our servers or to users&apos; devices from third-party sources</li>
+            <li><strong className="text-zinc-200">Does not offer a video catalogue</strong> — WeWatch publishes no content of its own and provides no library, index, or search of third-party video</li>
             <li><strong className="text-zinc-200">Does not circumvent DRM</strong> — content protected by Widevine, FairPlay, or PlayReady cannot be extracted by our method and is not accessible through WeWatch</li>
-            <li><strong className="text-zinc-200">Does not proxy video traffic</strong> through WeWatch servers — all video data goes source → user device directly</li>
+            <li><strong className="text-zinc-200">Does not retain video content</strong> — beyond the temporary handling described in section 3.2, no video is stored, archived, or made available for later retrieval</li>
+            <li><strong className="text-zinc-200">Does not give users a download function</strong> — the app provides no feature to save video files onto a user&apos;s device</li>
             <li><strong className="text-zinc-200">Does not provide access to paywalled content</strong> — users must independently have authorization to view content they access via the in-app browser</li>
             <li><strong className="text-zinc-200">Does not reproduce or redistribute</strong> copyrighted video content</li>
           </ul>
 
-          <SubHeading>3.3 Third-Party Website Access</SubHeading>
+          <SubHeading>3.4 Third-Party Website Access</SubHeading>
           <p className="mb-2">
             When users browse third-party websites through the in-app browser:
           </p>
