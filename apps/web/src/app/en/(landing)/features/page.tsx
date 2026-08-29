@@ -6,9 +6,9 @@ import { socialMeta } from '@/lib/i18n/metadata';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
 export const metadata: Metadata = {
-  title: { absolute: 'WeWatch Features — Watch Party, Battle Mode, Live Chat' },
+  title: { absolute: 'WeWatch Features — Watch Party, Live Chat' },
   description:
-    'Everything WeWatch does — watch party, Battle Mode, achievements and notifications. Watch YouTube, VK and Rutube with friends in sync, free.',
+    'Everything WeWatch does — watch party, achievements and notifications. Watch YouTube, VK and Rutube with friends in sync, free.',
   alternates: {
     canonical: `${APP_URL}/en/features`,
     languages: hreflangFor('/ru/features', APP_URL),
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   ...socialMeta({
     locale: 'en',
     title: 'WeWatch Features',
-    description: 'Watch party, Battle Mode, chat and emoji reactions — all free.',
+    description: 'Watch party, chat and emoji reactions — all free.',
     url: `${APP_URL}/en/features`,
   }),
   robots: { index: true, follow: true },
