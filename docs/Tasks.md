@@ -370,8 +370,9 @@
 - **Mas'ul:** pending[Jasur]
 - **Beruvchi:** Jasur (2026-08-01, prod brauzer auditi)
 - **Yaratilgan:** 2026-08-01 20:45
-- **Holat:** 🔄 Bajarilmoqda — **redesign qismi TUGADI (2026-08-05)**, backend tomonidagi
-  P0 lar ochiq (pastda)
+- **Holat:** 🔄 Bajarilmoqda — **redesign qismi TUGADI (2026-08-05)**. Frontend P0'lar
+  tekshirildi va TUZATILGAN holatda topildi (2026-08-29 qayta tekshiruv, quyida ✅ belgili).
+  Ochiq qolgani: 2 ta backend (`services/*`) muammosi — bu zona tashqarisida.
 - **Redesign progressi:** barcha 15 sahifa WW v2 ("Kinematik dark") ga ko'chirildi —
   auth oqimi + `/home` (`eed5578b`), room + notifications (`414649cc`), friends + profile
   (`4ee6df7a`), settings + support (`3ccf3fcc`), messages (`3506169a`), oxirgi 3 komponent
@@ -390,14 +391,25 @@
 - **Prod audit topilmalari (2026-08-01):**
   - **P0 tashqi (kod emas):** `/notifications` 401 — yuqoridagi PROD bo'limiga qarang
     (notification servisi `JWT_PUBLIC_KEY` mos emas, Railway env). Hali ochiq.
-  - **P0:** `/support` — `GET /api/support/conversations` 403 `"Access requires one of roles:
-    admin, superadmin, moderator"`, ammo `POST` 201 o'tadi → har bosishda DB'da bo'sh suhbat
-    yaratiladi, foydalanuvchi hech qachon ko'rmaydi. Backend rout auth noto'g'ri sozlangan.
-  - **P0:** parol tiklashni **so'rash** sahifasi yo'q. `/login` → "Забыли?" → `/auth/reset-password`
-    → "Havola yaroqsiz". `/forgot-password`, `/auth/forgot-password`, `/password-reset` — 404.
-  - **P0:** mobil (390px) `/room/[id]` — chat/a'zolar/navbat paneli DOM'da yo'q, video 15+ sek
-    "Video yuklanmoqda" da qotadi, sarlavha "Watch Party" (real nom emas), a'zolar 0,
-    "Chiqish" tugmasi ekrandan chiqib ketgan.
+  - **P0 (ochiq, backend, zona tashqarisida):** `/support` — `GET /api/support/conversations`
+    403 `"Access requires one of roles: admin, superadmin, moderator"`, ammo `POST` 201 o'tadi
+    → har bosishda DB'da bo'sh suhbat yaratiladi. `apps/app-web`dagi route (`api/support/
+    conversations/route.ts`) faqat proxy — haqiqiy auth xatosi `ADMIN_SERVICE_URL`dagi
+    backend servisda (`services/*`, T-S195 zonasi tashqarisida — "⛔ TEGMASLIK KERAK" ro'yxatida).
+    Tuzatish shu servisning `/internal/support/user/:id/conversations` GET rout'idagi rol
+    tekshiruvini yumshatish kerak.
+  - ✅ **P0 (TUZATILGAN):** parol tiklashni **so'rash** sahifasi yo'qligi. Redesign commiti
+    (`eed5578b`) bilan birga qo'shilgan — `/auth/forgot-password` sahifasi va formasi mavjud,
+    `/login`dagi "Забыли?" havolasi to'g'ri shu manzilga yo'naltiradi (`LoginForm.tsx`da
+    aynan shu audit topilmasiga izoh bilan). 2026-08-29da tasdiqlandi.
+  - ✅ **P0 (TUZATILGAN):** mobil (390px) `/room/[id]` — barcha 5 kichik muammo alohida
+    tuzatilgan (sana/izohlar kod ichida): chat/a'zolar/navbat paneli endi DOM'da doim bor va
+    videoning ostida stack bo'ladi (2026-08-04, `RoomContent.tsx`); video "Video yuklanmoqda"da
+    abadiy qotmaydi — `onError` endi xato holatini ko'rsatadi (`YouTubePlayer.tsx`); sarlavha
+    yuklanayotganda skeleton ko'rsatadi, "Watch Party" fallback'ini emas (`RoomHeader.tsx`);
+    a'zolar soni endi live socket state'dan (`storeMembers`), eskirgan REST snapshotdan emas;
+    "Chiqish" endi ikonka + dropdown menyu ichida (ekrandan chiqib ketmaydi). 2026-08-29da
+    `tsc --noEmit` toza natija bilan tasdiqlandi.
   - **P1:** do'st qo'shish `POST /friend-request` 201 — UI'da hech qanday feedback yo'q.
   - **P1:** tugma yorlig'i noto'g'ri — "Найти друга" o'rniga "Добавить в друзья".
   - **P1:** noto'g'ri xona kodi `POST /api/rooms/join/ZZZ999` 404 — modalda xato ko'rsatilmaydi.
@@ -411,6 +423,11 @@
   - **P2:** desktop 1440px — mobil pastki nav xona chat input'ini to'sadi; `/home`, `/profile`
     da ekranning yarmi bo'sh.
   - **P2:** `/profile` — banner karta kengligidan chiqib ketgan.
+- **2026-08-29 qo'shimcha tekshiruv (Saidazim so'rovi bo'yicha):** ro'yxatdan o'tishda parol
+  bilan bog'liq bug bor-yo'qligi so'ralgan edi — `RegisterForm.tsx` tekshirildi, xuddi shu
+  muammo (frontend kuch o'lchagichi backend qoidasidan yumshoqroq edi — faqat 8+ belgi, katta/
+  kichik harf+raqam talabini tekshirmasdi) 2026-08-02da allaqachon tuzatilgan (`PATTERNS.PASSWORD`
+  bilan mos client-side tekshiruv + aniq xato xabari qo'shilgan). Yangi tuzatish talab qilinmadi.
 - **Ishlagani (buzilmasin):** ro'yxatdan o'tish + email kod, login/logout, til almashish
   (uz/ru/en, saqlanadi), xona yaratish + YouTube player (desktop), xona chati, do'st qidirish,
   profil saqlash, `/` → `/home` redirect, mobil `/home`.
