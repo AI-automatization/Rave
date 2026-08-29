@@ -7,12 +7,13 @@ import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { spacing } from '@theme/index';
 
 export function DMChatHeader({
-  peerName, accentColor, topInset, onBack,
+  peerName, accentColor, topInset, onBack, onMenuPress,
 }: {
   peerName: string;
   accentColor: string;
   topInset: number;
   onBack: () => void;
+  onMenuPress: () => void;
 }) {
   return (
     <View style={[s.header, { paddingTop: topInset + 8 }]}>
@@ -25,6 +26,9 @@ export function DMChatHeader({
       <View style={s.headerTextWrap}>
         <Text style={s.headerTitle} numberOfLines={1}>{peerName}</Text>
       </View>
+      <TrackedTouchable trackId="dm:chat_menu" onPress={onMenuPress} style={s.menuBtn} activeOpacity={0.75}>
+        <Ionicons name="ellipsis-vertical" size={20} color="#fff" />
+      </TrackedTouchable>
     </View>
   );
 }
@@ -65,5 +69,11 @@ const s = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#fff',
+  },
+  menuBtn: {
+    width: 34,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

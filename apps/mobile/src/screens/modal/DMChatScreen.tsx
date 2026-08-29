@@ -7,10 +7,11 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, useFocusEffect, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Clipboard from 'expo-clipboard';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@store/auth.store';
-import { dmApi } from '@api/user.api';
+import { dmApi, userApi } from '@api/user.api';
 import { IDMMessage, ModalStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { getSocket, SERVER_EVENTS, CLIENT_EVENTS } from '@socket/client';
@@ -18,6 +19,10 @@ import { useEnsureSocket } from '@hooks/useEnsureSocket';
 import { useDMChatViewport } from '@hooks/useDMChatViewport';
 import { memberColor } from '@utils/dmFormat';
 import { buildDMList, findJumpIndex, dateKeyFromDate, dateFromKey, type DMListItem } from '@utils/dmDateGroups';
+import { blockedUsersStorage } from '@utils/storage';
+import { appAlert } from '@components/common/AppAlert';
+import { UserActionSheet } from '@components/common/UserActionSheet';
+import { ReportUserModal } from '@components/common/ReportUserModal';
 import { MessageItem } from '@components/dm/MessageItem';
 import { ForwardPicker } from '@components/dm/ForwardPicker';
 import { MessageActionSheet } from '@components/dm/MessageActionSheet';
@@ -31,11 +36,12 @@ import { PinnedMessagesBar } from '@components/dm/PinnedMessagesBar';
 import { ChatWallpaper } from '@components/dm/ChatWallpaper';
 
 type RouteType = RouteProp<ModalStackParamList, 'DMChat'>;
+type NavProp = NativeStackNavigationProp<ModalStackParamList, 'DMChat'>;
 
 export function DMChatScreen() {
   const { params } = useRoute<RouteType>();
   const { peerId, peerName } = params;
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavProp>();
   const insets = useSafeAreaInsets();
   const { t } = useT();
   const { user } = useAuthStore();
@@ -47,6 +53,8 @@ export function DMChatScreen() {
   const [actionMsg, setActionMsg] = useState<IDMMessage | null>(null);
   const [forwardMsg, setForwardMsg] = useState<IDMMessage | null>(null);
   const [calendarVisible, setCalendarVisible] = useState(false);
+  const [actionSheetVisible, setActionSheetVisible] = useState(false);
+  const [reportVisible, setReportVisible] = useState(false);
 
   // DM realtime uchun socket ulanishini kafolatlash (bug fix: socket null edi)
   useEnsureSocket();
@@ -183,6 +191,36 @@ export function DMChatScreen() {
     }
   };
 
+  const handleViewProfile = () => {
+    setActionSheetVisible(false);
+    navigation.push('FriendProfile', { userId: peerId });
+  };
+
+  const handleReport = () => {
+    setActionSheetVisible(false);
+    setReportVisible(true);
+  };
+
+  const handleBlock = () => {
+    setActionSheetVisible(false);
+    appAlert(
+      t('friends', 'blockUserTitle'),
+      t('friends', 'blockUserMsg'),
+      [
+        { text: t('common', 'cancel'), style: 'cancel' },
+        {
+          text: t('friends', 'blockUser'),
+          style: 'destructive',
+          onPress: async () => {
+            await blockedUsersStorage.add(peerId);
+            await userApi.blockUser(peerId).catch(() => null);
+            navigation.goBack();
+          },
+        },
+      ],
+    );
+  };
+
   const handleCopy = async (msg: IDMMessage) => {
     setActionMsg(null);
     await Clipboard.setStringAsync(msg.text).catch(() => null);
@@ -233,6 +271,7 @@ export function DMChatScreen() {
         accentColor={accentColor}
         topInset={insets.top}
         onBack={() => navigation.goBack()}
+        onMenuPress={() => setActionSheetVisible(true)}
       />
       <PinnedMessagesBar pinnedMessages={pinnedMessages} onJump={handleJumpToPinned} onUnpin={m => void handleTogglePin(m)} />
 
@@ -322,6 +361,24 @@ export function DMChatScreen() {
         onSelect={handleSelectDate}
         markedDateKeys={markedDateKeys}
         initialDate={visibleDateKey ? dateFromKey(visibleDateKey) : null}
+      />
+
+      {/* Peer options — view profile / report / block */}
+      <UserActionSheet
+        visible={actionSheetVisible}
+        userId={peerId}
+        username={peerName}
+        isSelf={false}
+        onClose={() => setActionSheetVisible(false)}
+        onViewProfile={handleViewProfile}
+        onReport={handleReport}
+        onBlock={handleBlock}
+      />
+      <ReportUserModal
+        visible={reportVisible}
+        userId={peerId}
+        username={peerName}
+        onClose={() => setReportVisible(false)}
       />
     </KeyboardAvoidingView>
   );

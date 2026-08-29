@@ -19,7 +19,8 @@ interface Props {
   isSelf: boolean;
   onClose: () => void;
   onViewProfile: () => void;
-  onSendMessage: () => void;
+  /** Omitted when the row shouldn't appear at all — e.g. already inside a DM with this user. */
+  onSendMessage?: () => void;
   onReport: () => void;
   onBlock: () => void;
   /** Omitted when the row shouldn't appear at all — already friends, or the user themself. */
@@ -95,7 +96,7 @@ export function UserActionSheet({
           onPress={onViewProfile}
           trackId="user_action_sheet:view_profile"
         />
-        {!isSelf && (
+        {!isSelf && onSendMessage && (
           <ActionRow
             icon="chatbubble-outline"
             label={t('dm', 'sendMessage')}
