@@ -32,9 +32,6 @@ WeWatch brings the movie night experience online — perfectly synchronized play
 WATCH PARTY 🎬
 Create a private room, share the invite link, and start watching in perfect sync. Real-time chat and voice chat keep everyone connected throughout the movie.
 
-BATTLE MODE ⚔️
-Think you know movies? Compete in real-time film trivia tournaments. Earn points, climb rankings, and prove your cinematic knowledge.
-
 YOUR PROFILE 🏆
 Track your watch history, earn achievements, and level up your movie reputation. Every watch party counts toward your rank.
 
@@ -58,9 +55,8 @@ Download WeWatch and start your first Watch Party 🍿
 iPhone 6.7" (1290×2796px) — **MANDATORY**
 - [ ] `store-assets/screenshots/ios-67-01.png` — Watch Party room
 - [ ] `store-assets/screenshots/ios-67-02.png` — Home / Browse
-- [ ] `store-assets/screenshots/ios-67-03.png` — Battle Mode
-- [ ] `store-assets/screenshots/ios-67-04.png` — Profile / Achievements
-- [ ] `store-assets/screenshots/ios-67-05.png` — Invite screen
+- [ ] `store-assets/screenshots/ios-67-03.png` — Profile / Achievements
+- [ ] `store-assets/screenshots/ios-67-04.png` — Invite screen
 
 iPhone 6.5" (1242×2688px) — **MANDATORY**
 - [ ] Same 5 screenshots, different resolution
@@ -85,13 +81,19 @@ Support URL: https://wewatch.uz/support (or https://t.me/wewatch_support)
 
 ## APP REVIEW NOTES (paste into App Store Connect)
 ```
-Demo Account:
-Email: [see Obsidian vault — do not commit credentials to a public repo]
-Password: [see Obsidian vault — do not commit credentials to a public repo]
+Demo Account (Pro plan active, pre-friended with a companion test account so
+Friends/DM aren't empty on first login):
+Email: reviewer@wewatch.uz
+Password: WeWatchReview26!
+
+Companion account, for testing Watch Party sync with a second participant:
+Email: reviewer2@wewatch.uz
+Password: WeWatchReview26!
 
 The app requires a backend connection to Railway.app servers.
-Watch Party feature requires 2 accounts to demonstrate sync.
-Battle Mode requires active tournament (available daily 18:00-22:00 UTC+5).
+Watch Party feature is easiest to verify with both accounts open at once
+(e.g. two devices/simulators) — the primary account is already friends
+with the companion account and has an existing DM thread with it.
 
 Note: Video playback uses proxy URLs. Some content may require
 an active internet connection with low latency.
