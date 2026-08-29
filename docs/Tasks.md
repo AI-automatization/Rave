@@ -1,30 +1,6 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-08-15
-
----
-
-### T-S201 | P0 | [BACKEND] | Video extractor: 3 ta pirat-sayt-yo'naltirilgan modulni olib tashlash
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Abdulaziz
-- **Yaratilgan:** 2026-08-29 03:30
-- **Holat:** 🔄 Bajarilmoqda
-- **Tavsiya model:** sonnet
-- **Model sababi:** 3 fayl, o'chirish + qidiruv (test/fixture/config qoldiqlari)
-- **Sabab:** Play Market'ga birinchi topshirishdan oldingi majburiy blocker (Abdulaziz,
-  TEZCODE Wewatch topic, 2026-08-28 20:14). `lookmovie2Extractor.ts` va
-  `geoExtractor.ts` — nomlangan pirat saytlar (lookmovie2.to, hdrezka/filmix/kinogo)
-  uchun sarlavha (Origin/Referer) soxtalashtiradi. `playerjsExtractor.ts` ichida
-  faqat ashdi.vip/bazon.tv/bazon.biz uchun Referer-soxtalashtirish ro'yxati olib
-  tashlanadi, qolgan playerjs JSON-config parsing tegilmaydi.
-- **Qilish kerak:**
-  - [ ] `services/content/src/services/videoExtractor/lookmovie2Extractor.ts` — butunlay o'chirish + orchestrator (`index.ts`)dagi chaqiruvni olib tashlash
-  - [ ] `services/content/src/services/videoExtractor/geoExtractor.ts` — butunlay o'chirish + `index.ts`dagi geo-proxy branch'ini olib tashlash
-  - [ ] `services/content/src/services/videoExtractor/playerjsExtractor.ts` — faqat Referer-soxtalashtirish domen-ro'yxatini olib tashlash
-  - [ ] test/fixture/const fayllarida shu 3 nom (lookmovie2, hdrezka/filmix/kinogo, ashdi/bazon) qoldiqlarini tekshirish
-  - [ ] `tsc --noEmit` — yangi xatolik yo'qligini tasdiqlash
-- **Bog'liq:** Play Market birinchi topshirish (bugungi kun, 2026-08-29 deadline)
+# Yangilangan: 2026-08-29
 
 ---
 
