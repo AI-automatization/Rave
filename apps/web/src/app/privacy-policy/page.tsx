@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const EFFECTIVE_DATE = 'June 11, 2026';
+const EFFECTIVE_DATE = 'August 29, 2026';
 const APP_NAME = 'WeWatch';
 const COMPANY = 'WeWatch — TEZ KOD LLC';
 const PRIVACY_EMAIL = 'support@wewatch.uz';
@@ -110,19 +110,44 @@ export default function PrivacyPolicyPage() {
             playback of that URL for all participants in the same watch party room.
           </p>
 
-          <SubHeading>3.1 No Server-Side Proxying or Storing of Video</SubHeading>
+          <SubHeading>3.1 How Video Reaches You — and When Our Servers Are Involved</SubHeading>
           <ul>
             <li>
-              <strong className="text-zinc-200">WeWatch is not a video proxy or CDN.</strong>{' '}
-              Video data travels directly from the source website&apos;s servers to the user&apos;s device.
-              WeWatch servers never receive, buffer, cache, store, or retransmit video content.
+              <strong className="text-zinc-200">Default path — directly from the source.</strong>{' '}
+              In the ordinary case video data travels from the source website&apos;s servers to your
+              device without passing through {APP_NAME}. What our servers exchange between room
+              participants are playback control signals — play, pause and seek position — not video.
+            </li>
+            <li>
+              <strong className="text-zinc-200">Exception 1 — header-restricted streams are relayed.</strong>{' '}
+              Some content delivery networks reject requests for individual stream segments unless
+              each request carries a <em>Referer</em> header, which mobile players do not send on
+              segment requests. For those streams the segments are fetched by our server and relayed
+              to your device in transit. Segments relayed this way are passed through, not archived.
+            </li>
+            <li>
+              <strong className="text-zinc-200">Exception 2 — non-faststart files are copied temporarily.</strong>{' '}
+              Some MP4 files are published in a layout that cannot begin playing until the entire
+              file has been received. When one is encountered, our server downloads that file once,
+              reorders its index using <em>ffmpeg</em> in copy mode (the video and audio streams are
+              not re-encoded or altered in any way), and serves the reordered copy. The original
+              download is deleted as soon as it has been read, and the reordered copy is deleted
+              automatically within 6 hours. This is a real, temporary copy held on our
+              infrastructure, and we state it plainly rather than claim our servers never touch
+              video data.
             </li>
             <li>
               <strong className="text-zinc-200">Client-side URL detection.</strong> The app detects
               media stream URLs (e.g., HLS/MPEG-DASH manifests) that the in-app browser has already
-              loaded from the source website. This detection runs locally on the user&apos;s device — no
-              video request is made by our servers. It is technically equivalent to copying the
-              address bar URL of a video that is playing in a browser.
+              loaded from the source website. This detection runs locally on your device — no
+              video request is made by our servers for the detection step itself. It is technically
+              equivalent to copying the address bar URL of a video that is playing in a browser.
+            </li>
+            <li>
+              <strong className="text-zinc-200">Assisted in-app browsing is disabled in store builds.</strong>{' '}
+              A server-assisted browsing mode exists in our source code but is switched off in the
+              builds distributed through app stores, and no part of it runs for users of those
+              builds.
             </li>
             <li>
               <strong className="text-zinc-200">No DRM circumvention.</strong> {APP_NAME} does not
@@ -132,9 +157,9 @@ export default function PrivacyPolicyPage() {
               only publicly playable streams accessible without DRM are detectable.
             </li>
             <li>
-              <strong className="text-zinc-200">No content downloading.</strong> The app does not
-              provide any functionality to download, save, or permanently store video files on the
-              user&apos;s device or our servers from third-party sources.
+              <strong className="text-zinc-200">No download feature for users.</strong> The app
+              provides no function that lets you download, save, or permanently store video files on
+              your device.
             </li>
           </ul>
 
@@ -197,6 +222,8 @@ export default function PrivacyPolicyPage() {
                 <li><em>Sentry.io</em> — error monitoring. Error reports contain no personal data by design (user identifiers and personal fields are scrubbed before transmission). <a href="https://sentry.io/privacy/" className="text-[#7B72F8] hover:underline" target="_blank" rel="noopener noreferrer">Privacy Policy</a></li>
                 <li><em>Google Sign-In</em> — authentication only if you choose this method. <a href="https://policies.google.com/privacy" className="text-[#7B72F8] hover:underline" target="_blank" rel="noopener noreferrer">Privacy Policy</a></li>
                 <li><em>Apple Sign In</em> — authentication only if you choose this method. <a href="https://www.apple.com/legal/privacy" className="text-[#7B72F8] hover:underline" target="_blank" rel="noopener noreferrer">Privacy Policy</a></li>
+                <li><em>Expo / EAS Update (u.expo.dev)</em> — over-the-air delivery of application updates. Each time the app launches it requests the current update manifest, which discloses your platform, the installed app version, and an installation identifier. <a href="https://expo.dev/privacy" className="text-[#7B72F8] hover:underline" target="_blank" rel="noopener noreferrer">Privacy Policy</a></li>
+                <li><em>Metered.ca</em> — TURN relay servers for voice chat. When a direct peer-to-peer connection between participants cannot be established, voice traffic and your device&apos;s IP address are relayed through their servers. <a href="https://www.metered.ca/privacy-policy" className="text-[#7B72F8] hover:underline" target="_blank" rel="noopener noreferrer">Privacy Policy</a></li>
               </ul>
             </li>
             <li>
