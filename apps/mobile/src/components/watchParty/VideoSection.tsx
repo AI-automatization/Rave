@@ -58,8 +58,9 @@ interface VideoSectionProps {
    * null when idle. Shown on the skip buttons in place of the static "10s" label. */
   pendingSkipSecs?: number | null;
   /** Which loading message to show while !isReady — 'extracting' (still trying to find a
-   * direct stream) or 'vb' (gave up, waiting for the server to hand off to Virtual Browser). */
-  loadingStage?: 'extracting' | 'vb';
+   * direct stream), 'vb' (gave up, waiting for the server to hand off to Virtual Browser),
+   * or 'failed' (gave up and VB isn't available on this build — terminal, not a spinner). */
+  loadingStage?: 'extracting' | 'vb' | 'failed';
   /** UniversalPlayer gave up on the current URL entirely (direct attempt AND proxy fallback
    * both failed) — passed through so the screen can react (owner-only: auto-fall back to VB
    * instead of leaving everyone staring at a permanently broken player). */
@@ -157,17 +158,23 @@ export const VideoSection = React.memo(function VideoSection({
       {!isReady ? (
         <View style={s.loadingBox}>
           <View style={s.loadingIconWrap}>
-            <Animated.View style={[s.loadingGlow, { transform: [{ scale: pulseScale }], opacity: pulseOpacity }]} />
+            {loadingStage !== 'failed' && (
+              <Animated.View style={[s.loadingGlow, { transform: [{ scale: pulseScale }], opacity: pulseOpacity }]} />
+            )}
             <Ionicons
-              name={loadingStage === 'vb' ? 'globe-outline' : 'search-outline'}
+              name={loadingStage === 'vb' ? 'globe-outline' : loadingStage === 'failed' ? 'alert-circle-outline' : 'search-outline'}
               size={26}
-              color={colors.primary}
+              color={loadingStage === 'failed' ? colors.textSecondary : colors.primary}
             />
           </View>
           <Text style={s.loadingTitle}>
-            {loadingStage === 'vb' ? t('watchParty', 'loadingFallbackVB') : t('watchParty', 'loadingExtracting')}
+            {loadingStage === 'vb'
+              ? t('watchParty', 'loadingFallbackVB')
+              : loadingStage === 'failed'
+              ? t('watchParty', 'videoNotFound')
+              : t('watchParty', 'loadingExtracting')}
           </Text>
-          <ActivityIndicator size="small" color="rgba(255,255,255,0.5)" />
+          {loadingStage !== 'failed' && <ActivityIndicator size="small" color="rgba(255,255,255,0.5)" />}
         </View>
       ) : (
         <UniversalPlayer
