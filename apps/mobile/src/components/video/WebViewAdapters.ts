@@ -1,6 +1,6 @@
 // WeWatch Mobile — WebViewAdapters
 // Saytga moslashgan video element topish strategiyalari
-// M7: uzmovi.tv, kinogo.cc va generic fallback
+// M7: uzmovi.tv va generic fallback
 
 export interface VideoAdapter {
   /** CSS selectors — tartib muhim, birinchi topilgani ishlatiladi */
@@ -58,88 +58,6 @@ const ADAPTERS: Record<string, VideoAdapter> = {
     postAttachJs: `
       var ov = document.querySelector('.modal-overlay, .popup-close, .close-btn, [data-dismiss]');
       if (ov) ov.click();
-    `,
-    scanDelay: 2000,
-  },
-
-  'kinogo.cc': {
-    selectors: [
-      '#oframep video',
-      '.player-box video',
-      '.player video',
-      '.video-js video',
-      'video',
-    ],
-    postAttachJs: `
-      var pop = document.querySelector('.popup__close, .modal__close, [data-close]');
-      if (pop) pop.click();
-    `,
-    scanDelay: 1500,
-  },
-
-  'filmix.net': {
-    selectors: [
-      '.vjs-tech',
-      '.video-js video',
-      '#player video',
-      'video',
-    ],
-    scanDelay: 1000,
-  },
-
-  // filmx.fun — same player infrastructure as filmix.net
-  'filmx.fun': {
-    selectors: [
-      '.vjs-tech',
-      '.video-js video',
-      '#player video',
-      'video',
-    ],
-    scanDelay: 1500,
-  },
-
-  'hdrezka.ag': {
-    selectors: [
-      '#player video',
-      '.pjsplayer video',
-      'video',
-    ],
-    scanDelay: 2500,
-  },
-
-  // rezka.ag — HDrezka new domain (hdrezka.ag → rezka.ag migration)
-  'rezka.ag': {
-    selectors: [
-      '#player video',
-      '.pjsplayer video',
-      'video',
-    ],
-    scanDelay: 2500,
-  },
-
-  // T-E069: ashdi.vip + bazon.tv — 60-70% CIS saytlari shular orqali ishlaydi
-  'ashdi.vip': {
-    selectors: ['.jw-video', '.plyr video', '.video-js video', 'video'],
-    postAttachJs: `
-      // Playerjs JSON file list dan birinchi URL ni olish
-      try {
-        var pjScripts = document.querySelectorAll('script');
-        for (var i = 0; i < pjScripts.length; i++) {
-          var t = pjScripts[i].textContent || '';
-          var m = t.match(/Playerjs\\s*\\(\\s*\\{[^}]*file\\s*:\\s*"([^"]+)"/);
-          if (!m) m = t.match(/file\\s*:\\s*"([^"]+\\.(?:m3u8|mp4)[^"]*)"/);
-          if (m && m[1] && window._csVideo) { window._csVideo.src = m[1]; break; }
-        }
-      } catch(e) {}
-    `,
-    scanDelay: 2500,
-  },
-
-  'bazon.tv': {
-    selectors: ['.video-js video', '.vjs-tech', '.plyr video', 'video'],
-    postAttachJs: `
-      var ad = document.querySelector('.close-btn, .popup-close, [data-dismiss="modal"]');
-      if (ad) ad.click();
     `,
     scanDelay: 2000,
   },
