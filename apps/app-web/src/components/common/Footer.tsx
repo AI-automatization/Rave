@@ -34,7 +34,7 @@ export function Footer() {
               <p className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-3">{t('legal')}</p>
               <ul className="space-y-2">
                 <li><Link href="/privacy-policy" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('privacy')}</Link></li>
-                <li><a href="mailto:copyright@wewatch.app" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('dmca')}</a></li>
+                <li><a href="mailto:copyright@wewatch.uz" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('dmca')}</a></li>
               </ul>
             </div>
           </div>
