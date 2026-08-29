@@ -30,7 +30,7 @@ const EMAIL_FROM  = process.env.EMAIL_FROM ?? 'noreply@wewatch.uz';
 const DRY_RUN     = process.env.DRY_RUN === 'true';
 const BATCH_DELAY = 200; // ms между письмами — не спамим SendGrid
 
-const ANDROID_STORE_URL = 'https://play.google.com/store/apps/details?id=com.wewatch.app';
+const ANDROID_STORE_URL = 'https://play.google.com/store/apps/details?id=com.wewatch.mobile';
 
 // ── Waitlist model (inline — не импортируем из сервиса) ───────────────────────
 const WaitlistSchema = new mongoose.Schema(
