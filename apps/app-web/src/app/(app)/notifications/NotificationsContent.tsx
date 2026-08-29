@@ -6,6 +6,7 @@ import { Bell, Users, Tv, Trash2, CheckCheck } from 'lucide-react';
 import type { INotification } from '@/types';
 import { trackClick } from '@/lib/analytics';
 import { useRelativeTime } from '@/lib/relative-time';
+import { useUnreadCount } from '@/hooks/use-unread-count';
 
 async function fetchNotifications(): Promise<INotification[]> {
   const res = await fetch('/api/notifications', { credentials: 'include' });
@@ -164,7 +165,10 @@ export function NotificationsContent() {
     },
   });
 
-  const unreadCount = notifications?.filter((n) => !n.isRead).length ?? 0;
+  // Badge va bu yerdagi son bitta manbadan kelishi kerak — sahifadagi
+  // ro'yxat faqat birinchi 20 tani ko'rsatadi, shuning uchun undan
+  // hisoblash umumiy o'qilmagan sonini kamaytirib ko'rsatardi.
+  const { count: unreadCount } = useUnreadCount();
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
