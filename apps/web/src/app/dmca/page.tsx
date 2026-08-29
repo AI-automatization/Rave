@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const EFFECTIVE_DATE = 'May 20, 2026';
+const EFFECTIVE_DATE = 'August 29, 2026';
 const COMPANY = 'WeWatch (Rave)';
 const DMCA_EMAIL = 'copyright@wewatch.uz';
 const SUPPORT_EMAIL = 'support@wewatch.uz';
@@ -32,10 +32,12 @@ export default function DmcaPage() {
           {COMPANY} (&quot;WeWatch&quot;) respects intellectual property rights and complies with the
           Digital Millennium Copyright Act (DMCA), 17 U.S.C. § 512, and equivalent copyright laws
           in other jurisdictions. WeWatch operates an <strong className="text-zinc-200">in-app browser
-          with social watch party coordination</strong> — we do not host, store, proxy, or distribute
-          video content. Video data travels directly from source websites to users&apos; devices; our
-          servers only store URLs (references), not the video content itself. This policy explains
-          how we handle copyright concerns related to our platform.
+          with social watch party coordination</strong>. We publish no video catalogue of our own and
+          retain no video library: what our servers store is URLs (references). In the ordinary case
+          video data travels directly from source websites to users&apos; devices. There are two narrow
+          technical exceptions in which video passes through or is briefly copied onto our
+          infrastructure, and section 1.1 states them plainly rather than leaving them unsaid. This
+          policy explains how we handle copyright concerns related to our platform.
         </div>
 
         <Section title="1. How WeWatch Handles Video Content">
@@ -44,9 +46,10 @@ export default function DmcaPage() {
           </p>
           <ul>
             <li>
-              <strong className="text-zinc-200">No content hosting</strong> — WeWatch does not upload,
-              store, cache, or reproduce video files on its servers. Video content remains exclusively
-              on the original source servers.
+              <strong className="text-zinc-200">No content library</strong> — WeWatch does not upload,
+              publish, index, or make available any video catalogue. We retain no video files: nothing
+              a user played remains available on our systems afterwards. See section 1.1 for the two
+              cases in which video data is handled in transit.
             </li>
             <li>
               <strong className="text-zinc-200">URL-based access</strong> — Users share URLs pointing
@@ -55,15 +58,47 @@ export default function DmcaPage() {
             </li>
             <li>
               <strong className="text-zinc-200">Playback coordination only</strong> — WeWatch transmits
-              playback control signals (play, pause, timestamp) between users in a room. It does not
-              transmit video data between users or servers.
+              playback control signals (play, pause, timestamp) between users in a room. Video data is
+              never relayed from one user to another; the exceptions in section 1.1 are between the
+              source and a single user&apos;s device.
             </li>
             <li>
               <strong className="text-zinc-200">Stream URL resolution</strong> — For technical playback
               compatibility, our backend may resolve a URL to its underlying HLS/MPEG-DASH stream URL.
-              This is analogous to a browser resolving a webpage&apos;s media element — no copy is made.
+              This is analogous to a browser resolving a webpage&apos;s media element.
             </li>
           </ul>
+          <SubHeading>1.1 The Two Cases In Which Video Touches Our Servers</SubHeading>
+          <p className="mb-2">
+            We state these because an accurate description of the Service is worth more to a
+            rightsholder — and to us — than a flattering one:
+          </p>
+          <ol className="list-decimal pl-5 space-y-2">
+            <li>
+              <strong className="text-zinc-200">Relay of header-restricted streams.</strong> Some
+              content delivery networks refuse requests for individual stream segments unless each
+              request carries a <em>Referer</em> header, which mobile players do not send on segment
+              requests. For those streams the segments are fetched by our server and passed to the
+              requesting user&apos;s device in transit. Nothing is retained: no segment is stored,
+              archived, or served to any other user.
+            </li>
+            <li>
+              <strong className="text-zinc-200">Temporary copy of non-faststart files.</strong> Some
+              MP4 files are published in a layout that cannot begin playing until the whole file has
+              been received. In that case our server downloads the file once, reorders its index with{' '}
+              <em>ffmpeg</em> in copy mode — the video and audio streams are not re-encoded, altered,
+              or watermarked — and serves the reordered copy to the requesting user. The original
+              download is deleted as soon as it has been read, and the reordered copy is deleted
+              automatically within 6 hours. The process is entirely automatic; no person selects,
+              reviews, or curates what passes through it.
+            </li>
+          </ol>
+          <p className="mt-3">
+            Both are intermediate and temporary, both are triggered by a single user&apos;s own playback
+            request, and neither produces anything a later visitor can retrieve. A server-assisted
+            browsing mode also exists in our source code; it is switched off in the builds distributed
+            through app stores and does not run for users of those builds.
+          </p>
           <p className="mt-3">
             <strong className="text-zinc-200">For takedowns of content at its source</strong>, you must
             contact the platform that actually hosts the video (YouTube, Vimeo, etc.). WeWatch cannot
@@ -73,7 +108,7 @@ export default function DmcaPage() {
 
         <Section title="2. What WeWatch CAN Remove">
           <p className="mb-3">
-            While we do not host video content, WeWatch can:
+            While we publish no video content of our own, WeWatch can:
           </p>
           <ul>
             <li>Block specific video URLs from being shared or played within our Service</li>
@@ -191,8 +226,9 @@ export default function DmcaPage() {
 
         <Section title="6. Safe Harbor">
           <p className="mb-3">
-            WeWatch qualifies for safe harbor protection under the Digital Millennium Copyright Act
-            on two grounds:
+            WeWatch relies on safe harbor protection under the Digital Millennium Copyright Act on
+            the following grounds. We describe the technical facts in section 1.1 first, and map them
+            to the provisions second — not the other way around:
           </p>
           <ul>
             <li>
@@ -200,6 +236,19 @@ export default function DmcaPage() {
               WeWatch&apos;s primary function is to refer users to content located on third-party servers
               via URLs. We do not have actual knowledge of infringing activity; upon obtaining such
               knowledge, we act expeditiously to block the infringing URL within our Service.
+            </li>
+            <li>
+              <strong className="text-zinc-200">17 U.S.C. § 512(a) — Transitory Digital Network
+              Communications.</strong>{' '} Where segments are relayed as described in section 1.1(1),
+              the transmission is initiated by the user, carried out automatically without selection
+              of material by us, directed only to the requesting user, and no copy is retained beyond
+              what the transmission itself requires.
+            </li>
+            <li>
+              <strong className="text-zinc-200">17 U.S.C. § 512(b) — System Caching.</strong>{' '}
+              The temporary copy described in section 1.1(2) is intermediate and temporary storage
+              carried out automatically, made available only to the user who requested the material,
+              transmitted without modification of its content, and deleted within 6 hours.
             </li>
             <li>
               <strong className="text-zinc-200">17 U.S.C. § 512(c) — Storage at User Direction.</strong>{' '}
@@ -214,11 +263,11 @@ export default function DmcaPage() {
             copyright agent and maintain a repeat infringer policy, as required by § 512(i).
           </p>
           <p className="mt-2 text-xs text-zinc-400">
-            Note: Because WeWatch does not host, store, or proxy video content — it only stores
-            URLs pointing to externally hosted content — copyright takedown actions must ultimately
-            be directed to the platform hosting the video (YouTube, Vimeo, etc.) to achieve full
-            removal. WeWatch can block the URL within our Service; we cannot remove content from
-            third-party platforms.
+            Note: WeWatch retains no video content and can only act within its own Service — we block
+            the URL or domain, disable the room, and terminate repeat infringers. The handling
+            described in section 1.1 is automatic, transient, and produces nothing a later visitor can
+            retrieve, so blocking a URL with us does not remove the file from the platform that hosts
+            it. To achieve full removal, a takedown must also be directed to that platform.
           </p>
         </Section>
 
