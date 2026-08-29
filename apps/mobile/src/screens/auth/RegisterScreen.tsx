@@ -184,11 +184,11 @@ export function RegisterScreen() {
               </View>
               <Text style={s.tosText}>
                 <Text>{t('register', 'tosText')}</Text>
-                <Text style={s.tosLink} onPress={() => { analyticsService.click('register:open_terms'); Linking.openURL('https://wewatch.app/terms'); }}>
+                <Text style={s.tosLink} onPress={() => { analyticsService.click('register:open_terms'); Linking.openURL('https://wewatch.uz/terms'); }}>
                   {t('register', 'tosTerms')}
                 </Text>
                 <Text>{t('register', 'tosAnd')}</Text>
-                <Text style={s.tosLink} onPress={() => { analyticsService.click('register:open_privacy'); Linking.openURL('https://wewatch.app/privacy-policy'); }}>
+                <Text style={s.tosLink} onPress={() => { analyticsService.click('register:open_privacy'); Linking.openURL('https://wewatch.uz/privacy-policy'); }}>
                   {t('register', 'tosPrivacy')}
                 </Text>
                 {t('register', 'tosEnd') ? <Text>{t('register', 'tosEnd')}</Text> : null}
