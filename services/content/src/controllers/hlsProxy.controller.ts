@@ -2,7 +2,7 @@
 // GET /api/v1/content/hls-proxy         — fetch & rewrite m3u8 playlist
 // GET /api/v1/content/hls-proxy/segment — stream individual .ts segments
 //
-// Needed because lookmovie2 CDN requires Referer header on every segment request.
+// Needed because some source CDNs require a Referer header on every segment request.
 // expo-av sends Referer on the .m3u8 fetch but NOT on subsequent .ts requests → 403.
 
 import { Request, Response, NextFunction } from 'express';

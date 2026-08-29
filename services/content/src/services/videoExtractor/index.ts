@@ -3,7 +3,6 @@
 // Flow:
 //   URL → validateUrl() + SSRF check → detectPlatform()
 //     → youtube    : official embed (IFrame API) — always, no yt-dlp (T-S091)
-//     → playerjs   : playerjsExtractor() (inline <script> JSON parse)
 //     → moviesapi  : moviesapiExtractor() (JSON API by TMDB ID)
 //     → yt-dlp platforms (vimeo/tiktok/twitch/vk/etc): ytDlpExtractor()
 //     → geo_blocked: throw VideoExtractError('geo_blocked')
@@ -15,11 +14,10 @@
 import Redis from 'ioredis';
 import { createHash } from 'crypto';
 import { logger } from '@shared/utils/logger';
-import { validateUrl, detectPlatform, isPlaywrightPlatform } from './detectPlatform';
+import { validateUrl, detectPlatform } from './detectPlatform';
 import { playwrightExtractor } from './playwrightExtractor';
 import { genericExtractor } from './genericExtractor';
 import { ytDlpExtractor, YtDlpDrmError } from './ytDlpExtractor';
-import { playerjsExtractor } from './playerjsExtractor';
 import { moviesapiExtractor } from './moviesapiExtractor';
 import { VideoExtractResult, VideoPlatform, VideoExtractError } from './types';
 import { loadCookies } from '../cookieStore';
@@ -58,7 +56,6 @@ function extractYouTubeVideoId(url: string): string | null {
 /** Cache TTL in seconds by platform (T-S047) */
 const CACHE_TTL_BY_PLATFORM: Partial<Record<VideoPlatform, number>> & { default: number } = {
   youtube:    7_200,   // 2h — YouTube URLs expire in ~6h
-  playerjs:   86_400,  // 24h — static MP4, no expiry
   moviesapi:  3_600,   // 1h — API token-signed URLs rotate ~1-2h
   generic:    21_600,  // 6h — CIS sites (kinogo, filmix via proxy) slow to re-extract
   default:    7_200,   // 2h fallback
@@ -163,37 +160,6 @@ async function extractVideoUncached(
       extractionMethod: 'embed-api',
       cacheable: false,
     };
-
-  } else if (platform === 'playerjs') {
-    result = await playerjsExtractor(rawUrl);
-    if (!result) {
-      // Fallback to yt-dlp
-      try {
-        result = await ytDlpExtractor(rawUrl);
-      } catch (dlpErr) {
-        if (dlpErr instanceof YtDlpDrmError) throw new VideoExtractError('drm');
-        // yt-dlp also failed — fall through to Playwright for JS-heavy playerjs sites
-        logger.warn('playerjs: yt-dlp fallback failed, trying Playwright', {
-          url: rawUrl,
-          error: (dlpErr as Error).message,
-        });
-      }
-      if (result) result = { ...result, platform: 'playerjs', sourceType: 'type1', extractionMethod: 'yt-dlp', cacheable: true };
-    }
-    // Playwright last resort for playerjs sites that now load config via JS (e.g. uzmovi)
-    if (!result && isPlaywrightPlatform(parsedUrl)) {
-      if (playwrightRunning >= PLAYWRIGHT_MAX_CONCURRENT) {
-        logger.warn('Playwright concurrency limit reached for playerjs site', { url: rawUrl });
-      } else {
-        playwrightRunning++;
-        try {
-          logger.info('playerjs: falling back to Playwright', { url: rawUrl });
-          result = await playwrightExtractor(rawUrl, redis);
-        } finally {
-          playwrightRunning--;
-        }
-      }
-    }
 
   } else if (platform === 'moviesapi') {
     result = await moviesapiExtractor(rawUrl, options?.tmdbId);

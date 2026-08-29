@@ -26,7 +26,7 @@ export type VideoPlatform =
   | 'streamable'
   | 'reddit'
   | 'twitter'
-  | 'playerjs'    // Playerjs-based sites (uzmovie.tv, kinooteka.uz, etc.)
+  | 'playerjs'    // Reserved: Playerjs inline-script format (currently unrouted)
   | 'moviesapi'   // moviesapi.club JSON API
   | 'generic'
   | 'unknown';
