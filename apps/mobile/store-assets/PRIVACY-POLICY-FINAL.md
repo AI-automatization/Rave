@@ -1,3 +1,20 @@
+> # ⛔️ УСТАРЕЛО — НЕ ВСТАВЛЯТЬ В PLAY CONSOLE / APP STORE
+>
+> Это **версия 2.0 от 11.06.2026**. Она содержит утверждения, которые опровергнуты кодом
+> и были исправлены 28–29.08.2026:
+> «WeWatch is not a video proxy», «Our servers never receive or store video».
+> На деле `hlsProxy.controller.ts` релеит сегменты, а `faststartRemux.service.ts`
+> скачивает файл целиком на диск и держит переупакованную копию до 6 часов.
+>
+> **Живые источники, только они:**
+> - в приложении — `apps/mobile/src/constants/privacyPolicy.ts` (v3, PR #230);
+> - публично — `https://wewatch.uz/privacy-policy`, `/terms`, `/dmca` (PR #245, #248).
+>
+> Название файла «FINAL» относится к июньской итерации и больше ничего не значит.
+> Оставлен как история, не как источник.
+
+---
+
 # WeWatch — Privacy Policy / Политика конфиденциальности / Maxfiylik Siyosati
 
 **Effective / Вступает в силу / Kuchga kirish:** June 11, 2026
