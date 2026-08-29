@@ -1,6 +1,14 @@
 # WeWatch — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-08-21
+# Yangilangan: 2026-08-29
+
+---
+
+### F-294 | T-S201 | PR #232 | Video extractor: 3 ta pirat-sayt-yo'naltirilgan modul olib tashlandi
+
+- **Bajaruvchi:** Saidazim (Claude Sonnet 5)  **Bajarilgan (merge):** 2026-08-29  **Model:** sonnet
+- **O'zgarishlar:** `lookmovie2Extractor.ts` va `geoExtractor.ts` butunlay o'chirildi (+ orchestrator `index.ts`dagi ikkala chaqiruv, `GEO_PROXY_URL` konfig, `VideoPlatform` tipidagi `'lookmovie2'`, `detectPlatform.ts`dagi mos regex). `playerjsExtractor.ts`da faqat `REFERER_OVERRIDE` xaritasi (ashdi.vip/bazon.tv/bazon.biz → kinogo.cc soxta Referer) olib tashlandi, qolgan Playerjs JSON-config parsing tegilmadi. `services/` va `apps/` bo'ylab qoldiq domenlar (lookmovie2, hdrezka/filmix/kinogo, ashdi/bazon) uchun grep qilindi — faqat `apps/mobile` WebView qatlamida (haqiqiy foydalanuvchi brauzer sessiyasi, sarlavha soxtalashtirilmaydi) qoldi, u tegilmadi.
+- **Xulosa:** Abdulaziz (TEZCODE Wewatch topic, 2026-08-28 20:14/20:24) — Play Market'ga birinchi topshirishdan oldingi majburiy blocker, chegaralar aniq belgilangan. `tsc --noEmit`: yangi xato yo'q (faqat oldindan mavjud `@shared` rootDir TS6059 shovqini). CI: 19/19 yashil. Zoho `copyright@`/`legal@`/`privacy@wewatch.uz` alias'lari ham shu kuni qo'shildi va tashqi email bilan yetkazib berish tasdiqlandi — DMCA sahifasi endi ishlaydi.
 
 ---
 
