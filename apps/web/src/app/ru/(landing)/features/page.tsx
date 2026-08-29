@@ -6,7 +6,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
 export const metadata: Metadata = {
   title: 'Возможности',
-  description: "Все функции WeWatch — Watch Party, Battle Mode, достижения, уведомления и многое другое. Смотрите видео вместе с друзьями бесплатно.",
+  description: "Все функции WeWatch — смотреть видео вместе с друзьями: watch party, синхронный просмотр, чат, достижения и уведомления. YouTube, VK, Rutube — бесплатно.",
   alternates: {
     canonical: `${APP_URL}/ru/features`,
     languages: hreflangFor('/ru/features', APP_URL),
