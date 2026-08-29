@@ -398,6 +398,9 @@
     backend servisda (`services/*`, T-S195 zonasi tashqarisida — "⛔ TEGMASLIK KERAK" ro'yxatida).
     Tuzatish shu servisning `/internal/support/user/:id/conversations` GET rout'idagi rol
     tekshiruvini yumshatish kerak.
+    **2026-08-29:** hali kimga topshirilishi aniqlanmagan — `services/*` T-S195 zonasi
+    tashqarisida ("⛔ TEGMASLIK KERAK"), shu sabab Jasur tegmaydi; topshiriq egasi
+    Saidazim bilan aniqlashtirilishi kerak.
   - ✅ **P0 (TUZATILGAN):** parol tiklashni **so'rash** sahifasi yo'qligi. Redesign commiti
     (`eed5578b`) bilan birga qo'shilgan — `/auth/forgot-password` sahifasi va formasi mavjud,
     `/login`dagi "Забыли?" havolasi to'g'ri shu manzilga yo'naltiradi (`LoginForm.tsx`da
@@ -409,6 +412,11 @@
     yuklanayotganda skeleton ko'rsatadi, "Watch Party" fallback'ini emas (`RoomHeader.tsx`);
     a'zolar soni endi live socket state'dan (`storeMembers`), eskirgan REST snapshotdan emas;
     "Chiqish" endi ikonka + dropdown menyu ichida (ekrandan chiqib ketmaydi). 2026-08-29da
+    `tsc --noEmit` toza natija bilan tasdiqlandi.
+  - ✅ **P1 (TUZATILGAN, 2026-08-29):** `/friends` ro'yxatida qatorga bosilganda profil
+    ochilmasdi — `FriendCard.tsx` faqat "Xabar" tugmasini bilardi, profilga o'tish umuman
+    ulanmagan edi. `T-S163`dagi `UserProfileModal` endi `FriendsContent.tsx`ga ham ulandi
+    (qatorga bosish → modal ochiladi, xuddi xona chatidagi kabi). Saidazim topgan bug.
     `tsc --noEmit` toza natija bilan tasdiqlandi.
   - **P1:** do'st qo'shish `POST /friend-request` 201 — UI'da hech qanday feedback yo'q.
   - **P1:** tugma yorlig'i noto'g'ri — "Найти друга" o'rniga "Добавить в друзья".

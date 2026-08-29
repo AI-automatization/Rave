@@ -16,6 +16,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { FriendCard } from '@/components/friends/FriendCard';
 import { RequestCard } from '@/components/friends/RequestCard';
 import { FriendSearch } from '@/components/friends/FriendSearch';
+import { UserProfileModal } from '@/components/profile/UserProfileModal';
 import { trackClick } from '@/lib/analytics';
 
 type Tab = 'friends' | 'requests' | 'search';
@@ -50,6 +51,7 @@ export function FriendsContent() {
   const router = useRouter();
   const currentUser = useAuthStore((s) => s.user);
   const [tab, setTab] = useState<Tab>('friends');
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const tabRefs = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({});
 
   const { data: friends, isLoading: loadingFriends } = useFriends();
@@ -163,6 +165,7 @@ export function FriendsContent() {
                   key={f._id}
                   user={f}
                   onMessage={() => { trackClick('friends:message'); router.push(`/messages?peer=${f._id}`); }}
+                  onOpenProfile={() => setProfileUserId(f._id)}
                 />
               ))}
             </ul>
@@ -197,6 +200,8 @@ export function FriendsContent() {
           <FriendSearch />
         </div>
       )}
+
+      <UserProfileModal userId={profileUserId} onClose={() => setProfileUserId(null)} />
     </div>
   );
 }
