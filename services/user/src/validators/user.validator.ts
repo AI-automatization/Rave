@@ -43,6 +43,10 @@ export const muteConversationSchema = Joi.object({
   muted: Joi.boolean().required(),
 });
 
+export const blockPeerSchema = Joi.object({
+  blocked: Joi.boolean().required(),
+});
+
 export const pinConversationSchema = Joi.object({
   pinned: Joi.boolean().required(),
 });

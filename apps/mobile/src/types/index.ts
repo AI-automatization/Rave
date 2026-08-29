@@ -161,6 +161,7 @@ export interface IDMConversation {
   unreadCount: number;
   isMuted: boolean;
   isPinned: boolean;
+  isBlocked: boolean;
 }
 
 // ─────────────────────────────────────────────

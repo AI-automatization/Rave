@@ -8,9 +8,11 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, useFocusEffect, RouteProp } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
+import axios from 'axios';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@store/auth.store';
 import { dmApi } from '@api/user.api';
+import { appAlert } from '@components/common/AppAlert';
 import { IDMMessage, ModalStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { getSocket, SERVER_EVENTS, CLIENT_EVENTS } from '@socket/client';
@@ -142,6 +144,26 @@ export function DMChatScreen() {
     return () => { sock.off(SERVER_EVENTS.DM_READ, onRead); };
   }, [peerId, myId, queryClient]);
 
+  // Server-side send failure over the socket path (e.g. rejected because the peer blocked
+  // you — services/user/src/services/dm.service.ts sendMessage) has no ack, so the optimistic
+  // bubble in handleSend would otherwise sit there looking sent forever. Pop the newest temp
+  // placeholder and tell the user.
+  useEffect(() => {
+    const sock = getSocket();
+    if (!sock) return;
+    const onError = () => {
+      queryClient.setQueryData<IDMMessage[]>(['dm-history', peerId], (old = []) => {
+        const idx = [...old].reverse().findIndex(m => m._id.startsWith('temp-'));
+        if (idx === -1) return old;
+        const realIdx = old.length - 1 - idx;
+        return [...old.slice(0, realIdx), ...old.slice(realIdx + 1)];
+      });
+      appAlert(t('common', 'error'), t('dm', 'sendBlocked'));
+    };
+    sock.on(SERVER_EVENTS.ERROR, onError);
+    return () => { sock.off(SERVER_EVENTS.ERROR, onError); };
+  }, [peerId, queryClient, t]);
+
   const handleSend = () => {
     const text = input.trim();
     if (!text) return;
@@ -179,7 +201,16 @@ export function DMChatScreen() {
           void queryClient.invalidateQueries({ queryKey: ['dm-conversations'] });
           setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
         })
-        .catch(() => { /* keep the optimistic message so it isn't lost */ });
+        .catch((err: unknown) => {
+          // 403 = permanently rejected (e.g. blocked) — drop the optimistic bubble instead
+          // of leaving it looking sent. Anything else (network blip, 5xx) keeps it, since
+          // those are worth a retry and the message may still land.
+          if (axios.isAxiosError(err) && err.response?.status === 403) {
+            queryClient.setQueryData<IDMMessage[]>(['dm-history', peerId], (old = []) =>
+              old.filter(m => m._id !== tempId));
+            appAlert(t('common', 'error'), t('dm', 'sendBlocked'));
+          }
+        });
     }
   };
 

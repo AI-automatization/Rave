@@ -77,6 +77,18 @@ export class DMController {
     }
   };
 
+  toggleBlock = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId: myId } = (req as AuthenticatedRequest).user;
+      const { userId } = req.params;
+      const { blocked } = req.body as { blocked: boolean };
+      await this.dmService.toggleBlock(myId, userId, blocked);
+      res.json(apiResponse.success(null));
+    } catch (err) {
+      next(err);
+    }
+  };
+
   togglePinConversation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { userId: myId } = (req as AuthenticatedRequest).user;

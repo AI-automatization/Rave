@@ -35,6 +35,7 @@ export interface Conversation {
   unreadCount: number;
   isMuted: boolean;
   isPinned: boolean;
+  isBlocked: boolean;
 }
 
 // All backend responses return data directly (not wrapped in { user: }, { friends: }, etc.)
@@ -69,6 +70,9 @@ export const userApi = {
   rejectFriendRequest: (requestId: string) =>
     apiClient(`/api/user/friend-requests/${requestId}/reject`, { method: 'PUT' }),
 
+  removeFriend: (userId: string) =>
+    apiClient<void>(`/api/user/me/friends/${userId}`, { method: 'DELETE' }),
+
   searchUsers: (query: string) =>
     apiClient<IUser[]>(`/api/user/search?q=${encodeURIComponent(query)}`),
 
@@ -98,6 +102,9 @@ export const userApi = {
 
   togglePinConversation: (peerId: string, pinned: boolean) =>
     apiClient<void>(`/api/user/dm/${peerId}/pin`, { method: 'POST', body: { pinned } }),
+
+  toggleBlock: (peerId: string, blocked: boolean) =>
+    apiClient<void>(`/api/user/dm/${peerId}/block`, { method: 'POST', body: { blocked } }),
 
   togglePinMessage: (peerId: string, messageId: string, pinned: boolean) =>
     apiClient<DmMessage>(`/api/user/dm/${peerId}/messages/${messageId}/pin`, { method: 'POST', body: { pinned } }),

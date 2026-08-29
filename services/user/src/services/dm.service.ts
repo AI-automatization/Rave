@@ -58,6 +58,7 @@ export interface Conversation {
   unreadCount: number;
   isMuted: boolean;
   isPinned: boolean;
+  isBlocked: boolean;
 }
 
 export class DMService {
@@ -96,10 +97,17 @@ export class DMService {
     if (senderId === receiverId) throw new BadRequestError('Cannot message yourself');
 
     const [receiver, sender] = await Promise.all([
-      User.findById(receiverId).select('username mutedPeerIds').lean(),
-      User.findById(senderId).select('username').lean(),
+      User.findById(receiverId).select('username mutedPeerIds blockedPeerIds').lean(),
+      User.findById(senderId).select('username blockedPeerIds').lean(),
     ]);
     if (!receiver) throw new NotFoundError('User not found');
+
+    // Blocked either direction — receiver blocked sender, or sender (still) has receiver
+    // blocked. Same generic error either way so a blocker's identity/state never leaks
+    // to the blocked side (Telegram-style silent reject, not "you are blocked by X").
+    if ((receiver.blockedPeerIds ?? []).includes(senderId) || (sender?.blockedPeerIds ?? []).includes(receiverId)) {
+      throw new ForbiddenError('Cannot message this user');
+    }
 
     const trimmed = text.trim();
     if (!trimmed) throw new BadRequestError('Message cannot be empty');
@@ -249,6 +257,16 @@ export class DMService {
     );
   }
 
+  // Blocking is one-directional to set (only the blocker's array changes) but checked
+  // both ways in sendMessage — so it's effectively mutual once either side has blocked.
+  async toggleBlock(myId: string, peerId: string, blocked: boolean): Promise<void> {
+    if (myId === peerId) throw new BadRequestError('Cannot block yourself');
+    await User.updateOne(
+      { _id: myId },
+      blocked ? { $addToSet: { blockedPeerIds: peerId } } : { $pull: { blockedPeerIds: peerId } },
+    );
+  }
+
   async togglePinConversation(myId: string, peerId: string, pinned: boolean): Promise<void> {
     if (pinned) {
       const me = await User.findById(myId).select('pinnedPeerIds').lean();
@@ -325,11 +343,12 @@ export class DMService {
     const peerIds = rows.map((r) => r._id);
     const [peers, me] = await Promise.all([
       User.find({ _id: { $in: peerIds } }).select('_id username avatar').lean(),
-      User.findById(myId).select('mutedPeerIds pinnedPeerIds').lean(),
+      User.findById(myId).select('mutedPeerIds pinnedPeerIds blockedPeerIds').lean(),
     ]);
 
     const peerMap = new Map(peers.map((p) => [String(p._id), p]));
     const mutedSet = new Set(me?.mutedPeerIds ?? []);
+    const blockedSet = new Set(me?.blockedPeerIds ?? []);
     const pinnedOrder = me?.pinnedPeerIds ?? [];
 
     const conversations: Conversation[] = rows
@@ -345,6 +364,7 @@ export class DMService {
           unreadCount: r.unreadCount,
           isMuted: mutedSet.has(String(peer._id)),
           isPinned: pinnedOrder.includes(String(peer._id)),
+          isBlocked: blockedSet.has(String(peer._id)),
         };
       });
 

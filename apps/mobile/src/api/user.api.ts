@@ -105,10 +105,13 @@ export const userApi = {
     return res.data.data;
   },
 
-  // Block user: remove friendship (if any) + file a harassment report.
-  // The local blocked list is stored separately in blockedUsersStorage.
+  // Block user: server-side DM block (peer can no longer message you, either direction) +
+  // remove friendship (if any) + file a harassment report. Server-side enforcement lives in
+  // dm.service.ts sendMessage — this replaces the old client-only "block" that did nothing
+  // but unfriend + report and never actually stopped new messages.
   async blockUser(userId: string): Promise<void> {
     await Promise.allSettled([
+      dmApi.toggleBlock(userId, true),
       userClient.delete(`/users/me/friends/${userId}`),
       adminClient.post(`/internal/moderation/users/${userId}/report`, { reason: 'harassment', comment: 'User blocked by reporter' }),
     ]);
@@ -163,6 +166,10 @@ export const dmApi = {
 
   async togglePinConversation(peerId: string, pinned: boolean): Promise<void> {
     await userClient.post(`/users/dm/${peerId}/pin`, { pinned });
+  },
+
+  async toggleBlock(peerId: string, blocked: boolean): Promise<void> {
+    await userClient.post(`/users/dm/${peerId}/block`, { blocked });
   },
 
   async togglePinMessage(peerId: string, messageId: string, pinned: boolean): Promise<IDMMessage> {

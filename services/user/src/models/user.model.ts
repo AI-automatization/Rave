@@ -38,6 +38,10 @@ export interface IUserDocument extends Document {
   // capped at 5 (enforced in DMService.togglePinConversation, not here).
   mutedPeerIds: string[];
   pinnedPeerIds: string[];
+  // Per-user DM blocklist (NOT the platform-wide `isBlocked` ban flag above — this is a
+  // user blocking another user, enforced one-way in DMService.sendMessage: neither side
+  // can message the other while either has the other in this list).
+  blockedPeerIds: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -68,6 +72,7 @@ const userSchema = new Schema<IUserDocument>(
     restrictions: { type: [String], default: [] },
     mutedPeerIds: { type: [String], default: [] },
     pinnedPeerIds: { type: [String], default: [] },
+    blockedPeerIds: { type: [String], default: [] },
     settings: {
       type: new Schema(
         {

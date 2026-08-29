@@ -15,6 +15,7 @@ import {
   updateProfileSchema,
   updateSettingsSchema,
   muteConversationSchema,
+  blockPeerSchema,
   pinConversationSchema,
   pinMessageSchema,
   markReadUpToSchema,
@@ -125,6 +126,7 @@ export const createUserRouter = (redis: Redis): Router => {
   router.patch('/dm/:userId/read', verifyToken, notBlocked, dmController.markRead);
   router.patch('/dm/:userId/read-until', verifyToken, notBlocked, validate(markReadUpToSchema), dmController.markReadUpTo);
   router.post('/dm/:userId/mute', verifyToken, notBlocked, validate(muteConversationSchema), dmController.toggleMute);
+  router.post('/dm/:userId/block', verifyToken, notBlocked, validate(blockPeerSchema), dmController.toggleBlock);
   router.post('/dm/:userId/pin', verifyToken, notBlocked, validate(pinConversationSchema), dmController.togglePinConversation);
   router.get('/dm/:userId/pinned', verifyToken, notBlocked, dmController.getPinnedMessages);
   router.post('/dm/:userId/messages/:messageId/pin', verifyToken, notBlocked, validate(pinMessageSchema), dmController.togglePinMessage);

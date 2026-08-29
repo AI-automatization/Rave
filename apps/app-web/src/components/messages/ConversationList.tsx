@@ -2,17 +2,19 @@
 
 import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { MessageCircle, MoreVertical, Pin, PinOff, Bell, BellOff, Eye } from 'lucide-react';
+import { MessageCircle, MoreVertical, Pin, PinOff, Bell, BellOff, Eye, Flag, Ban } from 'lucide-react';
 import type { Conversation } from '@/lib/api/user.api';
 import { trackClick } from '@/lib/analytics';
 import { memberColor, formatRelative } from '@/lib/dm/dm-format';
-import { useToggleMute, useTogglePinConversation } from '@/hooks/use-dm';
+import { useToggleMute, useTogglePinConversation, useUnblockUser } from '@/hooks/use-dm';
 import { toast } from '@/store/toast.store';
 import { useApiError } from '@/hooks/use-api-error';
 import {
-  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { ChatPreviewModal } from '@/components/messages/dm/ChatPreviewModal';
+import { ReportUserDialog } from '@/components/messages/dm/ReportUserDialog';
+import { BlockUserDialog } from '@/components/messages/dm/BlockUserDialog';
 
 interface Props {
   conversations: Conversation[];
@@ -25,7 +27,10 @@ export function ConversationList({ conversations, selectedPeerId, onSelect }: Pr
   const parseError = useApiError();
   const toggleMute = useToggleMute();
   const togglePin = useTogglePinConversation();
+  const unblockUser = useUnblockUser();
   const [previewPeerId, setPreviewPeerId] = useState<string | null>(null);
+  const [reportPeerId, setReportPeerId] = useState<string | null>(null);
+  const [blockPeerId, setBlockPeerId] = useState<string | null>(null);
 
   // Pinned conversations first (stable within each group), matching mobile's ordering.
   const sorted = useMemo(
@@ -34,6 +39,8 @@ export function ConversationList({ conversations, selectedPeerId, onSelect }: Pr
   );
 
   const previewConversation = conversations.find((c) => c.peerId === previewPeerId) ?? null;
+  const reportConversation = conversations.find((c) => c.peerId === reportPeerId) ?? null;
+  const blockConversation = conversations.find((c) => c.peerId === blockPeerId) ?? null;
 
   if (conversations.length === 0) {
     return (
@@ -60,6 +67,13 @@ export function ConversationList({ conversations, selectedPeerId, onSelect }: Pr
       { peerId: conv.peerId, pinned: !conv.isPinned },
       { onError: (err) => toast.error(parseError(err, t('pinLimitReached'))) },
     );
+  }
+
+  function handleUnblock(conv: Conversation) {
+    trackClick('dm:unblock');
+    unblockUser.mutate(conv.peerId, {
+      onError: (err) => toast.error(parseError(err, t('blockError'))),
+    });
   }
 
   return (
@@ -164,6 +178,28 @@ export function ConversationList({ conversations, selectedPeerId, onSelect }: Pr
                   {conv.isMuted ? <Bell size={15} aria-hidden="true" /> : <BellOff size={15} aria-hidden="true" />}
                   {conv.isMuted ? t('unmute') : t('mute')}
                 </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-[var(--ww-line)]" />
+                <DropdownMenuItem
+                  className="cursor-pointer focus:bg-[var(--ww-surface-2)] focus:text-[var(--ww-text)]"
+                  onClick={() => { trackClick('dm:report_open'); setReportPeerId(conv.peerId); }}
+                >
+                  <Flag size={15} aria-hidden="true" /> {t('reportUser')}
+                </DropdownMenuItem>
+                {conv.isBlocked ? (
+                  <DropdownMenuItem
+                    className="cursor-pointer focus:bg-[var(--ww-surface-2)] focus:text-[var(--ww-text)]"
+                    onClick={() => handleUnblock(conv)}
+                  >
+                    <Ban size={15} aria-hidden="true" /> {t('unblockBtn')}
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem
+                    className="cursor-pointer text-[var(--ww-danger)] focus:bg-[var(--ww-danger-soft)] focus:text-[var(--ww-danger)]"
+                    onClick={() => { trackClick('dm:block_open'); setBlockPeerId(conv.peerId); }}
+                  >
+                    <Ban size={15} aria-hidden="true" /> {t('blockBtn')}
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -180,6 +216,18 @@ export function ConversationList({ conversations, selectedPeerId, onSelect }: Pr
         open={!!previewPeerId}
         onOpenChange={(open) => { if (!open) setPreviewPeerId(null); }}
         onOpenFull={(peerId) => { setPreviewPeerId(null); onSelect(peerId); }}
+      />
+
+      <ReportUserDialog
+        peerId={reportPeerId}
+        peerUsername={reportConversation?.peerUsername}
+        onOpenChange={(open) => { if (!open) setReportPeerId(null); }}
+      />
+
+      <BlockUserDialog
+        peerId={blockPeerId}
+        peerUsername={blockConversation?.peerUsername}
+        onOpenChange={(open) => { if (!open) setBlockPeerId(null); }}
       />
     </div>
   );

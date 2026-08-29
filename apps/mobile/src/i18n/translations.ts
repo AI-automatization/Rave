@@ -777,6 +777,7 @@ export const translations = {
   // ─── DM Chat ───
   dm: {
     title: { uz: 'Xabarlar', ru: 'Сообщения', en: 'Messages' },
+    sendBlocked: { uz: "Xabar yetkazilmadi — foydalanuvchi mavjud emas", ru: 'Сообщение не доставлено — пользователь недоступен', en: 'Message not delivered — user unavailable' },
     emptyTitle: { uz: "Xabarlar yo'q", ru: 'Нет сообщений', en: 'No messages' },
     emptySub: { uz: 'Birinchi xabar yuboring!', ru: 'Отправьте первое сообщение!', en: 'Send your first message!' },
     placeholder: { uz: 'Xabar yozing...', ru: 'Написать...', en: 'Message...' },

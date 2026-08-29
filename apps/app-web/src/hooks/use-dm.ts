@@ -2,11 +2,15 @@
 
 import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { userApi } from '@/lib/api/user.api';
 import type { DmMessage, Conversation } from '@/lib/api/user.api';
+import { reportApi } from '@/lib/api/report.api';
+import type { UserReportReason } from '@/lib/api/report.api';
 import { getSocket } from '@/lib/socket';
 import { ApiError } from '@/lib/api-client';
+import { toast } from '@/store/toast.store';
 
 export function useConversations() {
   return useQuery({
@@ -70,6 +74,7 @@ function reconcileIncoming(list: DmMessage[], msg: DmMessage, myId: string | und
 // message" apart from an incoming one when reconciling temp-* placeholders.
 export function useDmRealtime(peerId: string | null, myId: string | undefined) {
   const qc = useQueryClient();
+  const t = useTranslations('dm');
 
   useEffect(() => {
     let mounted = true;
@@ -104,11 +109,29 @@ export function useDmRealtime(peerId: string | null, myId: string | undefined) {
               : m));
       };
 
+      // Server-side send failure over the socket path (e.g. rejected because the peer
+      // blocked you — see services/user/src/services/dm.service.ts sendMessage) has no
+      // ack, so the optimistic temp-* bubble in useSendDm would otherwise sit there
+      // looking sent forever. Pop the newest temp placeholder and surface a toast.
+      const onError = () => {
+        if (!mounted || !peerId) return;
+        qc.setQueryData<DmMessage[]>(['messages', peerId], (old) => {
+          if (!old) return old;
+          const idx = [...old].reverse().findIndex((m) => m._id.startsWith('temp-'));
+          if (idx === -1) return old;
+          const realIdx = old.length - 1 - idx;
+          return [...old.slice(0, realIdx), ...old.slice(realIdx + 1)];
+        });
+        toast.error(t('sendFailed'));
+      };
+
       socket.on(SERVER_EVENTS.DM_MESSAGE, onMessage);
       socket.on(SERVER_EVENTS.DM_READ, onRead);
+      socket.on(SERVER_EVENTS.ERROR, onError);
       cleanup = () => {
         socket.off(SERVER_EVENTS.DM_MESSAGE, onMessage);
         socket.off(SERVER_EVENTS.DM_READ, onRead);
+        socket.off(SERVER_EVENTS.ERROR, onError);
       };
     }).catch(() => {});
 
@@ -116,7 +139,7 @@ export function useDmRealtime(peerId: string | null, myId: string | undefined) {
       mounted = false;
       cleanup?.();
     };
-  }, [peerId, qc, myId]);
+  }, [peerId, qc, myId, t]);
 }
 
 interface SendDmArgs {
@@ -135,6 +158,7 @@ interface SendDmArgs {
 // the socket path doesn't return the created message synchronously.
 export function useSendDm() {
   const qc = useQueryClient();
+  const t = useTranslations('dm');
 
   return useMutation({
     mutationFn: async ({ peerId, text, myId, replyToId, replyToText, replyToSender }: SendDmArgs) => {
@@ -165,16 +189,29 @@ export function useSendDm() {
         // fall through to REST
       }
 
-      const res = await userApi.sendDm(peerId, text, replyToId);
-      if (!res.data) throw new Error('Empty response from sendDm');
-      const sent = res.data;
-      // REST path: reconcile immediately since there's no socket echo to do it for us.
-      qc.setQueryData<DmMessage[]>(['messages', peerId], (old) =>
-        reconcileIncoming((old ?? []).filter((m) => m._id !== temp._id), sent, myId));
-      return sent;
+      try {
+        const res = await userApi.sendDm(peerId, text, replyToId);
+        if (!res.data) throw new Error('Empty response from sendDm');
+        const sent = res.data;
+        // REST path: reconcile immediately since there's no socket echo to do it for us.
+        qc.setQueryData<DmMessage[]>(['messages', peerId], (old) =>
+          reconcileIncoming((old ?? []).filter((m) => m._id !== temp._id), sent, myId));
+        return sent;
+      } catch (err) {
+        // e.g. 403 — the peer blocked you (services/user/src/services/dm.service.ts
+        // sendMessage). Drop the optimistic bubble instead of leaving it looking sent.
+        qc.setQueryData<DmMessage[]>(['messages', peerId], (old) =>
+          (old ?? []).filter((m) => m._id !== temp._id));
+        throw err;
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['conversations'] });
+    },
+    onError: (err) => {
+      toast.error(err instanceof ApiError && err.status === 403
+        ? t('sendBlocked')
+        : t('sendFailed'));
     },
   });
 }
@@ -213,6 +250,55 @@ export function useTogglePinConversation() {
       return { prev };
     },
     // Rollback on error — most notably the server's 5-pin cap (403). Caller shows the toast.
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(['conversations'], ctx.prev);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['conversations'] });
+    },
+  });
+}
+
+export function useReportUser() {
+  return useMutation({
+    mutationFn: ({ userId, reason, comment }: { userId: string; reason: UserReportReason; comment?: string }) =>
+      reportApi.reportUser(userId, reason, comment),
+  });
+}
+
+// Mirrors mobile's userApi.blockUser (apps/mobile/src/api/user.api.ts): server-side DM block
+// (peer can no longer message you, either direction — enforced in dm.service.ts sendMessage)
+// + remove friendship (if any) + file an automatic harassment report for moderators to review.
+export function useBlockUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (peerId: string) => {
+      await Promise.allSettled([
+        userApi.toggleBlock(peerId, true),
+        userApi.removeFriend(peerId),
+        reportApi.reportUser(peerId, 'harassment', 'User blocked by reporter'),
+      ]);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['conversations'] });
+      qc.invalidateQueries({ queryKey: ['friends'] });
+    },
+  });
+}
+
+// Unblock — lets the peer message you again. No unfriend-equivalent undo (blocking already
+// removed the friendship; re-adding is a separate friend request).
+export function useUnblockUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (peerId: string) => userApi.toggleBlock(peerId, false),
+    onMutate: async (peerId) => {
+      await qc.cancelQueries({ queryKey: ['conversations'] });
+      const prev = qc.getQueryData<Conversation[]>(['conversations']);
+      qc.setQueryData<Conversation[]>(['conversations'], (old) =>
+        (old ?? []).map((c) => (c.peerId === peerId ? { ...c, isBlocked: false } : c)));
+      return { prev };
+    },
     onError: (_err, _vars, ctx) => {
       if (ctx?.prev) qc.setQueryData(['conversations'], ctx.prev);
     },
