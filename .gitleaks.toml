@@ -8,9 +8,9 @@ useDefault = true
 # these keys are not secrets; access is controlled via API key restrictions and
 # Firebase Security Rules, not by hiding the key. See:
 # https://firebase.google.com/docs/projects/api-keys
-[[allowlists]]
+[allowlist]
 description = "Firebase client config files — keys are public by design"
 paths = [
-  '''apps/mobile/google-services.json''',
+  '''apps/mobile/google-services\.json''',
   '''apps/mobile/GoogleService-Info\.plist''',
 ]
