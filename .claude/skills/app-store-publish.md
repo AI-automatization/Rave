@@ -12,7 +12,7 @@ metadata:
 
 # App Store Publish — Master Skill
 
-Полный цикл публикации WeWatch (`com.wewatch.app`) в iOS App Store и Google Play Store.
+Полный цикл публикации WeWatch (Android: `com.wewatch.mobile`, iOS: `com.wewatch.app`) в iOS App Store и Google Play Store.
 
 ---
 
@@ -80,7 +80,7 @@ eas build -p ios --profile production
 
 ### Первый раз (разовые шаги)
 1. Создать аккаунт на [play.google.com/console](https://play.google.com/console) — $25 разово
-2. Создать приложение → package: `com.wewatch.app`
+2. Создать приложение → package: `com.wewatch.mobile`
 3. Заполнить store listing (название, описание, скриншоты)
 4. Пройти content rating questionnaire
 5. Data safety раздел — заполнить

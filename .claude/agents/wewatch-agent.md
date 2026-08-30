@@ -45,7 +45,7 @@ services/
   admin/         port 3008  — admin API
 
 apps/
-  mobile/        — React Native + Expo, com.wewatch.app
+  mobile/        — React Native + Expo, com.wewatch.mobile (Android) / com.wewatch.app (iOS)
   admin-ui/      — React + Vite + Tailwind
 
 Firebase: ravetokenauth (project_id) — и мобильное приложение и notification service

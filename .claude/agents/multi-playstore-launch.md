@@ -62,7 +62,7 @@ TASK SPEC:
     1. Check if apps/web/src/app/privacy-policy/ exists → read it
     2. Verify the page exports proper Next.js component
     3. Check apps/mobile/eas.json — does "production" profile exist with correct settings?
-    4. Verify app.json: version, versionCode, package name (com.wewatch.app)
+    4. Verify app.json: version, versionCode, package name (com.wewatch.mobile)
     5. Verify google-services.json present (ravetokenauth)
 
   Expected eas.json production:
@@ -83,7 +83,7 @@ TASK SPEC:
 [ ] eas.json production profile correct
 [ ] app.json version 1.0.x, versionCode N
 [ ] google-services.json = ravetokenauth
-[ ] Play Console: app created, com.wewatch.app
+[ ] Play Console: app created, com.wewatch.mobile
 [ ] Run: cd apps/mobile && eas build -p android --profile production
 [ ] Run: cd apps/mobile && eas submit -p android --latest
 ```

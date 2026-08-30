@@ -3,10 +3,10 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.wewatch.app",
+      "package_name": "com.wewatch.mobile",
       "sha256_cert_fingerprints": [
-        "98:13:66:22:25:4C:16:B1:05:EB:6B:C4:1C:02:72:79:A0:9B:B0:7B:2F:67:8F:32:B3:1A:2A:A2:C2:BB:E4:D9",
-        "FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C"
+        "4D:F2:87:3B:32:61:10:73:DE:FC:21:22:35:FC:4E:D6:31:20:56:11:70:E1:C3:78:EB:5C:A7:0C:E0:34:15:38",
+        "3F:B9:12:42:72:1A:1A:0E:C3:C4:9A:CD:70:C9:59:90:C6:F5:BC:AE:45:B9:DF:35:2E:7B:20:87:CA:82:47:98"
       ]
     }
   }

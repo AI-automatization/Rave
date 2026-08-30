@@ -33,6 +33,35 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:151878141751:android:1dad68b73e2d7a58767cb2",
+        "android_client_info": {
+          "package_name": "com.wewatch.mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "151878141751-7t3r6hgdsb21hhhh9dalj422lq7j69v0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCxuKho1WiztYR4gYByVeEc0UhamjE6Q9s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "151878141751-7t3r6hgdsb21hhhh9dalj422lq7j69v0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"

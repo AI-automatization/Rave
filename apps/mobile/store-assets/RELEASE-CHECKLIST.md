@@ -1,6 +1,6 @@
 # WeWatch — First Release Checklist
 
-**App:** WeWatch (`com.wewatch.app`) | **Version:** 1.0.1 | **Target:** Play Store + App Store
+**App:** WeWatch | **Android package:** `com.wewatch.mobile` | **iOS bundle ID:** `com.wewatch.app` | **Version:** 1.0.1 | **Target:** Play Store + App Store
 
 ---
 
@@ -23,7 +23,7 @@
 
 ### Google Play Store
 - [ ] **Создать аккаунт Play Console** — play.google.com/console ($25)
-- [ ] **Создать приложение** — название WeWatch, package com.wewatch.app
+- [ ] **Создать приложение** — название WeWatch, package com.wewatch.mobile
 - [ ] **Feature Graphic** — 1024×500px (создать в Figma или Canva)
   - Файл: `store-assets/play-store/feature-graphic.png`
 - [ ] **5+ скриншотов Android** — 1080×2400px
