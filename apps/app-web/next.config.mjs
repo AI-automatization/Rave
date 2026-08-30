@@ -1,7 +1,26 @@
 import { withSentryConfig } from '@sentry/nextjs';
 
+// Avatar/uploads rasmlari user-service diskida saqlanadi va o'sha service
+// static serve qiladi (services/user/src/app.ts: app.use('/uploads', ...)) — root'da,
+// /api/v1 ostida emas. Backend DB'ga faqat nisbiy yo'l qaytaradi ("/uploads/avatars/x.jpg"),
+// shuning uchun brauzer <img src="/uploads/..."> so'rasa, bu app-web'ning o'z domenidan
+// so'raladi va u yerda bunday route yo'q — 404, rasm ko'rinmaydi. Mobile buni
+// apps/mobile/src/utils/url.ts'dagi resolveMediaUrl() bilan hal qiladi (host bilan to'ldirish);
+// web'da esa /uploads/* ni user-service'ga shaffof proxy qilamiz, shunda mavjud barcha
+// <img src={avatar}> joylari (AvatarUpload, FriendCard, ChatPanel va h.k.) o'zgarishsiz ishlaydi.
+function uploadsOrigin() {
+  const railwayEnv = process.env.RAILWAY_SERVICE_USER_URL;
+  const base = railwayEnv ? `https://${railwayEnv}` : (process.env.USER_SERVICE_URL ?? 'http://localhost:3002/api/v1');
+  return base.replace(/\/api\/v1\/?$/, '');
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async rewrites() {
+    return [
+      { source: '/uploads/:path*', destination: `${uploadsOrigin()}/uploads/:path*` },
+    ];
+  },
   output: 'standalone',
   typescript: {
     // tsc --noEmit passes locally; shared/src types import express which isn't

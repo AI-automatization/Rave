@@ -273,8 +273,11 @@ export function useBlockUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (peerId: string) => {
+      // toggleBlock is the actual block — must throw on failure so the dialog shows an
+      // error instead of closing as if the user were blocked. Unfriend + auto-report are
+      // best-effort side effects and stay allSettled so neither one failing blocks the flow.
+      await userApi.toggleBlock(peerId, true);
       await Promise.allSettled([
-        userApi.toggleBlock(peerId, true),
         userApi.removeFriend(peerId),
         reportApi.reportUser(peerId, 'harassment', 'User blocked by reporter'),
       ]);

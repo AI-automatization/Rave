@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // Routes that require authentication
-const PROTECTED_PATHS = ['/home', '/room', '/profile', '/friends', '/messages'];
+const PROTECTED_PATHS = ['/home', '/room', '/profile', '/friends', '/messages', '/notifications', '/settings', '/support'];
 
 // Routes that should redirect to /home if already authenticated
 const AUTH_PATHS = ['/login', '/register'];
@@ -40,5 +40,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/home/:path*', '/room/:path*', '/profile/:path*', '/friends/:path*', '/messages/:path*', '/login', '/register/:path*', '/uz/:path*', '/en/:path*'],
+  matcher: ['/home/:path*', '/room/:path*', '/profile/:path*', '/friends/:path*', '/messages/:path*', '/notifications/:path*', '/settings/:path*', '/support/:path*', '/login', '/register/:path*', '/uz/:path*', '/en/:path*'],
 };

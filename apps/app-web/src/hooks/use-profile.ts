@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { userApi } from '@/lib/api/user.api';
 import { apiClient } from '@/lib/api-client';
+import { useAuthStore } from '@/store/auth.store';
 
 interface UserStats {
   totalWatched: number;
@@ -49,8 +50,15 @@ export function useUploadAvatar() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: userApi.uploadAvatar,
-    onSuccess: () => {
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['profile'] });
+      // ['profile'] invalidation ProfileCard'ni yangilaydi, lekin sidebar/nav (AppSidebar,
+      // AppNav, FloatingNav) avatarni useAuthStore'dan o'qiydi — u alohida yangilanishi kerak,
+      // xuddi useUpdateProfile'dagi username/bio uchun ProfileCard qiladigan setUser kabi.
+      if (res.data?.avatarUrl) {
+        const current = useAuthStore.getState().user;
+        if (current) useAuthStore.getState().setUser({ ...current, avatar: res.data.avatarUrl });
+      }
     },
   });
 }

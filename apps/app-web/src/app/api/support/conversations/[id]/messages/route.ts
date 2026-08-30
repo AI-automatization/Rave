@@ -45,16 +45,22 @@ export async function POST(
     const userId = getUserIdFromToken(accessToken);
     if (!userId) return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
 
-    const body = await req.json() as unknown;
+    const { text } = await req.json() as { text?: string };
+    // Backend has no POST /internal/support/user/:userId/conversations/:convId/messages route
+    // (services/admin/src/routes/support.routes.ts) — only POST .../user/:userId/message
+    // (singular), which takes conversationId in the body instead of the URL. The old path here
+    // matched nothing, fell through to the moderation router's global requireRole check, and
+    // every support message a user sent silently failed (same bug class the GET conversations
+    // route had, fixed 2026-08-29 — that fix never covered this POST).
     const res = await fetch(
-      `${baseUrl()}/internal/support/user/${userId}/conversations/${params.id}/messages`,
+      `${baseUrl()}/internal/support/user/${userId}/message`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ text, conversationId: params.id }),
       },
     );
     const data = await res.json() as unknown;
