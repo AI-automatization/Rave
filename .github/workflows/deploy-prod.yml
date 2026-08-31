@@ -1,5 +1,12 @@
 name: Deploy — Production
 
+# Очередь без отмены: деплой прод прерывать на середине нельзя — останется
+# промежуточное состояние. Группа нужна, чтобы два прогона не шли
+# одновременно; экономия здесь второстепенна.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 on:
   push:
     branches: [main]

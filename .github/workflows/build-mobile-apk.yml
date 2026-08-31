@@ -1,5 +1,12 @@
 name: Build Mobile APK
 
+# Очередь без отмены: сборка AAB/APK для стора прерывать на середине нельзя — останется
+# промежуточное состояние. Группа нужна, чтобы два прогона не шли
+# одновременно; экономия здесь второстепенна.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 # Manual only — builds the Android APK on GitHub's runners instead of a local machine.
 # Requires EXPO_TOKEN in repo secrets (Expo Personal Access Token — the local build
 # still needs to fetch the release keystore from Expo's servers even with --local).
@@ -72,4 +79,5 @@ jobs:
         with:
           name: wewatch-${{ github.event.inputs.profile }}-${{ env.OUTPUT_EXT }}
           path: apps/mobile/wewatch.${{ env.OUTPUT_EXT }}
-          retention-days: 14
+          # 7 вместо 14: APK 60 МБ и AAB 84 МБ на сборку, free-storage орги 500 МБ
+          retention-days: 7
