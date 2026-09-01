@@ -15,7 +15,6 @@
   in the same synchronized room. Native mobile apps are still in development.
 - **Supported sources:** YouTube, VK Video, Rutube and direct .mp4 links.
 - **Live chat and emoji reactions** inside every room.
-- **Friends, Battle mode, achievements:** add friends, compare watch time, unlock achievements.
 
 ## Key facts
 
@@ -57,10 +56,22 @@ triggers an automatic correction. Rooms close automatically after 10 minutes of 
   watch party step by step (Russian)
 - [Watching a movie with a friend](https://wewatch.uz/ru/guides/kino-s-drugom-onlayn): watching
   a film with one other person at a distance (Russian)
+- [Watching a film for two](https://wewatch.uz/ru/guides/smotret-film-vdvoem): a film synced on
+  two devices at a distance (Russian)
+- [Watching a series together](https://wewatch.uz/ru/guides/smotret-serial-vmeste): watching one
+  series with a friend episode by episode (Russian)
+- [Watching VK Video together](https://wewatch.uz/ru/guides/smotret-vk-video-vmeste): VK Video
+  watch party (Russian)
+- [Watching Rutube together](https://wewatch.uz/ru/guides/smotret-rutube-vmeste): Rutube watch
+  party without extensions (Russian)
 - [Birgalikda tomosha qilish](https://wewatch.uz/uz/guides/birgalikda-tomosha-qilish): watching
   together, general guide (Uzbek)
 - [YouTube birgalikda](https://wewatch.uz/uz/guides/youtube-birgalikda): YouTube watch party
   (Uzbek)
+- [Kino birgalikda](https://wewatch.uz/uz/guides/kino-birgalikda): watching a film with a friend
+  online (Uzbek)
+- [VK Video birgalikda](https://wewatch.uz/uz/guides/vk-birgalikda): VK Video watch party (Uzbek)
+- [Rutube birgalikda](https://wewatch.uz/uz/guides/rutube-birgalikda): Rutube watch party (Uzbek)
 - [What is a watch party](https://wewatch.uz/en/guides/what-is-watch-party): the concept
   explained (English)
 - [Watch YouTube together](https://wewatch.uz/en/guides/watch-youtube-together): YouTube watch

@@ -234,6 +234,28 @@ export const GUIDES: Guide[] = [
     datePublished: '2026-08-25',
     priority: 0.8,
   },
+  {
+    path: '/uz/guides/vk-birgalikda',
+    headline: "VK Video-ni do'st bilan birgalikda ko'rish",
+    title: 'VK Video birgalikda',
+    summary: "VK Video (VKontakte) videolarini do'st bilan veb-versiyada sinxron ko'rish.",
+    primaryIntent: "vk video birgalikda ko'rish",
+    locale: 'uz',
+    lastModified: '2026-09-01',
+    datePublished: '2026-09-01',
+    priority: 0.8,
+  },
+  {
+    path: '/uz/guides/rutube-birgalikda',
+    headline: "Rutube-ni do'st bilan birgalikda ko'rish",
+    title: 'Rutube birgalikda',
+    summary: "Rutube videolarini do'st bilan kengaytmasiz, veb-versiyada sinxron ko'rish.",
+    primaryIntent: "rutube birgalikda ko'rish",
+    locale: 'uz',
+    lastModified: '2026-09-01',
+    datePublished: '2026-09-01',
+    priority: 0.8,
+  },
 
   // ── English guides ─────────────────────────────────────────────────────────
   // These replace the three English-slug pages that used to live under /guides
@@ -287,6 +309,8 @@ export const GUIDE_GROUPS: { ru: string; uz?: string; en?: string }[] = [
   { ru: '/ru/guides/kino-s-drugom-onlayn', uz: '/uz/guides/kino-birgalikda', en: '/en/guides/watch-movies-with-friends' },
   { ru: '/ru/guides/smotret-film-vdvoem', uz: '/uz/guides/kino-ikkovlashib' },
   { ru: '/ru/guides/watch-party-besplatno', uz: '/uz/guides/bepul-watch-party' },
+  { ru: '/ru/guides/smotret-vk-video-vmeste', uz: '/uz/guides/vk-birgalikda' },
+  { ru: '/ru/guides/smotret-rutube-vmeste', uz: '/uz/guides/rutube-birgalikda' },
 ];
 
 /** ru↔uz counterparts. Derived from GUIDE_GROUPS — kept for existing callers. */

@@ -2,6 +2,10 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideArticleEnd } from '@/components/common/GuideChrome';
 import { GuideRoomMockup, GuideSteps, GuideFAQ, GuideCTA } from '@/components/common/GuideArticleUI';
+import { hreflangFor } from '@/lib/i18n/routes';
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
+const PATH = '/ru/guides/smotret-vk-video-vmeste';
 
 export const metadata: Metadata = {
   // No manual "| WeWatch" — the root layout's title template appends it.
@@ -16,7 +20,10 @@ export const metadata: Metadata = {
     'смотреть vk видео вместе', 'вк видео вместе с друзьями', 'смотреть вконтакте видео вместе',
     'watch party vk', 'синхронный просмотр vk видео', 'смотреть видео из вк вместе онлайн',
   ],
-  alternates: { canonical: 'https://wewatch.uz/ru/guides/smotret-vk-video-vmeste' },
+  alternates: {
+    canonical: `${APP_URL}${PATH}`,
+    languages: hreflangFor(PATH, APP_URL),
+  },
   openGraph: {
     title: 'Смотреть VK Видео вместе | WeWatch',
     description: 'Синхронный просмотр VK Видео с друзьями — на любом устройстве.',
