@@ -73,7 +73,9 @@ const CLUSTER_BY_SLUG: Record<string, string> = {
   'anime-birgalikda': 'anime',
   // Platform-specific.
   'smotret-vk-video-vmeste': 'vk',
+  'vk-birgalikda': 'vk',
   'smotret-rutube-vmeste': 'rutube',
+  'rutube-birgalikda': 'rutube',
   // Use cases.
   'dalnie-otnosheniya': 'long_distance',
   'masofadagi-juftlik': 'long_distance',

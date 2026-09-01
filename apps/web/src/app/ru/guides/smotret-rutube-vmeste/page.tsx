@@ -2,6 +2,10 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideArticleEnd } from '@/components/common/GuideChrome';
 import { GuideRoomMockup, GuideSteps, GuideFAQ, GuideCTA } from '@/components/common/GuideArticleUI';
+import { hreflangFor } from '@/lib/i18n/routes';
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
+const PATH = '/ru/guides/smotret-rutube-vmeste';
 
 export const metadata: Metadata = {
   // No manual "| WeWatch" — the root layout's title template appends it.
@@ -15,7 +19,10 @@ export const metadata: Metadata = {
     'смотреть rutube вместе', 'рутьюб вместе с друзьями', 'смотреть rutube синхронно',
     'watch party rutube', 'совместный просмотр rutube', 'смотреть видео rutube вместе онлайн',
   ],
-  alternates: { canonical: 'https://wewatch.uz/ru/guides/smotret-rutube-vmeste' },
+  alternates: {
+    canonical: `${APP_URL}${PATH}`,
+    languages: hreflangFor(PATH, APP_URL),
+  },
   openGraph: {
     title: 'Смотреть Rutube вместе — синхронно, без регистрации',
     description: 'Ссылка на видео Rutube, комната на двоих или на десятерых, пауза и перемотка у всех сразу.',
