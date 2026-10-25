@@ -5,16 +5,18 @@ import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS } from '@shared/constants/socketEvents';
 import { JwtPayload } from '@shared/types';
 import { config } from '../config/index';
-import { TIMING, LIMITS } from '@shared/constants';
+import { TIMING, LIMITS, REDIS_KEYS } from '@shared/constants';
 import { registerRoomEvents, roomCloseTimers, scheduleDisconnectLeave } from './roomEvents.handler';
 import { registerVideoEvents } from './videoEvents.handler';
 import { registerChatEvents } from './chatEvents.handler';
 import { registerVoiceEvents } from './voiceEvents.handler';
 import { registerMeshHandlers } from './mesh.handlers';
 import { registerReactionEvents } from './reactionEvents.handler';
+import { registerHandEvents } from './handEvents.handler';
 import { registerDMEvents } from './dmEvents.handler';
 import { registerVBEvents } from './vbEvents.handler';
 import { stopSession, stopAllSessions, hasSession } from '../services/virtualBrowser.service';
+import { fetchRoomSockets } from './roomSockets.helper';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -75,7 +77,9 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
   // Auto-close inactive rooms every minute, purge old ended rooms every hour
   const cleanupInterval = setInterval(async () => {
     try {
-      const closedIds = await watchPartyService.closeInactiveRooms(INACTIVE_THRESHOLD_MINUTES);
+      // Single replica (server.ts), so this node's adapter knows every connected socket.
+      const isOccupied = (roomId: string) => (io.of('/').adapter.rooms.get(roomId)?.size ?? 0) > 0;
+      const closedIds = await watchPartyService.closeInactiveRooms(INACTIVE_THRESHOLD_MINUTES, isOccupied);
       for (const roomId of closedIds) {
         void stopSession(roomId);
         io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'inactivity' });
@@ -117,6 +121,14 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
       // Kept for server-to-server calls that need to act as this user (e.g. roomEvents.handler.ts
       // calling content-service's /content/extract, which requires a real user JWT).
       (socket as AuthenticatedSocket).rawToken = token;
+      // Phone owner hint for server-started VB (vbSession.helper.ts, resolveMobile). No client field
+      // exists today, so: optional `auth.client === 'mobile'` (clients may add it) or a phone/RN
+      // User-Agent in the handshake (Android Chrome/Safari iOS, or RN's okhttp / CFNetwork).
+      // Best-effort, never blocks the connection.
+      const ua = String(socket.handshake.headers['user-agent'] ?? '');
+      const isMobile = socket.handshake.auth.client === 'mobile'
+        || /Android|iPhone|iPad|iPod|Mobile|okhttp|CFNetwork|Expo/i.test(ua);
+      void redis.setex(REDIS_KEYS.clientMobile(user.userId), 24 * 60 * 60, isMobile ? '1' : '0').catch(() => { /* hint only */ });
       next();
     } catch {
       next(new Error('Invalid token'));
@@ -151,6 +163,7 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
     registerVoiceEvents(socket, authSocket, redis);
     registerMeshHandlers(io, socket, authSocket);
     registerReactionEvents(io, socket, authSocket, redis);
+    registerHandEvents(io, socket, authSocket, watchPartyService, redis);
     registerDMEvents(io, socket);
     registerVBEvents(io, socket, authSocket, watchPartyService, redis);
 
@@ -176,7 +189,7 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
         scheduleDisconnectLeave(io, watchPartyService, userId, roomId);
 
         // Start inactivity timer if room is now empty (no sockets connected)
-        const sockets = await io.in(roomId).fetchSockets();
+        const sockets = await fetchRoomSockets(io, roomId);
         if (sockets.length === 0) {
           if (!roomCloseTimers.has(roomId)) {
             logger.info('Room empty after disconnect — starting 5-minute inactivity timer', { roomId });

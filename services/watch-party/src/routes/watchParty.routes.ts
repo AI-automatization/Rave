@@ -7,12 +7,16 @@ import { createDomainAdminController } from '../controllers/domain.admin.control
 import { createTurnController } from '../controllers/turn.controller';
 import { vbCaptureController } from '../controllers/vbCapture.controller';
 import { createVbMediaProxyController } from '../controllers/vbMediaProxy.controller';
+import { createEmbedCheckController } from '../controllers/embedCheck.controller';
 import { createFaststartProxyController } from '../controllers/faststartProxy.controller';
 import { createVbStreamController } from '../controllers/vbStream.controller';
 import { verifyToken, requireNotBlocked } from '@shared/middleware/auth.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
-import { createRoomLimiter, joinRoomLimiter, vbMediaProxyLimiter, vbCaptureLimiter } from '../middleware/rateLimiter';
+import { createRoomLimiter, joinRoomLimiter, vbMediaProxyLimiter, vbCaptureLimiter, embedCheckLimiter } from '../middleware/rateLimiter';
 import { validate, createRoomSchema, joinRoomSchema } from '../validators/watchParty.validator';
+import { getHistory, getWeeklyTop } from '../services/watchStats.service';
+import { addAudioListener } from '../services/vbAudio.service';
+import { hasSession } from '../services/virtualBrowser.service';
 
 export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router => {
   const router = Router();
@@ -26,6 +30,8 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   const vbProxyLimiter = vbMediaProxyLimiter(redis);
   const vbCaptureLim = vbCaptureLimiter(redis);
   const vbMediaProxyController = createVbMediaProxyController(redis);
+  const embedCheckController = createEmbedCheckController(redis);
+  const embedLimiter = embedCheckLimiter(redis);
   const faststartProxyController = createFaststartProxyController();
   const vbStreamController = createVbStreamController();
 
@@ -65,6 +71,11 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   router.patch('/internal/admin/domains/:domain/block',       requireInternalSecret, domainAdminCtrl.blockDomain);
   router.patch('/internal/admin/domains/:domain/unblock',     requireInternalSecret, domainAdminCtrl.unblockDomain);
 
+  // GET /watch-party/embed-check?url=<encoded> — can this link be opened in an iframe on our app
+  // origin? Authenticated (it makes an outbound request per cache miss) + per-user limiter; every
+  // redirect hop goes through the shared SSRF guard (embedCheck.service.ts).
+  router.get('/embed-check', verifyToken, notBlocked, embedLimiter, embedCheckController.check);
+
   // GET /watch-party/turn/credentials — WebRTC ICE servers (mesh sync + voice)
   router.get('/turn/credentials', verifyToken, turnCtrl.getCredentials);
 
@@ -76,6 +87,19 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   // no attacker-supplied URL (lower risk than vb-media-proxy below) but still had no rate limiter
   // at all until GitHub issue #76 — vbCaptureLim closes that.
   router.get('/vb-capture/:roomId', vbCaptureLim, vbCaptureController.stream);
+
+  // GET /watch-party/vb-audio/:roomId — live MP3 of what the room's VB page is playing (the JPEG
+  // screencast has no sound — vbAudio.service.ts). Same public/roomId-keyed trust model and rate
+  // limiter as vb-capture; only answers while that room actually has a VB session, so it can't be
+  // used to spin up encoders for arbitrary ids.
+  router.get('/vb-audio/:roomId', vbCaptureLim, (req, res) => {
+    const { roomId } = req.params;
+    if (!/^[a-f0-9]{24}$/i.test(roomId) || !hasSession(roomId)) {
+      res.status(404).json({ success: false, message: 'No virtual browser session' });
+      return;
+    }
+    addAudioListener(roomId, res);
+  });
 
   // GET /watch-party/vb-capture/:roomId/:track (track = video|audio) — the same room's ISOLATED
   // per-track buffer (vbCapture.service.ts's dual-track addition, 2026-08-14), for sources whose
@@ -109,6 +133,21 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   // public/no-auth trust model and rate limiter as the neighbouring VB routes — it exists to be
   // fetched by players and by a CDN, and every file it serves was written by our own ffmpeg.
   router.get('/vb-stream/:roomId/:file', vbCaptureLim, vbStreamController.serve);
+
+  // GET /watch-party/history/me — what this user watched (watchStats.service.ts)
+  router.get('/history/me', verifyToken, notBlocked, async (req, res, next) => {
+    try {
+      const userId = (req as unknown as { user: { userId: string } }).user.userId;
+      res.json({ success: true, data: await getHistory(userId) });
+    } catch (err) { next(err); }
+  });
+
+  // GET /watch-party/trending/week — most-watched links of the last 7 days, by distinct viewers
+  router.get('/trending/week', verifyToken, notBlocked, async (_req, res, next) => {
+    try {
+      res.json({ success: true, data: await getWeeklyTop() });
+    } catch (err) { next(err); }
+  });
 
   // GET /watch-party/rooms/my/recent — user's last 10 rooms (T-S061)
   router.get('/rooms/my/recent', verifyToken, notBlocked, watchPartyController.getRecentRooms);

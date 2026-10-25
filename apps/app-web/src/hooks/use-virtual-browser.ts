@@ -10,10 +10,21 @@ export type VBInput =
   | { type: 'mousemove'; x: number; y: number }
   | { type: 'mousedown'; x: number; y: number; button?: 'left' | 'right' | 'middle' }
   | { type: 'mouseup'; button?: 'left' | 'right' | 'middle' }
+  | { type: 'tap'; x: number; y: number }
   | { type: 'wheel'; deltaX: number; deltaY: number }
   | { type: 'keydown'; key: string }
   | { type: 'keyup'; key: string }
   | { type: 'type'; text: string };
+
+/** The movie playing inside the VB — see VB_MEDIA_STATE (watch-party vbSession.helper.ts). */
+export interface VBMediaState { paused: boolean; currentTime: number; duration: number | null }
+
+/** Live frame feed that bypasses React state — see `frameSource` in useVirtualBrowser. */
+export interface VBFrameSource {
+  get(): string | null;
+  /** cb runs on every new frame (base64 JPEG) and with null when the session ends. */
+  subscribe(cb: (frame: string | null) => void): () => void;
+}
 
 // Kosmi-style shared virtual browser: server runs a real headless Chromium page and streams it
 // as JPEG frames (Chrome DevTools Protocol screencast, services/watch-party/src/services/
@@ -27,8 +38,25 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
   tRef.current = t;
   const onCandidateNeedsConfirmationRef = useRef(onCandidateNeedsConfirmation);
   onCandidateNeedsConfirmationRef.current = onCandidateNeedsConfirmation;
-  const [frame, setFrame] = useState<string | null>(null);
+  // Frames do NOT go through React state: at 7–10 frames/s that re-rendered the whole room page
+  // (chat, voice, members — RoomContent owns this hook) on every frame, which on a phone cost more
+  // main-thread time than decoding the JPEG and made taps feel late. Only "is there a frame at all"
+  // is state; the <img> subscribes to the feed and swaps its src directly (VirtualBrowserPlayer).
+  const [hasFrame, setHasFrame] = useState(false);
+  const frameRef = useRef<string | null>(null);
+  const frameSubsRef = useRef(new Set<(frame: string | null) => void>());
+  const [frameSource] = useState<VBFrameSource>(() => ({
+    get: () => frameRef.current,
+    subscribe: (cb) => {
+      frameSubsRef.current.add(cb);
+      return () => { frameSubsRef.current.delete(cb); };
+    },
+  }));
   const [active, setActive] = useState(false);
+  const [mediaState, setMediaState] = useState<VBMediaState | null>(null);
+  // Read inside the socket handlers below without re-subscribing on every toggle.
+  const activeRef = useRef(false);
+  activeRef.current = active;
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Page VB is showing is a bot-challenge wall (Cloudflare/reCAPTCHA) — not solved/bypassed, just
@@ -37,6 +65,10 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
   // Free-tier pool is full — 1-indexed position while waiting, see vbQueue.helper.ts. null means
   // "not queued" (either never asked, already started, or Pro — Pro never queues).
   const [queuePosition, setQueuePosition] = useState<number | null>(null);
+  // Server closed the session because the site itself can't be reached (vbSession.helper.ts,
+  // reason 'unreachable') — the player shows its "didn't open" state right away instead of
+  // waiting out its own timeout.
+  const [unreachable, setUnreachable] = useState(false);
 
   useEffect(() => {
     if (!socket || !isConnected) return;
@@ -58,6 +90,7 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
       setError(null);
       setBlocked(null);
       setQueuePosition(null);
+      setUnreachable(false);
     };
     // setActive(true) here too, not just in onStarted/onRoomJoined — real prod reports
     // 2026-08-07: the VB overlay sometimes never appeared despite the backend session running
@@ -68,22 +101,50 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
     // proof-of-active makes this self-healing regardless of which specific race caused the miss —
     // the very next frame corrects the UI instead of requiring VB_STARTED/ROOM_JOINED to have
     // landed at exactly the right moment.
-    const onFrame = (data: { data: string }) => {
-      if (endedRef.current) return; // late frame from a session that already ended — see endedRef
-      setFrame(data.data);
+    // pendingAck: the server paces frames to one in flight per socket (vbFrameSender.helper.ts,
+    // opted into via auth.vbFrameAck in lib/socket.ts) — ack once the frame has been handed to the
+    // <img> on the next paint, so the next one is always the newest instead of a queued stale one.
+    let rafId: number | null = null;
+    let pendingAck: (() => void) | null = null;
+    const publishFrame = (frame: string | null) => {
+      frameRef.current = frame;
+      frameSubsRef.current.forEach((cb) => cb(frame));
+    };
+    const onFrame = (data: { data: string }, ack?: () => void) => {
+      if (endedRef.current) { ack?.(); return; } // late frame from a session that already ended — see endedRef
+      frameRef.current = data.data;
+      setHasFrame(true);
       setActive(true);
+      const prevAck = pendingAck;
+      pendingAck = ack ?? null;
+      prevAck?.();
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        publishFrame(frameRef.current);
+        const done = pendingAck;
+        pendingAck = null;
+        done?.();
+      });
     };
     const onStopped = (data?: { reason?: string; needsConfirmation?: boolean }) => {
       endedRef.current = true;
       setActive(false);
-      setFrame(null);
+      setHasFrame(false);
+      publishFrame(null);
       setBlocked(null);
       setQueuePosition(null);
       // needsConfirmation: true — VB found *something* but, unlike a normal extraction result,
       // never auto-commits it to the room (see vbSession.helper.ts) — it's just pushed into the
       // same video-candidate picker the owner already knows from "Это не то видео", waiting for
       // an explicit confirm/reject instead of silently switching everyone's player.
-      if (data?.reason === 'media_found' && data.needsConfirmation) {
+      if (data?.reason === 'unreachable') {
+        setUnreachable(true);
+        // The server can give up before VB_STARTED ever reached us (DNS/refused fails in ~1s on
+        // CHANGE_MEDIA/create), so no overlay is open to show the "didn't open" state — the owner
+        // saw nothing happen at all (reproduced 2026-10-25). Say it in a toast in that case.
+        if (!activeRef.current) toast.error(`${tRef.current('vbUnreachableTitle')}. ${tRef.current('vbUnreachableHint')}`);
+      } else if (data?.reason === 'media_found' && data.needsConfirmation) {
         onCandidateNeedsConfirmationRef.current?.();
       } else if (data?.reason === 'media_found') {
         toast.success(tRef.current('vbMediaFound'));
@@ -118,6 +179,11 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
       }
     };
 
+    const onMediaState = (data: VBMediaState | null) => setMediaState(data);
+    const clearMediaState = () => setMediaState(null);
+
+    socket.on(SERVER_EVENTS.VB_MEDIA_STATE, onMediaState);
+    socket.on(SERVER_EVENTS.VB_STOPPED, clearMediaState);
     socket.on(SERVER_EVENTS.VB_STARTED, onStarted);
     socket.on(SERVER_EVENTS.VB_FRAME, onFrame);
     socket.on(SERVER_EVENTS.VB_STOPPED, onStopped);
@@ -127,6 +193,8 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
     socket.on(SERVER_EVENTS.ROOM_JOINED, onRoomJoined);
 
     return () => {
+      socket.off(SERVER_EVENTS.VB_MEDIA_STATE, onMediaState);
+      socket.off(SERVER_EVENTS.VB_STOPPED, clearMediaState);
       socket.off(SERVER_EVENTS.VB_STARTED, onStarted);
       socket.off(SERVER_EVENTS.VB_FRAME, onFrame);
       socket.off(SERVER_EVENTS.VB_STOPPED, onStopped);
@@ -134,11 +202,18 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
       socket.off(SERVER_EVENTS.VB_BLOCKED, onBlocked);
       socket.off(SERVER_EVENTS.VB_QUEUED, onQueued);
       socket.off(SERVER_EVENTS.ROOM_JOINED, onRoomJoined);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      pendingAck?.();
     };
   }, [socket, isConnected]);
 
   const start = useCallback((url: string) => {
-    socket?.emit(CLIENT_EVENTS.VB_START, { url });
+    // Primary pointer is a finger (phone/tablet) → ask the server for a phone-sized viewport, so the
+    // streamed page is the site's mobile layout and fits the screen instead of a shrunken 1280x720
+    // desktop page. Read at call time (event handler), so no SSR/hydration concern.
+    const mobile = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+    setUnreachable(false); // a fresh attempt clears the previous "didn't open" state
+    socket?.emit(CLIENT_EVENTS.VB_START, mobile ? { url, mobile: true } : { url });
   }, [socket]);
 
   const stop = useCallback(() => {
@@ -150,5 +225,11 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
     socket?.emit(CLIENT_EVENTS.VB_INPUT, input);
   }, [socket, isOwner]);
 
-  return { frame, active, dimensions, error, blocked, queuePosition, start, stop, sendInput };
+  // WeWatch's own control bar for the movie inside the VB (owner only — the server checks too).
+  const mediaControl = useCallback((action: 'play' | 'pause' | 'seek', time?: number) => {
+    if (!isOwner) return;
+    socket?.emit(CLIENT_EVENTS.VB_MEDIA_CONTROL, { action, time });
+  }, [socket, isOwner]);
+
+  return { hasFrame, frameSource, active, dimensions, error, blocked, queuePosition, unreachable, start, stop, sendInput, mediaState, mediaControl };
 }

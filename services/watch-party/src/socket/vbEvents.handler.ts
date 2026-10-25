@@ -5,12 +5,14 @@ import { WatchPartyService } from '../services/watchParty.service';
 import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { JwtPayload } from '@shared/types';
-import { VBInput, stopSession, sendInput, getSessionOwner } from '../services/virtualBrowser.service';
-import { startVBForRoom } from './vbSession.helper';
+import { VBInput, stopSession, sendInput, getSessionOwner, hasSession, controlMovie, getMovieState } from '../services/virtualBrowser.service';
+import { startVBForRoom, upgradeEmbedToDirect } from './vbSession.helper';
 import { enqueueVBRequest, removeFromQueue } from './vbQueue.helper';
 import { getUserPlan } from '@shared/utils/serviceClient';
-import { isOwnVbUrl, isPrivateUrl } from '../services/extractionClient';
+import { isOfficialEmbedHost, isOwnVbUrl, isPrivateUrl } from '../services/extractionClient';
+import { REDIS_KEYS } from '@shared/constants';
 import { isDomainBlocked } from '../controllers/domain.admin.controller';
+import { recordMediaChange } from '../services/watchStats.service';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -59,7 +61,30 @@ export const registerVBEvents = (
     }
   };
 
-  socket.on(CLIENT_EVENTS.VB_START, async (data: { url: string }) => {
+  const switchToEmbed = async (roomId: string, videoUrl: string): Promise<void> => {
+    try {
+      // A VB request still waiting in the free-tier queue would otherwise start later on top of
+      // the player this switches to.
+      removeFromQueue(roomId);
+      if (hasSession(roomId)) await stopSession(roomId);
+      // Always — the owner's client already shows the VB loading overlay from its own start() call
+      // and only VB_STOPPED clears it, whether or not a session existed.
+      io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'embed_host' });
+      void redis.del(REDIS_KEYS.videoCandidates(roomId)).catch(() => {});
+      const updated = await watchPartyService.updateRoomMedia(userId, roomId, {
+        videoUrl, videoTitle: null, videoPlatform: null,
+      });
+      io.to(roomId).emit(SERVER_EVENTS.ROOM_UPDATED, updated);
+      void recordMediaChange(roomId, videoUrl, null, null).catch(() => {}); // same history/top stat CHANGE_MEDIA records
+      upgradeEmbedToDirect(io, redis, roomId, userId, videoUrl);
+      logger.info('VB start redirected to official player', { roomId, userId, url: videoUrl });
+    } catch (e) {
+      socket.emit(SERVER_EVENTS.VB_ERROR, { message: 'Не удалось открыть видео' });
+      logger.error('VB start → embed switch failed', { roomId, userId, error: (e as Error).message });
+    }
+  };
+
+  socket.on(CLIENT_EVENTS.VB_START, async (data: { url: string; mobile?: boolean }) => {
     if (!authSocket.roomId || !await resolveIsOwner()) return;
     const roomId = authSocket.roomId;
 
@@ -106,15 +131,27 @@ export const registerVBEvents = (
       return;
     }
 
+    // YouTube/VK/Rutube/... pasted into the "Виртуальный браузер" button (real report 2026-10-25):
+    // the VB stream is JPEG frames only — no sound — while every client already plays these hosts
+    // in their own official player with sound and sync. Switch the room's media instead of opening
+    // a browser; done here (not per client) so web, Android and iOS all get it.
+    if (isOfficialEmbedHost(url.toString())) {
+      await switchToEmbed(roomId, url.toString());
+      return;
+    }
+
     const tier = await getUserPlan(userId);
+    // Explicit boolean wins; absent (older clients) = undefined, so startVBForRoom picks from the
+    // owner's socket hint instead of forcing desktop.
+    const mobile = typeof data?.mobile === 'boolean' ? data.mobile : undefined;
     try {
-      await startVBForRoom(io, redis, roomId, userId, url.toString(), tier);
-      logger.info('VB started', { roomId, userId, url: url.toString(), tier });
+      await startVBForRoom(io, redis, roomId, userId, url.toString(), tier, mobile);
+      logger.info('VB started', { roomId, userId, url: url.toString(), tier, mobile });
     } catch (e) {
       if ((e as Error).message === 'virtual_browser_limit') {
         // Free pool is full — wait instead of failing outright (Pro never hits this branch,
         // it's uncapped, see virtualBrowser.service.ts's MAX_TOTAL_SAFETY_CEILING).
-        const position = enqueueVBRequest({ roomId, ownerId: userId, url: url.toString(), io, redis });
+        const position = enqueueVBRequest({ roomId, ownerId: userId, url: url.toString(), mobile, io, redis });
         socket.emit(SERVER_EVENTS.VB_QUEUED, { position });
         logger.info('VB queued — free pool full', { roomId, userId, position });
         return;
@@ -122,6 +159,20 @@ export const registerVBEvents = (
       socket.emit(SERVER_EVENTS.VB_ERROR, { message: 'Не удалось открыть виртуальный браузер' });
       logger.error('VB start failed', { roomId, userId, error: (e as Error).message });
     }
+  });
+
+  // WeWatch's own control bar over the VB stream (vbFullscreen.script.ts hides the site's).
+  socket.on(CLIENT_EVENTS.VB_MEDIA_CONTROL, async (data: { action?: unknown; time?: unknown }) => {
+    if (!authSocket.roomId) return;
+    const roomId = authSocket.roomId;
+    if (getSessionOwner(roomId) !== userId) return;
+    const action = data?.action;
+    if (action !== 'play' && action !== 'pause' && action !== 'seek') return;
+    const time = typeof data.time === 'number' && Number.isFinite(data.time) ? data.time : undefined;
+    if (action === 'seek' && time === undefined) return;
+    if (!await controlMovie(roomId, action, time)) return;
+    // Answer right away instead of waiting for the next once-a-second state tick.
+    io.to(roomId).emit(SERVER_EVENTS.VB_MEDIA_STATE, await getMovieState(roomId));
   });
 
   socket.on(CLIENT_EVENTS.VB_INPUT, async (input: VBInput) => {

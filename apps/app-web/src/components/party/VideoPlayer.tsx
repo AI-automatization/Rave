@@ -17,6 +17,7 @@ import { DailymotionPlayer } from './DailymotionPlayer';
 import { TikTokPlayer } from './TikTokPlayer';
 import { PeerTubePlayer } from './PeerTubePlayer';
 import { TrovoPlayer } from './TrovoPlayer';
+import { GenericIframePlayer } from './GenericIframePlayer';
 
 // Shared loading visual for every "video not playable yet" moment (initial room load, VB still
 // resolving a candidate). Never resolves into a user-facing "Не удалось загрузить видео" — the
@@ -137,6 +138,51 @@ function FatalErrorRetryOverlay({ onRetry }: { onRetry: () => void }) {
   );
 }
 
+// A page link that never turned into a playable video (site unreachable/blocked, no video on the
+// page, VB closed without a pick). Before this the player sat on the cycling loading label forever
+// with nothing that would ever resolve it — real report 2026-10-24 ("haliyam bitta videoni
+// yuklagani yo'q"). Owner gets a way out; viewers get told who can fix it.
+const UNRESOLVED_TIMEOUT_MS = 30_000;
+
+function UnresolvedVideoOverlay({ isOwner, onOpenVirtualBrowser, onPickDifferentVideo }: {
+  isOwner: boolean;
+  onOpenVirtualBrowser?: () => void;
+  onPickDifferentVideo?: () => void;
+}) {
+  const t = useTranslations('party');
+  return (
+    <div className="aspect-video bg-black rounded-xl overflow-hidden flex flex-col items-center justify-center gap-4 px-6 text-center" data-testid="video-unresolved">
+      <p className="text-white text-sm sm:text-base font-semibold">{t('playerUnresolvedTitle')}</p>
+      <p className="text-white/55 text-xs sm:text-sm max-w-md">
+        {isOwner ? t('playerUnresolvedOwnerHint') : t('playerUnresolvedViewerHint')}
+      </p>
+      {isOwner && (
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {onOpenVirtualBrowser && (
+            <button
+              type="button"
+              onClick={() => { trackClick('video:unresolved_open_vb'); onOpenVirtualBrowser(); }}
+              className="h-9 rounded-lg px-4 text-[13px] font-medium text-white cursor-pointer"
+              style={{ background: 'linear-gradient(135deg,#7C3AED,#5B21B6)' }}
+            >
+              {t('playerUnresolvedOpenVB')}
+            </button>
+          )}
+          {onPickDifferentVideo && (
+            <button
+              type="button"
+              onClick={() => { trackClick('video:unresolved_pick_different'); onPickDifferentVideo(); }}
+              className="h-9 rounded-lg px-4 text-[13px] font-medium text-white/80 bg-white/10 hover:bg-white/15 cursor-pointer"
+            >
+              {t('playerPickAnother')}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface Props {
   onPlay: (time: number) => void;
   onPause: (time: number) => void;
@@ -154,6 +200,14 @@ interface Props {
    * opens the same video-candidate picker as RoomHeader's "Это не то видео" menu item, so the
    * owner isn't stuck waiting on a VB session that might not find anything either. */
   onPickDifferentVideo?: () => void;
+  /** Owner-only: opens the virtual-browser panel (URL input) — offered when a page link never
+   * resolved to a playable video, instead of an endless loading spinner. */
+  onOpenVirtualBrowser?: () => void;
+  /** Owner-only: opens THIS url in the shared Virtual Browser — the 'webview' (generic iframe)
+   * player's fallback for pages that allow framing but render blank. */
+  onOpenUrlInVirtualBrowser?: (url: string) => void;
+  /** VB reported the source site unreachable — show the "didn't open" state immediately. */
+  sourceUnreachable?: boolean;
   /** True while at least one voice-chat participant is speaking — ducks the video's volume down
    * so the voice call and video audio don't compete. Threaded down to NativeVideoPlayer only;
    * official embeds (YouTube/etc.) don't expose volume control across the iframe boundary. */
@@ -337,6 +391,16 @@ function isOwnVbMediaUrl(url: string): boolean {
       // candidate can now point at the Bunny Edge Script fetch path instead of this service's own
       // vb-media-proxy route (vbSession.helper.ts's proxiedMediaUrl, VB_EDGE_FETCH_URL).
       || url.includes('/vb-edge-fetch');
+}
+
+// True when a dedicated player above handles this URL (YouTube/VK/Rutube/Twitch/Vimeo/Dailymotion/
+// TikTok/PeerTube/Trovo) or it is already one of our own resolved-media URLs — i.e. the link must
+// NOT be routed through the generic iframe check (RoomContent / CreateRoomDialog via
+// lib/link-routing.ts). Same detectors the render switch below uses, so the two can't drift.
+export function isDedicatedPlayerUrl(url: string): boolean {
+  return !!(getYouTubeId(url) || getVKVideoIds(url) || getRutubeVideoId(url) || getTwitchIds(url)
+    || getVimeoId(url) || getDailymotionId(url) || getTikTokId(url) || getPeerTubeIds(url)
+    || getTrovoStreamername(url) || isOwnVbMediaUrl(url));
 }
 
 // Exported for VideoCandidatePicker.tsx's preview — a candidate.url (whether a raw CDN url from
@@ -941,6 +1005,12 @@ function NativeVideoPlayer({
         startPosition: (startPosition && startPosition > 0.5) ? startPosition : -1,
         maxBufferLength: 8,      // fire canplay after 8s buffered, not default 30s
         maxMaxBufferLength: 30,
+        // hls.js assumes ~500 kbps until it has measured anything, so every movie opened in the
+        // lowest rendition and only crept up later ("videolarni sifatini ko'tara olaylik",
+        // 2026-10-24). Start from a broadband guess and let ABR step DOWN if it's wrong — and
+        // don't cap the rendition to the small in-page player box, fullscreen needs the real one.
+        abrEwmaDefaultEstimate: 5_000_000,
+        capLevelToPlayerSize: false,
       });
       hlsRef.current = hls;
       hls.loadSource(src);
@@ -1061,7 +1131,6 @@ function NativeVideoPlayer({
 
   function handleVideoAreaClick() {
     revealControls();
-    if (!isOwner) return;
     const v = videoRef.current;
     if (!v) return;
     trackClick('video:toggle_play_pause');
@@ -1127,8 +1196,10 @@ function NativeVideoPlayer({
         disablePictureInPicture
         {...({ 'x-webkit-airplay': 'deny' } as Record<string, string>)}
         className="w-full h-full"
-        onPlay={isOwner ? onPlay : undefined}
-        onPause={isOwner ? onPause : undefined}
+        // Play/pause from ANY member is broadcast (server accepts it since 2026-10-25); seeking
+        // stays owner-only.
+        onPlay={onPlay}
+        onPause={onPause}
         onSeeked={isOwner ? onSeeked : undefined}
         onWaiting={() => {
           const v = videoRef.current;
@@ -1232,8 +1303,8 @@ function NativeVideoPlayer({
 
             {/* Controls row */}
             <div className="flex items-center gap-3">
-              {/* Play/Pause — owner only */}
-              {isOwner && (
+              {/* Play/Pause — every member (seek bar stays owner-only) */}
+              {(
                 <button
                   onClick={(e) => { e.stopPropagation(); handleVideoAreaClick(); }}
                   className="w-9 h-9 rounded-full flex items-center justify-center text-white transition-all hover:bg-white/10 active:scale-90 flex-shrink-0"
@@ -1321,6 +1392,9 @@ export function VideoPlayer({
   onBufferEnd,
   onFatalError,
   onPickDifferentVideo,
+  onOpenVirtualBrowser,
+  onOpenUrlInVirtualBrowser,
+  sourceUnreachable,
   duckAudio,
 }: Props) {
   const t = useTranslations('party');
@@ -1376,7 +1450,10 @@ export function VideoPlayer({
   const tiktokId = getTikTokId(videoUrl);
   const peertubeIds = getPeerTubeIds(videoUrl);
   const trovoName = getTrovoStreamername(videoUrl);
-  const isEmbed = !!ytId || !!vkIds || !!rutubeId || !!twitchIds || !!vimeoId || !!dailymotionId || !!tiktokId || !!peertubeIds || !!trovoName;
+  // videoPlatform 'webview' = owner's link passed embed-check (lib/link-routing.ts) → plain iframe.
+  // Counted as an embed so none of the native <video>/extraction/heartbeat effects below run for it.
+  const isWebview = room?.videoPlatform === 'webview' && !isOwnVbMediaUrl(videoUrl);
+  const isEmbed = isWebview || !!ytId || !!vkIds || !!rutubeId || !!twitchIds || !!vimeoId || !!dailymotionId || !!tiktokId || !!peertubeIds || !!trovoName;
   // Every non-embed URL is resolved server-side by VB (services/watch-party/roomEvents.handler.ts,
   // "Single extraction mechanism", 2026-08-10) — this component used to also run its own client-side
   // extraction (extractVideoUrl → content-service's yt-dlp/Playwright pipeline) racing that same
@@ -1387,6 +1464,13 @@ export function VideoPlayer({
   // an own-VB url instead of racing ahead on the raw source page.
   const isOwnVb = isOwnVbMediaUrl(videoUrl);
   const directSrc = isOwnVb ? videoUrl : null;
+  const [unresolved, setUnresolved] = useState(false);
+  useEffect(() => {
+    setUnresolved(false);
+    if (isEmbed || directSrc || !videoUrl) return;
+    const timer = setTimeout(() => setUnresolved(true), UNRESOLVED_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [videoUrl, isEmbed, directSrc]);
 
   // isHls/isDash come from the videoUrl's own extension — proxiedMediaUrl (vbSession.helper.ts)
   // always mints these with a type-matching one (stream.m3u8/.mpd/.mp4), same convention vb-
@@ -1419,12 +1503,11 @@ export function VideoPlayer({
     }
 
     if (syncState.isPlaying && video.paused) {
-      // Don't auto-resume if owner deliberately paused — only their own play click should resume.
-      // ownerExplicitlyPausedRef is cleared in handlePlay and set in handlePause (user-initiated only).
-      if (isOwner && ownerExplicitlyPausedRef.current) {
-        isRemoteAction.current = false;
-        return;
-      }
+      // Used to skip this when the owner had deliberately paused — the owner's own store never
+      // learned about its pause, so any later effect run would resume it. sendPause now flips the
+      // store locally (use-watch-party), so isPlaying=true here really is a room play — possibly
+      // another member's, which the owner must follow like everyone else.
+      ownerExplicitlyPausedRef.current = false;
       video.play()
         .then(() => setAutoplayBlocked(false))
         .catch((e: unknown) => {
@@ -1516,12 +1599,24 @@ export function VideoPlayer({
   // headers taints the canvas and throws on toDataURL() — caught and skipped rather than crashing
   // the heartbeat, since most sources (vb-capture/vb-media-proxy, same-origin) work fine and a
   // missing thumbnail for the rest just means no preview, not a broken room.
+  // Self-heal: the owner's video can start without its `play` event reaching the room — owner
+  // autoplay (attemptOwnerAutoplay) fires inside the sync effect's 200ms isRemoteAction window, so
+  // handlePlay swallows it. The owner then plays alone while every friend sits paused at 0.
+  // The heartbeat already sees `video.paused === false`; if the room still says "paused", it
+  // announces the play itself.
+  const roomPlayingRef = useRef(syncState.isPlaying);
+  roomPlayingRef.current = syncState.isPlaying;
+
   useEffect(() => {
     const video = videoRef.current;
     if (!isOwner || isEmbed || !video) return;
     let tick = 0;
     const id = setInterval(() => {
       if (video.paused) return;
+      if (!roomPlayingRef.current && !isRemoteAction.current && !ownerExplicitlyPausedRef.current) {
+        roomPlayingRef.current = true;
+        onPlay(video.currentTime);
+      }
       tick++;
       let frame: string | undefined;
       if (tick % 15 === 0 && video.videoWidth > 0) {
@@ -1540,7 +1635,7 @@ export function VideoPlayer({
       onHeartbeat(video.currentTime, frame);
     }, 1000);
     return () => clearInterval(id);
-  }, [isOwner, isEmbed, onHeartbeat, directSrc]);
+  }, [isOwner, isEmbed, onHeartbeat, onPlay, directSrc]);
 
   // Non-owner drift correction via heartbeat.
   // Tiered: >2s → hard seek; >0.5s → 1.15x rate; >0.2s → 1.08x rate; else restore.
@@ -1565,11 +1660,39 @@ export function VideoPlayer({
     }
   }, [heartbeat, isEmbed, isOwner, syncState.isPlaying]);
 
+  // Where the room says playback should be right now. Used to tell a real user action apart from
+  // this client merely catching up to the room.
+  const syncStateRef = useRef(syncState);
+  syncStateRef.current = syncState;
+  const expectedRoomTime = useCallback(() => {
+    const s = syncStateRef.current;
+    const elapsed = s.isPlaying && s.serverTimestamp
+      ? Math.min(30, Math.max(0, (Date.now() - s.serverTimestamp) / 1000))
+      : 0;
+    return s.currentTime + elapsed;
+  }, []);
+
   const handlePlay = useCallback(() => {
     if (isRemoteAction.current) return;
     if (isOwner) ownerExplicitlyPausedRef.current = false;
     setAutoplayBlocked(false);
     playPendingRef.current = false; // play() resolved — clear guard
+    // Room is already playing → this is a local catch-up (late joiner tapping "tap to play", a
+    // play() that resolved after the 200ms remote window), not a room action. Broadcasting it sent
+    // this client's stale position and yanked everyone back in time whenever someone joined.
+    if (roomPlayingRef.current) {
+      if (pendingEmitRef.current) { clearTimeout(pendingEmitRef.current); pendingEmitRef.current = null; }
+      const v = videoRef.current;
+      if (v && !isOwner) {
+        const expected = expectedRoomTime();
+        if (Math.abs(v.currentTime - expected) > 1) {
+          isRemoteAction.current = true;
+          v.currentTime = expected;
+          setTimeout(() => { isRemoteAction.current = false; }, 200);
+        }
+      }
+      return;
+    }
     // Debounce: cancel any pending emit (e.g. a pause that followed this play within 80ms)
     // and schedule the play emit. This collapses rapid play→pause→play into one final event.
     if (pendingEmitRef.current) clearTimeout(pendingEmitRef.current);
@@ -1577,11 +1700,17 @@ export function VideoPlayer({
       pendingEmitRef.current = null;
       if (videoRef.current) onPlay(videoRef.current.currentTime);
     }, 80);
-  }, [onPlay, isOwner]);
+  }, [onPlay, isOwner, expectedRoomTime]);
 
   const handlePause = useCallback(() => {
     if (isRemoteAction.current) return;
+    // A viewer's browser/OS pause (screen lock, background tab, the pause fired before `ended`)
+    // is not that person pressing pause — it must not pause the whole room.
+    const v = videoRef.current;
+    if (!isOwner && (document.visibilityState === 'hidden' || v?.ended)) return;
     if (isOwner) ownerExplicitlyPausedRef.current = true;
+    // Room already paused → nothing to announce (late sync-effect pause, echo).
+    if (!roomPlayingRef.current) return;
     if (pendingEmitRef.current) clearTimeout(pendingEmitRef.current);
     pendingEmitRef.current = setTimeout(() => {
       pendingEmitRef.current = null;
@@ -1590,10 +1719,14 @@ export function VideoPlayer({
   }, [onPause, isOwner]);
 
   const handleSeeked = useCallback(() => {
-    if (!isRemoteAction.current && videoRef.current) {
-      onSeek(videoRef.current.currentTime);
-    }
-  }, [onSeek]);
+    const v = videoRef.current;
+    if (isRemoteAction.current || !v) return;
+    // `seeked` lands after the seek finishes — for HLS that is often past the 200ms remote window,
+    // so a seek this client made to FOLLOW the room was re-broadcast as a new seek. Only announce
+    // a position that actually differs from where the room already is.
+    if (Math.abs(v.currentTime - expectedRoomTime()) < 1.5) return;
+    onSeek(v.currentTime);
+  }, [onSeek, expectedRoomTime]);
 
   function handleOverlayClick() {
     // Guard: v.paused stays true while play() promise is pending, so rapid clicks
@@ -1780,6 +1913,18 @@ export function VideoPlayer({
     );
   }
 
+  // ── Generic iframe — any page that allows framing (not playback-synced, see header there) ──
+
+  if (isWebview) {
+    return (
+      <GenericIframePlayer
+        url={videoUrl}
+        isOwner={isOwner}
+        onOpenInVirtualBrowser={onOpenUrlInVirtualBrowser}
+      />
+    );
+  }
+
   // ── Any remaining source (Rutube, direct, etc.) — VB-resolved or still resolving ───
   // Real prod bug 2026-08-10: this block used to be gated on needsExtract alone, which was FALSE
   // for our own vb-media-proxy/vb-capture urls — that also skipped the whole block, including the
@@ -1822,6 +1967,9 @@ export function VideoPlayer({
           duckAudio={duckAudio}
         />
       );
+    }
+    if (unresolved || sourceUnreachable) {
+      return <UnresolvedVideoOverlay isOwner={isOwner} onOpenVirtualBrowser={onOpenVirtualBrowser} onPickDifferentVideo={onPickDifferentVideo} />;
     }
     return <VideoLoading />;
   }

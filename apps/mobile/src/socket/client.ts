@@ -44,7 +44,8 @@ export function connectSocket(token: string): Socket {
   }
 
   socket = io(WATCH_PARTY_URL, {
-    auth: { token },
+    // client: 'mobile' — watch-party picks a phone-sized VB viewport for this owner (watchParty.socket.ts)
+    auth: { token, client: 'mobile' },
     transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionDelay: 1000,

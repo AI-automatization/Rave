@@ -141,13 +141,24 @@ export const translations = {
     orContinueWith: { uz: 'yoki davom eting', ru: 'или войти через', en: 'or continue with' },
   },
 
+  // ─── Auth — Guest join (room link, no account) ───
+  guestJoin: {
+    title: { uz: 'Xonaga kirish', ru: 'Вход в комнату', en: 'Join the room' },
+    subtitle: { uz: "Ro'yxatdan o'tish shart emas — faqat ismingizni kiriting", ru: 'Регистрация не нужна — просто введите имя', en: 'No sign-up needed — just enter your name' },
+    namePlaceholder: { uz: 'Ismingiz', ru: 'Ваше имя', en: 'Your name' },
+    joinBtn: { uz: 'Xonaga kirish', ru: 'Войти в комнату', en: 'Join room' },
+    haveAccount: { uz: 'Akkauntim bor', ru: 'У меня есть аккаунт', en: 'I have an account' },
+    errorEmpty: { uz: 'Ismingizni kiriting', ru: 'Введите имя', en: 'Enter your name' },
+    errorFailed: { uz: "Kirib bo'lmadi, qayta urinib ko'ring", ru: 'Не удалось войти, попробуйте снова', en: 'Could not join, please try again' },
+  },
+
   // ─── Auth — Register ───
   register: {
     title: { uz: "Ro'yxatdan o'tish", ru: 'Регистрация', en: 'Sign Up' },
     subtitle: { uz: 'Akkount yarating', ru: 'Создайте аккаунт', en: 'Create your account' },
     usernamePlaceholder: { uz: 'Foydalanuvchi nomi', ru: 'Имя пользователя', en: 'Username' },
     emailPlaceholder: { uz: 'Email', ru: 'Email', en: 'Email' },
-    passwordPlaceholder: { uz: 'Parol (kamida 8 ta belgi)', ru: 'Пароль (минимум 8 символов)', en: 'Password (min 8 characters)' },
+    passwordPlaceholder: { uz: 'Parol (kamida 6 ta belgi)', ru: 'Пароль (минимум 6 символов)', en: 'Password (min 6 characters)' },
     confirmPlaceholder: { uz: 'Parolni tasdiqlang', ru: 'Подтвердите пароль', en: 'Confirm password' },
     registerBtn: { uz: "Ro'yxatdan o'tish", ru: 'Зарегистрироваться', en: 'Sign Up' },
     haveAccount: { uz: 'Akkount bor? ', ru: 'Уже есть аккаунт? ', en: 'Already have an account? ' },
@@ -164,7 +175,7 @@ export const translations = {
     errEmail: { uz: 'Emailni kiriting', ru: 'Введите email', en: 'Enter email' },
     errEmailFormat: { uz: "Email noto'g'ri formatda", ru: 'Неверный формат email', en: 'Invalid email format' },
     errPassword: { uz: 'Parolni kiriting', ru: 'Введите пароль', en: 'Enter password' },
-    errPasswordShort: { uz: 'Parol kamida 8 ta belgi', ru: 'Пароль минимум 8 символов', en: 'Password must be at least 8 characters' },
+    errPasswordShort: { uz: 'Parol kamida 6 ta belgi', ru: 'Пароль минимум 6 символов', en: 'Password must be at least 6 characters' },
     errPasswordMatch: { uz: 'Parollar mos emas', ru: 'Пароли не совпадают', en: 'Passwords do not match' },
     passwordsMatch: { uz: 'Parollar mos', ru: 'Пароли совпадают', en: 'Passwords match' },
     errGeneral: { uz: "Ro'yxatdan o'tishda xato", ru: 'Ошибка при регистрации', en: 'Registration failed' },
@@ -634,6 +645,13 @@ export const translations = {
     vbStartVideo: { uz: 'Saytda videoni ishga tushiring', ru: 'Запустите видео на сайте', en: 'Start the video on the site' },
     vbOwnerPicking: { uz: "Xona egasi video tanlamoqda...", ru: 'Владелец комнаты выбирает видео...', en: 'Room owner is picking a video...' },
     vbBlocked: { uz: "Bu saytni ocha olmaymiz, boshqasini sinab ko'ring", ru: 'Не можем открыть этот сайт, попробуйте другой', en: "Can't open this site, try another" },
+    vbKeyboard: { uz: 'Klaviatura', ru: 'Клавиатура', en: 'Keyboard' },
+    vbSoundOn: { uz: 'Ovozni yoqish', ru: 'Включить звук', en: 'Turn sound on' },
+    vbSoundOff: { uz: "Ovozni o'chirish", ru: 'Выключить звук', en: 'Mute' },
+    vbExpand: { uz: 'Kattalashtirish', ru: 'Развернуть', en: 'Expand' },
+    vbCollapse: { uz: 'Kichraytirish', ru: 'Свернуть', en: 'Collapse' },
+    vbUnreachable: { uz: "Sayt ochilmadi yoki javob bermayapti", ru: 'Сайт не открывается или не отвечает', en: "The site didn't open or isn't responding" },
+    vbTryAnotherLink: { uz: "Boshqa havolani sinab ko'ring", ru: 'Попробуйте другую ссылку', en: 'Try another link' },
     playerPickAnother: { uz: 'Boshqa video tanlash', ru: 'Выбрать другое видео', en: 'Pick another video' },
     loadingExtracting: { uz: 'Video qidirilmoqda...', ru: 'Ищем видео...', en: 'Looking for video...' },
     loadingFallbackVB: { uz: 'Virtual brauzer ochilmoqda...', ru: 'Открываем виртуальный браузер...', en: 'Opening virtual browser...' },

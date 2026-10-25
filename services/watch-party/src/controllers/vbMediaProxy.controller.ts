@@ -385,6 +385,8 @@ async function parseAndVerifyUrl(req: Request, res: Response): Promise<string | 
 /** Fetches `rawUrl` and writes a full response (manifest rewrite or byte passthrough) on success.
  *  Returns false WITHOUT writing anything on failure, so the caller can retry with a different
  *  URL (see getFreshMediaUrl above) instead of the failure being final. */
+const STREAM_PASSTHROUGH = process.env.VB_PROXY_STREAM === '1';
+
 async function attemptFetch(rawUrl: string, req: Request, res: Response, referer?: string, cookieHeader?: string): Promise<boolean> {
     const guardReason = await validateTarget(rawUrl);
     if (guardReason) {
@@ -604,9 +606,29 @@ async function attemptFetch(rawUrl: string, req: Request, res: Response, referer
     // BYTES above already caps this to 4MB, small enough that buffering costs nothing measurable,
     // and computing Content-Length from the buffer we're actually about to send is the only way
     // to guarantee the header and the bytes can never disagree.
-    const chunks: Buffer[] = [];
     const reader = upstream.body.getReader();
     res.on('close', () => { void reader.cancel().catch(() => {}); });
+
+    // VB_PROXY_STREAM=1 — no CDN in front of this service (local dev, direct origin): pipe bytes
+    // as they arrive instead of buffering the whole (up to 24MB) chunk first. Buffered mode puts
+    // the full chunk download time in front of the first byte (measured locally: 7-14s TTFB on
+    // archive.org vs ~2s direct), which reads as "video never starts". No Content-Length is sent,
+    // so there is nothing that can disagree with the bytes (the Bunny concern above).
+    if (STREAM_PASSTHROUGH) {
+      try {
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (!res.write(Buffer.from(value))) await new Promise((r) => res.once('drain', r));
+        }
+      } catch {
+        // client disconnected mid-stream or upstream dropped
+      }
+      if (!res.writableEnded) res.end();
+      return true;
+    }
+
+    const chunks: Buffer[] = [];
     try {
       for (;;) {
         const { done, value } = await reader.read();

@@ -3,12 +3,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
-import { MessageCircle, Users as UsersIcon, ListVideo, X, ChevronRight, Loader2, Play, Plus, Globe } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { MessageCircle, Users as UsersIcon, ListVideo, X, ChevronRight, Loader2, Play, Plus, Globe, Link2 } from 'lucide-react';
 import type { IChatReplyTo, VideoCandidate } from '@/types';
 import { useWatchParty } from '@/hooks/use-watch-party';
 import { useVirtualBrowser } from '@/hooks/use-virtual-browser';
 import { VideoPlayer } from '@/components/party/VideoPlayer';
 import { VirtualBrowserPlayer } from '@/components/party/VirtualBrowserPlayer';
+import { resolveLinkPlatform, normalizeLinkInput } from '@/lib/link-routing';
 import { ChatPanel } from '@/components/party/ChatPanel';
 import { MemberList } from '@/components/party/MemberList';
 import { RoomHeader } from '@/components/party/RoomHeader';
@@ -18,12 +20,21 @@ import { VideoCandidatePicker } from '@/components/party/VideoCandidatePicker';
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
 import { VoiceStrip } from '@/components/party/VoiceStrip';
 import { RoomPasswordDialog } from '@/components/party/RoomPasswordDialog';
+import { ChangeVideoDialog } from '@/components/party/ChangeVideoDialog';
 import { useVoiceChat } from '@/hooks/use-voice-chat';
 import { useSocket } from '@/hooks/use-socket';
 import { roomsApi } from '@/lib/api/rooms.api';
+import { ApiError } from '@/lib/api-client';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { toast } from '@/hooks/use-toast';
+
+// Same host list as the server's isOfficialEmbedHost (services/watch-party extractionClient.ts) —
+// only these does VB_START switch to the normal player, so only these may close the VB panel.
+const OFFICIAL_EMBED_HOST_RE = /^(www\.|m\.|player\.)?(youtube\.com|youtu\.be|vk\.com|vkvideo\.ru|rutube\.ru|twitch\.tv|vimeo\.com|dailymotion\.com|dai\.ly|tiktok\.com|trovo\.live)$/i;
+function hostOf(url: string): string {
+  try { return new URL(url).hostname; } catch { return ''; }
+}
 import { trackClick } from '@/lib/analytics';
 
 interface PlaylistItem {
@@ -116,21 +127,27 @@ function unwrapVbProxyUrl(url: string): string | null {
 
 function PlaylistPanel({
   roomId, isOwner, onPlayNow,
-}: { roomId: string; isOwner: boolean; onPlayNow: (videoUrl: string, videoPlatform: string) => void }) {
+}: { roomId: string; isOwner: boolean; onPlayNow: (videoUrl: string, videoPlatform: string) => void | Promise<void> }) {
   const t = useTranslations('party');
   const room = useWatchPartyStore((s) => s.room);
   const playlist = (room as unknown as { playlist?: PlaylistItem[] }).playlist ?? [];
   const [urlInput, setUrlInput] = useState('');
   const [adding, setAdding] = useState(false);
   const [nextLoading, setNextLoading] = useState(false);
+  // True while the embed-check for a pasted link is in flight (disables the button: no double submit).
+  const [checkingLink, setCheckingLink] = useState(false);
 
-  function handlePlayNow() {
-    const url = urlInput.trim();
-    if (!url) return;
+  async function handlePlayNow() {
+    const normalizedUrl = normalizeLinkInput(urlInput);
+    if (!normalizedUrl || checkingLink) return;
     trackClick('room:playlist_play_now');
-    const normalizedUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
-    onPlayNow(normalizedUrl, detectVideoPlatform(normalizedUrl));
-    setUrlInput('');
+    setCheckingLink(true);
+    try {
+      await onPlayNow(normalizedUrl, detectVideoPlatform(normalizedUrl));
+      setUrlInput('');
+    } finally {
+      setCheckingLink(false);
+    }
   }
 
   async function handleAdd() {
@@ -142,7 +159,7 @@ function PlaylistPanel({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ videoUrl: urlInput.trim() }),
+        body: JSON.stringify({ videoUrl: normalizeLinkInput(urlInput) }),
       });
       if (res.ok) {
         setUrlInput('');
@@ -264,12 +281,14 @@ function PlaylistPanel({
             <button
               type="button"
               onClick={handlePlayNow}
-              disabled={!urlInput.trim()}
-              title={t('playNow')}
-              aria-label={t('playNow')}
+              disabled={!urlInput.trim() || checkingLink}
+              title={checkingLink ? t('linkChecking') : t('playNow')}
+              aria-label={checkingLink ? t('linkChecking') : t('playNow')}
               className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-[var(--ww-r-sm)] bg-[rgba(61,220,132,0.16)] text-[var(--ww-online)] transition-colors hover:bg-[rgba(61,220,132,0.26)] disabled:opacity-40"
             >
-              <Play size={13} fill="currentColor" aria-hidden="true" />
+              {checkingLink
+                ? <Loader2 size={13} className="animate-spin" aria-hidden="true" />
+                : <Play size={13} fill="currentColor" aria-hidden="true" />}
             </button>
             <button
               type="button"
@@ -298,7 +317,7 @@ type RightTab = 'chat' | 'members' | 'playlist';
  *  chat, no member list and no queue at all (found in the prod audit, confirmed at 390px). */
 function RoomSidePanel({
   rightTab, setRightTab, isOwner, voice, roomId, sendMessage, setProfileUserId, sendMediaChange,
-  kickMember, muteMember, unmuteMember,
+  kickMember, muteMember, unmuteMember, raisedHands, setHand,
 }: {
   rightTab: RightTab;
   setRightTab: (t: RightTab) => void;
@@ -311,6 +330,8 @@ function RoomSidePanel({
   kickMember: (targetUserId: string) => void;
   muteMember: (targetUserId: string) => void;
   unmuteMember: (targetUserId: string) => void;
+  raisedHands: string[];
+  setHand: (raised: boolean, targetUserId?: string) => void;
 }) {
   const t = useTranslations('party');
 
@@ -376,12 +397,15 @@ function RoomSidePanel({
           of messages" — this is why. */}
       <div className="flex-1 min-h-0 flex flex-col">
         {rightTab === 'chat' && <ChatPanel onSend={sendMessage} onOpenProfile={setProfileUserId} />}
-        {rightTab === 'members' && <MemberList isOwner={isOwner} onKick={kickMember} />}
+        {rightTab === 'members' && <MemberList isOwner={isOwner} onKick={kickMember} raisedHands={raisedHands} onLowerHand={(id) => setHand(false, id)} />}
         {rightTab === 'playlist' && (
           <PlaylistPanel
             roomId={roomId}
             isOwner={isOwner}
-            onPlayNow={(videoUrl, videoPlatform) => sendMediaChange(videoUrl, undefined, videoPlatform)}
+            onPlayNow={async (videoUrl, videoPlatform) => {
+              const r = await resolveLinkPlatform(videoUrl, videoPlatform);
+              sendMediaChange(r.url, undefined, r.platform);
+            }}
           />
         )}
       </div>
@@ -391,12 +415,15 @@ function RoomSidePanel({
 
 export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props) {
   const t = useTranslations('party');
-  const { sendMessage, sendPlay, sendPause, sendSeek, sendEmoji, sendHeartbeat, sendBufferStart, sendBufferEnd, sendMediaChange, reactions, reactionCooldownSec, videoCandidates, requestCandidates, kickMember, muteMember, unmuteMember, renameRoom } = useWatchParty(roomId);
+  const { sendMessage, sendPlay, sendPause, sendSeek, sendEmoji, sendHeartbeat, sendBufferStart, sendBufferEnd, sendMediaChange, reactions, reactionCooldownSec, videoCandidates, requestCandidates, kickMember, muteMember, unmuteMember, renameRoom, raisedHands, setHand } = useWatchParty(roomId);
   const [rightTab, setRightTab] = useState<RightTab>('chat');
   /** Whose profile the modal is showing — `null` means closed. */
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   // Video-candidate picker (T-S189 follow-up) — owner-only, manually triggered from the "⋮" menu.
   const [candidatePickerOpen, setCandidatePickerOpen] = useState(false);
+  // Owner switching the room's video after creation (button under the player + header menu).
+  const [changeVideoOpen, setChangeVideoOpen] = useState(false);
+  const openChangeVideo = useCallback(() => setChangeVideoOpen(true), []);
   const setRoom = useWatchPartyStore((s) => s.setRoom);
   const reset = useWatchPartyStore((s) => s.reset);
   const room = useWatchPartyStore((s) => s.room);
@@ -417,6 +444,18 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   const isConnected = useWatchPartyStore((s) => s.isConnected);
   const isOwner = !!(room && currentUser && room.ownerId === currentUser._id);
 
+  // ?play=<link> — "watch this" from the home rails or the create dialog when the user already
+  // owns this open room (one room per owner): switch the room to that movie once we're in.
+  const searchParams = useSearchParams();
+  const playHandledRef = useRef(false);
+  useEffect(() => {
+    const play = searchParams.get('play');
+    if (!play || playHandledRef.current || !roomJoined || !isOwner) return;
+    playHandledRef.current = true;
+    void resolveLinkPlatform(play, detectVideoPlatform(play)).then((r) => sendMediaChange(r.url, undefined, r.platform));
+    window.history.replaceState(null, '', window.location.pathname);
+  }, [searchParams, roomJoined, isOwner, sendMediaChange]);
+
   // Kosmi-style shared virtual browser — owner opens a URL in a server-side headless browser,
   // everyone in the room watches the same live stream. `vbActive` is broadcast-driven (true for
   // EVERY member the instant the owner starts a session) — `showVBPanel` is purely local, lets
@@ -424,7 +463,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   // VB's found candidate never auto-commits (see vbSession.helper.ts) — it lands in the same
   // picker as "Это не то видео", just auto-opened instead of waiting for the owner to find the
   // menu entry themselves.
-  const { frame: vbFrame, active: vbActive, dimensions: vbDimensions, error: vbError, blocked: vbBlocked, queuePosition: vbQueuePosition, start: vbStart, stop: vbStop, sendInput: vbSendInput } = useVirtualBrowser(isOwner, () => setCandidatePickerOpen(true));
+  const { hasFrame: vbHasFrame, frameSource: vbFrameSource, active: vbActive, dimensions: vbDimensions, error: vbError, blocked: vbBlocked, queuePosition: vbQueuePosition, unreachable: vbUnreachable, start: vbStart, stop: vbStop, sendInput: vbSendInput, mediaState: vbMediaState, mediaControl: vbMediaControl } = useVirtualBrowser(isOwner, () => setCandidatePickerOpen(true));
   const [showVBPanel, setShowVBPanel] = useState(false);
   const showVB = vbActive || (isOwner && showVBPanel);
   const handleVBStop = () => { vbStop(); setShowVBPanel(false); };
@@ -461,6 +500,32 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
     if (url && unwrapVbProxyUrl(url) === url) originalSourceUrlRef.current = url;
   }, [room?.videoUrl]);
 
+  // Owner-initiated, per-URL VB opens (from the generic iframe's "Open in Virtual Browser" button) —
+  // `showVBPanel` keeps the VB view mounted so its unreachable state is visible if the start fails.
+  // A YouTube/VK/Rutube/... link typed into the VB panel: the server switches the room to its
+  // normal player instead (vbEvents.handler.ts — the VB stream has no sound), so just close the
+  // panel; it would otherwise stay open on top, waiting for a session that never starts.
+  const handleVBPanelStart = useCallback((url: string) => {
+    if (OFFICIAL_EMBED_HOST_RE.test(hostOf(url))) setShowVBPanel(false);
+    vbStart(url);
+  }, [vbStart]);
+
+  const handleOpenUrlInVB = useCallback((url: string) => {
+    setShowVBPanel(true);
+    vbStart(url);
+  }, [vbStart]);
+
+  // VB said the site is unreachable from the server — the viewer's own network may still reach it,
+  // so offer the plain iframe ('webview') for the same URL without another embed-check.
+  const handleTryIframe = useCallback((url: string | null) => {
+    const target = url ?? originalSourceUrlRef.current;
+    if (!target) return;
+    const normalized = /^https?:\/\//i.test(target) ? target : `https://${target}`;
+    vbStop();
+    setShowVBPanel(false);
+    sendMediaChange(normalized, undefined, 'webview');
+  }, [vbStop, sendMediaChange]);
+
   const handleVideoFatalError = useCallback(() => {
     if (!isOwner || showVB) return;
     const targetUrl = originalSourceUrlRef.current;
@@ -471,12 +536,19 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
     vbStart(targetUrl);
   }, [isOwner, showVB, vbStart]);
 
+  const [roomGone, setRoomGone] = useState(false);
+
   // Pre-load room via REST immediately — don't wait 2-3s for socket ROOM_JOINED
   useEffect(() => {
     let mounted = true;
+    setRoomGone(false);
     roomsApi.getById(roomId).then((res) => {
       if (mounted && res.data) setRoom(res.data);
-    }).catch(() => {});
+    }).catch((e: unknown) => {
+      // Ended/deleted room: without this the page sat on an empty player forever and a member's
+      // play/pause went nowhere (real report 2026-10-25, phone opened an old invite link).
+      if (mounted && e instanceof ApiError && e.status === 404) setRoomGone(true);
+    });
     return () => {
       mounted = false;
       // Reset store when leaving room so stale data doesn't flash on next room visit
@@ -494,6 +566,21 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   // math needed — the room route no longer sits inside (app)/layout.tsx's padded `main` or under
   // the global AppNav (both are hidden for /room/* — see (app)/layout.tsx's `inRoom` check — so
   // this component owns the full viewport itself).
+  if (roomGone) {
+    return (
+      <div className="ww-grain flex h-screen flex-col items-center justify-center gap-3 px-4 text-center">
+        <p className="text-lg font-semibold text-white">{t('roomClosed')}</p>
+        <p className="max-w-sm text-sm text-slate-400">{t('roomClosedHint')}</p>
+        <a
+          href="/home"
+          className="ww-btn-accent mt-2 rounded-[var(--ww-r-sm)] px-5 py-2.5 text-sm font-semibold text-white"
+        >
+          {t('goHome')}
+        </a>
+      </div>
+    );
+  }
+
   return (
     <div className="ww-grain relative flex h-screen flex-col overflow-hidden">
       {/* Ambient depth — real-user feedback (2026-07-28): the room "feels like a brick", too dark,
@@ -515,7 +602,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
         <RoomHeader
           renameRoom={renameRoom}
           onPickDifferentVideo={() => setCandidatePickerOpen(true)}
-          onChangeSource={() => setRightTab('playlist')}
+          onChangeSource={openChangeVideo}
         />
 
         <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
@@ -547,15 +634,21 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
             {showVB ? (
               <VirtualBrowserPlayer
                 isOwner={isOwner}
-                frame={vbFrame}
+                hasFrame={vbHasFrame}
+                frameSource={vbFrameSource}
                 dimensions={vbDimensions}
                 error={vbError}
                 blocked={vbBlocked}
                 queuePosition={vbQueuePosition}
-                start={vbStart}
+                unreachable={vbUnreachable}
+                onTryIframe={handleTryIframe}
+                start={handleVBPanelStart}
                 stop={handleVBStop}
                 sendInput={vbSendInput}
                 onPickDifferentVideo={() => setCandidatePickerOpen(true)}
+                audioUrl={`${process.env.NEXT_PUBLIC_SOCKET_URL ?? 'http://localhost:3004'}/api/v1/watch-party/vb-audio/${roomId}`}
+                mediaState={vbMediaState}
+                onMediaControl={vbMediaControl}
               />
             ) : (
               <VideoPlayer
@@ -567,23 +660,44 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                 onBufferEnd={sendBufferEnd}
                 onFatalError={handleVideoFatalError}
                 onPickDifferentVideo={() => setCandidatePickerOpen(true)}
+                onOpenVirtualBrowser={() => setShowVBPanel(true)}
+                onOpenUrlInVirtualBrowser={handleOpenUrlInVB}
+                sourceUnreachable={vbUnreachable}
                 duckAudio={anyoneSpeaking}
               />
             )}
             </div>
 
-            {isOwner && !showVB && (
-              <button
-                onClick={() => { trackClick('room:open_vb_panel'); setShowVBPanel(true); }}
-                type="button"
-                className="ww-btn-subtle flex h-9 cursor-pointer items-center gap-1.5 self-start rounded-[var(--ww-r-sm)] px-3 text-[12.5px] font-medium text-[var(--ww-text-2)]"
-              >
-                <Globe size={14} aria-hidden="true" />
-                {t('virtualBrowser')}
-              </button>
+            {isOwner && (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => { trackClick('room:change_video'); openChangeVideo(); }}
+                  type="button"
+                  data-testid="room-change-video"
+                  className="ww-btn-subtle flex h-9 cursor-pointer items-center gap-1.5 rounded-[var(--ww-r-sm)] px-3 text-[12.5px] font-medium text-[var(--ww-text-2)]"
+                >
+                  <Link2 size={14} aria-hidden="true" />
+                  {t('changeVideo')}
+                </button>
+                {!showVB && (
+                  <button
+                    onClick={() => { trackClick('room:open_vb_panel'); setShowVBPanel(true); }}
+                    type="button"
+                    className="ww-btn-subtle flex h-9 cursor-pointer items-center gap-1.5 rounded-[var(--ww-r-sm)] px-3 text-[12.5px] font-medium text-[var(--ww-text-2)]"
+                  >
+                    <Globe size={14} aria-hidden="true" />
+                    {t('virtualBrowser')}
+                  </button>
+                )}
+              </div>
             )}
 
-            <EmojiReactions onSend={sendEmoji} cooldownSec={reactionCooldownSec} />
+            <EmojiReactions
+              onSend={sendEmoji}
+              cooldownSec={reactionCooldownSec}
+              handRaised={!!currentUser && raisedHands.includes(currentUser._id)}
+              onToggleHand={() => setHand(!(currentUser && raisedHands.includes(currentUser._id)))}
+            />
           </div>
 
           {/* Chat / A'zolar / Navbat — desktopda o'ng ustun, mobilda video ostidagi panel. Sirt
@@ -608,6 +722,8 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
               setProfileUserId={setProfileUserId}
               sendMediaChange={sendMediaChange}
               kickMember={kickMember}
+              raisedHands={raisedHands}
+              setHand={setHand}
               muteMember={muteMember}
               unmuteMember={unmuteMember}
             />
@@ -617,6 +733,17 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
 
 
       <UserProfileModal userId={profileUserId} onClose={() => setProfileUserId(null)} />
+
+      {isOwner && (
+        <ChangeVideoDialog
+          open={changeVideoOpen}
+          onOpenChange={setChangeVideoOpen}
+          onSubmit={async (url) => {
+            const r = await resolveLinkPlatform(url, detectVideoPlatform(url));
+            sendMediaChange(r.url, undefined, r.platform);
+          }}
+        />
+      )}
 
       {isOwner && (
         <VideoCandidatePicker

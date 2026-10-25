@@ -43,7 +43,8 @@ export async function getSocket(): Promise<Socket> {
       if (!token) throw new Error('Not authenticated');
 
       const s = io(SOCKET_URL, {
-        auth: { token },
+        // vbFrameAck: this client acks VB_FRAME (use-virtual-browser.ts) — server paces frames to one in flight.
+        auth: { token, vbFrameAck: true },
         transports: ['websocket'],
         reconnection: true,
         // Real bug (live 2026-08-14): `reconnectionAttempts: 5` at a 2s base delay exhausts in
@@ -67,7 +68,7 @@ export async function getSocket(): Promise<Socket> {
           if (!(await refreshAccessToken())) return;
           const freshToken = await fetchToken();
           if (!freshToken) return;
-          s.auth = { token: freshToken };
+          s.auth = { token: freshToken, vbFrameAck: true };
           s.connect();
         })();
       });

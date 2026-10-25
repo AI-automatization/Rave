@@ -91,9 +91,6 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>((props, ref) =>
             onNavigationStateChange={handleNavigationStateChange}
             userAgent={userAgent}
           />
-          {!props.isOwner && (
-            <View style={[StyleSheet.absoluteFill, s.memberLockOverlay]} pointerEvents="box-only" />
-          )}
         </View>
       )}
     </View>
@@ -104,7 +101,6 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   webviewWrapper: { flex: 1 },
   webview: { flex: 1 },
-  memberLockOverlay: { backgroundColor: 'rgba(0,0,0,0.01)' },
   overlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: colors.bgVoid, justifyContent: 'center', alignItems: 'center',

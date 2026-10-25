@@ -17,6 +17,7 @@ import { FriendsRail } from '@/components/home/FriendsRail';
 import { LiveSpotlight } from '@/components/home/LiveSpotlight';
 import { StartHero } from '@/components/home/StartHero';
 import { ContinueWatchingRail } from '@/components/home/ContinueWatchingRail';
+import { WatchRail } from '@/components/home/WatchRail';
 import { Button } from '@/components/ui/button';
 import { trackClick } from '@/lib/analytics';
 import type { IWatchPartyRoom } from '@/types';
@@ -175,6 +176,14 @@ export function HomeContent() {
           )}
         </motion.div>
       )}
+
+      {/* ── Haftaning top kinolari + shaxsiy tarix — bitta bosishda xona ── */}
+      <motion.div {...fadeIn(1)}>
+        <WatchRail kind="trending" />
+      </motion.div>
+      <motion.div {...fadeIn(1)}>
+        <WatchRail kind="history" />
+      </motion.div>
 
       {/* ── Continue watching — Pro perk, komponent o'zi bo'sh bo'lsa hech narsa render qilmaydi ── */}
       <motion.div {...fadeIn(1)}>

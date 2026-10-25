@@ -7,15 +7,18 @@ import { REDIS_KEYS } from '@shared/constants';
 import { JwtPayload, VideoPlatform } from '@shared/types';
 import { recordWatchHistoryInternal, getUserPlan } from '@shared/utils/serviceClient';
 import { bufferTimeouts, resumeBufferedRoom } from './videoEvents.handler';
-import { stopSession, getSessionSnapshot, hasSession, markSessionCommitted } from '../services/virtualBrowser.service';
-import { startVBForRoom } from './vbSession.helper';
+import { stopSession, getSessionSnapshot, getSessionLastFrame, hasSession, markSessionCommitted } from '../services/virtualBrowser.service';
+import { startVBForRoom, upgradeEmbedToDirect, vbWatchKey } from './vbSession.helper';
 import { enqueueVBRequest } from './vbQueue.helper';
 import { cancelVbDisconnectGrace } from './vbEvents.handler';
-import { isOfficialEmbedHost, isOwnVbUrl, isPrivateUrl } from '../services/extractionClient';
+import { isOfficialEmbedHost, isOwnVbUrl, isPrivateUrl, isInsecureWebviewUrl } from '../services/extractionClient';
 import { isDomainBlocked } from '../controllers/domain.admin.controller';
 import { isLikelyFaststart } from '../services/faststartCheck.service';
 import { getFaststartFixedFileName } from '../services/faststartRemux.service';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
+import { clearHand } from './handEvents.handler';
+import { recordRoomWatch, recordMediaChange } from '../services/watchStats.service';
+import { fetchRoomSockets } from './roomSockets.helper';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -34,6 +37,9 @@ const ROOM_INACTIVITY_MS = 5 * 60 * 1000; // 5 minutes
 // evict someone from room membership — this window lets a genuine reconnect (page reload,
 // socket.io's own retry) land before the departure is treated as real. JOIN_ROOM below cancels
 // the timer on a rejoin; if it fires, the disconnect becomes equivalent to an explicit LEAVE_ROOM.
+// Leave paths below run outside registerRoomEvents' closure — keep the shared client for clearHand.
+let redisForHands: Redis | null = null;
+
 export const disconnectGraceTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const DISCONNECT_GRACE_MS = 20 * 1000;
 
@@ -46,7 +52,7 @@ function scheduleRoomEmptyCheck(
   roomId: string,
 ): void {
   void (async () => {
-    const sockets = await io.in(roomId).fetchSockets();
+    const sockets = await fetchRoomSockets(io, roomId);
     if (sockets.length === 0 && !roomCloseTimers.has(roomId)) {
       logger.info('Room empty — starting 5-minute inactivity timer', { roomId });
       const timer = setTimeout(() => {
@@ -96,7 +102,7 @@ async function finalizeRoomLeave(
       io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'owner_left' });
     } else if (result.newOwnerId) {
       // Update cached ownerId on all sockets in the room so video events skip DB
-      const roomSockets = await io.in(roomId).fetchSockets();
+      const roomSockets = await fetchRoomSockets(io, roomId);
       for (const s of roomSockets) {
         (s as unknown as AuthenticatedSocket).roomOwnerId = result.newOwnerId;
       }
@@ -106,7 +112,10 @@ async function finalizeRoomLeave(
       broadcastTarget.emit(SERVER_EVENTS.MEMBER_LEFT, { userId });
     }
 
-    if (!result.closed) scheduleRoomEmptyCheck(io, watchPartyService, roomId);
+    if (!result.closed) {
+      if (redisForHands) void clearHand(io, redisForHands, roomId, userId);
+      scheduleRoomEmptyCheck(io, watchPartyService, roomId);
+    }
   } catch (error) {
     logger.error('Failed to finalize room leave', { userId, roomId, error });
   }
@@ -129,6 +138,17 @@ export function scheduleDisconnectLeave(
   disconnectGraceTimers.set(key, timer);
 }
 
+async function resumeVbIfNeeded(io: SocketServer, redis: Redis, roomId: string, ownerId: string): Promise<void> {
+  try {
+    const url = await redis.get(vbWatchKey(roomId));
+    if (!url || hasSession(roomId)) return;
+    logger.info('VB: resuming watch-in-VB session after it was lost', { roomId, url });
+    await startVBForRoom(io, redis, roomId, ownerId, url, await getUserPlan(ownerId));
+  } catch (e) {
+    logger.warn('VB: resume after lost session failed', { roomId, error: (e as Error).message });
+  }
+}
+
 export const registerRoomEvents = (
   io: SocketServer,
   socket: Socket,
@@ -136,6 +156,7 @@ export const registerRoomEvents = (
   watchPartyService: WatchPartyService,
   redis: Redis,
 ): void => {
+  redisForHands = redis;
   const { userId } = authSocket.user;
 
   socket.on(CLIENT_EVENTS.JOIN_ROOM, async (data: { roomId: string }) => {
@@ -196,7 +217,19 @@ export const registerRoomEvents = (
       const vb = getSessionSnapshot(data.roomId);
 
       socket.emit(SERVER_EVENTS.ROOM_JOINED, { room, syncState, vb });
+      // Frames are owner-only and Chrome sends none for a static page — replay the last one so a
+      // reloading/reconnecting owner sees the page right away instead of a spinner.
+      if (vb && !vb.paused && vb.ownerId === userId) {
+        const lastFrame = getSessionLastFrame(data.roomId);
+        if (lastFrame) socket.emit(SERVER_EVENTS.VB_FRAME, { data: lastFrame });
+      }
       socket.to(data.roomId).emit(SERVER_EVENTS.MEMBER_JOINED, { userId });
+      // Watch-in-VB room whose browser is gone (server restart/crash/deploy) — the owner coming
+      // back reopens it on the page it was on (see vbWatchKey). Members just wait for VB_STARTED.
+      if (!vb && userId === String(room.ownerId)) {
+        void resumeVbIfNeeded(io, redis, data.roomId, userId);
+      }
+      void recordRoomWatch(userId, room);
 
       logger.info('Socket joined room', { userId, roomId: data.roomId });
     } catch (error) {
@@ -245,6 +278,18 @@ export const registerRoomEvents = (
       logger.warn('Failed to resolve buffer-pause on room leave', { userId, roomId, error: e });
     }
 
+    // Owner alone in the room: a LEAVE_ROOM here deletes the room outright (leaveRoom), and the web
+    // client emits one on every re-run of its join effect, immediately followed by a new JOIN_ROOM
+    // — real bug 2026-10-25: a page reload left the owner on a 404 "room not found". Give it the
+    // same 20s grace as a raw disconnect (JOIN_ROOM cancels it); the "end room" button closes
+    // explicitly over REST (closeRoom) and doesn't go through here.
+    const room = await watchPartyService.getRoom(roomId).catch(() => null);
+    if (room && room.ownerId === userId && room.members.every((m) => m === userId)) {
+      scheduleDisconnectLeave(io, watchPartyService, userId, roomId);
+      logger.info('Socket left room — sole owner, deferred by grace period', { userId, roomId });
+      return;
+    }
+
     await finalizeRoomLeave(io, watchPartyService, userId, roomId, socket);
 
     logger.info('Socket left room', { userId, roomId });
@@ -274,6 +319,12 @@ export const registerRoomEvents = (
       return;
     }
 
+    if (isInsecureWebviewUrl(data.videoPlatform, data.videoUrl)) {
+      socket.emit(SERVER_EVENTS.ERROR, { message: 'webview media must use https://' });
+      logger.warn('CHANGE_MEDIA rejected — non-https webview URL', { roomId, userId });
+      return;
+    }
+
     // Content-policy guard (#84 follow-up) — same gap CHANGE_MEDIA had for isPrivateUrl before
     // 2026-08-11: the admin domain blocklist was never consulted on the actual media-open path.
     if (!isOwnVbUrl(data.videoUrl) && await isDomainBlocked(redis, data.videoUrl)) {
@@ -281,6 +332,12 @@ export const registerRoomEvents = (
       logger.warn('CHANGE_MEDIA rejected — blocked domain', { roomId, userId, url: data.videoUrl });
       return;
     }
+
+    // History/top: only the owner can change media (enforced in updateRoomMedia below) — check
+    // here too so a rejected attempt is never counted.
+    void watchPartyService.getRoom(roomId)
+      .then(async (r) => { if (r.ownerId === userId) await recordMediaChange(roomId, data.videoUrl, data.videoTitle ?? null, data.videoPlatform ?? null); })
+      .catch(() => {});
 
     // Single extraction mechanism (2026-08-10, Saidazim's call): content-service's pipeline
     // (tryExtract/fetchCandidates, extractionClient.ts) is no longer invoked from here — VB is the
@@ -303,7 +360,8 @@ export const registerRoomEvents = (
     // (client-side ?verify=1 workaround, now removed — see watchParty.controller.ts createRoom,
     // which starts VB server-side directly), so a URL needing VB just showed "failed to load
     // video" with no fallback ever attempted.
-    if (!isOfficialEmbedHost(data.videoUrl) && !isOwnVbUrl(data.videoUrl)) {
+    // 'webview' pages open in each member's own iframe/WebView (embed-check said frameable) — no VB.
+    if (data.videoPlatform !== 'webview' && !isOfficialEmbedHost(data.videoUrl) && !isOwnVbUrl(data.videoUrl)) {
       const tier = await getUserPlan(userId);
       try {
         await startVBForRoom(io, redis, roomId, userId, data.videoUrl, tier);
@@ -382,6 +440,8 @@ export const registerRoomEvents = (
         io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'candidate_confirmed' });
       }
 
+      if (isOfficialEmbedHost(data.videoUrl)) upgradeEmbedToDirect(io, redis, roomId, userId, data.videoUrl);
+
       logger.info('Room media changed', { roomId, userId, videoUrl: videoUrlToUse });
     } catch (error) {
       socket.emit(SERVER_EVENTS.ERROR, { message: 'Failed to change room media' });
@@ -447,7 +507,7 @@ export const registerRoomEvents = (
       io.to(authSocket.roomId).emit(SERVER_EVENTS.MEMBER_KICKED, { userId: data.targetUserId });
 
       // Force disconnect the kicked user's socket in this room
-      const sockets = await io.in(authSocket.roomId).fetchSockets();
+      const sockets = await fetchRoomSockets(io, authSocket.roomId);
       for (const s of sockets) {
         if ((s as unknown as AuthenticatedSocket).user?.userId === data.targetUserId) {
           s.leave(authSocket.roomId ?? '');

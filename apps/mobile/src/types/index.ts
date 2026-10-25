@@ -75,6 +75,7 @@ export type AuthStackParamList = {
   LanguageSelect: undefined;
   Onboarding: undefined;
   Login: undefined;
+  GuestJoin: undefined;
   Register: undefined;
   VerifyEmail: { email: string; password?: string; devOtp?: string };
   ForgotPassword: undefined;

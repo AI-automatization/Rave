@@ -85,6 +85,8 @@ export function useWatchParty(roomId: string) {
 
   // Floating emoji reactions (rendered over the video by the caller) — ephemeral, not part of
   // useWatchPartyStore's persisted room state, so plain useState is enough here.
+  // Google Meet style raised hands — userIds, server-authoritative (handEvents.handler.ts).
+  const [raisedHands, setRaisedHands] = useState<string[]>([]);
   const [reactions, setReactions] = useState<{ id: string; emoji: string; userId: string; username?: string; avatar?: string }[]>([]);
   const reactionIdRef = useRef(0);
 
@@ -145,6 +147,7 @@ export function useWatchParty(roomId: string) {
       // JOIN_ROOM handler) — anything emitting a room-scoped event before this point risks the
       // server seeing "socket has no roomId" and silently dropping it.
       setRoomJoined(true);
+      socket.emit(CLIENT_EVENTS.RAISE_HAND, { sync: true });
     });
 
     // Server sends { userId } — map to member shape, then resolve the real profile
@@ -179,6 +182,15 @@ export function useWatchParty(roomId: string) {
       setTimeout(() => {
         setReactions((prev) => prev.filter((r) => r.id !== id));
       }, 2600);
+    });
+
+    socket.on(SERVER_EVENTS.HANDS_UPDATED, (data: { raised: string[]; changed?: { userId: string; raised: boolean; username?: string } }) => {
+      setRaisedHands(data.raised ?? []);
+      const me = useAuthStore.getState().user;
+      const owner = useWatchPartyStore.getState().room?.ownerId;
+      if (data.changed?.raised && me && owner === me._id && data.changed.userId !== me._id) {
+        toast.info(tRef.current('handRaisedToast', { name: data.changed.username ?? '' }));
+      }
     });
 
     // Sender-only: burst limit hit — drive a visible countdown so EmojiReactions can disable
@@ -295,6 +307,7 @@ export function useWatchParty(roomId: string) {
       socket.off(SERVER_EVENTS.ROOM_MESSAGE);
       socket.off(SERVER_EVENTS.REACTION_BROADCAST);
       socket.off(SERVER_EVENTS.REACTION_COOLDOWN);
+      socket.off(SERVER_EVENTS.HANDS_UPDATED);
       if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
       socket.off(SERVER_EVENTS.VIDEO_PLAY);
       socket.off(SERVER_EVENTS.VIDEO_PAUSE);
@@ -320,13 +333,19 @@ export function useWatchParty(roomId: string) {
     socket?.emit(CLIENT_EVENTS.SEND_MESSAGE, { roomId, message: text, replyTo });
   }, [socket, roomId]);
 
+  // Any member may play/pause now (server videoEvents.handler.ts). The server echoes to everyone
+  // EXCEPT the sender, so the sender's own store must flip here — otherwise its sync effects still
+  // see the old isPlaying and immediately undo the tap (e.g. a viewer's pause re-played by the
+  // next heartbeat reconcile).
   const sendPlay = useCallback((currentTime: number) => {
     socket?.emit(CLIENT_EVENTS.PLAY, { roomId, currentTime });
-  }, [socket, roomId]);
+    setSyncState({ isPlaying: true, currentTime, serverTimestamp: Date.now() });
+  }, [socket, roomId, setSyncState]);
 
   const sendPause = useCallback((currentTime: number) => {
     socket?.emit(CLIENT_EVENTS.PAUSE, { roomId, currentTime });
-  }, [socket, roomId]);
+    setSyncState({ isPlaying: false, currentTime, serverTimestamp: undefined });
+  }, [socket, roomId, setSyncState]);
 
   const sendSeek = useCallback((currentTime: number) => {
     socket?.emit(CLIENT_EVENTS.SEEK, { roomId, currentTime });
@@ -335,6 +354,10 @@ export function useWatchParty(roomId: string) {
   const sendEmoji = useCallback((emoji: string) => {
     socket?.emit(CLIENT_EVENTS.SEND_REACTION, { roomId, emoji });
   }, [socket, roomId]);
+
+  const setHand = useCallback((raised: boolean, targetUserId?: string) => {
+    socket?.emit(CLIENT_EVENTS.RAISE_HAND, { raised, targetUserId });
+  }, [socket]);
 
   // Owner moderation — backend (roomEvents.handler.ts) already enforced owner-only + validated
   // membership server-side for all three; this client just needed to actually send them. No UI
@@ -390,6 +413,8 @@ export function useWatchParty(roomId: string) {
     isConnected,
     reactions,
     reactionCooldownSec,
+    raisedHands,
+    setHand,
     videoCandidates,
     sendMessage,
     sendPlay,

@@ -77,6 +77,18 @@ export function isPrivateUrl(url: string): boolean {
   return PRIVATE_URL.test(url);
 }
 
+// 'webview' media is opened by every member's client (iframe / mobile WebView) straight from the
+// owner-supplied string, so only https is allowed: javascript:, data:, file: and plain http (mixed
+// content) must never be broadcast. Other platforms are unaffected.
+export function isInsecureWebviewUrl(platform: string | null | undefined, url: string): boolean {
+  if (platform !== 'webview') return false;
+  try {
+    return new URL(url).protocol !== 'https:';
+  } catch {
+    return true;
+  }
+}
+
 // Returns true if content-service's pipeline can produce a playable result for this URL
 // (categories 1+2 of the extraction flow — playerjs/yt-dlp/genericExtractor/blind Playwright
 // sniff). Never throws — any failure (422 unsupported_site, 504 timeout, network error) just

@@ -13,9 +13,12 @@ interface Props {
    * per-row `isOwner` below). Gates the kick action. */
   isOwner?: boolean;
   onKick?: (targetUserId: string) => void;
+  /** userIds with a raised hand — ✋ next to the name; the owner can lower anyone's. */
+  raisedHands?: string[];
+  onLowerHand?: (targetUserId: string) => void;
 }
 
-export function MemberList({ isOwner: viewerIsOwner = false, onKick }: Props) {
+export function MemberList({ isOwner: viewerIsOwner = false, onKick, raisedHands = [], onLowerHand }: Props) {
   const t = useTranslations('party');
   const members = useWatchPartyStore((s) => s.members);
   const room = useWatchPartyStore((s) => s.room);
@@ -74,6 +77,20 @@ export function MemberList({ isOwner: viewerIsOwner = false, onKick }: Props) {
                     ({t('memberYou')})
                   </span>
                 )}
+                {raisedHands.includes(member._id) && (
+                  viewerIsOwner && onLowerHand ? (
+                    <button
+                      type="button"
+                      onClick={() => onLowerHand(member._id)}
+                      title={t('handLowerFor')}
+                      className="shrink-0 cursor-pointer rounded px-1 text-[13px] leading-none ring-1 ring-amber-400/40 bg-amber-400/15"
+                    >
+                      ✋
+                    </button>
+                  ) : (
+                    <span className="shrink-0 text-[13px] leading-none" aria-label={t('handRaise')}>✋</span>
+                  )
+                )}
                 {isOwner && (
                   <Crown
                     size={12}
@@ -106,7 +123,7 @@ export function MemberList({ isOwner: viewerIsOwner = false, onKick }: Props) {
                 <button
                   onClick={() => { trackClick('room:kick_open'); setConfirmKickId(member._id); }}
                   title={t('kick')}
-                  className="shrink-0 cursor-pointer rounded-md p-1.5 text-[var(--ww-text-4)] opacity-0 transition-all hover:bg-[var(--ww-danger)]/[0.08] hover:text-[var(--ww-danger)] group-hover:opacity-100"
+                  className="shrink-0 cursor-pointer rounded-md p-1.5 text-[var(--ww-text-4)] opacity-0 transition-all hover:bg-[var(--ww-danger)]/[0.08] hover:text-[var(--ww-danger)] group-hover:opacity-100 max-md:opacity-100"
                 >
                   <UserX size={14} />
                 </button>

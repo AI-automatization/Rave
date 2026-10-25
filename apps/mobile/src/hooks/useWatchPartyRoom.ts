@@ -13,6 +13,7 @@ import { useWatchPartyStore } from '@store/watchParty.store';
 import { watchPartyApi } from '@api/watchParty.api';
 import { syncStatsApi } from '@api/syncStats.api';
 import { activeRoomStorage } from '@utils/storage';
+import { VB_ENABLED } from '@constants/features';
 import { disconnectSocket, getSocket, CLIENT_EVENTS } from '@socket/client';
 import { UniversalPlayerRef, detectVideoPlatform, detectEmbedPlatform } from '@components/video/UniversalPlayer';
 import type { FloatingEmoji } from '@components/watchParty/VideoSection';
@@ -197,6 +198,9 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   useEffect(() => {
     const rawUrl = room?.videoUrl;
     if (!rawUrl || extractStartedRef.current) return;
+    // 'webview' rooms (web app found the site embeddable): the page itself IS the media — show it
+    // in the WebView for everyone, no extraction round-trip (and no extraction-failure dead end).
+    if (room?.videoPlatform === 'webview') return;
     extractStartedRef.current = true;
     void extractFnRef.current(rawUrl);
     return () => { extractStartedRef.current = false; resetExtractionFnRef.current(); };
@@ -262,7 +266,11 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     // Server broadcasts democratic buffer pause/resume via io.to(roomId) which reaches the owner too.
     // Without this guard the owner's video would jump to the stale Redis position on every
     // member buffer event — particularly frequent on Android due to ExoPlayer HLS segment fetching.
-    if (isOwner) {
+    // Exception: a play/pause a regular member pressed (updatedBy = that member, not the owner)
+    // must be applied by the owner too — any member may control play/pause. Buffer-driven
+    // events carry updatedBy = owner, so they still hit the guard below.
+    const fromMember = !!syncState.updatedBy && syncState.updatedBy !== userId && syncState.updatedBy !== room?.ownerId;
+    if (isOwner && !fromMember) {
       if (ownerInitialSyncedRef.current) {
         intendedPlayingRef.current = syncState.isPlaying;
         return;
@@ -504,11 +512,23 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     prevIsPlayingRef.current = status.isPlaying;
   }, [isOwner, emitPause, emitBufferState]);
 
+  // Any member may play/pause from the embed's own UI (WebViewPlayer no longer locks members out).
+  // A member only broadcasts a CHANGE of room state — a stall-resume PLAY while the room already
+  // plays, or a PAUSE the OS forced on a backgrounded app, is not a decision to share.
   const handleWebViewPlay = useCallback((secs: number) => {
     setIsPlaying(true);
-    if (isOwner && !isSyncing.current) emitPlay(secs);
+    if (isSyncing.current) return;
+    if (!isOwner && intendedPlayingRef.current) return;
+    intendedPlayingRef.current = true;
+    emitPlay(secs);
   }, [isOwner, emitPlay]);
-  const handleWebViewPause = useCallback((secs: number) => { setIsPlaying(false); if (isOwner && !isSyncing.current) emitPause(secs); }, [isOwner, emitPause]);
+  const handleWebViewPause = useCallback((secs: number) => {
+    setIsPlaying(false);
+    if (isSyncing.current) return;
+    if (!isOwner && (!intendedPlayingRef.current || AppState.currentState !== 'active')) return;
+    intendedPlayingRef.current = false;
+    emitPause(secs);
+  }, [isOwner, emitPause]);
   // T-E101: WebView buffering callback
   const handleWebViewBuffering = useCallback((isBuffering: boolean) => { emitBufferState(isBuffering); }, [emitBufferState]);
   const handleWebViewSeek = useCallback((secs: number) => { if (isOwner && !isSyncing.current) emitSeek(secs); }, [isOwner, emitSeek]);
@@ -534,8 +554,9 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     setTimeout(() => { isSyncing.current = false; }, 1500);
   }, [isOwner, videoIsLive, emitSeek]);
 
+  // Any room member may play/pause (seek/stop stay owner-only).
   const handlePlayPause = useCallback(async () => {
-    if (!isOwner || isActionInFlight.current) return;
+    if (isActionInFlight.current) return;
     isActionInFlight.current = true;
     try {
       const nextPlaying = !intendedPlayingRef.current;
@@ -546,7 +567,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       if (nextPlaying) { await playerRef.current?.play(); emitPlay(posMs / 1000); }
       else { await playerRef.current?.pause(); emitPause(posMs / 1000); }
     } finally { setTimeout(() => { isActionInFlight.current = false; isSyncing.current = false; }, 300); }
-  }, [isOwner, emitPlay, emitPause]);
+  }, [emitPlay, emitPause]);
 
   const handleStop = useCallback(async () => {
     if (!isOwner) return;
@@ -805,9 +826,14 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   // extracted URL use WebView. Embed detection matches UniversalPlayer.useWebview logic.
   // iOS: also use embed for VK/Rutube (IP-lock), plus existing fallbacks.
   const embedPlatformDetected = !!androidEmbedPlatform;
-  const isWebViewMode = Platform.OS === 'ios'
+  // Any link must open: a 'webview' room (page URL, no sync) always shows the page; and when
+  // extraction gave up on an unknown site and Virtual Browser isn't available on this build (store
+  // builds, VB_ENABLED=false) the page opens in the WebView instead of dead-ending on "failed".
+  const isPageRoom = room?.videoPlatform === 'webview' && platform === 'webview';
+  const unknownLinkToWebView = extractFallback && !VB_ENABLED && extractionError !== 'video_source_expired';
+  const isWebViewMode = isPageRoom || (Platform.OS === 'ios'
     ? (iosVkOrRutube || !extractedVideoUrl && (iosWebmBlocked || platform === 'youtube' || extractFallback))
-    : (isAndroidVkOrRutube || (!extractedVideoUrl && (platform === 'youtube' || embedPlatformDetected)));
+    : (isAndroidVkOrRutube || (!extractedVideoUrl && (platform === 'youtube' || embedPlatformDetected || unknownLinkToWebView))));
 
   // YouTube specifically uses the official IFrame Player API (webviewYouTube.ts) — a reliable
   // programmatic bridge, so VideoSection blocks direct iframe touches there and drives playback

@@ -15,6 +15,7 @@ import { useApiError } from '@/hooks/use-api-error';
 import { ApiError } from '@/lib/api-client';
 import { trackClick } from '@/lib/analytics';
 import { trackRoomCreated } from '@/lib/measurement-events';
+import { resolveLinkPlatform, normalizeLinkInput } from '@/lib/link-routing';
 
 interface Props {
   open: boolean;
@@ -282,7 +283,7 @@ interface VideoSearchItem {
   title: string;
   thumbnail: string;
   url: string;
-  platform: 'youtube' | 'rutube' | 'vk' | 'dailymotion' | 'peertube' | 'live';
+  platform: 'youtube' | 'rutube' | 'vk' | 'dailymotion' | 'peertube' | 'live' | 'archive';
   duration?: number;
   viewCount?: number;
 }
@@ -323,6 +324,8 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
   const parseError = useApiError();
   const router = useRouter();
   const createRoom = useCreateRoom();
+  // True while the pasted link is being checked for iframe-embeddability (before the room request).
+  const [checkingLink, setCheckingLink] = useState(false);
 
   const [step, setStep]                       = useState<1 | 2>(1);
   const [videoUrl, setVideoUrl]               = useState('');
@@ -455,7 +458,9 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
 
   /* ── Create room ────────────────────────────────────── */
   async function handleCreate() {
+    if (checkingLink) return;
     trackClick('create_room:submit', { isPrivate });
+    const pickedUrl = normalizeLinkInput(videoUrl);
     try {
       const backendPlatform = activePlatform?.id
         ? (PLATFORM_TO_BACKEND[activePlatform.id] ?? 'other')
@@ -464,19 +469,32 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
       // a bare paste like "youtube.com/watch?v=..." (no scheme) reaches here as-is and fails
       // backend Joi's videoUrl.uri() check with a 422 the user never sees the reason for
       // (button just resets). Normalize before sending, same as mobile's URL handling.
-      const normalizedVideoUrl = videoUrl && !/^https?:\/\//i.test(videoUrl)
-        ? `https://${videoUrl}`
-        : videoUrl;
+      const normalizedVideoUrl = pickedUrl;
       // Safety net alongside toAbsoluteThumbnailUrl (used when storing it from fetchVideoMeta):
       // re-validate here too so a malformed thumbnail can never 422 the whole room-create request.
       const safeThumbnail = videoThumbnail ? toAbsoluteThumbnailUrl(videoThumbnail) : null;
+      // Link no dedicated player handles → ask the server whether the page can be framed; framable
+      // pages become plain-iframe ('webview') rooms, the rest keep the old path (backend starts the
+      // Virtual Browser). Picked-platform rooms (YouTube etc.) skip the check inside the helper.
+      let platform = backendPlatform;
+      let storedUrl = normalizedVideoUrl;
+      if (normalizedVideoUrl && (!platform || platform === 'other')) {
+        setCheckingLink(true);
+        try {
+          const r = await resolveLinkPlatform(normalizedVideoUrl, platform ?? 'other');
+          platform = r.platform;
+          storedUrl = r.url;
+        } finally {
+          setCheckingLink(false);
+        }
+      }
       const res = await createRoom.mutateAsync({
         // Backend `name` caps at 80 chars (Joi) — trim here, mirrors mobile's useMediaDetection slice(0, 60)
         name:             roomName ? roomName.slice(0, 60) : undefined,
-        videoUrl:         normalizedVideoUrl || undefined,
+        videoUrl:         storedUrl || undefined,
         videoTitle:       videoTitle || undefined,
         videoThumbnail:   safeThumbnail || undefined,
-        videoPlatform:    backendPlatform,
+        videoPlatform:    platform,
         isPrivate,
       });
       onOpenChange(false);
@@ -497,7 +515,9 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
         if (roomId) {
           onOpenChange(false);
           toast.info(t('alreadyHaveRoom'));
-          router.push(`/room/${roomId}`);
+          // Bring the movie they just picked along — otherwise the old room reopened with its
+          // old video and the new choice was silently lost.
+          router.push(pickedUrl ? `/room/${roomId}?play=${encodeURIComponent(pickedUrl)}` : `/room/${roomId}`);
           return;
         }
       }
@@ -534,7 +554,8 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="bg-[#0C0B18] border-white/[0.07] text-white max-w-[620px] p-0 overflow-hidden rounded-2xl">
+      {/* grid-cols-[minmax(0,1fr)]: the base DialogContent is an auto-column grid, so the long video title / platform chip row widened it past a 390px screen (input + arrow cut off on the right). */}
+      <DialogContent className="bg-[#0C0B18] border-white/[0.07] text-white max-w-[620px] grid-cols-[minmax(0,1fr)] p-0 overflow-hidden rounded-2xl">
 
         {/* Header */}
         <DialogHeader className="px-6 pt-6 pb-0">
@@ -868,11 +889,13 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
 
             <button
               onClick={() => void handleCreate()}
-              disabled={createRoom.isPending}
+              disabled={createRoom.isPending || checkingLink}
               className="w-full h-12 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] cursor-pointer"
               style={{ background: 'linear-gradient(135deg,#7C3AED,#5B21B6)' }}
             >
-              {createRoom.isPending
+              {checkingLink
+                ? <><Loader2 size={16} className="animate-spin" />{t('checkingLink')}</>
+                : createRoom.isPending
                 ? <><Loader2 size={16} className="animate-spin" />{t('creating')}</>
                 : <><Link2 size={15} />{t('createBtn')}</>}
             </button>

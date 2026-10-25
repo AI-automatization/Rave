@@ -207,8 +207,8 @@ export const VideoSection = React.memo(function VideoSection({
           bridge with no clean player API (WebViewAdapters.ts) — a bare _csVideo.play()/pause()
           call there doesn't reliably start/stop the real page's stream, so the owner still needs
           to tap the embed's own UI directly (T-S125 — regressed briefly when T-S124 made this
-          unconditional for every webview). Non-owner taps are still independently blocked by
-          WebViewPlayer's memberLockOverlay regardless of platform. */}
+          unconditional for every webview). Members can tap those embeds too — any member may
+          play/pause (useWatchPartyRoom handleWebViewPlay/Pause); seek stays owner-only. */}
       {blockEmbedTouch && (
         <TrackedTouchable
           trackId="watchparty:video_tap"
@@ -256,13 +256,13 @@ export const VideoSection = React.memo(function VideoSection({
         </View>
       </Animated.View>
 
-      {/* Center controls — owner only */}
-      {isOwnerMode && (
+      {/* Center controls — play/pause for every member; seek buttons owner only */}
+      {blockEmbedTouch && (
         <Animated.View
           style={[s.centerControls, { opacity: ctrlOpacity }]}
           pointerEvents={ctrlPointerEvents}
         >
-          {!videoIsLive && (
+          {isOwnerMode && !videoIsLive && (
             <TrackedTouchable trackId="watchparty:seek_back" style={s.seekBtn} onPress={() => onSeekDirection('back')}>
               <Ionicons name="play-back" size={22} color="#fff" />
               <Text style={s.seekLabel}>{pendingSkipSecs != null ? `${pendingSkipSecs > 0 ? '+' : ''}${pendingSkipSecs}s` : '10s'}</Text>
@@ -278,7 +278,7 @@ export const VideoSection = React.memo(function VideoSection({
             />
           </TrackedTouchable>
 
-          {!videoIsLive && (
+          {isOwnerMode && !videoIsLive && (
             <TrackedTouchable trackId="watchparty:seek_forward" style={s.seekBtn} onPress={() => onSeekDirection('forward')}>
               <Ionicons name="play-forward" size={22} color="#fff" />
               <Text style={s.seekLabel}>{pendingSkipSecs != null ? `${pendingSkipSecs > 0 ? '+' : ''}${pendingSkipSecs}s` : '10s'}</Text>

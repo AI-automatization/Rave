@@ -77,3 +77,4 @@ apps/mobile/ios/Pods/
 
 # APK build artifacts (never commit — regenerate via eas build)
 *.apk
+.local/

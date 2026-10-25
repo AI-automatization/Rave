@@ -14,7 +14,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2, VolumeX } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 
 interface Props {
@@ -30,6 +30,8 @@ interface Props {
 interface YTPlayer {
   playVideo(): void;
   pauseVideo(): void;
+  mute(): void;
+  unMute(): void;
   seekTo(seconds: number, allowSeekAhead: boolean): void;
   getCurrentTime(): number;
   getPlayerState(): number;
@@ -111,7 +113,17 @@ export function YouTubePlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHea
   // true while WE are applying a remote change, so the resulting state-change events aren't
   // re-broadcast (echo loop). Mirrors isRemoteAction in the native path.
   const isRemoteAction = useRef(false);
+  // Last non-BUFFERING state. A viewer's PLAYING whose previous settled state was already PLAYING
+  // (PLAYING→BUFFERING→PLAYING) is a stall recovery or the end of a scrub, not a "play" tap —
+  // broadcasting it would let a laggy viewer drag the room back. PAUSED→BUFFERING→PLAYING is a tap.
+  const lastSettledRef = useRef<number | null>(null);
   const lastPolledTime = useRef(0);
+  // Phones (iOS Safari above all) refuse a remote playVideo() with sound until the viewer has
+  // touched the page — the owner pressed play and the phone just sat there (real report
+  // 2026-10-24: "laptopdan start bosdim, telefonda ko'rsatmadi"). Muted playback IS allowed, so
+  // the viewer falls back to it and gets a one-tap "turn sound on" button.
+  const [mutedFallback, setMutedFallback] = useState(false);
+  const mutedFallbackRef = useRef(false);
 
   // Keep the latest callbacks/flags in refs so the player-init effect can stay mount-once.
   const isOwnerRef = useRef(isOwner);   isOwnerRef.current = isOwner;
@@ -131,17 +143,26 @@ export function YouTubePlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHea
 
       const player = new YT.Player(hostRef.current, {
         videoId,
-        playerVars: { autoplay: 0, controls: isOwnerRef.current ? 1 : 0, rel: 0, modestbranding: 1, playsinline: 1 },
+        playerVars: { autoplay: 0, controls: 1, rel: 0, modestbranding: 1, playsinline: 1 },
         events: {
           onReady: () => { if (!cancelled) setReady(true); },
           onStateChange: (e: YTPlayerEvent) => {
-            // Only the owner drives the room. Its play/pause become socket broadcasts; a viewer's
-            // own state changes are ignored (they follow the owner).
-            if (!isOwnerRef.current || isRemoteAction.current) return;
+            // Any member's play/pause is broadcast (server accepts it since 2026-10-25: "hohlagan
+            // a'zo stop/start qila olsin"). Changes we applied ourselves (isRemoteAction) are not.
+            const prevSettled = lastSettledRef.current;
+            if (e.data !== YT.PlayerState.BUFFERING) lastSettledRef.current = e.data;
+            if (isRemoteAction.current) return;
             const p = playerRef.current;
             if (!p) return;
-            if (e.data === YT.PlayerState.PLAYING) onPlayRef.current(p.getCurrentTime());
-            else if (e.data === YT.PlayerState.PAUSED) onPauseRef.current(p.getCurrentTime());
+            if (e.data === YT.PlayerState.PLAYING) {
+              if (!isOwnerRef.current && prevSettled === YT.PlayerState.PLAYING) return;
+              onPlayRef.current(p.getCurrentTime());
+            }
+            // A pause while the tab is hidden is the browser/OS (screen lock, app switch), not the
+            // person — it must not pause the whole room.
+            else if (e.data === YT.PlayerState.PAUSED && document.visibilityState !== 'hidden') {
+              onPauseRef.current(p.getCurrentTime());
+            }
           },
           // Without this, a video that fails to embed (private/removed/embedding-disabled) never
           // fires onReady either — the loading spinner spun forever with zero feedback (reported
@@ -181,10 +202,42 @@ export function YouTubePlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHea
     return () => clearInterval(id);
   }, [ready, isOwner]);
 
-  // ── Viewer: apply incoming syncState (play/pause/seek) ────────────────────────
+  // Viewer play that the browser may silently block: re-check shortly after and fall back to muted.
+  const viewerPlay = (p: YTPlayer) => {
+    p.playVideo();
+    if (mutedFallbackRef.current) return;
+    setTimeout(() => {
+      const YTS = window.YT?.PlayerState;
+      const state = p.getPlayerState();
+      if (state === (YTS?.PLAYING ?? 1) || state === (YTS?.BUFFERING ?? 3)) return;
+      if (!useWatchPartyStore.getState().syncState.isPlaying) return;
+      mutedFallbackRef.current = true;
+      setMutedFallback(true);
+      // Our own retry of the room's play — its PLAYING event must not be re-broadcast (it would
+      // carry a position ~1.5s behind the room and pull everyone back).
+      isRemoteAction.current = true;
+      setTimeout(() => { isRemoteAction.current = false; }, 1500);
+      p.mute();
+      p.playVideo();
+    }, 1500);
+  };
+
+  const unmute = () => {
+    const p = playerRef.current;
+    if (!p) return;
+    p.unMute();
+    if (useWatchPartyStore.getState().syncState.isPlaying) p.playVideo();
+    mutedFallbackRef.current = false;
+    setMutedFallback(false);
+  };
+
+  // ── Everyone: apply incoming syncState (play/pause/seek) ──────────────────────
+  // Owner included now — another member may have paused/played. The owner's own taps also land
+  // here (sendPlay/sendPause update the store locally) and are no-ops: the player is already in
+  // that state at that position.
   useEffect(() => {
     const p = playerRef.current;
-    if (!ready || isOwner || !p) return;
+    if (!ready || !p) return;
 
     isRemoteAction.current = true;
 
@@ -196,12 +249,15 @@ export function YouTubePlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHea
     if (Math.abs(p.getCurrentTime() - target) > 0.5) {
       p.seekTo(target, true);
     }
-    if (syncState.isPlaying) p.playVideo();
-    else p.pauseVideo();
+    const YTS = window.YT?.PlayerState;
+    const state = p.getPlayerState();
+    const playing = state === (YTS?.PLAYING ?? 1) || state === (YTS?.BUFFERING ?? 3);
+    if (syncState.isPlaying && !playing) viewerPlay(p);
+    else if (!syncState.isPlaying && playing) p.pauseVideo();
 
     const clear = setTimeout(() => { isRemoteAction.current = false; }, 400);
     return () => clearTimeout(clear);
-  }, [ready, isOwner, syncState.currentTime, syncState.isPlaying, syncState.serverTimestamp]);
+  }, [ready, syncState.currentTime, syncState.isPlaying, syncState.serverTimestamp]);
 
   // ── Viewer: drift correction from heartbeat (time AND play/pause state) ─────
   //
@@ -223,7 +279,7 @@ export function YouTubePlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHea
     const playerIsPlaying = p.getPlayerState() === (window.YT?.PlayerState.PLAYING ?? 1);
     if (playerIsPlaying !== syncState.isPlaying) {
       isRemoteAction.current = true;
-      if (syncState.isPlaying) p.playVideo();
+      if (syncState.isPlaying) viewerPlay(p);
       else p.pauseVideo();
       setTimeout(() => { isRemoteAction.current = false; }, 400);
     }
@@ -252,6 +308,17 @@ export function YouTubePlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHea
         <div className="absolute inset-0 flex items-center justify-center bg-[#0A0A12]/80 pointer-events-none">
           <Loader2 size={28} className="animate-spin text-violet-400" />
         </div>
+      )}
+      {mutedFallback && !isOwner && !error && (
+        <button
+          type="button"
+          onClick={unmute}
+          data-testid="yt-unmute"
+          className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 rounded-full bg-black/75 px-4 py-2 text-[13px] font-medium text-white backdrop-blur-sm cursor-pointer"
+        >
+          <VolumeX size={16} aria-hidden="true" />
+          {t('playerTapForSound')}
+        </button>
       )}
       {error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center bg-[#0A0A12]">

@@ -174,6 +174,16 @@ export async function startStream(roomId: string): Promise<VbStreamHandle | null
 }
 
 /**
+ * The session's PulseAudio monitor — everything Chrome plays, whatever the page's origin rules.
+ * Null when there is no stream session or its sink could not be created.
+ */
+export function getAudioMonitor(roomId: string): { source: string; runtimeDir: string } | null {
+  const session = streams.get(roomId);
+  if (!session?.pulseModuleId) return null;
+  return { source: `${session.sinkName}.monitor`, runtimeDir: session.runtimeDir };
+}
+
+/**
  * Start encoding once the browser has actually painted something. Separate from startStream() so
  * the caller can launch Chrome in between — see the black-screen note there.
  */

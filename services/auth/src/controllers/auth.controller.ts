@@ -3,6 +3,7 @@ import { timingSafeEqual } from 'crypto';
 import { AuthService } from '../services/auth.service';
 import { apiResponse } from '@shared/utils/apiResponse';
 import { AuthenticatedRequest } from '../types/index';
+import { createGuestUser } from '../services/guestAuth.service';
 
 const safeCompare = (a: string, b: string): boolean => {
   if (a.length !== b.length) return false;
@@ -33,6 +34,21 @@ export class AuthController {
       const { email } = req.body as { email: string };
       await this.authService.resendVerificationCode(email);
       res.json(apiResponse.success(null, 'Verification code resent'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // POST /auth/guest — join a shared room with just a name (no email/password/OTP).
+  guestLogin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { name } = req.body as { name: string };
+      const user = await createGuestUser(name);
+      const { accessToken, refreshToken } = await this.authService.generateAndStoreTokens(
+        user._id.toString(), user.email, user.role as import('@shared/types').UserRole,
+        req.ip ?? null, req.headers['user-agent'] ?? null, true, user.username,
+      );
+      res.status(201).json(apiResponse.success({ accessToken, refreshToken, user }, 'Guest session created'));
     } catch (error) {
       next(error);
     }

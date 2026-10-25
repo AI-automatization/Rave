@@ -21,6 +21,7 @@ import { DatePickerModal } from '@/components/messages/dm/DatePickerModal';
 import { toast } from '@/store/toast.store';
 import { useApiError } from '@/hooks/use-api-error';
 import type { DmMessage } from '@/lib/api/user.api';
+import { copyText } from '@/lib/copy-text';
 
 export interface ReplyTarget {
   replyToId: string;
@@ -87,10 +88,7 @@ export function ChatWindow({ messages, onSend, peerName, peerId, onBack }: Props
   }
 
   function handleCopy(message: DmMessage) {
-    void navigator.clipboard.writeText(message.text).then(
-      () => toast.success(t('copy')),
-      () => {},
-    );
+    void copyText(message.text).then((ok) => { if (ok) toast.success(t('copy')); });
   }
 
   function handleTogglePinMessage(message: DmMessage) {

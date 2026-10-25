@@ -11,6 +11,7 @@ import {
   registerSchema,
   confirmRegisterSchema,
   loginSchema,
+  guestSchema,
   refreshTokenSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
@@ -41,6 +42,9 @@ export const createAuthRouter = (redis: Redis): Router => {
   router.post('/resend-verification', authRateLimiter, validate(forgotPasswordSchema), authController.resendVerification);
 
   // POST /auth/login
+  // Guest session — open a shared room link without registering
+  router.post('/guest', authRateLimiter, validate(guestSchema), authController.guestLogin);
+
   router.post('/login', authRateLimiter, validate(loginSchema), authController.login);
 
   // POST /auth/refresh — #45 rate limited

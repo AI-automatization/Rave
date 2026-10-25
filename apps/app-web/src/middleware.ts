@@ -21,6 +21,15 @@ export function middleware(req: NextRequest) {
   // Protected routes: redirect to /login if not authenticated
   if (PROTECTED_PATHS.some((p) => routePath.startsWith(p))) {
     if (!isAuthenticated) {
+      // Any room link → guest join with just a name, no registration. Used to require ?code=, so a
+      // link copied from the address bar (/room/<id>, no code) sent the friend to /login instead
+      // (2026-10-25: "link orqali kino ko'rishga kirgan odamdan registratsiya so'ramasin").
+      // Private rooms still need their code/password — the server checks that on join.
+      if (routePath.startsWith('/room/')) {
+        const guestUrl = new URL('/guest', req.url);
+        guestUrl.searchParams.set('redirect', pathname + req.nextUrl.search);
+        return NextResponse.redirect(guestUrl);
+      }
       const loginUrl = new URL(`${localePrefix}/login`, req.url);
       // Room share links carry ?code=INVITECODE — pathname alone drops the query
       // string, which silently lost the invite code on the login round-trip.

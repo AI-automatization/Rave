@@ -377,7 +377,8 @@ export function WatchPartyScreen() {
       {VB_ENABLED && vb.active && !isFullscreen ? (
         <VirtualBrowserPlayer
           isOwner={isOwner}
-          frame={vb.frame}
+          frameStore={vb.frameStore}
+          hasFrame={vb.hasFrame}
           dimensions={vb.dimensions}
           error={vb.error}
           blocked={vb.blocked}

@@ -26,13 +26,14 @@ interface Props {
 // said anything was wrong, submit 422'd with a generic "Validation failed" this form didn't even
 // surface (see error handling below). Importing the actual pattern so client and backend can
 // never drift apart again, and using it as a real (if soft) block.
+// 2026-10-25: the rule itself is now just 6+ characters, simple passwords allowed (shared PATTERNS).
 type Strength = 'weak' | 'okay' | 'strong';
 
 function passwordStrength(pw: string): Strength | null {
   if (pw.length === 0) return null;
   const variety = [/[a-z]/, /[A-Z]/, /[0-9]/, /[^a-zA-Z0-9]/].filter((re) => re.test(pw)).length;
   if (pw.length >= 12 && variety >= 3) return 'strong';
-  if (pw.length >= 8 && variety >= 2) return 'okay';
+  if (pw.length >= 6 && variety >= 2) return 'okay';
   return 'weak';
 }
 
@@ -52,7 +53,7 @@ export function RegisterForm({ onVerify }: Props) {
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
 
-  const tooShort = password.length > 0 && password.length < 8;
+  const tooShort = password.length > 0 && password.length < 6;
   // The real gate (matches backend PATTERNS.PASSWORD exactly) — length alone used to be the
   // only client-side check, which is why an all-lowercase 8-char password sailed through the UI
   // and only failed once it hit the server.

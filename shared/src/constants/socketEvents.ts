@@ -34,6 +34,9 @@ export const SERVER_EVENTS = Object.freeze({
   // Sender-only: burst limit hit (20+ reactions in the trailing 60s window) — client should
   // disable its emoji picker and show retryAfterSec as a countdown, not silently drop taps.
   REACTION_COOLDOWN: 'reaction:cooldown',
+  // Full list of userIds with a raised hand (Google Meet style) — sent room-wide on every change
+  // and to a joiner on request (RAISE_HAND with { sync: true }).
+  HANDS_UPDATED: 'hand:updated',
 
   PLAYLIST_UPDATED: 'playlist:updated',
 
@@ -75,6 +78,9 @@ export const SERVER_EVENTS = Object.freeze({
   // vbQueue.helper.ts. `position` is 1-indexed, re-broadcast to the whole room every time it
   // changes (another room dequeues ahead of it) so the UI can show "N-я в очереди" live.
   VB_QUEUED: 'vb:queued',
+  // State of the movie playing inside the VB (vbFullscreen.script.ts maximizes it) — paused,
+  // currentTime, duration — so every client can draw WeWatch's own control bar over the stream.
+  VB_MEDIA_STATE: 'vb:media_state',
 
   // Owner-only: the video-candidate picker. Server pushes whatever candidates it currently has
   // for the room's video session (from generic-extraction regex matches and/or VB's sniffer) —
@@ -124,6 +130,9 @@ export const CLIENT_EVENTS = Object.freeze({
   VOICE_SPEAKING: 'voice:speaking',
 
   SEND_REACTION: 'reaction:send',
+  // { raised: boolean } — own hand; { targetUserId, raised: false } — owner lowers someone's;
+  // { sync: true } — just send me the current list.
+  RAISE_HAND: 'hand:raise',
 
   // Owner xona mediasini almashtiradi → server room:updated broadcast qiladi barcha memberlarga
   CHANGE_MEDIA: 'room:media:change',
@@ -145,6 +154,8 @@ export const CLIENT_EVENTS = Object.freeze({
   VB_START: 'vb:start',
   VB_INPUT: 'vb:input',
   VB_STOP:  'vb:stop',
+  // Owner-only: play / pause / seek the movie inside the VB from WeWatch's control bar.
+  VB_MEDIA_CONTROL: 'vb:media_control',
 
   // Owner-only: "show me what candidates you've found so far" — fires when opening the picker
   // (either the initial "is this the right video?" flow, or later via the player's "Это не то

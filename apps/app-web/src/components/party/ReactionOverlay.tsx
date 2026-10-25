@@ -31,7 +31,7 @@ export function ReactionOverlay({ reactions }: Props) {
   const shouldReduceMotion = useReducedMotion();
 
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-xl">
+    <div className="absolute inset-0 z-20 overflow-hidden pointer-events-none rounded-xl">
       <AnimatePresence>
         {reactions.map((r) => (
           <motion.div

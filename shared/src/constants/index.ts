@@ -89,6 +89,13 @@ export const REDIS_KEYS = {
   publicRoomsCache: () => `party:public_rooms_cache`,
   vbMediaProxyRate: (ip: string) => `party:vb_media_proxy_rate:${ip}`,
   vbCaptureRate: (ip: string) => `party:vb_capture_rate:${ip}`,
+  // Embeddability probe (embedCheck.service.ts): cached verdict per URL hash, and a per-user
+  // limiter since every miss is an outbound request from our servers.
+  // Last-seen client kind of a user's socket ('1' = phone) so server-started VB (room create, playNext)
+  // can pick the phone viewport without a live socket round-trip. See watchParty.socket.ts.
+  clientMobile: (userId: string) => `party:client_mobile:${userId}`,
+  embedCheck: (urlHash: string) => `party:embed_check:${urlHash}`,
+  embedCheckRate: (userId: string) => `party:embed_check_rate:${userId}`,
   // 2026-08-26: cached faststart-remuxed copy of a non-faststart CDN source, keyed by a hash of
   // the ORIGIN url (not roomId) — see faststartRemux.service.ts. Same file gets reused across
   // every room that ever plays that exact source, not remuxed once per room.
@@ -160,7 +167,9 @@ export const MONGO_OPTIONS = {
 
 export const PATTERNS = {
   USERNAME: /^[a-zA-Z0-9_]{3,20}$/,
-  PASSWORD: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/,
+  // 6+ of any characters, simple ones allowed (product decision 2026-10-25: no upper/lower/digit
+  // rule, it blocked real sign-ups). 128 cap keeps bcrypt input bounded.
+  PASSWORD: /^[\s\S]{6,128}$/,
   OBJECT_ID: /^[a-f\d]{24}$/i,
 } as const;
 

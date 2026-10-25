@@ -8,6 +8,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium, Browser, BrowserContext, Page, CDPSession } from 'playwright-chromium';
+import { VB_FULLSCREEN_SCRIPT } from './vbFullscreen.script';
+import { pushAudioChunk, stopAudio, useSystemAudio, VB_AUDIO_TAP_SCRIPT, MAX_AUDIO_CHUNK_BASE64_LEN } from './vbAudio.service';
 import { logger } from '@shared/utils/logger';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { startCapture, appendCapture, appendCaptureTrack, stopCapture, clearCapture } from './vbCapture.service';
@@ -15,6 +17,16 @@ import { isPrivateUrl, isOwnVbUrl } from './extractionClient';
 import * as vbStream from './vbStream.service';
 
 export const VB_VIEWPORT = { width: 1280, height: 720 } as const;
+
+// Phone-owner sessions (VB_START { mobile: true }): a 1280x720 desktop page squeezed into a portrait
+// phone screen is unreadable and un-tappable, so the browser itself is a phone — CSS viewport 412x846
+// (common Android Chrome size), so sites serve their mobile layout and the client scales one frame
+// pixel to one CSS pixel. deviceScaleFactor stays 1 on purpose: frames are JPEG over a socket and
+// the lag complaint outranks sharpness; the input coordinates the client sends are CSS pixels, which
+// only map 1:1 to frame pixels at DSF 1.
+export const VB_VIEWPORT_MOBILE = { width: 412, height: 846 } as const;
+const MOBILE_USER_AGENT = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 '
+  + '(KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36';
 
 // Some sites reject the VB browser's page load itself (e.g. hdrezka.ag: connection reset before
 // any HTML is served, direct AND via a datacenter proxy in a different country -- looks like an
@@ -32,15 +44,33 @@ const VB_PROXY_DOMAINS = (process.env.VB_PROXY_DOMAINS ?? '')
   .map((d) => d.trim().toLowerCase())
   .filter(Boolean);
 
+// Hosts learned at runtime: a site that was unreachable directly (blocked from this server's
+// network) is retried once through VB_PROXY_SERVER and stays proxied for the process lifetime, so
+// the owner doesn't have to know the domain list up front. VB_PROXY_AUTO=0 turns it off.
+const autoProxyHosts = new Set<string>();
+
+export function enableAutoProxy(url: string): boolean {
+  if (!VB_PROXY_SERVER || process.env.VB_PROXY_AUTO === '0') return false;
+  let hostname: string;
+  try {
+    hostname = new URL(url).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+  if (autoProxyHosts.has(hostname)) return false; // already went through the proxy — still down
+  autoProxyHosts.add(hostname);
+  return true;
+}
+
 function getProxyForUrl(url: string): { server: string; username?: string; password?: string } | undefined {
-  if (!VB_PROXY_SERVER || VB_PROXY_DOMAINS.length === 0) return undefined;
+  if (!VB_PROXY_SERVER) return undefined;
   let hostname: string;
   try {
     hostname = new URL(url).hostname.toLowerCase();
   } catch {
     return undefined;
   }
-  const needsProxy = VB_PROXY_DOMAINS.some((d) => hostname === d || hostname.endsWith(`.${d}`));
+  const needsProxy = autoProxyHosts.has(hostname) || VB_PROXY_DOMAINS.some((d) => hostname === d || hostname.endsWith(`.${d}`));
   if (!needsProxy) return undefined;
   return { server: VB_PROXY_SERVER, username: VB_PROXY_USERNAME, password: VB_PROXY_PASSWORD };
 }
@@ -83,6 +113,60 @@ const MAX_TOTAL_SAFETY_CEILING = 60;
 let onSlotFreed: (() => void) | null = null;
 export function setOnSlotFreed(cb: () => void): void {
   onSlotFreed = cb;
+}
+
+// Called when a session is closed on purpose (owner closed it, media changed, room closed) — NOT
+// on process shutdown, so a restart/deploy leaves the room's resume info in Redis
+// (vbSession.helper.ts, vbWatchKey) and the owner's next join reopens the VB.
+let onSessionEnded: ((roomId: string) => void) | null = null;
+let shuttingDown = false;
+export function setOnSessionEnded(cb: (roomId: string) => void): void {
+  onSessionEnded = cb;
+}
+
+export interface VBMovieState { paused: boolean; currentTime: number; duration: number | null }
+export type VBMovieAction = 'play' | 'pause' | 'seek';
+
+/**
+ * The movie VB_FULLSCREEN_SCRIPT maximized (vbFullscreen.script.ts), from whichever frame holds
+ * it — null when nothing is maximized. Drives WeWatch's own control bar for the VB.
+ */
+export async function getMovieState(roomId: string): Promise<VBMovieState | null> {
+  const s = sessions.get(roomId);
+  if (!s) return null;
+  for (const frame of s.page.frames()) {
+    try {
+      const st = await frame.evaluate(() => {
+        const fn = (window as unknown as { __wewatchMovieState?: () => VBMovieState | null }).__wewatchMovieState;
+        return typeof fn === 'function' ? fn() : null;
+      });
+      if (st) return st;
+    } catch { /* frame navigating or detached */ }
+  }
+  return null;
+}
+
+/** play / pause / seek on the maximized movie. Returns false when there is none. */
+export async function controlMovie(roomId: string, action: VBMovieAction, time?: number): Promise<boolean> {
+  const s = sessions.get(roomId);
+  if (!s) return false;
+  for (const frame of s.page.frames()) {
+    try {
+      const done = await frame.evaluate(([a, t]) => {
+        const fn = (window as unknown as { __wewatchMovieControl?: (a: string, t?: number) => boolean }).__wewatchMovieControl;
+        return typeof fn === 'function' ? fn(a as string, t as number | undefined) : false;
+      }, [action, time] as const);
+      if (done) return true;
+    } catch { /* frame navigating or detached */ }
+  }
+  return false;
+}
+
+/** The page the VB is on right now (the owner may have clicked far from the start URL). */
+export function getSessionCurrentUrl(roomId: string): string | null {
+  const s = sessions.get(roomId);
+  if (!s) return null;
+  try { return s.page.url(); } catch { return null; }
 }
 
 // Real prod finding 2026-08-20: a fresh `browser.newContext()` on every VB open means Google's
@@ -187,7 +271,10 @@ export type VBInput =
   | { type: 'wheel'; deltaX: number; deltaY: number }
   | { type: 'keydown'; key: string }
   | { type: 'keyup'; key: string }
-  | { type: 'type'; text: string };
+  | { type: 'type'; text: string }
+  // Finger tap (mobile sessions): one atomic touchStart+touchEnd instead of the mousedown/mouseup
+  // pair, which on a touch-emulated page can arrive as a long-press or a text selection.
+  | { type: 'tap'; x: number; y: number };
 
 interface VBSession {
   // No separate Browser handle — launchPersistentContext() (see vbProfileDir above) returns the
@@ -224,6 +311,13 @@ interface VBSession {
    * no cap (a deliberate product decision, not an oversight — see MAX_TOTAL_SAFETY_CEILING for
    * the one hard backstop that still applies to everyone). */
   tier: 'free' | 'pro';
+  /** Phone-viewport session (see VB_VIEWPORT_MOBILE) — decides the dimensions reported to clients
+   * and whether 'tap' goes through CDP touch events. */
+  mobile: boolean;
+  /** Last relayed screencast frame. Chrome sends nothing for a page that isn't changing, so an
+   * owner who reloads / reconnects (phones do this constantly) would sit on a spinner until some
+   * unrelated repaint — ROOM_JOINED replays this instead (roomEvents.handler.ts). */
+  lastFrame?: string;
 }
 
 const sessions = new Map<string, VBSession>(); // roomId -> session
@@ -233,6 +327,12 @@ const sessions = new Map<string, VBSession>(); // roomId -> session
 const startingRooms = new Set<string>();
 
 const FRAME_INTERVAL_MS = 100; // cap relayed frames at ~10fps — see startSession for why
+// Phone sessions: smaller frames but a weaker link (mobile data, radio sleep) — a lower cap and
+// quality keeps the per-frame cost down; the trailing-frame flush in startSession keeps it feeling
+// responsive despite the lower rate.
+const FRAME_INTERVAL_MOBILE_MS = 140; // ~7fps
+const SCREENCAST_QUALITY = 55;
+const SCREENCAST_QUALITY_MOBILE = 45;
 
 // Same pattern as content-service's playwrightExtractor.ts (services/content/src/services/
 // videoExtractor/playwrightExtractor.ts) — matches a network response whose URL is a direct
@@ -328,6 +428,14 @@ export function getSessionPageTitle(roomId: string): string | undefined {
 // session — without this, ROOM_JOINED had no way to tell a fresh client "a virtual browser is
 // already running", so anyone who joined/refreshed post-start never received the one-shot
 // VB_STARTED broadcast and just saw the old, now-not-actually-active video player instead.
+export function getSessionViewport(roomId: string): { width: number; height: number } {
+  return sessions.get(roomId)?.mobile ? VB_VIEWPORT_MOBILE : VB_VIEWPORT;
+}
+
+export function getSessionLastFrame(roomId: string): string | null {
+  return sessions.get(roomId)?.lastFrame ?? null;
+}
+
 export function getSessionSnapshot(roomId: string): { url: string; width: number; height: number; ownerId: string; paused: boolean } | null {
   const s = sessions.get(roomId);
   if (!s) return null;
@@ -336,7 +444,8 @@ export function getSessionSnapshot(roomId: string): { url: string; width: number
   // VB overlay (paused=false) or the candidate picker (paused=true) over a working video; see the
   // `committed` field's own note for the live mobile bug this prevents.
   if (s.committed) return null;
-  return { url: s.url, width: VB_VIEWPORT.width, height: VB_VIEWPORT.height, ownerId: s.ownerId, paused: s.paused };
+  const viewport = s.mobile ? VB_VIEWPORT_MOBILE : VB_VIEWPORT;
+  return { url: s.url, width: viewport.width, height: viewport.height, ownerId: s.ownerId, paused: s.paused };
 }
 
 // 'url'     — categories A (extension/content-type/magic-bytes on a real HTTP response). The
@@ -358,7 +467,10 @@ export type MediaFoundKind = 'url' | 'capture';
 // deliberately treats as "can't measure, accept" to avoid false-rejecting real content whose
 // master playlist looks the same shape. A domain-name match is a stronger, more direct signal
 // than duration ever was for this case — checked first, before any duration/size heuristics run.
-const AD_DOMAIN_MARKERS = ['rtbcdn'];
+// 'dsp-ui.uz' — Uzbek ad platform (DSP = demand-side platform). Local test 2026-10-25 on
+// asilmedia.org: its pre-roll MP4s (storage.dsp-ui.uz/uploads/*.mp4, ~23–26MB) pass the size
+// floor and were offered to the owner first, ahead of the real movie on fayllar.com.
+const AD_DOMAIN_MARKERS = ['rtbcdn', 'dsp-ui.uz'];
 
 function isKnownAdDomain(url: string): boolean {
   try {
@@ -417,7 +529,7 @@ function parseMpdDurationSecs(xml: string): number {
 function attachResponseSniffer(
   page: Page,
   logId: string,
-  onFound: (mediaUrl: string, type: MediaType, duration?: number) => void,
+  onFound: (mediaUrl: string, type: MediaType, duration?: number, bytes?: number) => void,
   // Real prod case 2026-08-06 (uzmovi.net serial page): the first accepted match wasn't the right
   // episode — a related-content widget's clip passed every ad heuristic (real extension, real
   // Content-Type, past the size/duration floor) just like a genuine result would. Default false
@@ -428,7 +540,7 @@ function attachResponseSniffer(
 ): void {
   let found = false;
   const seenUrls = new Set<string>();
-  const hit = (mediaUrl: string, type: MediaType, how: string, duration?: number, extra?: Record<string, unknown>) => {
+  const hit = (mediaUrl: string, type: MediaType, how: string, duration?: number, extra?: Record<string, unknown>, bytes?: number) => {
     if (collectMultiple) {
       if (seenUrls.has(mediaUrl)) return;
       seenUrls.add(mediaUrl);
@@ -437,7 +549,7 @@ function attachResponseSniffer(
       found = true;
     }
     logger.info(`VB: media URL intercepted (by ${how})`, { logId, url: mediaUrl.slice(0, 120), type, ...extra });
-    onFound(mediaUrl, type, duration);
+    onFound(mediaUrl, type, duration, bytes);
   };
   // Ad candidates are logged then dropped, WITHOUT setting `found` — the real video is expected
   // to load right after, and the listener must keep watching for it.
@@ -500,7 +612,7 @@ function attachResponseSniffer(
       rejectAsAd(mediaUrl, type, 'mp4_size', { bytes: measuredBytes, viaContentRange: !Number.isNaN(rangeTotal) });
       return;
     }
-    hit(mediaUrl, type, how);
+    hit(mediaUrl, type, how, undefined, undefined, Number.isNaN(measuredBytes) ? undefined : measuredBytes);
   };
 
   page.on('response', (response) => {
@@ -545,12 +657,59 @@ function attachResponseSniffer(
 // before finalizing, instead of committing to whatever arrived first.
 const COLLECTION_WINDOW_MS = 40_000;
 
+// 2026-10-26 (Javodbek, live test): the candidate picker kept failing on real movie sites (CDN
+// hotlink 403s, endless "checking quality" spinners), while the movie played fine inside the VB.
+// So by default the room now watches the VB itself: the session keeps running after the
+// collection window, every member gets the frames and the sound, and no picker opens.
+// Candidates are still stored, so "pick a different video" keeps working. VB_CANDIDATE_PICKER=1
+// restores the old picker flow.
+export const VB_WATCH_IN_BROWSER = process.env.VB_CANDIDATE_PICKER !== '1';
+
+// CONNECTION_TIMED_OUT / TIMED_OUT are Chromium's own TCP-level timeouts (a datacenter-IP blackhole:
+// SYNs silently dropped) — distinct from Playwright's "Timeout 20000ms exceeded" below. They used
+// to fall through to "navigation failed, keep the session", leaving the owner on a blank error page.
+// HTTP2_PROTOCOL_ERROR is how many WAFs drop a datacenter client mid-handshake; TOO_MANY_REDIRECTS
+// is a loop (often a cookie wall) that will never render.
+const UNREACHABLE_NAV_ERROR = /net::ERR_(NAME_NOT_RESOLVED|NAME_RESOLUTION_FAILED|CONNECTION_(RESET|REFUSED|CLOSED|FAILED|TIMED_OUT)|TIMED_OUT|ADDRESS_UNREACHABLE|INTERNET_DISCONNECTED|SSL_|CERT_|TUNNEL_CONNECTION_FAILED|EMPTY_RESPONSE|HTTP2_PROTOCOL_ERROR|TOO_MANY_REDIRECTS)/;
+// Playwright's own goto timeout. Only "unreachable" when the page never committed (still on
+// about:blank / a Chromium error page) — a slow site that already started rendering stays usable.
+const NAV_TIMEOUT_ERROR = /Timeout \d+ms exceeded/;
+
+// VB sound for cross-origin movie files (2026-10-26). Chrome refuses captureStream() on a <video>
+// whose file comes from another origin without CORS ("Cannot capture from element with
+// cross-origin data") — asilmedia.org plays fayllar.com MP4s exactly like that, so the owner heard
+// nothing. VB_AUDIO_TAP_SCRIPT now loads media elements in CORS mode, and this adds the matching
+// Access-Control-Allow-* headers to media responses INSIDE this throwaway browser only — the CDN
+// still serves the very same request to the very same browser; only the page-side taint changes.
+// Scoped to resourceType Media, so documents/XHR keep normal CORS rules. Cross-origin iframes run
+// in their own process (separate CDP target) and are not covered by this page-level session.
+async function enableMediaCors(cdp: CDPSession, roomId: string): Promise<void> {
+  try {
+    await cdp.send('Fetch.enable', { patterns: [{ resourceType: 'Media', requestStage: 'Response' }] });
+  } catch (e) {
+    logger.warn('VB: media CORS interception unavailable', { roomId, error: (e as Error).message });
+    return;
+  }
+  cdp.on('Fetch.requestPaused', (e) => {
+    const origin = e.request.headers['Origin'] ?? e.request.headers['origin'];
+    // No Origin = a plain no-cors load (our crossOrigin hook didn't apply) — nothing to fix.
+    if (!origin || e.responseStatusCode === undefined) {
+      cdp.send('Fetch.continueRequest', { requestId: e.requestId }).catch(() => { /* page gone */ });
+      return;
+    }
+    const headers = (e.responseHeaders ?? []).filter((h) => !/^access-control-allow-(origin|credentials)$/i.test(h.name));
+    headers.push({ name: 'Access-Control-Allow-Origin', value: origin }, { name: 'Access-Control-Allow-Credentials', value: 'true' });
+    cdp.send('Fetch.continueResponse', { requestId: e.requestId, responseCode: e.responseStatusCode, responseHeaders: headers })
+      .catch(() => cdp.send('Fetch.continueRequest', { requestId: e.requestId }).catch(() => { /* page gone */ }));
+  });
+}
+
 export async function startSession(
   roomId: string,
   ownerId: string,
   url: string,
   onFrame: (base64Jpeg: string) => void,
-  onMediaFound?: (mediaUrl: string, type: MediaType, kind: MediaFoundKind, duration?: number) => void,
+  onMediaFound?: (mediaUrl: string, type: MediaType, kind: MediaFoundKind, duration?: number, bytes?: number) => void,
   onCollectionEnd?: () => void,
   // T-S196: `attachResponseSniffer`/capture catch anything network-shaped-like-media over the
   // whole COLLECTION_WINDOW_MS — ads, related-content widgets, etc. can pass the same heuristics
@@ -581,11 +740,18 @@ export async function startSession(
   // 'free' so probeUrl() and any other caller that doesn't pass this stays on the safe/capped
   // side rather than silently getting Pro's uncapped treatment.
   tier: 'free' | 'pro' = 'free',
-): Promise<void> {
+  // VB_START { mobile: true } — phone viewport/UA/touch (see VB_VIEWPORT_MOBILE). Desktop default.
+  mobile = false,
+): Promise<'unreachable' | 'redirect_blocked' | void> {
   if (startingRooms.has(roomId)) {
     throw new Error('virtual_browser_starting');
   }
   startingRooms.add(roomId);
+
+  // Tracked outside the try so the catch below can tear down a half-built session.
+  let launchedContext: BrowserContext | null = null;
+  let streamStarted = false;
+  const viewport = mobile ? VB_VIEWPORT_MOBILE : VB_VIEWPORT;
 
   try {
     // Real prod case 2026-08-07: createRoom() now starts VB when its initial URL isn't directly
@@ -625,14 +791,19 @@ export async function startSession(
     // into that display and to produce any audio at all; headless Chrome has neither an X surface
     // to grab nor an audio stream to route, which is exactly why the existing screencast path is
     // silent. Null handle = unchanged headless behaviour, so this is inert until the flag is on.
-    const stream = await vbStream.startStream(roomId);
+    // Phone sessions never stream: Xvfb is a fixed 1280x720 screen (vbStream.service.ts) and a
+    // 412x846 window inside it would be letterboxed in the HLS output.
+    const stream = mobile ? null : await vbStream.startStream(roomId);
+    streamStarted = !!stream;
 
     const context = await chromium.launchPersistentContext(profileDir, {
       headless: !stream,
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', ...STEALTH_LAUNCH_ARGS, ...ANTI_THROTTLE_LAUNCH_ARGS],
-      viewport: VB_VIEWPORT,
-      userAgent: STEALTH_USER_AGENT,
+      // autoplay flag: the audio tap's AudioContext must run without a user gesture in the page.
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--autoplay-policy=no-user-gesture-required', ...STEALTH_LAUNCH_ARGS, ...ANTI_THROTTLE_LAUNCH_ARGS],
+      viewport,
+      userAgent: mobile ? MOBILE_USER_AGENT : STEALTH_USER_AGENT,
+      ...(mobile ? { isMobile: true, hasTouch: true, deviceScaleFactor: 1 } : {}),
       locale: VB_LOCALE,
       timezoneId: VB_TIMEZONE_ID,
       proxy: getProxyForUrl(url),
@@ -648,9 +819,11 @@ export async function startSession(
           }
         : undefined,
     });
+    launchedContext = context;
     await applyStealthPatches(context);
     const page = await context.newPage();
     const cdp = await context.newCDPSession(page);
+    await enableMediaCors(cdp, roomId);
 
     // Owner can navigate deeper into the site after the initial load (click a link, follow a
     // "watch" button) — a challenge can appear on any of those, not just the first goto below.
@@ -692,16 +865,18 @@ export async function startSession(
                 logger.warn('VB: failed to read session cookies at collection end', { roomId, error: (e as Error).message });
               }
             }
-            if (!capturedAsCandidate) void stopSession(roomId);
-            else void pauseScreencast(roomId);
+            if (!VB_WATCH_IN_BROWSER) {
+              if (!capturedAsCandidate) void stopSession(roomId);
+              else void pauseScreencast(roomId);
+            }
             onCollectionEnd?.();
           })();
         }, COLLECTION_WINDOW_MS);
       };
 
-      attachResponseSniffer(page, roomId, (mediaUrl, type, duration) => {
+      attachResponseSniffer(page, roomId, (mediaUrl, type, duration, bytes) => {
         if (windowClosed) return;
-        onMediaFound(mediaUrl, type, 'url', duration);
+        onMediaFound(mediaUrl, type, 'url', duration, bytes);
         openWindowIfNeeded();
       }, true /* collectMultiple */);
 
@@ -792,6 +967,22 @@ export async function startSession(
         if (track !== 'video' && track !== 'audio') return;
         appendCaptureTrack(roomId, track, Buffer.from(base64Chunk, 'base64'));
       });
+      // Sound for the owner (vbAudio.service.ts) — the screencast itself carries none. Keyed by
+      // frame so a player inside an iframe and one on the top page don't interleave two webm
+      // streams into one encoder.
+      const audioFrameKeys = new WeakMap<object, string>();
+      let audioFrameSeq = 0;
+      await page.exposeBinding('__wewatchAudioChunk', (source, first: boolean, base64Chunk: string) => {
+        // Any page script can call this binding — drop oversize input and late calls after stop.
+        if (typeof base64Chunk !== 'string' || base64Chunk.length > MAX_AUDIO_CHUNK_BASE64_LEN) return;
+        if (!sessions.has(roomId)) return;
+        let key = audioFrameKeys.get(source.frame);
+        if (!key) { key = String(++audioFrameSeq); audioFrameKeys.set(source.frame, key); }
+        pushAudioChunk(roomId, key, first === true, Buffer.from(base64Chunk, 'base64'));
+      });
+      await page.addInitScript(VB_AUDIO_TAP_SCRIPT);
+      // The movie fills the VB viewport instead of sitting small among the site's page clutter.
+      await page.addInitScript(VB_FULLSCREEN_SCRIPT);
       // Real prod finding 2026-08-16 (uzmovi.net, live-tested): sites using videojs-contrib-ads +
       // a VAST plugin (videojsx.vast.js) play the pre-/mid-roll ad creative through the SAME
       // Video.js instance and, on at least this site, the SAME MediaSource/SourceBuffer pipeline
@@ -928,7 +1119,16 @@ export async function startSession(
       }
     }
 
+    const frameIntervalMs = mobile ? FRAME_INTERVAL_MOBILE_MS : FRAME_INTERVAL_MS;
     let lastRelayedAt = 0;
+    // Latest frame that arrived inside the cap window, waiting for its trailing flush (see below).
+    let pendingFrame: string | null = null;
+    let flushTimer: ReturnType<typeof setTimeout> | null = null;
+    const relay = (frame: string) => {
+      const s = sessions.get(roomId);
+      if (s?.cdp === cdp) s.lastFrame = frame;
+      onFrame(frame);
+    };
     cdp.on('Page.screencastFrame', (event: { data: string; sessionId: number }) => {
       // Ack every single frame immediately — Chrome pauses the screencast until acked, so a
       // missed/delayed ack stalls the whole stream regardless of what we do with the data.
@@ -940,20 +1140,37 @@ export async function startSession(
       // delivered as a growing backlog of stale frames (reported as "browser lags terribly" /
       // "member sees something different than the owner", worse with more viewers).
       const now = Date.now();
-      if (now - lastRelayedAt < FRAME_INTERVAL_MS) return;
-      lastRelayedAt = now;
-      onFrame(event.data);
+      if (now - lastRelayedAt >= frameIntervalMs) {
+        lastRelayedAt = now;
+        pendingFrame = null;
+        relay(event.data);
+        return;
+      }
+      // Inside the cap window. Plain dropping loses the LAST paint of a burst: Chrome sends no frame
+      // for a page that has stopped changing, so a dropped final frame (the result of a tap, the end
+      // of a scroll) left the owner's screen stale until the next unrelated repaint — felt as "taps
+      // don't register". Keep only the newest frame and flush it when the window ends.
+      pendingFrame = event.data;
+      if (flushTimer) return;
+      flushTimer = setTimeout(() => {
+        flushTimer = null;
+        const frame = pendingFrame;
+        pendingFrame = null;
+        if (frame === null || sessions.get(roomId)?.cdp !== cdp) return; // session gone/replaced
+        lastRelayedAt = Date.now();
+        relay(frame);
+      }, frameIntervalMs - (now - lastRelayedAt));
     });
 
     await cdp.send('Page.startScreencast', {
       format: 'jpeg',
-      quality: 55,
-      maxWidth: VB_VIEWPORT.width,
-      maxHeight: VB_VIEWPORT.height,
+      quality: mobile ? SCREENCAST_QUALITY_MOBILE : SCREENCAST_QUALITY,
+      maxWidth: viewport.width,
+      maxHeight: viewport.height,
       everyNthFrame: 1,
     });
 
-    sessions.set(roomId, { context, page, cdp, ownerId, url, paused: false, tier });
+    sessions.set(roomId, { context, page, cdp, ownerId, url, paused: false, tier, mobile });
 
     try {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 });
@@ -966,13 +1183,18 @@ export async function startSession(
       if (isPrivateUrl(finalUrl) || isOwnVbUrl(finalUrl)) {
         logger.warn('VB: navigation redirected to a disallowed URL, aborting session', { roomId, url, finalUrl });
         await stopSession(roomId);
-        return;
+        // Not 'unreachable': that outcome triggers the proxy retry, which would just follow the same
+        // redirect. Without a return value the caller also emitted VB_STARTED for this dead session.
+        return 'redirect_blocked';
       }
       logger.info('VB session started', { roomId, url, active: sessions.size });
       // Encoder starts only now, once the page has actually painted — starting it back when the
       // display came up would spend CPU encoding a black screen and pad the live HLS window with
       // dead segments the first viewer would have to sit through.
       vbStream.startEncoder(roomId);
+      // Same sink, second consumer: the owner's live MP3 (/vb-audio) now carries every site's sound.
+      const monitor = vbStream.getAudioMonitor(roomId);
+      if (monitor) useSystemAudio(roomId, monitor);
       const s = sessions.get(roomId);
       if (s) {
         // Best-effort — a title read failing (page navigated away again, closed, etc.) shouldn't
@@ -980,10 +1202,41 @@ export async function startSession(
         s.pageTitle = await page.title().catch(() => undefined);
       }
     } catch (e) {
+      const message = (e as Error).message;
+      // The site itself can't be reached (DNS, reset/refused, TLS) — the screencast would only
+      // ever show a blank error page with "start the video on the site" on top, which nobody can
+      // act on (real report 2026-10-24: blocked site, owner stared at a white box). Close the
+      // session and let the caller tell the room plainly. Timeouts are NOT this — a slow page is
+      // often still usable, so those keep the old behaviour below.
+      if (UNREACHABLE_NAV_ERROR.test(message)) {
+        logger.warn('VB: site unreachable, closing session', { roomId, url, error: message });
+        await stopSession(roomId);
+        return 'unreachable';
+      }
+      // Playwright's own 20s goto timeout while the page never committed (still about:blank or a
+      // Chromium error page): the server never answered, e.g. SYNs dropped for our datacenter IP.
+      // Same dead end as the errors above, so same treatment — and it unlocks the auto-proxy retry.
+      const currentUrl = page.url();
+      if (NAV_TIMEOUT_ERROR.test(message) && (currentUrl === 'about:blank' || currentUrl.startsWith('chrome-error:'))) {
+        logger.warn('VB: no response before navigation timeout, closing session', { roomId, url });
+        await stopSession(roomId);
+        return 'unreachable';
+      }
       // Navigation failure doesn't kill the session — owner still sees the failed-load page
       // and can retry a different URL from the same browser instance.
-      logger.warn('VB: initial navigation failed', { roomId, url, error: (e as Error).message });
+      logger.warn('VB: initial navigation failed', { roomId, url, error: message });
     }
+  } catch (e) {
+    // Setup threw before the session was registered (launch, exposeFunction, startScreencast...):
+    // nothing in `sessions` points at this Chromium/Xvfb/capture yet, so stopSession() could never
+    // find it — it would run orphaned until the container restarted.
+    if (launchedContext && sessions.get(roomId)?.context !== launchedContext) {
+      await launchedContext.close().catch(() => { /* already gone */ });
+      stopCapture(roomId);
+      clearCapture(roomId);
+    }
+    if (streamStarted && !sessions.has(roomId)) await vbStream.stopStream(roomId).catch(() => { /* best effort */ });
+    throw e;
   } finally {
     startingRooms.delete(roomId);
   }
@@ -1053,14 +1306,17 @@ export async function stopSession(roomId: string): Promise<void> {
   try { await s.context.close(); } catch { /* already gone */ }
   stopCapture(roomId);
   clearCapture(roomId);
+  stopAudio(roomId);
   // Tears down ffmpeg, Xvfb, the PulseAudio sink and the HLS directory — all no-ops when this
   // session never had a stream (flag off).
   await vbStream.stopStream(roomId);
   logger.info('VB session stopped', { roomId });
+  if (!shuttingDown) onSessionEnded?.(roomId);
   onSlotFreed?.();
 }
 
 export async function stopAllSessions(): Promise<void> {
+  shuttingDown = true;
   await Promise.all([...sessions.keys()].map((roomId) => stopSession(roomId)));
 }
 
@@ -1150,6 +1406,24 @@ async function dispatchInput(roomId: string, userId: string, input: VBInput): Pr
       case 'type':
         await page.keyboard.insertText(input.text);
         break;
+      case 'tap': {
+        const { x, y } = input;
+        const vp = s.mobile ? VB_VIEWPORT_MOBILE : VB_VIEWPORT;
+        if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0 || x > vp.width || y > vp.height) return;
+        // Touch events only exist on a touch-emulated (mobile) context; on desktop sessions a real
+        // touchStart/End is ignored without an error, so go straight to the mouse there.
+        if (s.mobile) {
+          try {
+            await s.cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+            await s.cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+            break;
+          } catch (e) {
+            logger.warn('VB touch dispatch failed, falling back to mouse click', { roomId, error: (e as Error).message });
+          }
+        }
+        await page.mouse.click(x, y);
+        break;
+      }
     }
   } catch (e) {
     logger.warn('VB input dispatch failed', { roomId, type: input.type, error: (e as Error).message });

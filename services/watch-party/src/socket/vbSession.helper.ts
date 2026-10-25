@@ -10,10 +10,14 @@ import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS } from '@shared/constants/socketEvents';
 import { REDIS_KEYS } from '@shared/constants';
 import { VideoCandidate } from '@shared/types';
+import { rankCandidates } from './vbCandidateRank.helper';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { signProxyUrl } from '@shared/utils/proxySignature';
-import { VB_VIEWPORT, startSession, getSessionPageTitle, MediaType } from '../services/virtualBrowser.service';
+import { getSessionViewport, startSession, getSessionPageTitle, enableAutoProxy, MediaType, VB_WATCH_IN_BROWSER, getSessionCurrentUrl, hasSession, setOnSessionEnded, getMovieState } from '../services/virtualBrowser.service';
 import { WatchPartyRoom } from '../models/watchPartyRoom.model';
+import { WatchPartyPlaylistService } from '../services/watchPartyPlaylist.service';
+import { resolveDirectMedia } from './directResolve.helper';
+import { emitVbFrame } from './vbFrameSender.helper';
 
 // TTL for the candidates Redis entry — matches how long "the current video session" is a
 // meaningful concept; deliberately generous since a room can sit on one video for hours. Defined
@@ -91,9 +95,125 @@ function proxiedMediaUrl(mediaUrl: string, mediaType: MediaType, roomId: string)
          + `?url=${encodedUrl}&exp=${exp}&sig=${sig}&roomId=${encodeURIComponent(roomId)}&viaBunny=1`;
   }
 
-  const ext = mediaType === 'hls' ? 'm3u8' : 'mpd';
+  // mp4 without VB_EDGE_FETCH_URL (local dev / any env without the Bunny script) used to fall
+  // through to 'mpd' here — the client then fed an mp4 to the DASH player and got
+  // MEDIA_ERR_SRC_NOT_SUPPORTED. Each type keeps its own extension.
+  const ext = mediaType === 'hls' ? 'm3u8' : mediaType === 'mp4' ? 'mp4' : 'mpd';
   return `${vbStreamPublicUrl}/api/v1/watch-party/vb-media-proxy/stream.${ext}`
        + `?url=${encodedUrl}&exp=${exp}&sig=${sig}&roomId=${encodeURIComponent(roomId)}`;
+}
+
+// roomId → source URL last committed by the direct-resolve fast path (see startVBForRoom).
+const directCommitted = new Map<string, string>();
+const directInflight = new Map<string, Promise<Awaited<ReturnType<typeof resolveDirectMedia>>>>();
+
+// Fast path shared by startVBForRoom and upgradeEmbedToDirect: resolve `url` to a real media
+// file (directResolve.helper.ts) and commit it to the room through the signed proxy. Returns
+// true when the room is now playing it.
+//
+// Room creation (watchParty.controller.ts) and the owner's own page (VB_START on load, before
+// it has seen the committed URL) both land here for the same link within seconds — a second
+// commit would reset currentTime and reload every viewer's player mid-start. Same room + same
+// source already committed → just re-broadcast the current room state.
+async function commitDirectMedia(io: SocketServer, redis: Redis, roomId: string, ownerId: string, url: string): Promise<boolean> {
+  if (directCommitted.get(roomId) === url) {
+    const room = await WatchPartyRoom.findById(roomId);
+    if (room) { io.to(roomId).emit(SERVER_EVENTS.ROOM_UPDATED, room); return true; }
+  }
+  const key = `${roomId}|${url}`;
+  let pending = directInflight.get(key);
+  if (pending) return (await pending) !== null; // the other caller commits it
+  pending = resolveDirectMedia(url).finally(() => directInflight.delete(key));
+  directInflight.set(key, pending);
+  const direct = await pending;
+  if (!direct) return false;
+  try {
+    const updated = await new WatchPartyPlaylistService(redis).updateRoomMedia(ownerId, roomId, {
+      videoUrl: proxiedMediaUrl(direct.mediaUrl, direct.type, roomId),
+      videoTitle: direct.title,
+    });
+    await redis.setex(REDIS_KEYS.vbSourceUrl(roomId), CANDIDATES_TTL_SEC, url).catch(() => {});
+    if (directCommitted.size > 5000) directCommitted.clear();
+    directCommitted.set(roomId, url);
+    io.to(roomId).emit(SERVER_EVENTS.ROOM_UPDATED, updated);
+    logger.info('Direct resolve: committed without VB', { roomId, type: direct.type, url });
+    return true;
+  } catch (e) {
+    logger.warn('Direct resolve: commit failed', { roomId, error: (e as Error).message });
+    return false;
+  }
+}
+
+// Dailymotion / Rutube / VK iframes can't be reliably controlled (see DailymotionPlayer.tsx,
+// RutubePlayer.tsx, VKPlayer.tsx) — the room only "watches together" if everyone presses play
+// by hand. These hosts are also yt-dlp-extractable, so upgrade them in the background to the
+// synced native player. If extraction fails the embed simply stays — never worse than before.
+const UPGRADEABLE_EMBED_HOSTS = new Set(['dailymotion.com', 'dai.ly', 'rutube.ru', 'vk.com', 'vkvideo.ru', 'm.vk.com']);
+
+export function upgradeEmbedToDirect(io: SocketServer, redis: Redis, roomId: string, ownerId: string, url: string): void {
+  let host: string;
+  try { host = new URL(url).hostname.replace(/^www\./, ''); } catch { return; }
+  if (!UPGRADEABLE_EMBED_HOSTS.has(host)) return;
+  void commitDirectMedia(io, redis, roomId, ownerId, url).catch(() => {});
+}
+
+// Server-started VB has no VB_START payload to read `mobile` from; watchParty.socket.ts records
+// whether the owner's last socket looked like a phone. Missing/failed lookup = desktop (old behaviour).
+async function ownerIsMobile(redis: Redis, ownerId: string): Promise<boolean> {
+  try {
+    return (await redis.get(REDIS_KEYS.clientMobile(ownerId))) === '1';
+  } catch {
+    return false;
+  }
+}
+
+// Resume info for watch-in-VB rooms: the page the VB is on, kept while the session runs and
+// dropped when it is closed on purpose. A restart/crash/deploy kills the in-process browser but
+// leaves this, so the owner's next JOIN_ROOM reopens the VB on that page (roomEvents.handler.ts).
+export const vbWatchKey = (roomId: string): string => `party:vb_watch:${roomId}`;
+const VB_WATCH_SAVE_MS = 10_000;
+let sessionEndHookSet = false;
+
+function keepWatchResumeInfo(redis: Redis, roomId: string, startUrl: string): void {
+  if (!sessionEndHookSet) {
+    sessionEndHookSet = true;
+    setOnSessionEnded((id) => { void redis.del(vbWatchKey(id)).catch(() => {}); });
+  }
+  const save = (url: string) => {
+    void redis.setex(vbWatchKey(roomId), CANDIDATES_TTL_SEC, url).catch((e) => {
+      logger.warn('VB: failed to save resume info', { roomId, error: (e as Error).message });
+    });
+  };
+  save(startUrl);
+  const timer = setInterval(() => {
+    if (!hasSession(roomId)) { clearInterval(timer); return; }
+    const url = getSessionCurrentUrl(roomId);
+    if (url && /^https?:\/\//i.test(url)) save(url);
+  }, VB_WATCH_SAVE_MS);
+  timer.unref();
+}
+
+const MOVIE_STATE_MS = 1000;
+
+// Room-wide VB_MEDIA_STATE once a second while the session lives — feeds WeWatch's own control
+// bar (play/pause, seek, time) over the VB stream. null once the movie is gone.
+function broadcastMovieState(io: SocketServer, roomId: string): void {
+  let hadState = false;
+  let busy = false;
+  const timer = setInterval(() => {
+    if (!hasSession(roomId)) {
+      clearInterval(timer);
+      if (hadState) io.to(roomId).emit(SERVER_EVENTS.VB_MEDIA_STATE, null);
+      return;
+    }
+    if (busy) return;
+    busy = true;
+    void getMovieState(roomId).then((state) => {
+      if (state || hadState) io.to(roomId).emit(SERVER_EVENTS.VB_MEDIA_STATE, state);
+      hadState = state !== null;
+    }).finally(() => { busy = false; });
+  }, MOVIE_STATE_MS);
+  timer.unref();
 }
 
 export async function startVBForRoom(
@@ -105,7 +225,15 @@ export async function startVBForRoom(
   // Determined by the caller via getUserPlan(ownerId) — see vbEvents.handler.ts. Threaded straight
   // through to startSession()'s concurrency check (virtualBrowser.service.ts).
   tier: 'free' | 'pro' = 'free',
+  // Phone-owner session (VB_START { mobile: true }) — passed to startSession(). Left undefined by the
+  // server-started paths (room create, CHANGE_MEDIA, playNext): resolved from the owner's socket hint.
+  mobile?: boolean,
 ): Promise<void> {
+  const useMobile = mobile ?? await ownerIsMobile(redis, ownerId);
+  // Fast path (directResolve.helper.ts): a direct media file or a yt-dlp-extractable page plays in
+  // seconds without launching Chromium or making the owner pick from candidates.
+  if (await commitDirectMedia(io, redis, roomId, ownerId, url)) return;
+
   // Real prod case 2026-08-06 (uzmovi.net): VB is a best-effort sniffer — ads, related-content
   // widgets, and (separately) a duration bug on captured streams can all pass its heuristics —
   // so it no longer auto-commits to the room. Every candidate found during the collection window
@@ -117,6 +245,11 @@ export async function startVBForRoom(
   // was found under, so a later real-playback confirmation (which only ever sees real network
   // URLs, never our own signed vbMediaProxy wrapper) can still be matched against it.
   const rawUrlByCandidateIndex: string[] = [];
+  // Same index again: file size (mp4 only, from the sniffer) and the order in which real playback
+  // confirmed each candidate — both feed rankCandidates().
+  const bytesByCandidateIndex: (number | undefined)[] = [];
+  const confirmSeqByCandidateIndex: number[] = [];
+  let confirmSeq = 0;
   const confirmedRawUrls = new Set<string>();
   // MSE-played candidates (category B/C, 'capture'-kind) never surface their real CDN URL to the
   // page at all — the browser's <video> element plays a `blob:` URL backed by SourceBuffer, which
@@ -155,8 +288,7 @@ export async function startVBForRoom(
       // onRealPlaybackConfirmed above) is a strictly stronger signal than "network response
       // shaped like media" — rank it first. Falls back to the existing vb-capture tiebreak
       // among non-confirmed candidates, unchanged.
-      candidates.sort((a, b) => Number(b.confirmed) - Number(a.confirmed)
-        || Number(b.url.includes('/vb-capture/')) - Number(a.url.includes('/vb-capture/')));
+      rankCandidates(candidates, rawUrlByCandidateIndex, bytesByCandidateIndex, confirmSeqByCandidateIndex, getSessionPageTitle(roomId));
       try {
         await redis.setex(REDIS_KEYS.videoCandidates(roomId), CANDIDATES_TTL_SEC, JSON.stringify(candidates));
       } catch (e) {
@@ -168,6 +300,11 @@ export async function startVBForRoom(
     // needsConfirmation: true even when empty — auto-opens the SAME picker (its existing "нет
     // вариантов" state, see VideoCandidatePicker.tsx) instead of the screencast just quietly
     // stopping with no feedback at all.
+    if (VB_WATCH_IN_BROWSER) {
+      // The room keeps watching the VB — no picker, no stop (see VB_WATCH_IN_BROWSER).
+      logger.info('VB: collection window closed, room keeps watching in the VB', { roomId, count: candidates.length });
+      return;
+    }
     io.to(roomId).emit(SERVER_EVENTS.VIDEO_CANDIDATES, { candidates });
     io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'media_found', needsConfirmation: true });
     logger.info('VB: collection window closed, candidates ready for owner confirmation', { roomId, count: candidates.length });
@@ -185,15 +322,16 @@ export async function startVBForRoom(
     logger.warn('VB: failed to store source page URL for later refresh', { roomId, error: (e as Error).message });
   });
 
-  await startSession(roomId, ownerId, url, (base64Jpeg) => {
+  const outcome = await startSession(roomId, ownerId, url, (base64Jpeg) => {
     // Owner only (2026-08-25, Saidazim: "виден только владельцу"). Was io.to(roomId) — every
     // member decoded every 1280x720 JPEG frame just to watch the owner pick a video, multiplying
     // server bandwidth by room size for something non-owners can't even interact with. Every
     // socket already joins `user:${userId}` on connect (watchParty.socket.ts) — reuse that
     // instead of the room broadcast. volatile: a lagging owner client jumps to the latest frame
-    // instead of draining a backlog.
-    io.to(`user:${ownerId}`).volatile.emit(SERVER_EVENTS.VB_FRAME, { data: base64Jpeg });
-  }, (mediaUrl, mediaType, kind, duration) => {
+    // instead of draining a backlog; ack-capable clients are paced end-to-end (vbFrameSender.helper.ts).
+    // Watch-in-VB mode: the VB IS the room's player, so every member gets the frames.
+    emitVbFrame(io, VB_WATCH_IN_BROWSER ? roomId : `user:${ownerId}`, base64Jpeg);
+  }, (mediaUrl, mediaType, kind, duration, bytes) => {
     // 'capture' mediaUrl already points at our own vb-capture endpoint — only 'url' (a raw,
     // independently-fetchable CDN URL) needs the same-IP proxy wrapper.
     const roomVideoUrl = kind === 'url' ? proxiedMediaUrl(mediaUrl, mediaType, roomId) : mediaUrl;
@@ -209,6 +347,8 @@ export async function startVBForRoom(
     const confirmed = kind === 'url' ? confirmedRawUrls.has(mediaUrl) : mseConfirmed;
     candidates.push({ url: roomVideoUrl, type: mediaType, source: 'vb', title: getSessionPageTitle(roomId), duration, confirmed });
     rawUrlByCandidateIndex.push(mediaUrl);
+    bytesByCandidateIndex.push(bytes);
+    confirmSeqByCandidateIndex.push(confirmed ? ++confirmSeq : 0);
   }, () => {
     // Collection window closed — always show the picker with whatever was found.
     if (autoCommitTimer) { clearTimeout(autoCommitTimer); autoCommitTimer = null; }
@@ -217,13 +357,19 @@ export async function startVBForRoom(
   }, (src) => {
     if (src.startsWith('blob:')) {
       mseConfirmed = true;
-      candidates.forEach((c, i) => { if (c.url.includes('/vb-capture/')) candidates[i] = { ...c, confirmed: true }; });
+      candidates.forEach((c, i) => {
+        if (!c.url.includes('/vb-capture/')) return;
+        candidates[i] = { ...c, confirmed: true };
+        confirmSeqByCandidateIndex[i] = ++confirmSeq;
+      });
       // scheduleAutoCommit() call removed here — see the REVERTED note above AUTO_COMMIT_DELAY_MS.
       return;
     }
     confirmedRawUrls.add(src);
     rawUrlByCandidateIndex.forEach((rawUrl, i) => {
-      if (rawUrl === src) candidates[i] = { ...candidates[i], confirmed: true };
+      if (rawUrl !== src) return;
+      candidates[i] = { ...candidates[i], confirmed: true };
+      confirmSeqByCandidateIndex[i] = ++confirmSeq;
     });
     // scheduleAutoCommit() call removed here — see the REVERTED note above AUTO_COMMIT_DELAY_MS.
   }, (cookieHeader) => {
@@ -239,7 +385,25 @@ export async function startVBForRoom(
     // shows a corner badge on the live screencast rather than trying to solve/bypass the challenge.
     io.to(roomId).emit(SERVER_EVENTS.VB_BLOCKED, { reason });
     logger.info('VB: bot challenge detected, notified room', { roomId, reason });
-  }, tier);
+  }, tier, useMobile);
 
-  io.to(roomId).emit(SERVER_EVENTS.VB_STARTED, { url, width: VB_VIEWPORT.width, height: VB_VIEWPORT.height, ownerId });
+  if (outcome === 'redirect_blocked') {
+    io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'unreachable' });
+    return;
+  }
+  if (outcome === 'unreachable') {
+    if (enableAutoProxy(url)) {
+      logger.info('VB: site unreachable directly, retrying through proxy', { roomId, url });
+      return startVBForRoom(io, redis, roomId, ownerId, url, tier, useMobile);
+    }
+    // Room-wide: viewers otherwise keep waiting on a video that will never come.
+    io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'unreachable' });
+    return;
+  }
+  const viewport = getSessionViewport(roomId);
+  io.to(roomId).emit(SERVER_EVENTS.VB_STARTED, { url, width: viewport.width, height: viewport.height, ownerId });
+  if (VB_WATCH_IN_BROWSER && hasSession(roomId)) {
+    keepWatchResumeInfo(redis, roomId, url);
+    broadcastMovieState(io, roomId);
+  }
 }

@@ -4,6 +4,7 @@ import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { JwtPayload } from '@shared/types';
 import { getUserPlan } from '@shared/utils/serviceClient';
+import { fetchRoomSockets } from './roomSockets.helper';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -42,7 +43,9 @@ export const resumeBufferedRoom = async (
   // Compensate for elapsed time since last heartbeat so resume lands at the real owner position,
   // not a stale snapshot. Cap compensation at 10s to avoid overshooting on long pauses.
   const cached = await watchPartyService.getSyncState(roomId);
-  const ownerId = cached?.updatedBy ?? (await watchPartyService.getRoom(roomId)).ownerId;
+  // Always the real owner: since any member may play/pause, cached.updatedBy can be a member,
+  // and mobile treats a member-stamped sync as "follow it even as owner" (useWatchPartyRoom).
+  const ownerId = (await watchPartyService.getRoom(roomId)).ownerId;
   const storedCurrentTime = cached?.currentTime ?? 0;
   const storedTimestamp = cached?.serverTimestamp ?? Date.now();
   const wasPlaying = cached?.isPlaying ?? false;
@@ -85,16 +88,17 @@ export const registerVideoEvents = (
     }
   };
 
-  // PLAY — owner only
+  // PLAY / PAUSE — any member of the room (2026-10-25: "hohlagan a'zo stop/start qila olsin").
+  // authSocket.roomId is only set after a successful JOIN_ROOM, so this is members-only. The
+  // broadcast stays socket.to(roomId): everyone except the sender — which now includes the owner,
+  // whose client applies it like any viewer. SEEK and HEARTBEAT remain owner-only: the owner's
+  // clock is still the room's single source of truth for position.
   socket.on(CLIENT_EVENTS.PLAY, async (data: { currentTime: number }) => {
     if (!authSocket.roomId) {
       logger.warn('Video play: no roomId set', { userId });
       return;
     }
-    if (!await resolveIsOwner()) {
-      logger.warn('Video play rejected: not owner', { userId, ownerId: authSocket.roomOwnerId, roomId: authSocket.roomId });
-      return;
-    }
+    if (typeof data?.currentTime !== 'number' || !Number.isFinite(data.currentTime)) return;
     const roomId = authSocket.roomId;
 
     try {
@@ -102,13 +106,13 @@ export const registerVideoEvents = (
       socket.to(roomId).emit(SERVER_EVENTS.VIDEO_PLAY, syncState);
       logger.info('Video sync: play', { roomId, userId, currentTime: data.currentTime });
     } catch (error) {
-      logger.error('Socket play error', { userId, error });
+      logger.error('Socket play error', { userId, roomId, error: (error as Error).message });
     }
   });
 
-  // PAUSE — owner only
   socket.on(CLIENT_EVENTS.PAUSE, async (data: { currentTime: number }) => {
-    if (!authSocket.roomId || !await resolveIsOwner()) return;
+    if (!authSocket.roomId) return;
+    if (typeof data?.currentTime !== 'number' || !Number.isFinite(data.currentTime)) return;
     const roomId = authSocket.roomId;
 
     // Cancel any pending buffer resume timer so a buffering viewer can't auto-resume a paused room.
@@ -120,7 +124,7 @@ export const registerVideoEvents = (
       socket.to(roomId).emit(SERVER_EVENTS.VIDEO_PAUSE, syncState);
       logger.info('Video sync: pause', { roomId, userId, currentTime: data.currentTime });
     } catch (error) {
-      logger.error('Socket pause error', { userId, error });
+      logger.error('Socket pause error', { userId, roomId, error: (error as Error).message });
     }
   });
 
@@ -176,7 +180,7 @@ export const registerVideoEvents = (
       // Broadcast to all peers except sender — no scheduledAt, peers use drift correction only
       socket.to(roomId).emit(SERVER_EVENTS.VIDEO_HEARTBEAT, heartbeat);
     } catch (error) {
-      logger.error('Socket heartbeat error', { userId, error });
+      logger.error('Socket heartbeat error', { userId, roomId, error: (error as Error).message });
     }
   });
 
@@ -190,7 +194,7 @@ export const registerVideoEvents = (
   const DEMOCRATIC_PAUSE_MAX_MEMBERS = 3;
 
   const liveMemberCount = async (roomId: string): Promise<number> => {
-    const sockets = await io.in(roomId).fetchSockets();
+    const sockets = await fetchRoomSockets(io, roomId);
     return sockets.length;
   };
 
@@ -242,7 +246,8 @@ export const registerVideoEvents = (
         // buffering owner, would freeze the owner's own player (bug: owner stops while a
         // member keeps playing). Others wait; the buffering member catches up on BUFFER_END.
         const cached = await watchPartyService.getSyncState(roomId);
-        const ownerId = cached?.updatedBy ?? (await watchPartyService.getRoom(roomId)).ownerId;
+        // Real owner, not cached.updatedBy (may be a member now) — see resumeBufferedRoom.
+        const ownerId = (await watchPartyService.getRoom(roomId)).ownerId;
         const currentTime = cached?.currentTime ?? 0;
 
         const syncState = await watchPartyService.syncState(roomId, ownerId, currentTime, false);

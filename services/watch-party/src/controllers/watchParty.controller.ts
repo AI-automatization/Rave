@@ -10,10 +10,11 @@ import { WatchPartyRoom } from '../models/watchPartyRoom.model';
 import { logger } from '@shared/utils/logger';
 import { getAppSetting } from '@shared/utils/appSettings';
 import { ForbiddenError, NotFoundError } from '@shared/utils/errors';
-import { startVBForRoom } from '../socket/vbSession.helper';
+import { startVBForRoom, upgradeEmbedToDirect } from '../socket/vbSession.helper';
 import { enqueueVBRequest } from '../socket/vbQueue.helper';
 import { isOfficialEmbedHost, isOwnVbUrl } from '../services/extractionClient';
 import { isDomainBlocked } from './domain.admin.controller';
+import { fetchRoomSockets } from '../socket/roomSockets.helper';
 
 export class WatchPartyController {
   constructor(
@@ -81,7 +82,9 @@ export class WatchPartyController {
       // reason as playNextFromPlaylist below: launching Chromium takes seconds, room creation
       // should not hang on it. Official-embed hosts (YouTube/VK/Rutube/...) are skipped — they
       // already play instantly client-side via their own iframe.
-      if (videoUrl && !isOfficialEmbedHost(videoUrl) && !isOwnVbUrl(videoUrl)) {
+      // 'webview' = the client's embed-check found the page frameable, so every member opens it in
+      // its own iframe/WebView — a server-side VB on top of that would only burn a Chromium.
+      if (videoUrl && videoPlatform !== 'webview' && !isOfficialEmbedHost(videoUrl) && !isOwnVbUrl(videoUrl)) {
         const roomId = String(room._id);
         void (async () => {
           // #84 follow-up: this VB-start path (room creation) never consulted the admin domain
@@ -104,6 +107,8 @@ export class WatchPartyController {
             logger.warn('createRoom: VB auto-start failed', { roomId, url: videoUrl, error: (e as Error).message });
           }
         })();
+      } else if (videoUrl && isOfficialEmbedHost(videoUrl)) {
+        upgradeEmbedToDirect(this.io, this.redis, String(room._id), userId, videoUrl);
       }
     } catch (error) {
       // Handled here rather than by the shared error middleware because the client needs the
@@ -292,7 +297,7 @@ export class WatchPartyController {
       // for the same reason as the pre-resolve above: launching Chromium takes seconds and the
       // owner's "Next" should not hang on it. CHANGE_MEDIA has always had this fallback;
       // advancing the queue did not, which is the gap this closes.
-      if (room.videoUrl && (room as { nextNeedsVirtualBrowser?: boolean }).nextNeedsVirtualBrowser) {
+      if (room.videoUrl && room.videoPlatform !== 'webview' && (room as { nextNeedsVirtualBrowser?: boolean }).nextNeedsVirtualBrowser) {
         const videoUrl = room.videoUrl;
         void (async () => {
           // #84 follow-up, defense in depth: watchPartyPlaylist.service.ts already checks the
@@ -595,7 +600,7 @@ export class WatchPartyController {
     try {
       const { userId } = req.params;
       // Find all sockets in the user's personal room and disconnect them
-      const sockets = await this.io.in(`user:${userId}`).fetchSockets();
+      const sockets = await fetchRoomSockets(this.io, `user:${userId}`);
       for (const s of sockets) {
         s.emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'account_blocked' });
         s.disconnect(true);

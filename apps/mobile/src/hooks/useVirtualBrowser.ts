@@ -10,13 +10,39 @@ export type VBInput =
   | { type: 'mousemove'; x: number; y: number }
   | { type: 'mousedown'; x: number; y: number; button?: 'left' | 'right' | 'middle' }
   | { type: 'mouseup'; button?: 'left' | 'right' | 'middle' }
+  | { type: 'tap'; x: number; y: number }
   | { type: 'wheel'; deltaX: number; deltaY: number }
   | { type: 'keydown'; key: string }
   | { type: 'keyup'; key: string }
   | { type: 'type'; text: string };
 
+/** Latest JPEG frame lives OUTSIDE React state: a frame arrives several times a second, and as
+ * state in this hook it re-rendered the whole WatchPartyScreen per frame. Only the tiny frame
+ * view subscribes (VirtualBrowserPlayer's VBFrameView). */
+export interface VBFrameStore {
+  get: () => string | null;
+  subscribe: (fn: () => void) => () => void;
+}
+
 export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation?: () => void) {
-  const [frame, setFrame] = useState<string | null>(null);
+  const [hasFrame, setHasFrame] = useState(false);
+  const frameStore = useRef<VBFrameStore & { set: (f: string | null) => void }>(null as never);
+  if (!frameStore.current) {
+    let latest: string | null = null;
+    let raf: ReturnType<typeof requestAnimationFrame> | null = null;
+    const listeners = new Set<() => void>();
+    const flush = () => { raf = null; listeners.forEach((fn) => fn()); };
+    frameStore.current = {
+      get: () => latest,
+      subscribe: (fn) => { listeners.add(fn); return () => { listeners.delete(fn); }; },
+      // Coalesce bursts: at most one notify per animation frame, always the newest frame.
+      set: (f) => {
+        latest = f;
+        if (f === null) { if (raf !== null) cancelAnimationFrame(raf); flush(); return; }
+        if (raf === null) raf = requestAnimationFrame(flush);
+      },
+    };
+  }
   const [active, setActive] = useState(false);
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -42,18 +68,20 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
     const onStarted = (data: { url: string; width: number; height: number }) => {
       endedRef.current = false;
       setActive(true);
-      setDimensions({ width: data.width, height: data.height });
+      setDimensions((prev) => (prev && prev.width === data.width && prev.height === data.height ? prev : { width: data.width, height: data.height }));
       setError(null);
       setBlocked(null);
     };
     const onFrame = (data: { data: string }) => {
       if (endedRef.current) return;
-      setFrame(data.data);
+      frameStore.current.set(data.data);
+      setHasFrame(true); // no-op re-render after the first frame (same value)
     };
     const onStopped = (data?: { reason?: string; needsConfirmation?: boolean }) => {
       endedRef.current = true;
       setActive(false);
-      setFrame(null);
+      frameStore.current.set(null);
+      setHasFrame(false);
       setBlocked(null);
       // needsConfirmation: true — VB found candidate(s) but, unlike a normal extraction result,
       // never auto-commits to the room (services/watch-party vbSession.helper.ts) — same picker
@@ -106,7 +134,8 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
   }, []);
 
   const start = useCallback((url: string) => {
-    getSocket()?.emit(CLIENT_EVENTS.VB_START, { url });
+    // mobile: true -> server opens a phone-sized portrait viewport (~412x846) instead of 1280x720.
+    getSocket()?.emit(CLIENT_EVENTS.VB_START, { url, mobile: true });
   }, []);
 
   const stop = useCallback(() => {
@@ -118,5 +147,5 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
     getSocket()?.emit(CLIENT_EVENTS.VB_INPUT, input);
   }, [isOwner]);
 
-  return { frame, active, dimensions, error, blocked, start, stop, sendInput };
+  return { frameStore: frameStore.current as VBFrameStore, hasFrame, active, dimensions, error, blocked, start, stop, sendInput };
 }

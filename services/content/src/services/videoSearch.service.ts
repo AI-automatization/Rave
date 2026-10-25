@@ -24,20 +24,26 @@ export interface VideoSearchItem {
   title: string;
   thumbnail: string;
   url: string;
-  platform: 'youtube' | 'rutube' | 'vk' | 'dailymotion' | 'peertube' | 'live';
+  platform: 'youtube' | 'rutube' | 'vk' | 'dailymotion' | 'peertube' | 'live' | 'archive';
   duration?: number;
   viewCount?: number;
 }
 
 const SEARCH_TIMEOUT_MS = 8_000;
 const PER_PLATFORM = 5;
+// YouTube has by far the largest catalog (incl. full movies) — give it more slots.
+const YOUTUBE_RESULTS = 8;
 
 // ── yt-dlp search helper ────────────────────────────────────────────────────
 
 function runYtDlpSearch(searchQuery: string): Promise<VideoSearchItem[]> {
   return new Promise((resolve) => {
     const args = [
-      `ytsearch${PER_PLATFORM}:${searchQuery}`,
+      `ytsearch${YOUTUBE_RESULTS}:${searchQuery}`,
+      // --flat-playlist returns the search page entries without resolving each video's
+      // formats — ~1.5s instead of 8s+ for 5 results (the full mode regularly hit the timeout
+      // and YouTube silently vanished from results when YOUTUBE_API_KEY isn't set).
+      '--flat-playlist',
       '--dump-json',
       '--skip-download',
       '--quiet',
@@ -57,17 +63,20 @@ function runYtDlpSearch(searchQuery: string): Promise<VideoSearchItem[]> {
         const results: VideoSearchItem[] = [];
         for (const line of lines) {
           const j = JSON.parse(line) as {
+            id?: string;
             title?: string;
             thumbnail?: string;
+            url?: string;
             webpage_url?: string;
             duration?: number;
             view_count?: number;
           };
-          if (!j.webpage_url || !j.title) continue;
+          const url = j.webpage_url ?? j.url;
+          if (!url || !j.title) continue;
           results.push({
             title: j.title,
-            thumbnail: j.thumbnail ?? '',
-            url: j.webpage_url,
+            thumbnail: j.thumbnail ?? (j.id ? `https://i.ytimg.com/vi/${j.id}/mqdefault.jpg` : ''),
+            url,
             platform: 'youtube',
             duration: j.duration,
             viewCount: j.view_count,
@@ -146,7 +155,7 @@ interface YouTubeSearchResponse {
 
 async function searchYouTubeOfficial(query: string): Promise<VideoSearchItem[]> {
   try {
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=${PER_PLATFORM}&q=${encodeURIComponent(query)}&key=${YOUTUBE_API_KEY}`;
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=${YOUTUBE_RESULTS}&q=${encodeURIComponent(query)}&key=${YOUTUBE_API_KEY}`;
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), SEARCH_TIMEOUT_MS);
     const res = await fetch(url, { signal: ctrl.signal });
@@ -324,6 +333,39 @@ async function searchYouTubeLive(query: string): Promise<VideoSearchItem[]> {
   }
 }
 
+// ── Internet Archive — public-domain / freely licensed full-length films. Official
+// advancedsearch API, no key required. Restricted to the feature-film collections so a movie
+// title finds the movie itself rather than random uploads. ─────────────────────
+
+interface ArchiveSearchResponse {
+  response?: { docs?: Array<{ identifier?: string; title?: string; downloads?: number }> };
+}
+
+async function searchArchive(query: string): Promise<VideoSearchItem[]> {
+  try {
+    const q = `title:(${query}) AND mediatype:(movies) AND collection:(feature_films OR moviesandfilms OR classic_tv)`;
+    const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(q)}&fl[]=identifier&fl[]=title&fl[]=downloads&sort[]=downloads+desc&rows=${PER_PLATFORM}&output=json`;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), SEARCH_TIMEOUT_MS);
+    const res = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(timer);
+
+    if (!res.ok) return [];
+    const data = await res.json() as ArchiveSearchResponse;
+    return (data.response?.docs ?? [])
+      .filter((d) => d.identifier && d.title)
+      .map((d) => ({
+        title: d.title!,
+        thumbnail: `https://archive.org/services/img/${d.identifier}`,
+        url: `https://archive.org/details/${d.identifier}`,
+        platform: 'archive' as const,
+        viewCount: d.downloads,
+      }));
+  } catch {
+    return [];
+  }
+}
+
 // ── Main search ──────────────────────────────────────────────────────────────
 
 export async function searchVideos(query: string): Promise<VideoSearchItem[]> {
@@ -332,13 +374,14 @@ export async function searchVideos(query: string): Promise<VideoSearchItem[]> {
 
   logger.info('video-search', { query: trimmed });
 
-  const [youtube, rutube, vk, dailymotion, peertube, live] = await Promise.allSettled([
+  const [youtube, rutube, vk, dailymotion, peertube, live, archive] = await Promise.allSettled([
     YOUTUBE_API_KEY ? searchYouTubeOfficial(trimmed) : runYtDlpSearch(trimmed),
     searchRutube(trimmed),
     runYtDlpVkSearch(trimmed),
     searchDailymotion(trimmed),
     searchPeerTube(trimmed),
     searchYouTubeLive(trimmed),
+    searchArchive(trimmed),
   ]);
 
   const results = [
@@ -348,6 +391,7 @@ export async function searchVideos(query: string): Promise<VideoSearchItem[]> {
     dailymotion.status === 'fulfilled' ? dailymotion.value : [],
     peertube.status    === 'fulfilled' ? peertube.value    : [],
     live.status        === 'fulfilled' ? live.value        : [],
+    archive.status     === 'fulfilled' ? archive.value     : [],
   ];
 
   // Interleave round-robin across every platform that returned results, instead of one

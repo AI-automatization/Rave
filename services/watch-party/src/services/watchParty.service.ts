@@ -11,8 +11,11 @@ import { getAppSetting } from '@shared/utils/appSettings';
 import { WatchPartyPlaylistService } from './watchPartyPlaylist.service';
 import { WatchPartyMembersService } from './watchPartyMembers.service';
 import { hasSession } from './virtualBrowser.service';
-import { isPrivateUrl } from './extractionClient';
+import { isPrivateUrl, isInsecureWebviewUrl } from './extractionClient';
 import { isDomainBlocked } from '../controllers/domain.admin.controller';
+
+// WATCH_PARTY_MEMBER_CAP — see getEffectiveMemberCap(). Unset = plan-based caps as before.
+const ENV_MEMBER_CAP = Number(process.env.WATCH_PARTY_MEMBER_CAP) || 0;
 
 const SYNC_THRESHOLD_SECONDS = 2;
 const SYNC_THRESHOLD_WEBVIEW_SECONDS = 2.5;
@@ -127,6 +130,9 @@ export class WatchPartyService {
       if (isPrivateUrl(videoUrl)) {
         throw new BadRequestError('videoUrl points to a private or internal address');
       }
+      if (isInsecureWebviewUrl(videoPlatform, videoUrl)) {
+        throw new BadRequestError('webview media must use https://');
+      }
       // IP-locked CDN URLs cannot be played on mobile clients — store original platform URL
       if (/googlevideo\.com/i.test(videoUrl)) {
         throw new BadRequestError('IP-locked CDN URLs cannot be stored. Use the original video URL.');
@@ -159,13 +165,14 @@ export class WatchPartyService {
       name:             name ?? null,
       movieId:          movieId ?? null,
       videoUrl:         videoUrl ?? null,
+      sourceUrl:        videoUrl ?? null,
       videoTitle:       videoTitle ?? null,
       videoThumbnail:   videoThumbnail ?? null,
       videoPlatform:    videoPlatform ?? null,
       videoReferer:     videoReferer ?? null,
       ownerId,
       members:          [ownerId],
-      maxMembers:       Math.min(maxMembers, await getAppSetting<number>('maxRoomSize') || LIMITS.MAX_WATCH_PARTY_MEMBERS),
+      maxMembers:       ENV_MEMBER_CAP || Math.min(maxMembers, await getAppSetting<number>('maxRoomSize') || LIMITS.MAX_WATCH_PARTY_MEMBERS),
       inviteCode,
       isPrivate,
       requireApproval:  isPrivate && requireApproval,
@@ -263,6 +270,9 @@ export class WatchPartyService {
   }
 
   private async getEffectiveMemberCap(room: Pick<IWatchPartyRoomDocument, 'ownerId' | 'maxMembers'>): Promise<number> {
+    // Deployment-wide override (e.g. a self-hosted/local party server): every room holds this
+    // many people regardless of plan or the room's own nominal size.
+    if (ENV_MEMBER_CAP) return ENV_MEMBER_CAP;
     const ownerPlan = await getUserPlan(room.ownerId);
     const planCap = ownerPlan === 'pro' ? LIMITS.MAX_WATCH_PARTY_MEMBERS : LIMITS.MAX_WATCH_PARTY_MEMBERS_FREE;
     return Math.min(room.maxMembers, planCap);
@@ -453,7 +463,14 @@ export class WatchPartyService {
     await WatchPartyRoom.updateOne({ _id: roomId }, { lastActivityAt: new Date() });
   }
 
-  async closeInactiveRooms(thresholdMinutes = 5): Promise<string[]> {
+  /**
+   * @param isOccupied — rooms with a live socket in them are never "inactive", whatever
+   * lastActivityAt says: that timestamp only moves on play/pause/seek/heartbeat, so a room
+   * people sit in with the video paused (snack break, chatting) was closed on them after 5 min
+   * (local repro 2026-10-25). Truly empty rooms still close via the disconnect timer
+   * (watchParty.socket.ts roomCloseTimers) and via this sweep.
+   */
+  async closeInactiveRooms(thresholdMinutes = 5, isOccupied?: (roomId: string) => boolean): Promise<string[]> {
     const cutoff = new Date(Date.now() - thresholdMinutes * 60 * 1000);
     const stale = await WatchPartyRoom.find({
       status: { $in: ['waiting', 'playing', 'paused'] },
@@ -467,7 +484,8 @@ export class WatchPartyService {
     // video (page navigation, a Cloudflare challenge, clicking through player tabs — all real
     // time, none of it a "sync" event). A room the owner is actively working through VB on is by
     // definition not abandoned, whatever this timestamp says.
-    const ids = stale.map((r) => r._id.toString()).filter((id) => !hasSession(id));
+    const ids = stale.map((r) => r._id.toString()).filter((id) => !hasSession(id) && !isOccupied?.(id));
+    if (ids.length === 0) return [];
     await WatchPartyRoom.updateMany({ _id: { $in: ids } }, { status: 'ended' });
     await Promise.all(ids.map((id) => this.redis.del(REDIS_KEYS.watchPartyRoom(id))));
     ids.forEach((id) => this.lastMongoHeartbeatWrite.delete(id));
