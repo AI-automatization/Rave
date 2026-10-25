@@ -40,6 +40,12 @@ interface Props {
 // Hidden-input sentinel: a zero-width char the phone keyboard can "delete", so Backspace still
 // produces an input event on an otherwise empty field (Android fires nothing for an empty one).
 const KB_BASE = '\u200b';
+// Picture/sound sync: a screencast frame itself needs ~0.15s from the VB page to this <img>, so
+// frames wait for the sound's delay minus that. Under 50ms isn't worth a timer; over 2.5s the
+// sound is broken rather than late and the owner's clicks would feel dead.
+const FRAME_PIPELINE_S = 0.15;
+const MIN_FRAME_DELAY_MS = 50;
+const MAX_FRAME_DELAY_MS = 2500;
 
 // Kosmi-style shared virtual browser: a real headless Chromium page runs on the server, the
 // owner controls it with mouse/keyboard, and every room member just watches the same live JPEG
@@ -52,6 +58,10 @@ export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimension
   const lastUrlRef = useRef<string | null>(null);
   const urlInputRef = useRef<HTMLInputElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
+  const frameDelayMsRef = useRef(0);
+  const setFrameDelay = useCallback((audioDelayS: number) => {
+    frameDelayMsRef.current = Math.max(0, (audioDelayS - FRAME_PIPELINE_S) * 1000);
+  }, []);
   const containerRef = useRef<HTMLDivElement>(null);
   const kbInputRef = useRef<HTMLInputElement>(null);
   const kbPrevRef = useRef(KB_BASE);
@@ -266,12 +276,33 @@ export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimension
   }, []);
 
   // Live frames straight into the <img>, no React render per frame (see use-virtual-browser.ts).
+  // While the VB sound is audible each frame is held back by the sound's delay
+  // (VirtualBrowserAudio onDelay), so picture and sound line up instead of the sound trailing.
   useEffect(() => {
     const el = imgRef.current;
     if (!el || !hasFrame) return;
-    const show = (frame: string | null) => { if (frame) el.src = `data:image/jpeg;base64,${frame}`; };
+    let seq = 0;
+    let shownSeq = 0;
+    const timers = new Set<ReturnType<typeof setTimeout>>();
+    const paint = (frame: string, n: number) => {
+      if (n <= shownSeq) return; // a newer frame is already up (the delay shrank)
+      shownSeq = n;
+      el.src = `data:image/jpeg;base64,${frame}`;
+    };
+    const show = (frame: string | null) => {
+      if (!frame) return;
+      const n = ++seq;
+      const delayMs = Math.min(frameDelayMsRef.current, MAX_FRAME_DELAY_MS);
+      if (delayMs < MIN_FRAME_DELAY_MS) { paint(frame, n); return; }
+      const timer = setTimeout(() => { timers.delete(timer); paint(frame, n); }, delayMs);
+      timers.add(timer);
+    };
     show(frameSource.get());
-    return frameSource.subscribe(show);
+    const unsubscribe = frameSource.subscribe(show);
+    return () => {
+      unsubscribe();
+      timers.forEach(clearTimeout);
+    };
   }, [hasFrame, frameSource, isOwner]);
 
   // Native fullscreen can also end from outside our button (Esc, iOS swipe, browser UI).
@@ -450,7 +481,7 @@ export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimension
           paddingRight: 'max(0.5rem, env(safe-area-inset-right))',
         }}
       >
-        {hasFrame && audioUrl && <VirtualBrowserAudio src={audioUrl} />}
+        {hasFrame && audioUrl && <VirtualBrowserAudio src={audioUrl} onDelay={setFrameDelay} />}
         {isOwner && isCoarse && hasFrame && (
           <button
             type="button"
