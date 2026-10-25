@@ -322,6 +322,10 @@
     "unknownVideo": "Unknown video",
     "private": "Private",
     "public": "Public",
+    "watchStartError": "Couldn’t open a room, try again",
+    "weeklyViewers": "{count} watched",
+    "watchHistory": "🕘 Watched",
+    "weeklyTop": "🔥 Top this week",
     "recentRooms": "Recent rooms",
     "rejoin": "Rejoin",
     "room": "Room",
@@ -710,6 +714,15 @@
     "playerLoadingCycle9": "Checking video quality",
     "playerLoadingCycle10": "Establishing connection",
     "playerLoadingCycle11": "Syncing with the server",
+    "playerTapForSound": "Tap to turn on sound",
+    "handRaisedToast": "{name} raised a hand ✋",
+    "handLowerFor": "Lower their hand",
+    "handLower": "Lower hand",
+    "handRaise": "Raise hand",
+    "playerUnresolvedTitle": "This link didn’t open a video",
+    "playerUnresolvedOwnerHint": "The site is unreachable or the page has no video. Open another link in the virtual browser or pick a different video.",
+    "playerUnresolvedViewerHint": "Waiting for the room owner to pick another video.",
+    "playerUnresolvedOpenVB": "Open in virtual browser",
     "playerLoadingCycle12": "Detecting the format",
     "playerLoadingCycle13": "Picking the best stream",
     "playerTapToPlay": "Click to play",
@@ -898,5 +911,15 @@
     "sendError": "Message was not sent",
     "unavailableTitle": "Support is unavailable right now",
     "unavailableHint": "Could not reach the service. Try again later, or email support@wewatch.uz."
+  },
+  "guest": {
+    "title": "A friend invited you to watch together",
+    "subtitle": "Just type your name — no sign-up needed",
+    "nameLabel": "Your name",
+    "namePlaceholder": "e.g. Vali",
+    "submit": "Join the room",
+    "haveAccount": "Have an account?",
+    "login": "Log in",
+    "error": "Couldn't join, please try again"
   }
 }

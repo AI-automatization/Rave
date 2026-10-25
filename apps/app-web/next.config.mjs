@@ -81,7 +81,7 @@ const nextConfig = {
               // by our code — expand on demand as real rooms need specific instances (see
               // PeerTubePlayer.tsx's file-header comment).
               "frame-src https://www.youtube.com https://youtube.com https://vk.com https://rutube.ru https://embed.twitch.tv https://player.twitch.tv https://www.twitch.tv https://player.vimeo.com https://geo.dailymotion.com https://www.dailymotion.com https://www.tiktok.com https://framatube.org https://peertube.social https://player.trovo.live",
-              "media-src 'self' https: blob:",
+              `media-src 'self' https: blob:${process.env.NODE_ENV === 'development' ? ' http:' : ''}`,
               "object-src 'none'",
               "base-uri 'self'",
             ].join('; '),

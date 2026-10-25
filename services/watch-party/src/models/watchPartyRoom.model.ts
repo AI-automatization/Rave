@@ -5,6 +5,7 @@ export interface IWatchPartyRoomDocument extends Document {
   name: string | null;      // room name (optional)
   movieId: string | null;   // null when using external videoUrl
   videoUrl: string | null;  // external video link (optional)
+  sourceUrl?: string | null; // the link people shared — videoUrl may be our own resolved proxy URL
   videoTitle: string | null; // title for external videos
   videoThumbnail: string | null;
   videoPlatform: VideoPlatform | null;
@@ -55,12 +56,13 @@ const watchPartyRoomSchema = new Schema<IWatchPartyRoomDocument>(
     name:             { type: String, default: null },
     movieId:          { type: String, default: null },
     videoUrl:         { type: String, default: null },
+    sourceUrl:        { type: String, default: null },
     videoTitle:       { type: String, default: null },
     videoThumbnail:   { type: String, default: null },
     videoPlatform:    { type: String, enum: VIDEO_PLATFORM_ENUM, default: null },
     ownerId: { type: String, required: true },
     members: [{ type: String }],
-    maxMembers: { type: Number, default: 10, min: 2, max: 10 },
+    maxMembers: { type: Number, default: 10, min: 2, max: 100 },
     status: {
       type: String,
       enum: ['waiting', 'playing', 'paused', 'ended'],

@@ -102,7 +102,7 @@ export const registerVideoEvents = (
       socket.to(roomId).emit(SERVER_EVENTS.VIDEO_PLAY, syncState);
       logger.info('Video sync: play', { roomId, userId, currentTime: data.currentTime });
     } catch (error) {
-      logger.error('Socket play error', { userId, error });
+      logger.error('Socket play error', { userId, roomId, error: (error as Error).message });
     }
   });
 
@@ -120,7 +120,7 @@ export const registerVideoEvents = (
       socket.to(roomId).emit(SERVER_EVENTS.VIDEO_PAUSE, syncState);
       logger.info('Video sync: pause', { roomId, userId, currentTime: data.currentTime });
     } catch (error) {
-      logger.error('Socket pause error', { userId, error });
+      logger.error('Socket pause error', { userId, roomId, error: (error as Error).message });
     }
   });
 
@@ -176,7 +176,7 @@ export const registerVideoEvents = (
       // Broadcast to all peers except sender — no scheduledAt, peers use drift correction only
       socket.to(roomId).emit(SERVER_EVENTS.VIDEO_HEARTBEAT, heartbeat);
     } catch (error) {
-      logger.error('Socket heartbeat error', { userId, error });
+      logger.error('Socket heartbeat error', { userId, roomId, error: (error as Error).message });
     }
   });
 

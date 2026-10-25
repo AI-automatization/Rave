@@ -32,15 +32,33 @@ const VB_PROXY_DOMAINS = (process.env.VB_PROXY_DOMAINS ?? '')
   .map((d) => d.trim().toLowerCase())
   .filter(Boolean);
 
+// Hosts learned at runtime: a site that was unreachable directly (blocked from this server's
+// network) is retried once through VB_PROXY_SERVER and stays proxied for the process lifetime, so
+// the owner doesn't have to know the domain list up front. VB_PROXY_AUTO=0 turns it off.
+const autoProxyHosts = new Set<string>();
+
+export function enableAutoProxy(url: string): boolean {
+  if (!VB_PROXY_SERVER || process.env.VB_PROXY_AUTO === '0') return false;
+  let hostname: string;
+  try {
+    hostname = new URL(url).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+  if (autoProxyHosts.has(hostname)) return false; // already went through the proxy — still down
+  autoProxyHosts.add(hostname);
+  return true;
+}
+
 function getProxyForUrl(url: string): { server: string; username?: string; password?: string } | undefined {
-  if (!VB_PROXY_SERVER || VB_PROXY_DOMAINS.length === 0) return undefined;
+  if (!VB_PROXY_SERVER) return undefined;
   let hostname: string;
   try {
     hostname = new URL(url).hostname.toLowerCase();
   } catch {
     return undefined;
   }
-  const needsProxy = VB_PROXY_DOMAINS.some((d) => hostname === d || hostname.endsWith(`.${d}`));
+  const needsProxy = autoProxyHosts.has(hostname) || VB_PROXY_DOMAINS.some((d) => hostname === d || hostname.endsWith(`.${d}`));
   if (!needsProxy) return undefined;
   return { server: VB_PROXY_SERVER, username: VB_PROXY_USERNAME, password: VB_PROXY_PASSWORD };
 }
@@ -545,6 +563,8 @@ function attachResponseSniffer(
 // before finalizing, instead of committing to whatever arrived first.
 const COLLECTION_WINDOW_MS = 40_000;
 
+const UNREACHABLE_NAV_ERROR = /net::ERR_(NAME_NOT_RESOLVED|NAME_RESOLUTION_FAILED|CONNECTION_(RESET|REFUSED|CLOSED|FAILED)|ADDRESS_UNREACHABLE|INTERNET_DISCONNECTED|SSL_|CERT_|TUNNEL_CONNECTION_FAILED|EMPTY_RESPONSE)/;
+
 export async function startSession(
   roomId: string,
   ownerId: string,
@@ -581,7 +601,7 @@ export async function startSession(
   // 'free' so probeUrl() and any other caller that doesn't pass this stays on the safe/capped
   // side rather than silently getting Pro's uncapped treatment.
   tier: 'free' | 'pro' = 'free',
-): Promise<void> {
+): Promise<'unreachable' | void> {
   if (startingRooms.has(roomId)) {
     throw new Error('virtual_browser_starting');
   }
@@ -980,9 +1000,20 @@ export async function startSession(
         s.pageTitle = await page.title().catch(() => undefined);
       }
     } catch (e) {
+      const message = (e as Error).message;
+      // The site itself can't be reached (DNS, reset/refused, TLS) — the screencast would only
+      // ever show a blank error page with "start the video on the site" on top, which nobody can
+      // act on (real report 2026-10-24: blocked site, owner stared at a white box). Close the
+      // session and let the caller tell the room plainly. Timeouts are NOT this — a slow page is
+      // often still usable, so those keep the old behaviour below.
+      if (UNREACHABLE_NAV_ERROR.test(message)) {
+        logger.warn('VB: site unreachable, closing session', { roomId, url, error: message });
+        await stopSession(roomId);
+        return 'unreachable';
+      }
       // Navigation failure doesn't kill the session — owner still sees the failed-load page
       // and can retry a different URL from the same browser instance.
-      logger.warn('VB: initial navigation failed', { roomId, url, error: (e as Error).message });
+      logger.warn('VB: initial navigation failed', { roomId, url, error: message });
     }
   } finally {
     startingRooms.delete(roomId);

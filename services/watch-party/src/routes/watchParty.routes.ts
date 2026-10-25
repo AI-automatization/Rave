@@ -13,6 +13,7 @@ import { verifyToken, requireNotBlocked } from '@shared/middleware/auth.middlewa
 import { requireInternalSecret } from '@shared/utils/serviceClient';
 import { createRoomLimiter, joinRoomLimiter, vbMediaProxyLimiter, vbCaptureLimiter } from '../middleware/rateLimiter';
 import { validate, createRoomSchema, joinRoomSchema } from '../validators/watchParty.validator';
+import { getHistory, getWeeklyTop } from '../services/watchStats.service';
 
 export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router => {
   const router = Router();
@@ -109,6 +110,21 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   // public/no-auth trust model and rate limiter as the neighbouring VB routes — it exists to be
   // fetched by players and by a CDN, and every file it serves was written by our own ffmpeg.
   router.get('/vb-stream/:roomId/:file', vbCaptureLim, vbStreamController.serve);
+
+  // GET /watch-party/history/me — what this user watched (watchStats.service.ts)
+  router.get('/history/me', verifyToken, notBlocked, async (req, res, next) => {
+    try {
+      const userId = (req as unknown as { user: { userId: string } }).user.userId;
+      res.json({ success: true, data: await getHistory(userId) });
+    } catch (err) { next(err); }
+  });
+
+  // GET /watch-party/trending/week — most-watched links of the last 7 days, by distinct viewers
+  router.get('/trending/week', verifyToken, notBlocked, async (_req, res, next) => {
+    try {
+      res.json({ success: true, data: await getWeeklyTop() });
+    } catch (err) { next(err); }
+  });
 
   // GET /watch-party/rooms/my/recent — user's last 10 rooms (T-S061)
   router.get('/rooms/my/recent', verifyToken, notBlocked, watchPartyController.getRecentRooms);

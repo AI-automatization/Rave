@@ -10,7 +10,7 @@ import { WatchPartyRoom } from '../models/watchPartyRoom.model';
 import { logger } from '@shared/utils/logger';
 import { getAppSetting } from '@shared/utils/appSettings';
 import { ForbiddenError, NotFoundError } from '@shared/utils/errors';
-import { startVBForRoom } from '../socket/vbSession.helper';
+import { startVBForRoom, upgradeEmbedToDirect } from '../socket/vbSession.helper';
 import { enqueueVBRequest } from '../socket/vbQueue.helper';
 import { isOfficialEmbedHost, isOwnVbUrl } from '../services/extractionClient';
 import { isDomainBlocked } from './domain.admin.controller';
@@ -104,6 +104,8 @@ export class WatchPartyController {
             logger.warn('createRoom: VB auto-start failed', { roomId, url: videoUrl, error: (e as Error).message });
           }
         })();
+      } else if (videoUrl && isOfficialEmbedHost(videoUrl)) {
+        upgradeEmbedToDirect(this.io, this.redis, String(room._id), userId, videoUrl);
       }
     } catch (error) {
       // Handled here rather than by the shared error middleware because the client needs the

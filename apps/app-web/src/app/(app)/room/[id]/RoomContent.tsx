@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { MessageCircle, Users as UsersIcon, ListVideo, X, ChevronRight, Loader2, Play, Plus, Globe } from 'lucide-react';
 import type { IChatReplyTo, VideoCandidate } from '@/types';
 import { useWatchParty } from '@/hooks/use-watch-party';
@@ -298,7 +299,7 @@ type RightTab = 'chat' | 'members' | 'playlist';
  *  chat, no member list and no queue at all (found in the prod audit, confirmed at 390px). */
 function RoomSidePanel({
   rightTab, setRightTab, isOwner, voice, roomId, sendMessage, setProfileUserId, sendMediaChange,
-  kickMember, muteMember, unmuteMember,
+  kickMember, muteMember, unmuteMember, raisedHands, setHand,
 }: {
   rightTab: RightTab;
   setRightTab: (t: RightTab) => void;
@@ -311,6 +312,8 @@ function RoomSidePanel({
   kickMember: (targetUserId: string) => void;
   muteMember: (targetUserId: string) => void;
   unmuteMember: (targetUserId: string) => void;
+  raisedHands: string[];
+  setHand: (raised: boolean, targetUserId?: string) => void;
 }) {
   const t = useTranslations('party');
 
@@ -376,7 +379,7 @@ function RoomSidePanel({
           of messages" — this is why. */}
       <div className="flex-1 min-h-0 flex flex-col">
         {rightTab === 'chat' && <ChatPanel onSend={sendMessage} onOpenProfile={setProfileUserId} />}
-        {rightTab === 'members' && <MemberList isOwner={isOwner} onKick={kickMember} />}
+        {rightTab === 'members' && <MemberList isOwner={isOwner} onKick={kickMember} raisedHands={raisedHands} onLowerHand={(id) => setHand(false, id)} />}
         {rightTab === 'playlist' && (
           <PlaylistPanel
             roomId={roomId}
@@ -391,7 +394,7 @@ function RoomSidePanel({
 
 export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props) {
   const t = useTranslations('party');
-  const { sendMessage, sendPlay, sendPause, sendSeek, sendEmoji, sendHeartbeat, sendBufferStart, sendBufferEnd, sendMediaChange, reactions, reactionCooldownSec, videoCandidates, requestCandidates, kickMember, muteMember, unmuteMember, renameRoom } = useWatchParty(roomId);
+  const { sendMessage, sendPlay, sendPause, sendSeek, sendEmoji, sendHeartbeat, sendBufferStart, sendBufferEnd, sendMediaChange, reactions, reactionCooldownSec, videoCandidates, requestCandidates, kickMember, muteMember, unmuteMember, renameRoom, raisedHands, setHand } = useWatchParty(roomId);
   const [rightTab, setRightTab] = useState<RightTab>('chat');
   /** Whose profile the modal is showing — `null` means closed. */
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
@@ -417,6 +420,18 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   const isConnected = useWatchPartyStore((s) => s.isConnected);
   const isOwner = !!(room && currentUser && room.ownerId === currentUser._id);
 
+  // ?play=<link> — "watch this" from the home rails or the create dialog when the user already
+  // owns this open room (one room per owner): switch the room to that movie once we're in.
+  const searchParams = useSearchParams();
+  const playHandledRef = useRef(false);
+  useEffect(() => {
+    const play = searchParams.get('play');
+    if (!play || playHandledRef.current || !roomJoined || !isOwner) return;
+    playHandledRef.current = true;
+    sendMediaChange(play);
+    window.history.replaceState(null, '', window.location.pathname);
+  }, [searchParams, roomJoined, isOwner, sendMediaChange]);
+
   // Kosmi-style shared virtual browser — owner opens a URL in a server-side headless browser,
   // everyone in the room watches the same live stream. `vbActive` is broadcast-driven (true for
   // EVERY member the instant the owner starts a session) — `showVBPanel` is purely local, lets
@@ -424,7 +439,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   // VB's found candidate never auto-commits (see vbSession.helper.ts) — it lands in the same
   // picker as "Это не то видео", just auto-opened instead of waiting for the owner to find the
   // menu entry themselves.
-  const { frame: vbFrame, active: vbActive, dimensions: vbDimensions, error: vbError, blocked: vbBlocked, queuePosition: vbQueuePosition, start: vbStart, stop: vbStop, sendInput: vbSendInput } = useVirtualBrowser(isOwner, () => setCandidatePickerOpen(true));
+  const { frame: vbFrame, active: vbActive, dimensions: vbDimensions, error: vbError, blocked: vbBlocked, queuePosition: vbQueuePosition, unreachable: vbUnreachable, start: vbStart, stop: vbStop, sendInput: vbSendInput } = useVirtualBrowser(isOwner, () => setCandidatePickerOpen(true));
   const [showVBPanel, setShowVBPanel] = useState(false);
   const showVB = vbActive || (isOwner && showVBPanel);
   const handleVBStop = () => { vbStop(); setShowVBPanel(false); };
@@ -567,6 +582,8 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                 onBufferEnd={sendBufferEnd}
                 onFatalError={handleVideoFatalError}
                 onPickDifferentVideo={() => setCandidatePickerOpen(true)}
+                onOpenVirtualBrowser={() => setShowVBPanel(true)}
+                sourceUnreachable={vbUnreachable}
                 duckAudio={anyoneSpeaking}
               />
             )}
@@ -583,7 +600,12 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
               </button>
             )}
 
-            <EmojiReactions onSend={sendEmoji} cooldownSec={reactionCooldownSec} />
+            <EmojiReactions
+              onSend={sendEmoji}
+              cooldownSec={reactionCooldownSec}
+              handRaised={!!currentUser && raisedHands.includes(currentUser._id)}
+              onToggleHand={() => setHand(!(currentUser && raisedHands.includes(currentUser._id)))}
+            />
           </div>
 
           {/* Chat / A'zolar / Navbat — desktopda o'ng ustun, mobilda video ostidagi panel. Sirt
@@ -608,6 +630,8 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
               setProfileUserId={setProfileUserId}
               sendMediaChange={sendMediaChange}
               kickMember={kickMember}
+              raisedHands={raisedHands}
+              setHand={setHand}
               muteMember={muteMember}
               unmuteMember={unmuteMember}
             />

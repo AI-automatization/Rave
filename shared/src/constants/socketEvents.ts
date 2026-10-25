@@ -34,6 +34,9 @@ export const SERVER_EVENTS = Object.freeze({
   // Sender-only: burst limit hit (20+ reactions in the trailing 60s window) — client should
   // disable its emoji picker and show retryAfterSec as a countdown, not silently drop taps.
   REACTION_COOLDOWN: 'reaction:cooldown',
+  // Full list of userIds with a raised hand (Google Meet style) — sent room-wide on every change
+  // and to a joiner on request (RAISE_HAND with { sync: true }).
+  HANDS_UPDATED: 'hand:updated',
 
   PLAYLIST_UPDATED: 'playlist:updated',
 
@@ -124,6 +127,9 @@ export const CLIENT_EVENTS = Object.freeze({
   VOICE_SPEAKING: 'voice:speaking',
 
   SEND_REACTION: 'reaction:send',
+  // { raised: boolean } — own hand; { targetUserId, raised: false } — owner lowers someone's;
+  // { sync: true } — just send me the current list.
+  RAISE_HAND: 'hand:raise',
 
   // Owner xona mediasini almashtiradi → server room:updated broadcast qiladi barcha memberlarga
   CHANGE_MEDIA: 'room:media:change',

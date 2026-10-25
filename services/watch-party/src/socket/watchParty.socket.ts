@@ -12,6 +12,7 @@ import { registerChatEvents } from './chatEvents.handler';
 import { registerVoiceEvents } from './voiceEvents.handler';
 import { registerMeshHandlers } from './mesh.handlers';
 import { registerReactionEvents } from './reactionEvents.handler';
+import { registerHandEvents } from './handEvents.handler';
 import { registerDMEvents } from './dmEvents.handler';
 import { registerVBEvents } from './vbEvents.handler';
 import { stopSession, stopAllSessions, hasSession } from '../services/virtualBrowser.service';
@@ -151,6 +152,7 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
     registerVoiceEvents(socket, authSocket, redis);
     registerMeshHandlers(io, socket, authSocket);
     registerReactionEvents(io, socket, authSocket, redis);
+    registerHandEvents(io, socket, authSocket, watchPartyService, redis);
     registerDMEvents(io, socket);
     registerVBEvents(io, socket, authSocket, watchPartyService, redis);
 

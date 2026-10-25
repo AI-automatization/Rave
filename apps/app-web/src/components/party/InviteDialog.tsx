@@ -11,6 +11,7 @@ import { useWatchPartyStore } from '@/store/watch-party.store';
 import { toast } from '@/hooks/use-toast';
 import type { IUser } from '@/types';
 import { trackClick } from '@/lib/analytics';
+import { copyText } from '@/lib/copy-text';
 
 interface Props {
   open: boolean;
@@ -42,12 +43,9 @@ export function InviteDialog({ open, onOpenChange }: Props) {
 
   async function handleCopy() {
     trackClick('invite:copy_link');
-    try {
-      await navigator.clipboard.writeText(shareUrl || inviteCode);
+    if (await copyText(shareUrl || inviteCode)) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // fallback
     }
   }
 

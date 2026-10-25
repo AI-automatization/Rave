@@ -14,6 +14,9 @@ import { hasSession } from './virtualBrowser.service';
 import { isPrivateUrl } from './extractionClient';
 import { isDomainBlocked } from '../controllers/domain.admin.controller';
 
+// WATCH_PARTY_MEMBER_CAP — see getEffectiveMemberCap(). Unset = plan-based caps as before.
+const ENV_MEMBER_CAP = Number(process.env.WATCH_PARTY_MEMBER_CAP) || 0;
+
 const SYNC_THRESHOLD_SECONDS = 2;
 const SYNC_THRESHOLD_WEBVIEW_SECONDS = 2.5;
 // Heartbeat fires every ~2s per room — Redis is updated on every tick (late-join seed needs it fresh),
@@ -159,13 +162,14 @@ export class WatchPartyService {
       name:             name ?? null,
       movieId:          movieId ?? null,
       videoUrl:         videoUrl ?? null,
+      sourceUrl:        videoUrl ?? null,
       videoTitle:       videoTitle ?? null,
       videoThumbnail:   videoThumbnail ?? null,
       videoPlatform:    videoPlatform ?? null,
       videoReferer:     videoReferer ?? null,
       ownerId,
       members:          [ownerId],
-      maxMembers:       Math.min(maxMembers, await getAppSetting<number>('maxRoomSize') || LIMITS.MAX_WATCH_PARTY_MEMBERS),
+      maxMembers:       ENV_MEMBER_CAP || Math.min(maxMembers, await getAppSetting<number>('maxRoomSize') || LIMITS.MAX_WATCH_PARTY_MEMBERS),
       inviteCode,
       isPrivate,
       requireApproval:  isPrivate && requireApproval,
@@ -263,6 +267,9 @@ export class WatchPartyService {
   }
 
   private async getEffectiveMemberCap(room: Pick<IWatchPartyRoomDocument, 'ownerId' | 'maxMembers'>): Promise<number> {
+    // Deployment-wide override (e.g. a self-hosted/local party server): every room holds this
+    // many people regardless of plan or the room's own nominal size.
+    if (ENV_MEMBER_CAP) return ENV_MEMBER_CAP;
     const ownerPlan = await getUserPlan(room.ownerId);
     const planCap = ownerPlan === 'pro' ? LIMITS.MAX_WATCH_PARTY_MEMBERS : LIMITS.MAX_WATCH_PARTY_MEMBERS_FREE;
     return Math.min(room.maxMembers, planCap);

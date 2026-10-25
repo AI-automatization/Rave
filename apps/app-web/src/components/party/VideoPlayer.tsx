@@ -137,6 +137,51 @@ function FatalErrorRetryOverlay({ onRetry }: { onRetry: () => void }) {
   );
 }
 
+// A page link that never turned into a playable video (site unreachable/blocked, no video on the
+// page, VB closed without a pick). Before this the player sat on the cycling loading label forever
+// with nothing that would ever resolve it — real report 2026-10-24 ("haliyam bitta videoni
+// yuklagani yo'q"). Owner gets a way out; viewers get told who can fix it.
+const UNRESOLVED_TIMEOUT_MS = 30_000;
+
+function UnresolvedVideoOverlay({ isOwner, onOpenVirtualBrowser, onPickDifferentVideo }: {
+  isOwner: boolean;
+  onOpenVirtualBrowser?: () => void;
+  onPickDifferentVideo?: () => void;
+}) {
+  const t = useTranslations('party');
+  return (
+    <div className="aspect-video bg-black rounded-xl overflow-hidden flex flex-col items-center justify-center gap-4 px-6 text-center" data-testid="video-unresolved">
+      <p className="text-white text-sm sm:text-base font-semibold">{t('playerUnresolvedTitle')}</p>
+      <p className="text-white/55 text-xs sm:text-sm max-w-md">
+        {isOwner ? t('playerUnresolvedOwnerHint') : t('playerUnresolvedViewerHint')}
+      </p>
+      {isOwner && (
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {onOpenVirtualBrowser && (
+            <button
+              type="button"
+              onClick={() => { trackClick('video:unresolved_open_vb'); onOpenVirtualBrowser(); }}
+              className="h-9 rounded-lg px-4 text-[13px] font-medium text-white cursor-pointer"
+              style={{ background: 'linear-gradient(135deg,#7C3AED,#5B21B6)' }}
+            >
+              {t('playerUnresolvedOpenVB')}
+            </button>
+          )}
+          {onPickDifferentVideo && (
+            <button
+              type="button"
+              onClick={() => { trackClick('video:unresolved_pick_different'); onPickDifferentVideo(); }}
+              className="h-9 rounded-lg px-4 text-[13px] font-medium text-white/80 bg-white/10 hover:bg-white/15 cursor-pointer"
+            >
+              {t('playerPickAnother')}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface Props {
   onPlay: (time: number) => void;
   onPause: (time: number) => void;
@@ -154,6 +199,11 @@ interface Props {
    * opens the same video-candidate picker as RoomHeader's "Это не то видео" menu item, so the
    * owner isn't stuck waiting on a VB session that might not find anything either. */
   onPickDifferentVideo?: () => void;
+  /** Owner-only: opens the virtual-browser panel (URL input) — offered when a page link never
+   * resolved to a playable video, instead of an endless loading spinner. */
+  onOpenVirtualBrowser?: () => void;
+  /** VB reported the source site unreachable — show the "didn't open" state immediately. */
+  sourceUnreachable?: boolean;
   /** True while at least one voice-chat participant is speaking — ducks the video's volume down
    * so the voice call and video audio don't compete. Threaded down to NativeVideoPlayer only;
    * official embeds (YouTube/etc.) don't expose volume control across the iframe boundary. */
@@ -941,6 +991,12 @@ function NativeVideoPlayer({
         startPosition: (startPosition && startPosition > 0.5) ? startPosition : -1,
         maxBufferLength: 8,      // fire canplay after 8s buffered, not default 30s
         maxMaxBufferLength: 30,
+        // hls.js assumes ~500 kbps until it has measured anything, so every movie opened in the
+        // lowest rendition and only crept up later ("videolarni sifatini ko'tara olaylik",
+        // 2026-10-24). Start from a broadband guess and let ABR step DOWN if it's wrong — and
+        // don't cap the rendition to the small in-page player box, fullscreen needs the real one.
+        abrEwmaDefaultEstimate: 5_000_000,
+        capLevelToPlayerSize: false,
       });
       hlsRef.current = hls;
       hls.loadSource(src);
@@ -1321,6 +1377,8 @@ export function VideoPlayer({
   onBufferEnd,
   onFatalError,
   onPickDifferentVideo,
+  onOpenVirtualBrowser,
+  sourceUnreachable,
   duckAudio,
 }: Props) {
   const t = useTranslations('party');
@@ -1387,6 +1445,13 @@ export function VideoPlayer({
   // an own-VB url instead of racing ahead on the raw source page.
   const isOwnVb = isOwnVbMediaUrl(videoUrl);
   const directSrc = isOwnVb ? videoUrl : null;
+  const [unresolved, setUnresolved] = useState(false);
+  useEffect(() => {
+    setUnresolved(false);
+    if (isEmbed || directSrc || !videoUrl) return;
+    const timer = setTimeout(() => setUnresolved(true), UNRESOLVED_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [videoUrl, isEmbed, directSrc]);
 
   // isHls/isDash come from the videoUrl's own extension — proxiedMediaUrl (vbSession.helper.ts)
   // always mints these with a type-matching one (stream.m3u8/.mpd/.mp4), same convention vb-
@@ -1516,12 +1581,24 @@ export function VideoPlayer({
   // headers taints the canvas and throws on toDataURL() — caught and skipped rather than crashing
   // the heartbeat, since most sources (vb-capture/vb-media-proxy, same-origin) work fine and a
   // missing thumbnail for the rest just means no preview, not a broken room.
+  // Self-heal: the owner's video can start without its `play` event reaching the room — owner
+  // autoplay (attemptOwnerAutoplay) fires inside the sync effect's 200ms isRemoteAction window, so
+  // handlePlay swallows it. The owner then plays alone while every friend sits paused at 0.
+  // The heartbeat already sees `video.paused === false`; if the room still says "paused", it
+  // announces the play itself.
+  const roomPlayingRef = useRef(syncState.isPlaying);
+  roomPlayingRef.current = syncState.isPlaying;
+
   useEffect(() => {
     const video = videoRef.current;
     if (!isOwner || isEmbed || !video) return;
     let tick = 0;
     const id = setInterval(() => {
       if (video.paused) return;
+      if (!roomPlayingRef.current && !isRemoteAction.current && !ownerExplicitlyPausedRef.current) {
+        roomPlayingRef.current = true;
+        onPlay(video.currentTime);
+      }
       tick++;
       let frame: string | undefined;
       if (tick % 15 === 0 && video.videoWidth > 0) {
@@ -1540,7 +1617,7 @@ export function VideoPlayer({
       onHeartbeat(video.currentTime, frame);
     }, 1000);
     return () => clearInterval(id);
-  }, [isOwner, isEmbed, onHeartbeat, directSrc]);
+  }, [isOwner, isEmbed, onHeartbeat, onPlay, directSrc]);
 
   // Non-owner drift correction via heartbeat.
   // Tiered: >2s → hard seek; >0.5s → 1.15x rate; >0.2s → 1.08x rate; else restore.
@@ -1822,6 +1899,9 @@ export function VideoPlayer({
           duckAudio={duckAudio}
         />
       );
+    }
+    if (unresolved || sourceUnreachable) {
+      return <UnresolvedVideoOverlay isOwner={isOwner} onOpenVirtualBrowser={onOpenVirtualBrowser} onPickDifferentVideo={onPickDifferentVideo} />;
     }
     return <VideoLoading />;
   }

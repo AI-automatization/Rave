@@ -37,6 +37,10 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
   // Free-tier pool is full — 1-indexed position while waiting, see vbQueue.helper.ts. null means
   // "not queued" (either never asked, already started, or Pro — Pro never queues).
   const [queuePosition, setQueuePosition] = useState<number | null>(null);
+  // Server closed the session because the site itself can't be reached (vbSession.helper.ts,
+  // reason 'unreachable') — the player shows its "didn't open" state right away instead of
+  // waiting out its own timeout.
+  const [unreachable, setUnreachable] = useState(false);
 
   useEffect(() => {
     if (!socket || !isConnected) return;
@@ -58,6 +62,7 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
       setError(null);
       setBlocked(null);
       setQueuePosition(null);
+      setUnreachable(false);
     };
     // setActive(true) here too, not just in onStarted/onRoomJoined — real prod reports
     // 2026-08-07: the VB overlay sometimes never appeared despite the backend session running
@@ -83,7 +88,9 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
       // never auto-commits it to the room (see vbSession.helper.ts) — it's just pushed into the
       // same video-candidate picker the owner already knows from "Это не то видео", waiting for
       // an explicit confirm/reject instead of silently switching everyone's player.
-      if (data?.reason === 'media_found' && data.needsConfirmation) {
+      if (data?.reason === 'unreachable') {
+        setUnreachable(true);
+      } else if (data?.reason === 'media_found' && data.needsConfirmation) {
         onCandidateNeedsConfirmationRef.current?.();
       } else if (data?.reason === 'media_found') {
         toast.success(tRef.current('vbMediaFound'));
@@ -150,5 +157,5 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
     socket?.emit(CLIENT_EVENTS.VB_INPUT, input);
   }, [socket, isOwner]);
 
-  return { frame, active, dimensions, error, blocked, queuePosition, start, stop, sendInput };
+  return { frame, active, dimensions, error, blocked, queuePosition, unreachable, start, stop, sendInput };
 }

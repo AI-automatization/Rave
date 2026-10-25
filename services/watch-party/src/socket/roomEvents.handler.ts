@@ -8,7 +8,7 @@ import { JwtPayload, VideoPlatform } from '@shared/types';
 import { recordWatchHistoryInternal, getUserPlan } from '@shared/utils/serviceClient';
 import { bufferTimeouts, resumeBufferedRoom } from './videoEvents.handler';
 import { stopSession, getSessionSnapshot, hasSession, markSessionCommitted } from '../services/virtualBrowser.service';
-import { startVBForRoom } from './vbSession.helper';
+import { startVBForRoom, upgradeEmbedToDirect } from './vbSession.helper';
 import { enqueueVBRequest } from './vbQueue.helper';
 import { cancelVbDisconnectGrace } from './vbEvents.handler';
 import { isOfficialEmbedHost, isOwnVbUrl, isPrivateUrl } from '../services/extractionClient';
@@ -16,6 +16,8 @@ import { isDomainBlocked } from '../controllers/domain.admin.controller';
 import { isLikelyFaststart } from '../services/faststartCheck.service';
 import { getFaststartFixedFileName } from '../services/faststartRemux.service';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
+import { clearHand } from './handEvents.handler';
+import { recordRoomWatch, recordMediaChange } from '../services/watchStats.service';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -34,6 +36,9 @@ const ROOM_INACTIVITY_MS = 5 * 60 * 1000; // 5 minutes
 // evict someone from room membership — this window lets a genuine reconnect (page reload,
 // socket.io's own retry) land before the departure is treated as real. JOIN_ROOM below cancels
 // the timer on a rejoin; if it fires, the disconnect becomes equivalent to an explicit LEAVE_ROOM.
+// Leave paths below run outside registerRoomEvents' closure — keep the shared client for clearHand.
+let redisForHands: Redis | null = null;
+
 export const disconnectGraceTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const DISCONNECT_GRACE_MS = 20 * 1000;
 
@@ -106,7 +111,10 @@ async function finalizeRoomLeave(
       broadcastTarget.emit(SERVER_EVENTS.MEMBER_LEFT, { userId });
     }
 
-    if (!result.closed) scheduleRoomEmptyCheck(io, watchPartyService, roomId);
+    if (!result.closed) {
+      if (redisForHands) void clearHand(io, redisForHands, roomId, userId);
+      scheduleRoomEmptyCheck(io, watchPartyService, roomId);
+    }
   } catch (error) {
     logger.error('Failed to finalize room leave', { userId, roomId, error });
   }
@@ -136,6 +144,7 @@ export const registerRoomEvents = (
   watchPartyService: WatchPartyService,
   redis: Redis,
 ): void => {
+  redisForHands = redis;
   const { userId } = authSocket.user;
 
   socket.on(CLIENT_EVENTS.JOIN_ROOM, async (data: { roomId: string }) => {
@@ -197,6 +206,7 @@ export const registerRoomEvents = (
 
       socket.emit(SERVER_EVENTS.ROOM_JOINED, { room, syncState, vb });
       socket.to(data.roomId).emit(SERVER_EVENTS.MEMBER_JOINED, { userId });
+      void recordRoomWatch(userId, room);
 
       logger.info('Socket joined room', { userId, roomId: data.roomId });
     } catch (error) {
@@ -281,6 +291,12 @@ export const registerRoomEvents = (
       logger.warn('CHANGE_MEDIA rejected — blocked domain', { roomId, userId, url: data.videoUrl });
       return;
     }
+
+    // History/top: only the owner can change media (enforced in updateRoomMedia below) — check
+    // here too so a rejected attempt is never counted.
+    void watchPartyService.getRoom(roomId)
+      .then(async (r) => { if (r.ownerId === userId) await recordMediaChange(roomId, data.videoUrl, data.videoTitle ?? null, data.videoPlatform ?? null); })
+      .catch(() => {});
 
     // Single extraction mechanism (2026-08-10, Saidazim's call): content-service's pipeline
     // (tryExtract/fetchCandidates, extractionClient.ts) is no longer invoked from here — VB is the
@@ -381,6 +397,8 @@ export const registerRoomEvents = (
         });
         io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'candidate_confirmed' });
       }
+
+      if (isOfficialEmbedHost(data.videoUrl)) upgradeEmbedToDirect(io, redis, roomId, userId, data.videoUrl);
 
       logger.info('Room media changed', { roomId, userId, videoUrl: videoUrlToUse });
     } catch (error) {

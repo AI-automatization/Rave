@@ -23,6 +23,12 @@ interface ReplyToPayload {
 }
 
 const MAX_MESSAGE_LEN = 500;
+// Clients (web React, mobile RN <Text>) render chat as plain text, so HTML-escaping here only made
+// "<3" or "1 < 2" arrive as "&lt;3". Strip tags (defence in depth) but leave plain characters as-is.
+// Only real tags (`<` + letter or `</`) are removed — "<3" and "1 < 2" are not tags.
+const SCRIPT_BLOCK = /<(script|style)\b[\s\S]*?<\/\1\s*>/gi;
+const HTML_TAG = /<\/?[a-z][^>]*>/gi;
+const stripTags = (raw: string): string => raw.replace(SCRIPT_BLOCK, '').replace(HTML_TAG, '');
 const MAX_REPLY_TEXT_LEN = 120;
 const MAX_ID_LEN = 64;
 const MAX_NAME_LEN = 64;
@@ -89,7 +95,7 @@ export const registerChatEvents = (
       socket.emit('error', { message: 'Rate limit: sekundiga 10 ta xabar' });
       return;
     }
-    const safeMessage = xss(String(data?.message ?? '').slice(0, MAX_MESSAGE_LEN)).trim();
+    const safeMessage = stripTags(String(data?.message ?? '').slice(0, MAX_MESSAGE_LEN)).trim();
     if (!safeMessage) return;
 
     // ONE payload object for both emits. The previous version built two literals with two separate

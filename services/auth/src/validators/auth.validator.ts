@@ -13,6 +13,10 @@ export const registerSchema = Joi.object({
   }),
 });
 
+export const guestSchema = Joi.object({
+  name: Joi.string().trim().min(1).max(30).required(),
+});
+
 export const loginSchema = Joi.object({
   email: Joi.string().email().lowercase().trim().required(),
   password: Joi.string().required(),

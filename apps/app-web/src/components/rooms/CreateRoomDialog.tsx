@@ -282,7 +282,7 @@ interface VideoSearchItem {
   title: string;
   thumbnail: string;
   url: string;
-  platform: 'youtube' | 'rutube' | 'vk' | 'dailymotion' | 'peertube' | 'live';
+  platform: 'youtube' | 'rutube' | 'vk' | 'dailymotion' | 'peertube' | 'live' | 'archive';
   duration?: number;
   viewCount?: number;
 }
@@ -456,6 +456,7 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
   /* ── Create room ────────────────────────────────────── */
   async function handleCreate() {
     trackClick('create_room:submit', { isPrivate });
+    const pickedUrl = videoUrl && !/^https?:\/\//i.test(videoUrl) ? `https://${videoUrl}` : videoUrl;
     try {
       const backendPlatform = activePlatform?.id
         ? (PLATFORM_TO_BACKEND[activePlatform.id] ?? 'other')
@@ -497,7 +498,9 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
         if (roomId) {
           onOpenChange(false);
           toast.info(t('alreadyHaveRoom'));
-          router.push(`/room/${roomId}`);
+          // Bring the movie they just picked along — otherwise the old room reopened with its
+          // old video and the new choice was silently lost.
+          router.push(pickedUrl ? `/room/${roomId}?play=${encodeURIComponent(pickedUrl)}` : `/room/${roomId}`);
           return;
         }
       }

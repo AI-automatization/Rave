@@ -298,6 +298,10 @@
     "topRated": "Eng yuqori reyting",
     "recent": "Yangi qo'shilganlar",
     "seeAll": "Hammasi",
+    "watchStartError": "Xona ochilmadi, qayta urinib ko‘ring",
+    "weeklyViewers": "{count} kishi ko‘rdi",
+    "watchHistory": "🕘 Ko‘rganlarim",
+    "weeklyTop": "🔥 Haftaning top kinolari",
     "recentRooms": "So'nggi xonalar",
     "rejoin": "Qaytish",
     "room": "Xona",
@@ -671,6 +675,15 @@
     "playerLoadingCycle9": "Video sifatini tekshirmoqdamiz",
     "playerLoadingCycle10": "Ulanish o'rnatmoqdamiz",
     "playerLoadingCycle11": "Server bilan sinxronlashtirmoqdamiz",
+    "playerTapForSound": "Ovozni yoqish uchun bosing",
+    "handRaisedToast": "{name} qo‘l ko‘tardi ✋",
+    "handLowerFor": "Qo‘lini tushirish",
+    "handLower": "Qo‘lni tushirish",
+    "handRaise": "Qo‘l ko‘tarish",
+    "playerUnresolvedTitle": "Bu havoladan video ochilmadi",
+    "playerUnresolvedOwnerHint": "Sayt bloklangan yoki sahifada video yo‘q. Virtual brauzerda boshqa havolani oching yoki boshqa video tanlang.",
+    "playerUnresolvedViewerHint": "Xona egasi boshqa video tanlashini kuting.",
+    "playerUnresolvedOpenVB": "Virtual brauzerda ochish",
     "playerLoadingCycle12": "Formatni aniqlamoqdamiz",
     "playerLoadingCycle13": "Eng yaxshi oqimni tanlamoqdamiz",
     "playerTapToPlay": "O'ynatish uchun bosing",
@@ -859,5 +872,15 @@
     "sendError": "Xabar yuborilmadi",
     "unavailableTitle": "Qo'llab-quvvatlash hozir mavjud emas",
     "unavailableHint": "Xizmatga ulanib bo'lmadi. Keyinroq urinib ko'ring yoki support@wewatch.uz ga yozing."
+  },
+  "guest": {
+    "title": "Do'stingiz sizni kino ko'rishga chaqirdi",
+    "subtitle": "Ismingizni yozing — ro'yxatdan o'tish shart emas",
+    "nameLabel": "Ismingiz",
+    "namePlaceholder": "Masalan: Vali",
+    "submit": "Xonaga kirish",
+    "haveAccount": "Akkauntingiz bormi?",
+    "login": "Kirish",
+    "error": "Kirib bo'lmadi, qayta urinib ko'ring"
   }
 }

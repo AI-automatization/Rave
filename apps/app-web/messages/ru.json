@@ -298,6 +298,10 @@
     "topRated": "Высокий рейтинг",
     "recent": "Новые поступления",
     "seeAll": "Все",
+    "watchStartError": "Не удалось открыть комнату, попробуйте ещё раз",
+    "weeklyViewers": "Смотрели: {count}",
+    "watchHistory": "🕘 История",
+    "weeklyTop": "🔥 Топ недели",
     "recentRooms": "Недавние комнаты",
     "rejoin": "Вернуться",
     "room": "Комната",
@@ -671,6 +675,15 @@
     "playerLoadingCycle9": "Проверяем качество видео",
     "playerLoadingCycle10": "Устанавливаем соединение",
     "playerLoadingCycle11": "Синхронизируем с сервером",
+    "playerTapForSound": "Нажмите, чтобы включить звук",
+    "handRaisedToast": "{name} поднял(а) руку ✋",
+    "handLowerFor": "Опустить руку участнику",
+    "handLower": "Опустить руку",
+    "handRaise": "Поднять руку",
+    "playerUnresolvedTitle": "Видео по этой ссылке не открылось",
+    "playerUnresolvedOwnerHint": "Сайт недоступен или на странице нет видео. Откройте другую ссылку в виртуальном браузере или выберите другое видео.",
+    "playerUnresolvedViewerHint": "Подождите, пока владелец комнаты выберет другое видео.",
+    "playerUnresolvedOpenVB": "Открыть в виртуальном браузере",
     "playerLoadingCycle12": "Определяем формат",
     "playerLoadingCycle13": "Подбираем лучший поток",
     "playerTapToPlay": "Нажмите чтобы воспроизвести",
@@ -859,5 +872,15 @@
     "sendError": "Сообщение не отправлено",
     "unavailableTitle": "Поддержка сейчас недоступна",
     "unavailableHint": "Не удалось подключиться к сервису. Попробуйте позже или напишите на support@wewatch.uz."
+  },
+  "guest": {
+    "title": "Друг зовёт вас смотреть вместе",
+    "subtitle": "Введите имя — регистрация не нужна",
+    "nameLabel": "Ваше имя",
+    "namePlaceholder": "Например: Vali",
+    "submit": "Войти в комнату",
+    "haveAccount": "Уже есть аккаунт?",
+    "login": "Войти",
+    "error": "Не удалось войти, попробуйте ещё раз"
   }
 }

@@ -20,6 +20,8 @@ export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient):
 
   // ── Video URL Extraction ──────────────────────────────────
   router.post('/extract', verifyToken, notBlocked, apiRateLimiter, videoExtractController.extract);
+  // Internal twin of /extract for watch-party's direct-resolve fast path (no user token there).
+  router.post('/internal/extract', requireInternalSecret, videoExtractController.extract);
   router.post('/extract-candidates', verifyToken, notBlocked, apiRateLimiter, videoExtractController.extractCandidates);
 
   // ── HLS Reverse Proxy ─────────────────────────────────────

@@ -14,7 +14,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2, VolumeX } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 
 interface Props {
@@ -30,6 +30,8 @@ interface Props {
 interface YTPlayer {
   playVideo(): void;
   pauseVideo(): void;
+  mute(): void;
+  unMute(): void;
   seekTo(seconds: number, allowSeekAhead: boolean): void;
   getCurrentTime(): number;
   getPlayerState(): number;
@@ -112,6 +114,12 @@ export function YouTubePlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHea
   // re-broadcast (echo loop). Mirrors isRemoteAction in the native path.
   const isRemoteAction = useRef(false);
   const lastPolledTime = useRef(0);
+  // Phones (iOS Safari above all) refuse a remote playVideo() with sound until the viewer has
+  // touched the page — the owner pressed play and the phone just sat there (real report
+  // 2026-10-24: "laptopdan start bosdim, telefonda ko'rsatmadi"). Muted playback IS allowed, so
+  // the viewer falls back to it and gets a one-tap "turn sound on" button.
+  const [mutedFallback, setMutedFallback] = useState(false);
+  const mutedFallbackRef = useRef(false);
 
   // Keep the latest callbacks/flags in refs so the player-init effect can stay mount-once.
   const isOwnerRef = useRef(isOwner);   isOwnerRef.current = isOwner;
@@ -181,6 +189,31 @@ export function YouTubePlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHea
     return () => clearInterval(id);
   }, [ready, isOwner]);
 
+  // Viewer play that the browser may silently block: re-check shortly after and fall back to muted.
+  const viewerPlay = (p: YTPlayer) => {
+    p.playVideo();
+    if (mutedFallbackRef.current) return;
+    setTimeout(() => {
+      const YTS = window.YT?.PlayerState;
+      const state = p.getPlayerState();
+      if (state === (YTS?.PLAYING ?? 1) || state === (YTS?.BUFFERING ?? 3)) return;
+      if (!useWatchPartyStore.getState().syncState.isPlaying) return;
+      mutedFallbackRef.current = true;
+      setMutedFallback(true);
+      p.mute();
+      p.playVideo();
+    }, 1500);
+  };
+
+  const unmute = () => {
+    const p = playerRef.current;
+    if (!p) return;
+    p.unMute();
+    if (useWatchPartyStore.getState().syncState.isPlaying) p.playVideo();
+    mutedFallbackRef.current = false;
+    setMutedFallback(false);
+  };
+
   // ── Viewer: apply incoming syncState (play/pause/seek) ────────────────────────
   useEffect(() => {
     const p = playerRef.current;
@@ -196,7 +229,7 @@ export function YouTubePlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHea
     if (Math.abs(p.getCurrentTime() - target) > 0.5) {
       p.seekTo(target, true);
     }
-    if (syncState.isPlaying) p.playVideo();
+    if (syncState.isPlaying) viewerPlay(p);
     else p.pauseVideo();
 
     const clear = setTimeout(() => { isRemoteAction.current = false; }, 400);
@@ -223,7 +256,7 @@ export function YouTubePlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHea
     const playerIsPlaying = p.getPlayerState() === (window.YT?.PlayerState.PLAYING ?? 1);
     if (playerIsPlaying !== syncState.isPlaying) {
       isRemoteAction.current = true;
-      if (syncState.isPlaying) p.playVideo();
+      if (syncState.isPlaying) viewerPlay(p);
       else p.pauseVideo();
       setTimeout(() => { isRemoteAction.current = false; }, 400);
     }
@@ -252,6 +285,17 @@ export function YouTubePlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHea
         <div className="absolute inset-0 flex items-center justify-center bg-[#0A0A12]/80 pointer-events-none">
           <Loader2 size={28} className="animate-spin text-violet-400" />
         </div>
+      )}
+      {mutedFallback && !isOwner && !error && (
+        <button
+          type="button"
+          onClick={unmute}
+          data-testid="yt-unmute"
+          className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 rounded-full bg-black/75 px-4 py-2 text-[13px] font-medium text-white backdrop-blur-sm cursor-pointer"
+        >
+          <VolumeX size={16} aria-hidden="true" />
+          {t('playerTapForSound')}
+        </button>
       )}
       {error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center bg-[#0A0A12]">

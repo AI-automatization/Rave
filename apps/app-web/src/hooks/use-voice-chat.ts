@@ -341,7 +341,10 @@ export function useVoiceChat(socket: Socket | null, active: boolean, currentUser
       socket?.emit(CLIENT_EVENTS.VOICE_JOIN);
     } catch (err) {
       setIsLoading(false);
-      setErrorMsg(err instanceof Error ? err.message : 'Mikrofonga ruxsat berilmadi');
+      // Raw DOMException text ("Permission denied", "Requested device not found") is English
+      // browser jargon — show a plain message instead.
+      const name = (err as DOMException)?.name;
+      setErrorMsg(name === 'NotFoundError' ? 'Mikrofon topilmadi' : 'Mikrofonga ruxsat berilmadi');
     }
   }, [socket, isMuted, startSpeakingDetection]);
 
@@ -385,7 +388,17 @@ export function useVoiceChat(socket: Socket | null, active: boolean, currentUser
     if (!active || !socket) return;
     if (autoJoinedRef.current || isJoined || isLoading) return;
     autoJoinedRef.current = true;
-    void joinVoice();
+    // Only auto-join when the mic is ALREADY allowed. Otherwise entering a room immediately threw
+    // a browser permission prompt at a friend who just came to watch (and a red error in the chat
+    // if they declined) — they can still join voice any time with the mic button.
+    void (async () => {
+      try {
+        const status = await navigator.permissions?.query({ name: 'microphone' as PermissionName });
+        if (status?.state === 'granted') void joinVoice();
+      } catch {
+        // Permissions API without 'microphone' support — stay manual, no surprise prompt.
+      }
+    })();
   }, [active, socket, isJoined, isLoading, joinVoice]);
 
   return {
