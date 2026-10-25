@@ -137,7 +137,7 @@ export async function getMovieState(roomId: string): Promise<VBMovieState | null
   for (const frame of s.page.frames()) {
     try {
       const st = await frame.evaluate(() => {
-        const fn = (window as unknown as { __wewatchMovieState?: () => VBMovieState | null }).__wewatchMovieState;
+        const fn = (globalThis as unknown as { __wewatchMovieState?: () => VBMovieState | null }).__wewatchMovieState;
         return typeof fn === 'function' ? fn() : null;
       });
       if (st) return st;
@@ -153,7 +153,7 @@ export async function controlMovie(roomId: string, action: VBMovieAction, time?:
   for (const frame of s.page.frames()) {
     try {
       const done = await frame.evaluate(([a, t]) => {
-        const fn = (window as unknown as { __wewatchMovieControl?: (a: string, t?: number) => boolean }).__wewatchMovieControl;
+        const fn = (globalThis as unknown as { __wewatchMovieControl?: (a: string, t?: number) => boolean }).__wewatchMovieControl;
         return typeof fn === 'function' ? fn(a as string, t as number | undefined) : false;
       }, [action, time] as const);
       if (done) return true;
