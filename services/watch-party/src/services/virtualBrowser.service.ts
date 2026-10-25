@@ -8,6 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium, Browser, BrowserContext, Page, CDPSession } from 'playwright-chromium';
+import { VB_FULLSCREEN_SCRIPT } from './vbFullscreen.script';
 import { pushAudioChunk, stopAudio, useSystemAudio, VB_AUDIO_TAP_SCRIPT, MAX_AUDIO_CHUNK_BASE64_LEN } from './vbAudio.service';
 import { logger } from '@shared/utils/logger';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
@@ -916,6 +917,8 @@ export async function startSession(
         pushAudioChunk(roomId, key, first === true, Buffer.from(base64Chunk, 'base64'));
       });
       await page.addInitScript(VB_AUDIO_TAP_SCRIPT);
+      // The movie fills the VB viewport instead of sitting small among the site's page clutter.
+      await page.addInitScript(VB_FULLSCREEN_SCRIPT);
       // Real prod finding 2026-08-16 (uzmovi.net, live-tested): sites using videojs-contrib-ads +
       // a VAST plugin (videojsx.vast.js) play the pre-/mid-roll ad creative through the SAME
       // Video.js instance and, on at least this site, the SAME MediaSource/SourceBuffer pipeline

@@ -4,11 +4,14 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Volume2, VolumeX } from 'lucide-react';
 
-// How far behind the live edge the audio may drift before we jump forward — the screencast frames
-// are ~0.5s behind real time, so keep the sound close to that instead of piling up buffer.
-const MAX_LAG_S = 1.2;
-const LIVE_EDGE_S = 0.3;
-const LAG_CHECK_MS = 2000;
+// Live MP3 arrives in ~250ms bursts with network/encoder jitter. Keep ~1s of cushion so the
+// player never runs dry (that was the choppy sound), drift back toward it by playing slightly
+// faster instead of seeking (a seek is an audible gap), and only jump when far behind.
+const TARGET_LAG_S = 1.0;
+const CATCH_UP_LAG_S = 2.0;
+const JUMP_LAG_S = 5.0;
+const CATCH_UP_RATE = 1.06;
+const LAG_CHECK_MS = 1000;
 const RECONNECT_MS = 1500;
 
 /**
@@ -29,8 +32,15 @@ export function VirtualBrowserAudio({ src }: { src: string }) {
     el.play().then(() => setNeedsTap(false)).catch(() => setNeedsTap(true));
     const lag = setInterval(() => {
       if (el.buffered.length === 0) return;
-      const end = el.buffered.end(el.buffered.length - 1);
-      if (end - el.currentTime > MAX_LAG_S) el.currentTime = end - LIVE_EDGE_S;
+      const lagS = el.buffered.end(el.buffered.length - 1) - el.currentTime;
+      if (lagS > JUMP_LAG_S) {
+        el.currentTime = el.buffered.end(el.buffered.length - 1) - TARGET_LAG_S;
+        el.playbackRate = 1;
+      } else if (lagS > CATCH_UP_LAG_S) {
+        el.playbackRate = CATCH_UP_RATE;
+      } else if (lagS <= TARGET_LAG_S) {
+        el.playbackRate = 1;
+      }
     }, LAG_CHECK_MS);
     let retry: ReturnType<typeof setTimeout> | null = null;
     const reconnect = () => {
