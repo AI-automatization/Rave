@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { MessageCircle, Users as UsersIcon, ListVideo, X, ChevronRight, Loader2, Play, Plus, Globe } from 'lucide-react';
+import { MessageCircle, Users as UsersIcon, ListVideo, X, ChevronRight, Loader2, Play, Plus, Globe, Link2 } from 'lucide-react';
 import type { IChatReplyTo, VideoCandidate } from '@/types';
 import { useWatchParty } from '@/hooks/use-watch-party';
 import { useVirtualBrowser } from '@/hooks/use-virtual-browser';
@@ -20,6 +20,7 @@ import { VideoCandidatePicker } from '@/components/party/VideoCandidatePicker';
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
 import { VoiceStrip } from '@/components/party/VoiceStrip';
 import { RoomPasswordDialog } from '@/components/party/RoomPasswordDialog';
+import { ChangeVideoDialog } from '@/components/party/ChangeVideoDialog';
 import { useVoiceChat } from '@/hooks/use-voice-chat';
 import { useSocket } from '@/hooks/use-socket';
 import { roomsApi } from '@/lib/api/rooms.api';
@@ -413,6 +414,9 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   // Video-candidate picker (T-S189 follow-up) — owner-only, manually triggered from the "⋮" menu.
   const [candidatePickerOpen, setCandidatePickerOpen] = useState(false);
+  // Owner switching the room's video after creation (button under the player + header menu).
+  const [changeVideoOpen, setChangeVideoOpen] = useState(false);
+  const openChangeVideo = useCallback(() => setChangeVideoOpen(true), []);
   const setRoom = useWatchPartyStore((s) => s.setRoom);
   const reset = useWatchPartyStore((s) => s.reset);
   const room = useWatchPartyStore((s) => s.room);
@@ -561,7 +565,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
         <RoomHeader
           renameRoom={renameRoom}
           onPickDifferentVideo={() => setCandidatePickerOpen(true)}
-          onChangeSource={() => setRightTab('playlist')}
+          onChangeSource={openChangeVideo}
         />
 
         <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
@@ -623,15 +627,28 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
             )}
             </div>
 
-            {isOwner && !showVB && (
-              <button
-                onClick={() => { trackClick('room:open_vb_panel'); setShowVBPanel(true); }}
-                type="button"
-                className="ww-btn-subtle flex h-9 cursor-pointer items-center gap-1.5 self-start rounded-[var(--ww-r-sm)] px-3 text-[12.5px] font-medium text-[var(--ww-text-2)]"
-              >
-                <Globe size={14} aria-hidden="true" />
-                {t('virtualBrowser')}
-              </button>
+            {isOwner && (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => { trackClick('room:change_video'); openChangeVideo(); }}
+                  type="button"
+                  data-testid="room-change-video"
+                  className="ww-btn-subtle flex h-9 cursor-pointer items-center gap-1.5 rounded-[var(--ww-r-sm)] px-3 text-[12.5px] font-medium text-[var(--ww-text-2)]"
+                >
+                  <Link2 size={14} aria-hidden="true" />
+                  {t('changeVideo')}
+                </button>
+                {!showVB && (
+                  <button
+                    onClick={() => { trackClick('room:open_vb_panel'); setShowVBPanel(true); }}
+                    type="button"
+                    className="ww-btn-subtle flex h-9 cursor-pointer items-center gap-1.5 rounded-[var(--ww-r-sm)] px-3 text-[12.5px] font-medium text-[var(--ww-text-2)]"
+                  >
+                    <Globe size={14} aria-hidden="true" />
+                    {t('virtualBrowser')}
+                  </button>
+                )}
+              </div>
             )}
 
             <EmojiReactions
@@ -675,6 +692,17 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
 
 
       <UserProfileModal userId={profileUserId} onClose={() => setProfileUserId(null)} />
+
+      {isOwner && (
+        <ChangeVideoDialog
+          open={changeVideoOpen}
+          onOpenChange={setChangeVideoOpen}
+          onSubmit={async (url) => {
+            const r = await resolveLinkPlatform(url, detectVideoPlatform(url));
+            sendMediaChange(r.url, undefined, r.platform);
+          }}
+        />
+      )}
 
       {isOwner && (
         <VideoCandidatePicker

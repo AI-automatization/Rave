@@ -716,6 +716,8 @@
     "playerOpeningVB": "Открываем виртуальный браузер...",
     "pickDifferentVideo": "Это не то видео",
     "changeSource": "Сменить источник",
+    "changeVideo": "Сменить видео",
+    "changeVideoDesc": "Вставьте ссылку — комната переключится на неё у всех.",
     "videoCandidatesTitle": "Выберите видео",
     "videoCandidatesCycleHint": "Просмотрите найденные варианты по одному",
     "videoCandidatesGridHint": "Выберите видео из списка",

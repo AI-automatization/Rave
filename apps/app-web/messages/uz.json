@@ -716,6 +716,8 @@
     "playerOpeningVB": "Virtual brauzer ochilmoqda...",
     "pickDifferentVideo": "Bu noto'g'ri video",
     "changeSource": "Manbani almashtirish",
+    "changeVideo": "Videoni almashtirish",
+    "changeVideoDesc": "Havolani qo'ying — xona hamma uchun shunga o'tadi.",
     "videoCandidatesTitle": "Videoni tanlang",
     "videoCandidatesCycleHint": "Topilgan variantlarni birma-bir ko'rib chiqing",
     "videoCandidatesGridHint": "Ro'yxatdan videoni tanlang",

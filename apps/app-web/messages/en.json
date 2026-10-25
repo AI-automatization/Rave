@@ -755,6 +755,8 @@
     "playerOpeningVB": "Opening virtual browser...",
     "pickDifferentVideo": "This isn't the right video",
     "changeSource": "Change source",
+    "changeVideo": "Change video",
+    "changeVideoDesc": "Paste a link — the room switches to it for everyone.",
     "videoCandidatesTitle": "Choose the video",
     "videoCandidatesCycleHint": "Review the candidates found, one at a time",
     "videoCandidatesGridHint": "Pick a video from the list",
