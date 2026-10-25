@@ -1,7 +1,9 @@
 // Movie sites show their player as a small box inside the page (header, ads, comments around it),
 // so the VB screencast showed the film letterboxed in page clutter. This init script (every frame
 // of a VB page, see virtualBrowser.service.ts) blows the playing movie's player up to the whole
-// viewport with CSS. The Fullscreen API can't be used: it needs a user gesture the VB page
+// viewport with CSS: the player box keeps its own pixel size and is scaled (transform) to fit, so
+// the site's own play button / control bar stay laid out exactly as the site's JS placed them
+// (resizing the box instead left them off-center and off-screen — live test 2026-10-26). The Fullscreen API can't be used: it needs a user gesture the VB page
 // rarely has, and CSS works the same in any frame.
 //
 // Rules: only a real movie (not looping, >= 90s or live, big enough on screen, no videojs ad
@@ -20,13 +22,17 @@ export const VB_FULLSCREEN_SCRIPT = /* js */ `
     if (document.getElementById('__wewatch_full_style')) return;
     var s = document.createElement('style');
     s.id = '__wewatch_full_style';
+    var fixed = 'position:fixed!important;margin:0!important;max-width:none!important;max-height:none!important;' +
+      'min-width:0!important;min-height:0!important;z-index:2147483647!important;';
     s.textContent =
-      '[' + ATTR + ']{position:fixed!important;left:0!important;top:0!important;right:0!important;bottom:0!important;' +
-      'width:100vw!important;height:100vh!important;max-width:none!important;max-height:none!important;min-width:0!important;' +
-      'min-height:0!important;margin:0!important;padding:0!important;border:0!important;transform:none!important;' +
-      'z-index:2147483647!important;background:#000!important;}' +
-      'video[' + ATTR + '],[' + ATTR + '] video{width:100%!important;height:100%!important;max-width:none!important;' +
-      'max-height:none!important;object-fit:contain!important;}' +
+      // Player box in this document: frozen at its own size, scaled to fit, centered.
+      '[' + ATTR + '="scale"]{' + fixed + 'left:var(--ww-x)!important;top:var(--ww-y)!important;right:auto!important;' +
+      'bottom:auto!important;width:var(--ww-w)!important;height:var(--ww-h)!important;' +
+      'transform:scale(var(--ww-k))!important;transform-origin:0 0!important;}' +
+      // An iframe holding the player: really resized, so the frame's own page lays out for it.
+      '[' + ATTR + '="fill"]{' + fixed + 'left:0!important;top:0!important;width:100vw!important;height:100vh!important;' +
+      'transform:none!important;border:0!important;}' +
+      '#__wewatch_full_bg{position:fixed;left:0;top:0;width:100vw;height:100vh;background:#000;z-index:2147483646;}' +
       // Ancestors: a transform/filter/contain makes position:fixed relative to them, and their own
       // z-index would keep the player under the site header — neutralize while maximized.
       '[' + ANC + ']{transform:none!important;filter:none!important;perspective:none!important;contain:none!important;' +
@@ -47,10 +53,33 @@ export const VB_FULLSCREEN_SCRIPT = /* js */ `
     return node;
   }
 
-  function apply(el) {
+  // Size of the box before it was taken out of the page — the scale is always worked out from it.
+  var boxW = 0, boxH = 0;
+
+  function fit(el) {
+    var vw = window.innerWidth, vh = window.innerHeight;
+    var k = Math.min(vw / boxW, vh / boxH);
+    el.style.setProperty('--ww-k', String(k));
+    el.style.setProperty('--ww-w', boxW + 'px');
+    el.style.setProperty('--ww-h', boxH + 'px');
+    el.style.setProperty('--ww-x', Math.round((vw - boxW * k) / 2) + 'px');
+    el.style.setProperty('--ww-y', Math.round((vh - boxH * k) / 2) + 'px');
+  }
+
+  function apply(el, mode) {
     ensureStyle();
-    el.setAttribute(ATTR, '');
+    if (mode === 'scale') {
+      var r = el.getBoundingClientRect();
+      boxW = Math.max(1, r.width); boxH = Math.max(1, r.height);
+      fit(el);
+    }
+    el.setAttribute(ATTR, mode);
     for (var a = el.parentElement; a; a = a.parentElement) a.setAttribute(ANC, '');
+    if (!document.getElementById('__wewatch_full_bg')) {
+      var bg = document.createElement('div');
+      bg.id = '__wewatch_full_bg';
+      (document.body || document.documentElement).appendChild(bg);
+    }
     if (window.parent !== window) {
       try { window.parent.postMessage({ type: MSG, on: true }, '*'); } catch (e) { /* detached */ }
     }
@@ -58,7 +87,13 @@ export const VB_FULLSCREEN_SCRIPT = /* js */ `
 
   function clear() {
     var marked = document.querySelectorAll('[' + ATTR + '],[' + ANC + ']');
-    for (var i = 0; i < marked.length; i++) { marked[i].removeAttribute(ATTR); marked[i].removeAttribute(ANC); }
+    for (var i = 0; i < marked.length; i++) {
+      marked[i].removeAttribute(ATTR);
+      marked[i].removeAttribute(ANC);
+      ['--ww-k', '--ww-w', '--ww-h', '--ww-x', '--ww-y'].forEach(function (v) { marked[i].style.removeProperty(v); });
+    }
+    var bg = document.getElementById('__wewatch_full_bg');
+    if (bg) bg.remove();
     current = null; box = null; childFrame = null;
     if (window.parent !== window) {
       try { window.parent.postMessage({ type: MSG, on: false }, '*'); } catch (e) { /* detached */ }
@@ -84,7 +119,7 @@ export const VB_FULLSCREEN_SCRIPT = /* js */ `
     clear();
     current = v;
     box = playerBox(v);
-    apply(box);
+    apply(box, 'scale');
   }
 
   document.addEventListener('playing', function (e) {
@@ -104,6 +139,8 @@ export const VB_FULLSCREEN_SCRIPT = /* js */ `
     clear();
   }, true);
   setInterval(function () { if (current && !current.isConnected) clear(); }, CHECK_MS);
+  // An iframe player's window grows when the parent frame maximizes the iframe — refit.
+  window.addEventListener('resize', function () { if (box) fit(box); });
 
   // A child frame maximized its player — maximize that iframe here (and on up to the top page).
   window.addEventListener('message', function (e) {
@@ -121,7 +158,7 @@ export const VB_FULLSCREEN_SCRIPT = /* js */ `
         if (childFrame === frames[i]) return;
         clear();
         childFrame = frames[i];
-        apply(frames[i]);
+        apply(frames[i], 'fill');
       } else if (childFrame === frames[i]) {
         clear();
       }
