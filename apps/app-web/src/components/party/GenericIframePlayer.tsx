@@ -47,10 +47,10 @@ export function GenericIframePlayer({ url, isOwner, onOpenInVirtualBrowser }: Pr
             // arbitrary third-party page the owner pasted, shown to every member, and the one thing
             // it must not do is navigate or hijack the WeWatch tab itself (phishing). `allow-top-
             // navigation` is therefore omitted. Everything video sites actually need is granted
-            // (scripts, same-origin so their own cookies/storage work, forms, popups for logins and
-            // player ads, presentation, modals). allow-scripts + allow-same-origin is only unsafe
+            // (scripts, same-origin so their own cookies/storage work, forms, popups for logins,
+            // presentation, modals; popups stay sandboxed — no escape for ad pages). allow-scripts + allow-same-origin is only unsafe
             // for SAME-origin content; this frame is always cross-origin.
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-modals"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-modals"
             onLoad={() => setLoaded(true)}
           />
         )}

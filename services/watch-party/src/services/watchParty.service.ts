@@ -11,7 +11,7 @@ import { getAppSetting } from '@shared/utils/appSettings';
 import { WatchPartyPlaylistService } from './watchPartyPlaylist.service';
 import { WatchPartyMembersService } from './watchPartyMembers.service';
 import { hasSession } from './virtualBrowser.service';
-import { isPrivateUrl } from './extractionClient';
+import { isPrivateUrl, isInsecureWebviewUrl } from './extractionClient';
 import { isDomainBlocked } from '../controllers/domain.admin.controller';
 
 // WATCH_PARTY_MEMBER_CAP — see getEffectiveMemberCap(). Unset = plan-based caps as before.
@@ -129,6 +129,9 @@ export class WatchPartyService {
       // maintaining a second copy that can silently drift.
       if (isPrivateUrl(videoUrl)) {
         throw new BadRequestError('videoUrl points to a private or internal address');
+      }
+      if (isInsecureWebviewUrl(videoPlatform, videoUrl)) {
+        throw new BadRequestError('webview media must use https://');
       }
       // IP-locked CDN URLs cannot be played on mobile clients — store original platform URL
       if (/googlevideo\.com/i.test(videoUrl)) {

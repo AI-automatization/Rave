@@ -394,7 +394,10 @@ function RoomSidePanel({
           <PlaylistPanel
             roomId={roomId}
             isOwner={isOwner}
-            onPlayNow={async (videoUrl, videoPlatform) => sendMediaChange(videoUrl, undefined, await resolveLinkPlatform(videoUrl, videoPlatform))}
+            onPlayNow={async (videoUrl, videoPlatform) => {
+              const r = await resolveLinkPlatform(videoUrl, videoPlatform);
+              sendMediaChange(r.url, undefined, r.platform);
+            }}
           />
         )}
       </div>
@@ -438,7 +441,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
     const play = searchParams.get('play');
     if (!play || playHandledRef.current || !roomJoined || !isOwner) return;
     playHandledRef.current = true;
-    void resolveLinkPlatform(play, detectVideoPlatform(play)).then((platform) => sendMediaChange(play, undefined, platform));
+    void resolveLinkPlatform(play, detectVideoPlatform(play)).then((r) => sendMediaChange(r.url, undefined, r.platform));
     window.history.replaceState(null, '', window.location.pathname);
   }, [searchParams, roomJoined, isOwner, sendMediaChange]);
 

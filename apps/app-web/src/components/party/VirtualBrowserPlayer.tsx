@@ -76,16 +76,20 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
   // large (or letterboxed) the <img> is rendered on screen. Takes raw coordinates rather than a
   // React.MouseEvent so the touch handlers below can reuse it — a TouchEvent has no clientX of its
   // own, only per-Touch ones.
-  const clientToViewport = useCallback((clientX: number, clientY: number): { x: number; y: number } | null => {
+  const clientToViewport = useCallback((clientX: number, clientY: number, strict = false): { x: number; y: number } | null => {
     const scale = getScale();
     if (!imgRef.current || !dimensions || !scale) return null;
     const rect = imgRef.current.getBoundingClientRect();
     const offsetX = (rect.width - dimensions.width * scale) / 2;
     const offsetY = (rect.height - dimensions.height * scale) / 2;
+    // strict (taps): a point on the letterbox bars is not on the page — don't click an edge pixel.
+    const px = (clientX - rect.left - offsetX) / scale;
+    const py = (clientY - rect.top - offsetY) / scale;
+    if (strict && (px < 0 || py < 0 || px >= dimensions.width || py >= dimensions.height)) return null;
     const clamp = (v: number, max: number) => Math.max(0, Math.min(max - 1, Math.round(v)));
     return {
-      x: clamp((clientX - rect.left - offsetX) / scale, dimensions.width),
-      y: clamp((clientY - rect.top - offsetY) / scale, dimensions.height),
+      x: clamp(px, dimensions.width),
+      y: clamp(py, dimensions.height),
     };
   }, [dimensions, getScale]);
 
@@ -223,7 +227,7 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
       e.preventDefault();
       if (flushTimer) { clearTimeout(flushTimer); flushWheel(); }
       if (moved) return; // it was a scroll, not a tap
-      const pos = clientToViewport(startX, startY);
+      const pos = clientToViewport(startX, startY, true);
       if (pos) sendInput({ type: 'tap', x: pos.x, y: pos.y });
     };
 

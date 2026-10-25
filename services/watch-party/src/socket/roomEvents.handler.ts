@@ -11,7 +11,7 @@ import { stopSession, getSessionSnapshot, hasSession, markSessionCommitted } fro
 import { startVBForRoom, upgradeEmbedToDirect } from './vbSession.helper';
 import { enqueueVBRequest } from './vbQueue.helper';
 import { cancelVbDisconnectGrace } from './vbEvents.handler';
-import { isOfficialEmbedHost, isOwnVbUrl, isPrivateUrl } from '../services/extractionClient';
+import { isOfficialEmbedHost, isOwnVbUrl, isPrivateUrl, isInsecureWebviewUrl } from '../services/extractionClient';
 import { isDomainBlocked } from '../controllers/domain.admin.controller';
 import { isLikelyFaststart } from '../services/faststartCheck.service';
 import { getFaststartFixedFileName } from '../services/faststartRemux.service';
@@ -281,6 +281,12 @@ export const registerRoomEvents = (
     if (!isOwnVbUrl(data.videoUrl) && isPrivateUrl(data.videoUrl)) {
       socket.emit(SERVER_EVENTS.ERROR, { message: 'videoUrl points to a private or internal address' });
       logger.warn('CHANGE_MEDIA rejected — private/internal URL', { roomId, userId, url: data.videoUrl });
+      return;
+    }
+
+    if (isInsecureWebviewUrl(data.videoPlatform, data.videoUrl)) {
+      socket.emit(SERVER_EVENTS.ERROR, { message: 'webview media must use https://' });
+      logger.warn('CHANGE_MEDIA rejected — non-https webview URL', { roomId, userId });
       return;
     }
 

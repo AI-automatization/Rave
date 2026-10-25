@@ -479,10 +479,13 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
       // pages become plain-iframe ('webview') rooms, the rest keep the old path (backend starts the
       // Virtual Browser). Picked-platform rooms (YouTube etc.) skip the check inside the helper.
       let platform = backendPlatform;
+      let storedUrl = normalizedVideoUrl;
       if (normalizedVideoUrl && (!platform || platform === 'other')) {
         setCheckingLink(true);
         try {
-          platform = await resolveLinkPlatform(normalizedVideoUrl, platform ?? 'other');
+          const r = await resolveLinkPlatform(normalizedVideoUrl, platform ?? 'other');
+          platform = r.platform;
+          storedUrl = r.url;
         } finally {
           setCheckingLink(false);
         }
@@ -490,7 +493,7 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
       const res = await createRoom.mutateAsync({
         // Backend `name` caps at 80 chars (Joi) — trim here, mirrors mobile's useMediaDetection slice(0, 60)
         name:             roomName ? roomName.slice(0, 60) : undefined,
-        videoUrl:         normalizedVideoUrl || undefined,
+        videoUrl:         storedUrl || undefined,
         videoTitle:       videoTitle || undefined,
         videoThumbnail:   safeThumbnail || undefined,
         videoPlatform:    platform,

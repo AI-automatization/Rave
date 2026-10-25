@@ -7,6 +7,9 @@
 // vbMediaProxy.controller.ts runs per hop (validateProxyUrl + DNS-resolved resolveSafeUpstream),
 // redirects are followed manually and every hop is re-checked.
 import crypto from 'node:crypto';
+import http from 'node:http';
+import https from 'node:https';
+import net from 'node:net';
 import Redis from 'ioredis';
 import { validateProxyUrl, resolveSafeUpstream } from '@shared/utils/ssrfGuard';
 import { REDIS_KEYS } from '@shared/constants';
@@ -28,10 +31,13 @@ const BROWSER_UA =
 
 // Our app origins = CORS_ORIGINS (config/index.ts, the whitelist the web client is served from) —
 // no separate env var. Normalised to lowercase `scheme://host[:port]`.
+// Entries that aren't a concrete http(s) origin (e.g. a stray '*') are skipped, not fatal.
 const APP_ORIGINS: string[] = config.corsOrigins
   .split(',')
   .map((o) => o.trim().toLowerCase().replace(/\/+$/, ''))
-  .filter(Boolean);
+  .filter((o) => {
+    try { return /^https?:$/.test(new URL(o).protocol); } catch { return false; }
+  });
 
 /** One CSP frame-ancestors source expression vs one of our origins. */
 function sourceAllows(source: string, origin: string): boolean {
@@ -43,12 +49,12 @@ function sourceAllows(source: string, origin: string): boolean {
   try { o = new URL(origin); } catch { return false; }
   // Scheme-only source ("https:").
   if (/^[a-z][a-z0-9+.-]*:$/.test(src)) return o.protocol === src;
-  // Origin or host source, optional scheme, optional leading "*." wildcard, optional port.
-  const m = /^(?:([a-z][a-z0-9+.-]*):\/\/)?(\*\.)?([^/:*]+|\*)(?::(\d+|\*))?(?:\/.*)?$/.exec(src);
+  // Origin or host source: optional scheme, then `*` or [`*.`]host, optional port (digits or `*`).
+  const m = /^(?:([a-z][a-z0-9+.-]*):\/\/)?(?:(\*)|(\*\.)?([^/:*]+))(?::(\d+|\*))?(?:\/.*)?$/.exec(src);
   if (!m) return false;
-  const [, scheme, wild, host, port] = m;
+  const [, scheme, anyHost, wild, host, port] = m;
   if (scheme && `${scheme}:` !== o.protocol) return false; // scheme-less source matches http and https
-  if (wild ? !o.hostname.endsWith(`.${host}`) : o.hostname !== host) return false;
+  if (!anyHost && (wild ? !o.hostname.endsWith(`.${host}`) : o.hostname !== host)) return false;
   if (port && port !== '*' && port !== (o.port || (o.protocol === 'https:' ? '443' : '80'))) return false;
   return true;
 }
@@ -77,14 +83,67 @@ function xfoBlocks(xfo: string | null): boolean {
   return xfo.split(',').some((v) => /^(deny|sameorigin|allow-from)/i.test(v.trim()));
 }
 
-async function guardHop(url: string): Promise<EmbedReason | null> {
+function headerString(v: string | string[] | undefined): string | null {
+  return Array.isArray(v) ? v.join(', ') : v ?? null;
+}
+
+/** Rejects when the shared abort signal fires — puts DNS (which has no signal of its own) under the
+ *  same 6s budget as the request. */
+function raceAbort<T>(work: Promise<T>, signal: AbortSignal): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(new Error('aborted'));
+    if (signal.aborted) return onAbort();
+    signal.addEventListener('abort', onAbort, { once: true });
+    work.then(resolve, reject).finally(() => signal.removeEventListener('abort', onAbort));
+  });
+}
+
+type HopCheck = { reason: EmbedReason } | { ip: string };
+
+async function guardHop(url: string, signal: AbortSignal): Promise<HopCheck> {
   const ssrfError = validateProxyUrl(url); // also rejects non-http(s)
-  if (ssrfError) return /^(Hostname blocked|Private)/.test(ssrfError) ? 'private' : 'invalid';
-  if (isPrivateUrl(url)) return 'private';
-  if (isOwnVbUrl(url)) return 'invalid';
-  const resolved = await resolveSafeUpstream(url);
-  if ('error' in resolved) return resolved.error.startsWith('DNS resolution') ? 'unreachable' : 'private';
-  return null;
+  if (ssrfError) return { reason: /^(Hostname blocked|Private)/.test(ssrfError) ? 'private' : 'invalid' };
+  if (isPrivateUrl(url)) return { reason: 'private' };
+  if (isOwnVbUrl(url)) return { reason: 'invalid' };
+  let resolved: Awaited<ReturnType<typeof resolveSafeUpstream>>;
+  try {
+    resolved = await raceAbort(resolveSafeUpstream(url), signal);
+  } catch {
+    return { reason: 'unreachable' };
+  }
+  if ('error' in resolved) return { reason: resolved.error.startsWith('DNS resolution') ? 'unreachable' : 'private' };
+  return { ip: resolved.ip };
+}
+
+interface HeadResponse { status: number; headers: http.IncomingHttpHeaders }
+
+/** GET `url` but connect to `ip` (the address resolveSafeUpstream just validated) instead of letting
+ *  fetch() resolve the name again — otherwise a rebinding DNS answer between the check and the
+ *  connect could swap in a private address (ssrfGuard.ts, "pin the connection"). Host header, SNI and
+ *  certificate validation still use the original hostname. Resolves on headers; body is dropped. */
+function requestPinned(url: string, ip: string, signal: AbortSignal): Promise<HeadResponse> {
+  const u = new URL(url);
+  const lib = u.protocol === 'https:' ? https : http;
+  return new Promise<HeadResponse>((resolve, reject) => {
+    const req = lib.request(u, {
+      method: 'GET',
+      signal,
+      headers: { 'User-Agent': BROWSER_UA, Accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.5' },
+      lookup: (_host, options, cb) => {
+        const family = net.isIP(ip);
+        if (options && (options as { all?: boolean }).all) {
+          (cb as unknown as (e: null, a: { address: string; family: number }[]) => void)(null, [{ address: ip, family }]);
+        } else {
+          cb(null, ip, family);
+        }
+      },
+    }, (res) => {
+      res.destroy(); // headers are all we need
+      resolve({ status: res.statusCode ?? 0, headers: res.headers });
+    });
+    req.on('error', reject);
+    req.end();
+  });
 }
 
 async function probe(redis: Redis, rawUrl: string): Promise<EmbedCheckResult> {
@@ -102,37 +161,32 @@ async function probe(redis: Redis, rawUrl: string): Promise<EmbedCheckResult> {
   let current = parsed.href;
   try {
     for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-      const rejected = await guardHop(current);
-      if (rejected) return fail(rejected, current);
+      const hopCheck = await guardHop(current, controller.signal);
+      if ('reason' in hopCheck) return fail(hopCheck.reason, current);
       // A redirect can land on a domain the admin blocked even when the typed one is fine.
       if (await isDomainBlocked(redis, current)) return fail('blocked', current);
 
-      let res: globalThis.Response;
+      let res: HeadResponse;
       try {
-        res = await fetch(current, {
-          method: 'GET',
-          redirect: 'manual',
-          signal: controller.signal,
-          headers: { 'User-Agent': BROWSER_UA, Accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.5' },
-        });
+        res = await requestPinned(current, hopCheck.ip, controller.signal);
       } catch {
         return fail('unreachable', current);
       }
-      // Headers are all we need — drop the body unread so the socket is released.
-      void res.body?.cancel().catch(() => { /* already closed */ });
 
       if (res.status >= 300 && res.status <= 399) {
-        const loc = res.headers.get('location');
+        const loc = res.headers.location;
         if (!loc) return fail('unreachable', current);
         try { current = new URL(loc, current).href; } catch { return fail('invalid', current); }
         continue;
       }
-      if (res.status >= 500) return fail('unreachable', current);
+      // Error pages and anti-bot walls aren't a page the user can use in a frame (and their framing
+      // headers say nothing about the real page) — 'unreachable', which is never cached.
+      if (res.status >= 400 || res.headers['cf-mitigated'] === 'challenge') return fail('unreachable', current);
 
       // CSP frame-ancestors, when present, supersedes X-Frame-Options in every current browser.
-      const csp = cspFrameAncestorsAllows(res.headers.get('content-security-policy'));
+      const csp = cspFrameAncestorsAllows(headerString(res.headers['content-security-policy']));
       if (csp === false) return fail('csp', current);
-      if (csp === null && xfoBlocks(res.headers.get('x-frame-options'))) return fail('xfo', current);
+      if (csp === null && xfoBlocks(headerString(res.headers['x-frame-options']))) return fail('xfo', current);
       return { embeddable: true, finalUrl: current, reason: 'ok' };
     }
     return fail('unreachable', current); // redirect loop / too many hops
@@ -150,9 +204,10 @@ export async function checkEmbeddable(redis: Redis, rawUrl: string): Promise<Emb
     logger.warn('embed-check: cache read failed', { error: (e as Error).message });
   }
   const result = await probe(redis, rawUrl);
-  // 'invalid' costs nothing to recompute and 'unreachable' is often transient — cache only verdicts
-  // that reflect the site's own headers (or our policy), so a blip doesn't pin a link as broken for an hour.
-  if (result.reason !== 'invalid' && result.reason !== 'unreachable') {
+  // 'invalid' costs nothing to recompute, 'unreachable' is often transient, and 'blocked' is checked
+  // live against the admin blocklist — cache only verdicts that reflect the site's own headers (or
+  // the SSRF policy), so a blip or an unblock doesn't stay pinned for an hour.
+  if (result.reason !== 'invalid' && result.reason !== 'unreachable' && result.reason !== 'blocked') {
     await redis.setex(key, CACHE_TTL_SEC, JSON.stringify(result)).catch((e) => {
       logger.warn('embed-check: cache write failed', { error: (e as Error).message });
     });

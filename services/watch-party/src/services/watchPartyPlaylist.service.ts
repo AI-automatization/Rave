@@ -4,7 +4,7 @@ import { logger } from '@shared/utils/logger';
 import { NotFoundError, ForbiddenError, BadRequestError } from '@shared/utils/errors';
 import { SyncState, VideoPlatform, VideoItem, VideoResolveStatus } from '@shared/types';
 import { REDIS_KEYS, TTL } from '@shared/constants';
-import { isOfficialEmbedHost, tryExtract, isPrivateUrl } from './extractionClient';
+import { isOfficialEmbedHost, tryExtract, isPrivateUrl, isInsecureWebviewUrl } from './extractionClient';
 import { probeUrl } from './virtualBrowser.service';
 import { isDomainBlocked } from '../controllers/domain.admin.controller';
 const MAX_PLAYLIST = 50;
@@ -27,6 +27,9 @@ export class WatchPartyPlaylistService {
   ): Promise<IWatchPartyRoomDocument> {
     if (!/^https?:\/\//i.test(media.videoUrl)) {
       throw new BadRequestError('videoUrl must start with http:// or https://');
+    }
+    if (isInsecureWebviewUrl(media.videoPlatform, media.videoUrl)) {
+      throw new BadRequestError('webview media must use https://');
     }
     if (/googlevideo\.com/i.test(media.videoUrl)) {
       throw new BadRequestError('IP-locked CDN URLs cannot be stored. Use the original video URL.');
@@ -87,6 +90,9 @@ export class WatchPartyPlaylistService {
     // probeUrl() below, a real Chromium navigation. Import the one canonical check instead.
     if (isPrivateUrl(item.videoUrl)) {
       throw new BadRequestError('videoUrl points to a private or internal address');
+    }
+    if (isInsecureWebviewUrl(item.videoPlatform, item.videoUrl)) {
+      throw new BadRequestError('webview media must use https://');
     }
     // #84 follow-up (2026-08-13) — updateRoomMedia above already checked this, addToPlaylist
     // never did, so a domain the admin explicitly blocked could still reach probeUrl() below via
