@@ -1,25 +1,26 @@
 // WeWatch Mobile — Shared Virtual Browser player (T-S188)
+// 2026-10: phone viewport (portrait frame fitted by aspect, optional expand), server 'tap' input,
+// drag -> incremental wheel, letterbox-aware coordinates (utils/vbGeometry), hidden-TextInput
+// keyboard bridge, per-frame work isolated in VBFrameView, "site unreachable" state.
 // Mirrors apps/app-web/src/components/party/VirtualBrowserPlayer.tsx: a real headless Chromium
 // page runs on the server (services/watch-party/src/services/virtualBrowser.service.ts), the
 // owner drives it with touch, every room member just watches the same live JPEG frame stream.
 // Renders in place of VideoSection whenever useVirtualBrowser(isOwner).active is true — see
-// WatchPartyScreen.tsx. Text/keyboard input forwarding (web's handleKeyDown/handleKeyUp) is
-// deliberately out of scope here: the described flow is "tap play on the real page", which touch
-// already covers; typing into the remote page would need a hidden TextInput + soft-keyboard
-// bridge, a separate follow-up if ever needed.
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, Image, ActivityIndicator, StyleSheet, PanResponder, GestureResponderEvent, PanResponderGestureState, LayoutChangeEvent } from 'react-native';
+// WatchPartyScreen.tsx.
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, Image, ActivityIndicator, StyleSheet, PanResponder, GestureResponderEvent, LayoutChangeEvent, TextInput, useWindowDimensions } from 'react-native';
 import { VideoView, useVideoPlayer as createExpoPlayer } from 'expo-video';
 import { useEvent } from 'expo';
 import { Ionicons } from '@expo/vector-icons';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useT } from '@i18n/index';
-import type { VBInput } from '@hooks/useVirtualBrowser';
-import { VIDEO_HEIGHT } from './VideoSection.styles';
+import type { VBInput, VBFrameStore } from '@hooks/useVirtualBrowser';
+import { toViewportPoint, containRect, frameHeight, dragToWheel } from '@utils/vbGeometry';
 
 interface Props {
   isOwner: boolean;
-  frame: string | null;
+  frameStore: VBFrameStore;
+  hasFrame: boolean;
   dimensions: { width: number; height: number } | null;
   error: string | null;
   /** Page VB is showing is a bot-challenge wall — mirrors web's VirtualBrowserPlayer.tsx. Needs to
@@ -48,14 +49,58 @@ const VB_STREAM_MAX_ATTEMPTS = 10; // ~20s — long enough for ffmpeg's first HL
 // Below this the finger hasn't really moved — treat the gesture as a tap (mousedown+mouseup),
 // same slop threshold as web's touch handler.
 const TAP_SLOP_PX = 10;
-const MOVE_THROTTLE_MS = 40; // ~25fps for mousemove — matches web
+const MOVE_THROTTLE_MS = 40; // ~25fps for wheel — matches web
+const FIRST_FRAME_TIMEOUT_MS = 25000; // no frame by then = site unreachable
+const MAX_HEIGHT_RATIO = 0.55; // collapsed: leave room for chat/members
+const MAX_HEIGHT_RATIO_EXPANDED = 0.82;
 
-export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocked, stop, sendInput, onPickDifferentVideo, roomId }: Props) {
+/** Only this tiny component re-renders per frame (it subscribes to the store); the heavy parent
+ * and the rest of WatchPartyScreen stay untouched. pointerEvents none: touches must land on the
+ * wrapper so locationX/Y are wrapper-relative. */
+const VBFrameView = React.memo(function VBFrameView({ store }: { store: VBFrameStore }) {
+  const [frame, setFrame] = useState<string | null>(store.get());
+  useEffect(() => {
+    setFrame(store.get());
+    return store.subscribe(() => setFrame(store.get()));
+  }, [store]);
+  const source = useMemo(() => (frame ? { uri: `data:image/jpeg;base64,${frame}` } : undefined), [frame]);
+  if (!source) return null;
+  return (
+    <View style={s.frameImg} pointerEvents="none">
+      <Image
+        source={source}
+        style={s.frameImg}
+        resizeMode="contain"
+        // Each frame is a fresh data URI; Android's default 300ms fade made it flicker black
+        // (live report 2026-08-03). iOS already defaults to 0.
+        fadeDuration={0}
+      />
+    </View>
+  );
+});
+
+export function VirtualBrowserPlayer({ isOwner, frameStore, hasFrame, dimensions, error, blocked, stop, sendInput, onPickDifferentVideo, roomId }: Props) {
   const { t } = useT();
   const [layout, setLayout] = useState<{ width: number; height: number } | null>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
+  const { width: winW, height: winH } = useWindowDimensions();
   const lastMoveRef = useRef(0);
   const startRef = useRef({ x: 0, y: 0 });
+  const lastPointRef = useRef({ x: 0, y: 0 });
+  const pendingRef = useRef({ dx: 0, dy: 0 });
   const movedRef = useRef(false);
+  const kbInputRef = useRef<TextInput>(null);
+
+  // Portrait phone viewport -> tall player; capped so chat/members stay reachable (expand = more).
+  const height = frameHeight(winW, dimensions, winH * (expanded ? MAX_HEIGHT_RATIO_EXPANDED : MAX_HEIGHT_RATIO));
+
+  // No first frame within the window = unreachable (DNS/blocked/crashed page) -> offer another link.
+  useEffect(() => {
+    if (!isOwner || hasFrame) { setTimedOut(false); return; }
+    const timer = setTimeout(() => setTimedOut(true), FIRST_FRAME_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [isOwner, hasFrame]);
 
   // HLS upgrade attempt — see the constants/comment above. `hlsReady` flips true once expo-video
   // actually starts playing the stream; until then (or if it never does) the JPEG frames below
@@ -103,7 +148,7 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
   // re-renders — but that also freezes any closure it reads. `layout` starts null and only gets
   // set later by onLayout (fires async, after mount); dimensions arrives even later over the
   // socket (VB_STARTED). Without these refs the responder's handlers would forever see the
-  // values from the very first render — layout=null, dimensions=null — so toViewportCoords
+  // values from the very first render — layout=null, dimensions=null — so the tap mapping
   // would always return null and every tap would silently no-op. This was the actual bug behind
   // "видел VB, не мог им управлять": nothing crashed, nothing errored, taps just went nowhere.
   const layoutRef = useRef(layout);
@@ -120,19 +165,6 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
     setLayout({ width, height });
   }, []);
 
-  // Maps a touch point in this view's local coordinate space to the server-side browser's fixed
-  // viewport (VB_VIEWPORT, typically 1280x720) — same math as web's clientToViewport. Reads the
-  // refs (not the render-scoped layout/dimensions) so it always sees current values even when
-  // called from the frozen PanResponder closures below.
-  const toViewportCoords = useCallback((localX: number, localY: number): { x: number; y: number } | null => {
-    const l = layoutRef.current;
-    const d = dimensionsRef.current;
-    if (!l || !d) return null;
-    const scaleX = d.width / l.width;
-    const scaleY = d.height / l.height;
-    return { x: Math.round(localX * scaleX), y: Math.round(localY * scaleY) };
-  }, []);
-
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => isOwnerRef.current,
@@ -140,60 +172,130 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
       onPanResponderGrant: (evt: GestureResponderEvent) => {
         const { locationX, locationY } = evt.nativeEvent;
         startRef.current = { x: locationX, y: locationY };
+        lastPointRef.current = { x: locationX, y: locationY };
+        pendingRef.current = { dx: 0, dy: 0 };
         movedRef.current = false;
-        const pos = toViewportCoords(locationX, locationY);
-        if (pos) sendInputRef.current({ type: 'mousemove', x: pos.x, y: pos.y });
       },
-      onPanResponderMove: (evt: GestureResponderEvent, gestureState: PanResponderGestureState) => {
+      onPanResponderMove: (evt: GestureResponderEvent) => {
         const { locationX, locationY } = evt.nativeEvent;
-        if (Math.abs(locationX - startRef.current.x) > TAP_SLOP_PX || Math.abs(locationY - startRef.current.y) > TAP_SLOP_PX) {
+        if (!movedRef.current) {
+          if (Math.abs(locationX - startRef.current.x) <= TAP_SLOP_PX && Math.abs(locationY - startRef.current.y) <= TAP_SLOP_PX) return;
           movedRef.current = true;
+          lastPointRef.current = { x: locationX, y: locationY }; // don't scroll by the slop distance
+          return;
         }
-        if (!movedRef.current) return;
+        // INCREMENTAL deltas (accumulated between throttled sends). Sending the gesture's
+        // cumulative dx/dy every tick made scrolling accelerate and overshoot.
+        pendingRef.current.dx += locationX - lastPointRef.current.x;
+        pendingRef.current.dy += locationY - lastPointRef.current.y;
+        lastPointRef.current = { x: locationX, y: locationY };
         const now = Date.now();
         if (now - lastMoveRef.current < MOVE_THROTTLE_MS) return;
         lastMoveRef.current = now;
-        // Negated: dragging the finger UP should scroll the content DOWN — same convention as
-        // native touch scrolling, matches web's touch handler.
-        sendInputRef.current({ type: 'wheel', deltaX: -gestureState.dx, deltaY: -gestureState.dy });
+        const l = layoutRef.current;
+        const d = dimensionsRef.current;
+        const { dx, dy } = pendingRef.current;
+        pendingRef.current = { dx: 0, dy: 0 };
+        if (!l || !d) return;
+        // Negated + scaled to viewport px: finger up scrolls content down (native convention).
+        sendInputRef.current({ type: 'wheel', ...dragToWheel(dx, dy, containRect(l, d).scale) });
       },
       onPanResponderRelease: (evt: GestureResponderEvent) => {
         if (movedRef.current) return; // it was a drag/scroll, not a tap
         const { locationX, locationY } = evt.nativeEvent;
-        const pos = toViewportCoords(locationX, locationY);
-        if (!pos) return;
-        sendInputRef.current({ type: 'mousedown', x: pos.x, y: pos.y });
-        sendInputRef.current({ type: 'mouseup' });
+        const pos = toViewportPoint(locationX, locationY, layoutRef.current, dimensionsRef.current);
+        if (!pos) return; // letterbox bar or not laid out yet
+        sendInputRef.current({ type: 'tap', x: pos.x, y: pos.y });
       },
     }),
   ).current;
+
+  // Hidden TextInput bridge: text goes out as 'type', Backspace/Enter as real key events. The
+  // input is kept empty (controlled '') so every onChangeText is exactly the newly typed chunk.
+  const [kbValue, setKbValue] = useState('');
+  const onKbChange = useCallback((text: string) => {
+    if (text) sendInputRef.current({ type: 'type', text });
+    setKbValue('');
+  }, []);
+  const onKbKeyPress = useCallback((e: { nativeEvent: { key: string } }) => {
+    const key = e.nativeEvent.key;
+    if (key === 'Backspace') {
+      sendInputRef.current({ type: 'keydown', key: 'Backspace' });
+      sendInputRef.current({ type: 'keyup', key: 'Backspace' });
+    }
+  }, []);
+  const onKbSubmit = useCallback(() => {
+    sendInputRef.current({ type: 'keydown', key: 'Enter' });
+    sendInputRef.current({ type: 'keyup', key: 'Enter' });
+  }, []);
 
   // 2026-08-25 (Saidazim: "виден только владельцу"). VB_FRAME is now emitted to the owner's
   // socket only (vbSession.helper.ts) — non-owners never receive frame/dimensions data at all, so
   // there's nothing here for them to render but a status message instead of the live screencast.
   if (!isOwner) {
     return (
-      <View style={[s.root, s.centered]}>
+      <View style={[s.root, s.centered, { height }]}>
         <Ionicons name="globe-outline" size={28} color="#A78BFA" />
         <Text style={s.statusText}>{t('watchParty', 'vbOwnerPicking')}</Text>
       </View>
     );
   }
 
-  if (!frame) {
+  if (!hasFrame) {
+    const failed = !!error || timedOut;
     return (
-      <View style={[s.root, s.centered]}>
-        <ActivityIndicator size="large" color="#A78BFA" />
-        {error && <Text style={s.errorText}>{error}</Text>}
+      <View style={[s.root, s.centered, { height }]}>
+        {failed ? (
+          <>
+            <Ionicons name="cloud-offline-outline" size={32} color="#F87171" />
+            <Text style={s.statusText}>{t('watchParty', 'vbUnreachable')}</Text>
+            {error ? <Text style={s.errorText}>{error}</Text> : null}
+            <View style={s.actions}>
+              {onPickDifferentVideo && (
+                <TrackedTouchable trackId="watchparty:vb_unreachable_try_another" style={s.primaryBtn} onPress={onPickDifferentVideo} activeOpacity={0.8}>
+                  <Text style={s.primaryBtnText}>{t('watchParty', 'vbTryAnotherLink')}</Text>
+                </TrackedTouchable>
+              )}
+              <TrackedTouchable trackId="watchparty:vb_unreachable_close" style={s.secondaryBtn} onPress={stop} activeOpacity={0.8}>
+                <Text style={s.secondaryBtnText}>{t('common', 'close')}</Text>
+              </TrackedTouchable>
+            </View>
+          </>
+        ) : (
+          <ActivityIndicator size="large" color="#A78BFA" />
+        )}
       </View>
     );
   }
 
   return (
-    <View style={s.root}>
-      <TrackedTouchable trackId="watchparty:vb_close" style={s.closeBtn} onPress={stop} activeOpacity={0.75}>
-        <Ionicons name="close" size={16} color="#fff" />
-      </TrackedTouchable>
+    <View style={[s.root, { height }]}>
+      <View style={s.toolbar}>
+        <TrackedTouchable trackId="watchparty:vb_keyboard" style={s.toolBtn} onPress={() => kbInputRef.current?.focus()} activeOpacity={0.75} accessibilityLabel={t('watchParty', 'vbKeyboard')}>
+          <Ionicons name="keypad-outline" size={16} color="#fff" />
+        </TrackedTouchable>
+        <TrackedTouchable trackId="watchparty:vb_expand" style={s.toolBtn} onPress={() => setExpanded((v) => !v)} activeOpacity={0.75} accessibilityLabel={t('watchParty', expanded ? 'vbCollapse' : 'vbExpand')}>
+          <Ionicons name={expanded ? 'contract-outline' : 'expand-outline'} size={16} color="#fff" />
+        </TrackedTouchable>
+        <TrackedTouchable trackId="watchparty:vb_close" style={s.toolBtn} onPress={stop} activeOpacity={0.75}>
+          <Ionicons name="close" size={16} color="#fff" />
+        </TrackedTouchable>
+      </View>
+
+      <TextInput
+        ref={kbInputRef}
+        value={kbValue}
+        onChangeText={onKbChange}
+        onKeyPress={onKbKeyPress}
+        onSubmitEditing={onKbSubmit}
+        blurOnSubmit={false}
+        autoCorrect={false}
+        autoCapitalize="none"
+        autoComplete="off"
+        spellCheck={false}
+        style={s.hiddenInput}
+        caretHidden
+      />
 
       {/* Nothing auto-plays here on purpose — the whole point of falling back to VB is a real
           page the owner has to tap through (play button, ads, captcha). Not shown once the HLS
@@ -207,25 +309,15 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
       )}
 
       {/* Touch/layout wrapper stays the same regardless of which of the two renders below is
-          active — input still targets the same remote VB_VIEWPORT either way, only the visual
+          active — input still targets the same remote viewport either way, only the visual
           representation of it changes. */}
       <View style={s.frameWrap} onLayout={onLayout} {...panResponder.panHandlers}>
         {hlsReady ? (
-          <VideoView player={hlsPlayer} style={s.frameImg} contentFit="contain" nativeControls={false} />
+          <View style={s.frameImg} pointerEvents="none">
+            <VideoView player={hlsPlayer} style={s.frameImg} contentFit="contain" nativeControls={false} />
+          </View>
         ) : (
-          // eslint-disable-next-line react-native/no-inline-styles -- base64 data URI, not a static asset
-          <Image
-            source={{ uri: `data:image/jpeg;base64,${frame}` }}
-            style={s.frameImg}
-            resizeMode="contain"
-            // Each new frame is a fresh base64 data URI (never the same string twice), so RN's
-            // Image treats every VB_FRAME as a brand-new source. Android's Image defaults
-            // fadeDuration to 300ms, cross-fading from transparent on every source change —
-            // at several frames/sec that reads as a constant black flicker/brightness pulse
-            // (found via a live report 2026-08-03: "мерцает чёрным как будто яркость меняет").
-            // iOS already defaults fadeDuration to 0, so this only mattered on Android.
-            fadeDuration={0}
-          />
+          <VBFrameView store={frameStore} />
         )}
       </View>
 
@@ -257,7 +349,6 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
 const s = StyleSheet.create({
   root: {
     width: '100%',
-    height: VIDEO_HEIGHT,
     backgroundColor: '#000',
     borderRadius: 14,
     overflow: 'hidden',
@@ -267,12 +358,18 @@ const s = StyleSheet.create({
   statusText: { color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: '600', textAlign: 'center', paddingHorizontal: 24 },
   frameWrap: { flex: 1 },
   frameImg: { width: '100%', height: '100%' },
-  closeBtn: {
-    position: 'absolute', top: 8, right: 8, zIndex: 10,
-    width: 30, height: 30, borderRadius: 15,
+  toolbar: { position: 'absolute', top: 8, right: 8, zIndex: 10, flexDirection: 'row', gap: 8 },
+  toolBtn: {
+    width: 32, height: 32, borderRadius: 16,
     backgroundColor: 'rgba(0,0,0,0.6)',
     alignItems: 'center', justifyContent: 'center',
   },
+  hiddenInput: { position: 'absolute', width: 1, height: 1, opacity: 0, top: 0, left: 0 },
+  actions: { flexDirection: 'row', gap: 10, marginTop: 6 },
+  primaryBtn: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 10, backgroundColor: '#7B72F8' },
+  primaryBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  secondaryBtn: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.12)' },
+  secondaryBtnText: { color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '600' },
   hint: {
     position: 'absolute', top: 8, left: 8, zIndex: 10,
     flexDirection: 'row', alignItems: 'center', gap: 6,

@@ -67,3 +67,14 @@ export const vbCaptureLimiter = (redis: Redis) =>
     60,
     'Too many capture requests. Try again in a minute.',
   );
+
+// embed-check (embedCheck.service.ts) makes an outbound request per cache miss, so it is capped per
+// user. A client probes once per pasted link, so 30/min is far above real use.
+export const embedCheckLimiter = (redis: Redis) =>
+  makeRateLimiter(
+    redis,
+    (req) => REDIS_KEYS.embedCheckRate((req as AuthenticatedRequest).user?.userId ?? req.ip ?? 'unknown'),
+    30,
+    60,
+    'Too many embed checks. Try again in a minute.',
+  );

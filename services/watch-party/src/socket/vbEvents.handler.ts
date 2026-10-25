@@ -59,7 +59,7 @@ export const registerVBEvents = (
     }
   };
 
-  socket.on(CLIENT_EVENTS.VB_START, async (data: { url: string }) => {
+  socket.on(CLIENT_EVENTS.VB_START, async (data: { url: string; mobile?: boolean }) => {
     if (!authSocket.roomId || !await resolveIsOwner()) return;
     const roomId = authSocket.roomId;
 
@@ -107,14 +107,17 @@ export const registerVBEvents = (
     }
 
     const tier = await getUserPlan(userId);
+    // Explicit boolean wins; absent (older clients) = undefined, so startVBForRoom picks from the
+    // owner's socket hint instead of forcing desktop.
+    const mobile = typeof data?.mobile === 'boolean' ? data.mobile : undefined;
     try {
-      await startVBForRoom(io, redis, roomId, userId, url.toString(), tier);
-      logger.info('VB started', { roomId, userId, url: url.toString(), tier });
+      await startVBForRoom(io, redis, roomId, userId, url.toString(), tier, mobile);
+      logger.info('VB started', { roomId, userId, url: url.toString(), tier, mobile });
     } catch (e) {
       if ((e as Error).message === 'virtual_browser_limit') {
         // Free pool is full — wait instead of failing outright (Pro never hits this branch,
         // it's uncapped, see virtualBrowser.service.ts's MAX_TOTAL_SAFETY_CEILING).
-        const position = enqueueVBRequest({ roomId, ownerId: userId, url: url.toString(), io, redis });
+        const position = enqueueVBRequest({ roomId, ownerId: userId, url: url.toString(), mobile, io, redis });
         socket.emit(SERVER_EVENTS.VB_QUEUED, { position });
         logger.info('VB queued — free pool full', { roomId, userId, position });
         return;

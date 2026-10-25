@@ -89,6 +89,13 @@ export const REDIS_KEYS = {
   publicRoomsCache: () => `party:public_rooms_cache`,
   vbMediaProxyRate: (ip: string) => `party:vb_media_proxy_rate:${ip}`,
   vbCaptureRate: (ip: string) => `party:vb_capture_rate:${ip}`,
+  // Embeddability probe (embedCheck.service.ts): cached verdict per URL hash, and a per-user
+  // limiter since every miss is an outbound request from our servers.
+  // Last-seen client kind of a user's socket ('1' = phone) so server-started VB (room create, playNext)
+  // can pick the phone viewport without a live socket round-trip. See watchParty.socket.ts.
+  clientMobile: (userId: string) => `party:client_mobile:${userId}`,
+  embedCheck: (urlHash: string) => `party:embed_check:${urlHash}`,
+  embedCheckRate: (userId: string) => `party:embed_check_rate:${userId}`,
   // 2026-08-26: cached faststart-remuxed copy of a non-faststart CDN source, keyed by a hash of
   // the ORIGIN url (not roomId) — see faststartRemux.service.ts. Same file gets reused across
   // every room that ever plays that exact source, not remuxed once per room.

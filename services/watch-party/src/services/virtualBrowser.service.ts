@@ -16,6 +16,16 @@ import * as vbStream from './vbStream.service';
 
 export const VB_VIEWPORT = { width: 1280, height: 720 } as const;
 
+// Phone-owner sessions (VB_START { mobile: true }): a 1280x720 desktop page squeezed into a portrait
+// phone screen is unreadable and un-tappable, so the browser itself is a phone — CSS viewport 412x846
+// (common Android Chrome size), so sites serve their mobile layout and the client scales one frame
+// pixel to one CSS pixel. deviceScaleFactor stays 1 on purpose: frames are JPEG over a socket and
+// the lag complaint outranks sharpness; the input coordinates the client sends are CSS pixels, which
+// only map 1:1 to frame pixels at DSF 1.
+export const VB_VIEWPORT_MOBILE = { width: 412, height: 846 } as const;
+const MOBILE_USER_AGENT = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 '
+  + '(KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36';
+
 // Some sites reject the VB browser's page load itself (e.g. hdrezka.ag: connection reset before
 // any HTML is served, direct AND via a datacenter proxy in a different country -- looks like an
 // ASN/hosting-IP block, not a geo-IP one, same family as the fayllar1.ru datacenter block this
@@ -205,7 +215,10 @@ export type VBInput =
   | { type: 'wheel'; deltaX: number; deltaY: number }
   | { type: 'keydown'; key: string }
   | { type: 'keyup'; key: string }
-  | { type: 'type'; text: string };
+  | { type: 'type'; text: string }
+  // Finger tap (mobile sessions): one atomic touchStart+touchEnd instead of the mousedown/mouseup
+  // pair, which on a touch-emulated page can arrive as a long-press or a text selection.
+  | { type: 'tap'; x: number; y: number };
 
 interface VBSession {
   // No separate Browser handle — launchPersistentContext() (see vbProfileDir above) returns the
@@ -242,6 +255,9 @@ interface VBSession {
    * no cap (a deliberate product decision, not an oversight — see MAX_TOTAL_SAFETY_CEILING for
    * the one hard backstop that still applies to everyone). */
   tier: 'free' | 'pro';
+  /** Phone-viewport session (see VB_VIEWPORT_MOBILE) — decides the dimensions reported to clients
+   * and whether 'tap' goes through CDP touch events. */
+  mobile: boolean;
 }
 
 const sessions = new Map<string, VBSession>(); // roomId -> session
@@ -251,6 +267,12 @@ const sessions = new Map<string, VBSession>(); // roomId -> session
 const startingRooms = new Set<string>();
 
 const FRAME_INTERVAL_MS = 100; // cap relayed frames at ~10fps — see startSession for why
+// Phone sessions: smaller frames but a weaker link (mobile data, radio sleep) — a lower cap and
+// quality keeps the per-frame cost down; the trailing-frame flush in startSession keeps it feeling
+// responsive despite the lower rate.
+const FRAME_INTERVAL_MOBILE_MS = 140; // ~7fps
+const SCREENCAST_QUALITY = 55;
+const SCREENCAST_QUALITY_MOBILE = 45;
 
 // Same pattern as content-service's playwrightExtractor.ts (services/content/src/services/
 // videoExtractor/playwrightExtractor.ts) — matches a network response whose URL is a direct
@@ -346,6 +368,10 @@ export function getSessionPageTitle(roomId: string): string | undefined {
 // session — without this, ROOM_JOINED had no way to tell a fresh client "a virtual browser is
 // already running", so anyone who joined/refreshed post-start never received the one-shot
 // VB_STARTED broadcast and just saw the old, now-not-actually-active video player instead.
+export function getSessionViewport(roomId: string): { width: number; height: number } {
+  return sessions.get(roomId)?.mobile ? VB_VIEWPORT_MOBILE : VB_VIEWPORT;
+}
+
 export function getSessionSnapshot(roomId: string): { url: string; width: number; height: number; ownerId: string; paused: boolean } | null {
   const s = sessions.get(roomId);
   if (!s) return null;
@@ -354,7 +380,8 @@ export function getSessionSnapshot(roomId: string): { url: string; width: number
   // VB overlay (paused=false) or the candidate picker (paused=true) over a working video; see the
   // `committed` field's own note for the live mobile bug this prevents.
   if (s.committed) return null;
-  return { url: s.url, width: VB_VIEWPORT.width, height: VB_VIEWPORT.height, ownerId: s.ownerId, paused: s.paused };
+  const viewport = s.mobile ? VB_VIEWPORT_MOBILE : VB_VIEWPORT;
+  return { url: s.url, width: viewport.width, height: viewport.height, ownerId: s.ownerId, paused: s.paused };
 }
 
 // 'url'     — categories A (extension/content-type/magic-bytes on a real HTTP response). The
@@ -563,7 +590,15 @@ function attachResponseSniffer(
 // before finalizing, instead of committing to whatever arrived first.
 const COLLECTION_WINDOW_MS = 40_000;
 
-const UNREACHABLE_NAV_ERROR = /net::ERR_(NAME_NOT_RESOLVED|NAME_RESOLUTION_FAILED|CONNECTION_(RESET|REFUSED|CLOSED|FAILED)|ADDRESS_UNREACHABLE|INTERNET_DISCONNECTED|SSL_|CERT_|TUNNEL_CONNECTION_FAILED|EMPTY_RESPONSE)/;
+// CONNECTION_TIMED_OUT / TIMED_OUT are Chromium's own TCP-level timeouts (a datacenter-IP blackhole:
+// SYNs silently dropped) — distinct from Playwright's "Timeout 20000ms exceeded" below. They used
+// to fall through to "navigation failed, keep the session", leaving the owner on a blank error page.
+// HTTP2_PROTOCOL_ERROR is how many WAFs drop a datacenter client mid-handshake; TOO_MANY_REDIRECTS
+// is a loop (often a cookie wall) that will never render.
+const UNREACHABLE_NAV_ERROR = /net::ERR_(NAME_NOT_RESOLVED|NAME_RESOLUTION_FAILED|CONNECTION_(RESET|REFUSED|CLOSED|FAILED|TIMED_OUT)|TIMED_OUT|ADDRESS_UNREACHABLE|INTERNET_DISCONNECTED|SSL_|CERT_|TUNNEL_CONNECTION_FAILED|EMPTY_RESPONSE|HTTP2_PROTOCOL_ERROR|TOO_MANY_REDIRECTS)/;
+// Playwright's own goto timeout. Only "unreachable" when the page never committed (still on
+// about:blank / a Chromium error page) — a slow site that already started rendering stays usable.
+const NAV_TIMEOUT_ERROR = /Timeout \d+ms exceeded/;
 
 export async function startSession(
   roomId: string,
@@ -601,11 +636,18 @@ export async function startSession(
   // 'free' so probeUrl() and any other caller that doesn't pass this stays on the safe/capped
   // side rather than silently getting Pro's uncapped treatment.
   tier: 'free' | 'pro' = 'free',
-): Promise<'unreachable' | void> {
+  // VB_START { mobile: true } — phone viewport/UA/touch (see VB_VIEWPORT_MOBILE). Desktop default.
+  mobile = false,
+): Promise<'unreachable' | 'redirect_blocked' | void> {
   if (startingRooms.has(roomId)) {
     throw new Error('virtual_browser_starting');
   }
   startingRooms.add(roomId);
+
+  // Tracked outside the try so the catch below can tear down a half-built session.
+  let launchedContext: BrowserContext | null = null;
+  let streamStarted = false;
+  const viewport = mobile ? VB_VIEWPORT_MOBILE : VB_VIEWPORT;
 
   try {
     // Real prod case 2026-08-07: createRoom() now starts VB when its initial URL isn't directly
@@ -645,14 +687,18 @@ export async function startSession(
     // into that display and to produce any audio at all; headless Chrome has neither an X surface
     // to grab nor an audio stream to route, which is exactly why the existing screencast path is
     // silent. Null handle = unchanged headless behaviour, so this is inert until the flag is on.
-    const stream = await vbStream.startStream(roomId);
+    // Phone sessions never stream: Xvfb is a fixed 1280x720 screen (vbStream.service.ts) and a
+    // 412x846 window inside it would be letterboxed in the HLS output.
+    const stream = mobile ? null : await vbStream.startStream(roomId);
+    streamStarted = !!stream;
 
     const context = await chromium.launchPersistentContext(profileDir, {
       headless: !stream,
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', ...STEALTH_LAUNCH_ARGS, ...ANTI_THROTTLE_LAUNCH_ARGS],
-      viewport: VB_VIEWPORT,
-      userAgent: STEALTH_USER_AGENT,
+      viewport,
+      userAgent: mobile ? MOBILE_USER_AGENT : STEALTH_USER_AGENT,
+      ...(mobile ? { isMobile: true, hasTouch: true, deviceScaleFactor: 1 } : {}),
       locale: VB_LOCALE,
       timezoneId: VB_TIMEZONE_ID,
       proxy: getProxyForUrl(url),
@@ -668,6 +714,7 @@ export async function startSession(
           }
         : undefined,
     });
+    launchedContext = context;
     await applyStealthPatches(context);
     const page = await context.newPage();
     const cdp = await context.newCDPSession(page);
@@ -948,7 +995,11 @@ export async function startSession(
       }
     }
 
+    const frameIntervalMs = mobile ? FRAME_INTERVAL_MOBILE_MS : FRAME_INTERVAL_MS;
     let lastRelayedAt = 0;
+    // Latest frame that arrived inside the cap window, waiting for its trailing flush (see below).
+    let pendingFrame: string | null = null;
+    let flushTimer: ReturnType<typeof setTimeout> | null = null;
     cdp.on('Page.screencastFrame', (event: { data: string; sessionId: number }) => {
       // Ack every single frame immediately — Chrome pauses the screencast until acked, so a
       // missed/delayed ack stalls the whole stream regardless of what we do with the data.
@@ -960,20 +1011,37 @@ export async function startSession(
       // delivered as a growing backlog of stale frames (reported as "browser lags terribly" /
       // "member sees something different than the owner", worse with more viewers).
       const now = Date.now();
-      if (now - lastRelayedAt < FRAME_INTERVAL_MS) return;
-      lastRelayedAt = now;
-      onFrame(event.data);
+      if (now - lastRelayedAt >= frameIntervalMs) {
+        lastRelayedAt = now;
+        pendingFrame = null;
+        onFrame(event.data);
+        return;
+      }
+      // Inside the cap window. Plain dropping loses the LAST paint of a burst: Chrome sends no frame
+      // for a page that has stopped changing, so a dropped final frame (the result of a tap, the end
+      // of a scroll) left the owner's screen stale until the next unrelated repaint — felt as "taps
+      // don't register". Keep only the newest frame and flush it when the window ends.
+      pendingFrame = event.data;
+      if (flushTimer) return;
+      flushTimer = setTimeout(() => {
+        flushTimer = null;
+        const frame = pendingFrame;
+        pendingFrame = null;
+        if (frame === null || sessions.get(roomId)?.cdp !== cdp) return; // session gone/replaced
+        lastRelayedAt = Date.now();
+        onFrame(frame);
+      }, frameIntervalMs - (now - lastRelayedAt));
     });
 
     await cdp.send('Page.startScreencast', {
       format: 'jpeg',
-      quality: 55,
-      maxWidth: VB_VIEWPORT.width,
-      maxHeight: VB_VIEWPORT.height,
+      quality: mobile ? SCREENCAST_QUALITY_MOBILE : SCREENCAST_QUALITY,
+      maxWidth: viewport.width,
+      maxHeight: viewport.height,
       everyNthFrame: 1,
     });
 
-    sessions.set(roomId, { context, page, cdp, ownerId, url, paused: false, tier });
+    sessions.set(roomId, { context, page, cdp, ownerId, url, paused: false, tier, mobile });
 
     try {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 });
@@ -986,7 +1054,9 @@ export async function startSession(
       if (isPrivateUrl(finalUrl) || isOwnVbUrl(finalUrl)) {
         logger.warn('VB: navigation redirected to a disallowed URL, aborting session', { roomId, url, finalUrl });
         await stopSession(roomId);
-        return;
+        // Not 'unreachable': that outcome triggers the proxy retry, which would just follow the same
+        // redirect. Without a return value the caller also emitted VB_STARTED for this dead session.
+        return 'redirect_blocked';
       }
       logger.info('VB session started', { roomId, url, active: sessions.size });
       // Encoder starts only now, once the page has actually painted — starting it back when the
@@ -1011,10 +1081,30 @@ export async function startSession(
         await stopSession(roomId);
         return 'unreachable';
       }
+      // Playwright's own 20s goto timeout while the page never committed (still about:blank or a
+      // Chromium error page): the server never answered, e.g. SYNs dropped for our datacenter IP.
+      // Same dead end as the errors above, so same treatment — and it unlocks the auto-proxy retry.
+      const currentUrl = page.url();
+      if (NAV_TIMEOUT_ERROR.test(message) && (currentUrl === 'about:blank' || currentUrl.startsWith('chrome-error:'))) {
+        logger.warn('VB: no response before navigation timeout, closing session', { roomId, url });
+        await stopSession(roomId);
+        return 'unreachable';
+      }
       // Navigation failure doesn't kill the session — owner still sees the failed-load page
       // and can retry a different URL from the same browser instance.
       logger.warn('VB: initial navigation failed', { roomId, url, error: message });
     }
+  } catch (e) {
+    // Setup threw before the session was registered (launch, exposeFunction, startScreencast...):
+    // nothing in `sessions` points at this Chromium/Xvfb/capture yet, so stopSession() could never
+    // find it — it would run orphaned until the container restarted.
+    if (launchedContext && sessions.get(roomId)?.context !== launchedContext) {
+      await launchedContext.close().catch(() => { /* already gone */ });
+      stopCapture(roomId);
+      clearCapture(roomId);
+    }
+    if (streamStarted && !sessions.has(roomId)) await vbStream.stopStream(roomId).catch(() => { /* best effort */ });
+    throw e;
   } finally {
     startingRooms.delete(roomId);
   }
@@ -1181,6 +1271,24 @@ async function dispatchInput(roomId: string, userId: string, input: VBInput): Pr
       case 'type':
         await page.keyboard.insertText(input.text);
         break;
+      case 'tap': {
+        const { x, y } = input;
+        const vp = s.mobile ? VB_VIEWPORT_MOBILE : VB_VIEWPORT;
+        if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0 || x > vp.width || y > vp.height) return;
+        // Touch events only exist on a touch-emulated (mobile) context; on desktop sessions a real
+        // touchStart/End is ignored without an error, so go straight to the mouse there.
+        if (s.mobile) {
+          try {
+            await s.cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+            await s.cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+            break;
+          } catch (e) {
+            logger.warn('VB touch dispatch failed, falling back to mouse click', { roomId, error: (e as Error).message });
+          }
+        }
+        await page.mouse.click(x, y);
+        break;
+      }
     }
   } catch (e) {
     logger.warn('VB input dispatch failed', { roomId, type: input.type, error: (e as Error).message });

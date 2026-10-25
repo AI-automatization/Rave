@@ -21,6 +21,7 @@ interface QueuedVBRequest {
   roomId: string;
   ownerId: string;
   url: string;
+  mobile?: boolean;
   io: SocketServer;
   redis: Redis;
 }
@@ -69,7 +70,7 @@ export function tryDrainQueue(): void {
       while (queue.length > 0) {
         const next = queue[0];
         try {
-          await startVBForRoom(next.io, next.redis, next.roomId, next.ownerId, next.url, 'free');
+          await startVBForRoom(next.io, next.redis, next.roomId, next.ownerId, next.url, 'free', next.mobile);
           queue.shift();
           broadcastPositions();
         } catch (e) {

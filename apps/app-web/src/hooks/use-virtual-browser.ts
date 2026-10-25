@@ -10,6 +10,7 @@ export type VBInput =
   | { type: 'mousemove'; x: number; y: number }
   | { type: 'mousedown'; x: number; y: number; button?: 'left' | 'right' | 'middle' }
   | { type: 'mouseup'; button?: 'left' | 'right' | 'middle' }
+  | { type: 'tap'; x: number; y: number }
   | { type: 'wheel'; deltaX: number; deltaY: number }
   | { type: 'keydown'; key: string }
   | { type: 'keyup'; key: string }
@@ -145,7 +146,12 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
   }, [socket, isConnected]);
 
   const start = useCallback((url: string) => {
-    socket?.emit(CLIENT_EVENTS.VB_START, { url });
+    // Primary pointer is a finger (phone/tablet) → ask the server for a phone-sized viewport, so the
+    // streamed page is the site's mobile layout and fits the screen instead of a shrunken 1280x720
+    // desktop page. Read at call time (event handler), so no SSR/hydration concern.
+    const mobile = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+    setUnreachable(false); // a fresh attempt clears the previous "didn't open" state
+    socket?.emit(CLIENT_EVENTS.VB_START, mobile ? { url, mobile: true } : { url });
   }, [socket]);
 
   const stop = useCallback(() => {

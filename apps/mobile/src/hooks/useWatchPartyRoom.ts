@@ -13,6 +13,7 @@ import { useWatchPartyStore } from '@store/watchParty.store';
 import { watchPartyApi } from '@api/watchParty.api';
 import { syncStatsApi } from '@api/syncStats.api';
 import { activeRoomStorage } from '@utils/storage';
+import { VB_ENABLED } from '@constants/features';
 import { disconnectSocket, getSocket, CLIENT_EVENTS } from '@socket/client';
 import { UniversalPlayerRef, detectVideoPlatform, detectEmbedPlatform } from '@components/video/UniversalPlayer';
 import type { FloatingEmoji } from '@components/watchParty/VideoSection';
@@ -197,6 +198,9 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   useEffect(() => {
     const rawUrl = room?.videoUrl;
     if (!rawUrl || extractStartedRef.current) return;
+    // 'webview' rooms (web app found the site embeddable): the page itself IS the media — show it
+    // in the WebView for everyone, no extraction round-trip (and no extraction-failure dead end).
+    if (room?.videoPlatform === 'webview') return;
     extractStartedRef.current = true;
     void extractFnRef.current(rawUrl);
     return () => { extractStartedRef.current = false; resetExtractionFnRef.current(); };
@@ -805,9 +809,14 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   // extracted URL use WebView. Embed detection matches UniversalPlayer.useWebview logic.
   // iOS: also use embed for VK/Rutube (IP-lock), plus existing fallbacks.
   const embedPlatformDetected = !!androidEmbedPlatform;
-  const isWebViewMode = Platform.OS === 'ios'
+  // Any link must open: a 'webview' room (page URL, no sync) always shows the page; and when
+  // extraction gave up on an unknown site and Virtual Browser isn't available on this build (store
+  // builds, VB_ENABLED=false) the page opens in the WebView instead of dead-ending on "failed".
+  const isPageRoom = room?.videoPlatform === 'webview' && platform === 'webview';
+  const unknownLinkToWebView = extractFallback && !VB_ENABLED && extractionError !== 'video_source_expired';
+  const isWebViewMode = isPageRoom || (Platform.OS === 'ios'
     ? (iosVkOrRutube || !extractedVideoUrl && (iosWebmBlocked || platform === 'youtube' || extractFallback))
-    : (isAndroidVkOrRutube || (!extractedVideoUrl && (platform === 'youtube' || embedPlatformDetected)));
+    : (isAndroidVkOrRutube || (!extractedVideoUrl && (platform === 'youtube' || embedPlatformDetected || unknownLinkToWebView))));
 
   // YouTube specifically uses the official IFrame Player API (webviewYouTube.ts) — a reliable
   // programmatic bridge, so VideoSection blocks direct iframe touches there and drives playback

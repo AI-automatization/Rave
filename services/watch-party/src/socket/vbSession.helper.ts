@@ -12,7 +12,7 @@ import { REDIS_KEYS } from '@shared/constants';
 import { VideoCandidate } from '@shared/types';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { signProxyUrl } from '@shared/utils/proxySignature';
-import { VB_VIEWPORT, startSession, getSessionPageTitle, enableAutoProxy, MediaType } from '../services/virtualBrowser.service';
+import { getSessionViewport, startSession, getSessionPageTitle, enableAutoProxy, MediaType } from '../services/virtualBrowser.service';
 import { WatchPartyRoom } from '../models/watchPartyRoom.model';
 import { WatchPartyPlaylistService } from '../services/watchPartyPlaylist.service';
 import { resolveDirectMedia } from './directResolve.helper';
@@ -155,6 +155,16 @@ export function upgradeEmbedToDirect(io: SocketServer, redis: Redis, roomId: str
   void commitDirectMedia(io, redis, roomId, ownerId, url).catch(() => {});
 }
 
+// Server-started VB has no VB_START payload to read `mobile` from; watchParty.socket.ts records
+// whether the owner's last socket looked like a phone. Missing/failed lookup = desktop (old behaviour).
+async function ownerIsMobile(redis: Redis, ownerId: string): Promise<boolean> {
+  try {
+    return (await redis.get(REDIS_KEYS.clientMobile(ownerId))) === '1';
+  } catch {
+    return false;
+  }
+}
+
 export async function startVBForRoom(
   io: SocketServer,
   redis: Redis,
@@ -164,7 +174,11 @@ export async function startVBForRoom(
   // Determined by the caller via getUserPlan(ownerId) — see vbEvents.handler.ts. Threaded straight
   // through to startSession()'s concurrency check (virtualBrowser.service.ts).
   tier: 'free' | 'pro' = 'free',
+  // Phone-owner session (VB_START { mobile: true }) — passed to startSession(). Left undefined by the
+  // server-started paths (room create, CHANGE_MEDIA, playNext): resolved from the owner's socket hint.
+  mobile?: boolean,
 ): Promise<void> {
+  const useMobile = mobile ?? await ownerIsMobile(redis, ownerId);
   // Fast path (directResolve.helper.ts): a direct media file or a yt-dlp-extractable page plays in
   // seconds without launching Chromium or making the owner pick from candidates.
   if (await commitDirectMedia(io, redis, roomId, ownerId, url)) return;
@@ -302,16 +316,21 @@ export async function startVBForRoom(
     // shows a corner badge on the live screencast rather than trying to solve/bypass the challenge.
     io.to(roomId).emit(SERVER_EVENTS.VB_BLOCKED, { reason });
     logger.info('VB: bot challenge detected, notified room', { roomId, reason });
-  }, tier);
+  }, tier, useMobile);
 
+  if (outcome === 'redirect_blocked') {
+    io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'unreachable' });
+    return;
+  }
   if (outcome === 'unreachable') {
     if (enableAutoProxy(url)) {
       logger.info('VB: site unreachable directly, retrying through proxy', { roomId, url });
-      return startVBForRoom(io, redis, roomId, ownerId, url, tier);
+      return startVBForRoom(io, redis, roomId, ownerId, url, tier, useMobile);
     }
     // Room-wide: viewers otherwise keep waiting on a video that will never come.
     io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'unreachable' });
     return;
   }
-  io.to(roomId).emit(SERVER_EVENTS.VB_STARTED, { url, width: VB_VIEWPORT.width, height: VB_VIEWPORT.height, ownerId });
+  const viewport = getSessionViewport(roomId);
+  io.to(roomId).emit(SERVER_EVENTS.VB_STARTED, { url, width: viewport.width, height: viewport.height, ownerId });
 }

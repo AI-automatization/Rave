@@ -319,7 +319,8 @@ export const registerRoomEvents = (
     // (client-side ?verify=1 workaround, now removed — see watchParty.controller.ts createRoom,
     // which starts VB server-side directly), so a URL needing VB just showed "failed to load
     // video" with no fallback ever attempted.
-    if (!isOfficialEmbedHost(data.videoUrl) && !isOwnVbUrl(data.videoUrl)) {
+    // 'webview' pages open in each member's own iframe/WebView (embed-check said frameable) — no VB.
+    if (data.videoPlatform !== 'webview' && !isOfficialEmbedHost(data.videoUrl) && !isOwnVbUrl(data.videoUrl)) {
       const tier = await getUserPlan(userId);
       try {
         await startVBForRoom(io, redis, roomId, userId, data.videoUrl, tier);

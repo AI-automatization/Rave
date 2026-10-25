@@ -17,6 +17,7 @@ import { DailymotionPlayer } from './DailymotionPlayer';
 import { TikTokPlayer } from './TikTokPlayer';
 import { PeerTubePlayer } from './PeerTubePlayer';
 import { TrovoPlayer } from './TrovoPlayer';
+import { GenericIframePlayer } from './GenericIframePlayer';
 
 // Shared loading visual for every "video not playable yet" moment (initial room load, VB still
 // resolving a candidate). Never resolves into a user-facing "Не удалось загрузить видео" — the
@@ -202,6 +203,9 @@ interface Props {
   /** Owner-only: opens the virtual-browser panel (URL input) — offered when a page link never
    * resolved to a playable video, instead of an endless loading spinner. */
   onOpenVirtualBrowser?: () => void;
+  /** Owner-only: opens THIS url in the shared Virtual Browser — the 'webview' (generic iframe)
+   * player's fallback for pages that allow framing but render blank. */
+  onOpenUrlInVirtualBrowser?: (url: string) => void;
   /** VB reported the source site unreachable — show the "didn't open" state immediately. */
   sourceUnreachable?: boolean;
   /** True while at least one voice-chat participant is speaking — ducks the video's volume down
@@ -387,6 +391,16 @@ function isOwnVbMediaUrl(url: string): boolean {
       // candidate can now point at the Bunny Edge Script fetch path instead of this service's own
       // vb-media-proxy route (vbSession.helper.ts's proxiedMediaUrl, VB_EDGE_FETCH_URL).
       || url.includes('/vb-edge-fetch');
+}
+
+// True when a dedicated player above handles this URL (YouTube/VK/Rutube/Twitch/Vimeo/Dailymotion/
+// TikTok/PeerTube/Trovo) or it is already one of our own resolved-media URLs — i.e. the link must
+// NOT be routed through the generic iframe check (RoomContent / CreateRoomDialog via
+// lib/link-routing.ts). Same detectors the render switch below uses, so the two can't drift.
+export function isDedicatedPlayerUrl(url: string): boolean {
+  return !!(getYouTubeId(url) || getVKVideoIds(url) || getRutubeVideoId(url) || getTwitchIds(url)
+    || getVimeoId(url) || getDailymotionId(url) || getTikTokId(url) || getPeerTubeIds(url)
+    || getTrovoStreamername(url) || isOwnVbMediaUrl(url));
 }
 
 // Exported for VideoCandidatePicker.tsx's preview — a candidate.url (whether a raw CDN url from
@@ -1378,6 +1392,7 @@ export function VideoPlayer({
   onFatalError,
   onPickDifferentVideo,
   onOpenVirtualBrowser,
+  onOpenUrlInVirtualBrowser,
   sourceUnreachable,
   duckAudio,
 }: Props) {
@@ -1434,7 +1449,10 @@ export function VideoPlayer({
   const tiktokId = getTikTokId(videoUrl);
   const peertubeIds = getPeerTubeIds(videoUrl);
   const trovoName = getTrovoStreamername(videoUrl);
-  const isEmbed = !!ytId || !!vkIds || !!rutubeId || !!twitchIds || !!vimeoId || !!dailymotionId || !!tiktokId || !!peertubeIds || !!trovoName;
+  // videoPlatform 'webview' = owner's link passed embed-check (lib/link-routing.ts) → plain iframe.
+  // Counted as an embed so none of the native <video>/extraction/heartbeat effects below run for it.
+  const isWebview = room?.videoPlatform === 'webview' && !isOwnVbMediaUrl(videoUrl);
+  const isEmbed = isWebview || !!ytId || !!vkIds || !!rutubeId || !!twitchIds || !!vimeoId || !!dailymotionId || !!tiktokId || !!peertubeIds || !!trovoName;
   // Every non-embed URL is resolved server-side by VB (services/watch-party/roomEvents.handler.ts,
   // "Single extraction mechanism", 2026-08-10) — this component used to also run its own client-side
   // extraction (extractVideoUrl → content-service's yt-dlp/Playwright pipeline) racing that same
@@ -1853,6 +1871,18 @@ export function VideoPlayer({
         isOwner={isOwner}
         onPlay={onPlay}
         onPause={onPause}
+      />
+    );
+  }
+
+  // ── Generic iframe — any page that allows framing (not playback-synced, see header there) ──
+
+  if (isWebview) {
+    return (
+      <GenericIframePlayer
+        url={videoUrl}
+        isOwner={isOwner}
+        onOpenInVirtualBrowser={onOpenUrlInVirtualBrowser}
       />
     );
   }

@@ -80,7 +80,13 @@ const nextConfig = {
               // A link from an instance not listed here gets silently blocked by the browser, not
               // by our code — expand on demand as real rooms need specific instances (see
               // PeerTubePlayer.tsx's file-header comment).
-              "frame-src https://www.youtube.com https://youtube.com https://vk.com https://rutube.ru https://embed.twitch.tv https://player.twitch.tv https://www.twitch.tv https://player.vimeo.com https://geo.dailymotion.com https://www.dailymotion.com https://www.tiktok.com https://framatube.org https://peertube.social https://player.trovo.live",
+              // `https:` added 2026-10-25 for the generic iframe player (GenericIframePlayer.tsx): the room
+              // owner can paste ANY link and, when the server's embed-check says the site allows
+              // framing, it is shown in a plain iframe — the target host is unknowable in advance, so
+              // an exact-domain list cannot work. Exposure is limited: only frames (no script/connect
+              // loosening), the iframe is sandboxed without top-navigation, and only the room owner
+              // picks the URL. The named hosts below stay for readability/documentation.
+              "frame-src https: https://www.youtube.com https://youtube.com https://vk.com https://rutube.ru https://embed.twitch.tv https://player.twitch.tv https://www.twitch.tv https://player.vimeo.com https://geo.dailymotion.com https://www.dailymotion.com https://www.tiktok.com https://framatube.org https://peertube.social https://player.trovo.live",
               `media-src 'self' https: blob:${process.env.NODE_ENV === 'development' ? ' http:' : ''}`,
               "object-src 'none'",
               "base-uri 'self'",

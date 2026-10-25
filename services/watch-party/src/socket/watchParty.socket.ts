@@ -5,7 +5,7 @@ import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS } from '@shared/constants/socketEvents';
 import { JwtPayload } from '@shared/types';
 import { config } from '../config/index';
-import { TIMING, LIMITS } from '@shared/constants';
+import { TIMING, LIMITS, REDIS_KEYS } from '@shared/constants';
 import { registerRoomEvents, roomCloseTimers, scheduleDisconnectLeave } from './roomEvents.handler';
 import { registerVideoEvents } from './videoEvents.handler';
 import { registerChatEvents } from './chatEvents.handler';
@@ -118,6 +118,14 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
       // Kept for server-to-server calls that need to act as this user (e.g. roomEvents.handler.ts
       // calling content-service's /content/extract, which requires a real user JWT).
       (socket as AuthenticatedSocket).rawToken = token;
+      // Phone owner hint for server-started VB (vbSession.helper.ts, resolveMobile). No client field
+      // exists today, so: optional `auth.client === 'mobile'` (clients may add it) or a phone/RN
+      // User-Agent in the handshake (Android Chrome/Safari iOS, or RN's okhttp / CFNetwork).
+      // Best-effort, never blocks the connection.
+      const ua = String(socket.handshake.headers['user-agent'] ?? '');
+      const isMobile = socket.handshake.auth.client === 'mobile'
+        || /Android|iPhone|iPad|iPod|Mobile|okhttp|CFNetwork|Expo/i.test(ua);
+      void redis.setex(REDIS_KEYS.clientMobile(user.userId), 24 * 60 * 60, isMobile ? '1' : '0').catch(() => { /* hint only */ });
       next();
     } catch {
       next(new Error('Invalid token'));

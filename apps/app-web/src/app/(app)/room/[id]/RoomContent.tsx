@@ -10,6 +10,7 @@ import { useWatchParty } from '@/hooks/use-watch-party';
 import { useVirtualBrowser } from '@/hooks/use-virtual-browser';
 import { VideoPlayer } from '@/components/party/VideoPlayer';
 import { VirtualBrowserPlayer } from '@/components/party/VirtualBrowserPlayer';
+import { resolveLinkPlatform } from '@/lib/link-routing';
 import { ChatPanel } from '@/components/party/ChatPanel';
 import { MemberList } from '@/components/party/MemberList';
 import { RoomHeader } from '@/components/party/RoomHeader';
@@ -117,21 +118,28 @@ function unwrapVbProxyUrl(url: string): string | null {
 
 function PlaylistPanel({
   roomId, isOwner, onPlayNow,
-}: { roomId: string; isOwner: boolean; onPlayNow: (videoUrl: string, videoPlatform: string) => void }) {
+}: { roomId: string; isOwner: boolean; onPlayNow: (videoUrl: string, videoPlatform: string) => void | Promise<void> }) {
   const t = useTranslations('party');
   const room = useWatchPartyStore((s) => s.room);
   const playlist = (room as unknown as { playlist?: PlaylistItem[] }).playlist ?? [];
   const [urlInput, setUrlInput] = useState('');
   const [adding, setAdding] = useState(false);
   const [nextLoading, setNextLoading] = useState(false);
+  // True while the embed-check for a pasted link is in flight (disables the button: no double submit).
+  const [checkingLink, setCheckingLink] = useState(false);
 
-  function handlePlayNow() {
+  async function handlePlayNow() {
     const url = urlInput.trim();
-    if (!url) return;
+    if (!url || checkingLink) return;
     trackClick('room:playlist_play_now');
     const normalizedUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
-    onPlayNow(normalizedUrl, detectVideoPlatform(normalizedUrl));
-    setUrlInput('');
+    setCheckingLink(true);
+    try {
+      await onPlayNow(normalizedUrl, detectVideoPlatform(normalizedUrl));
+      setUrlInput('');
+    } finally {
+      setCheckingLink(false);
+    }
   }
 
   async function handleAdd() {
@@ -265,12 +273,14 @@ function PlaylistPanel({
             <button
               type="button"
               onClick={handlePlayNow}
-              disabled={!urlInput.trim()}
-              title={t('playNow')}
-              aria-label={t('playNow')}
+              disabled={!urlInput.trim() || checkingLink}
+              title={checkingLink ? t('linkChecking') : t('playNow')}
+              aria-label={checkingLink ? t('linkChecking') : t('playNow')}
               className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-[var(--ww-r-sm)] bg-[rgba(61,220,132,0.16)] text-[var(--ww-online)] transition-colors hover:bg-[rgba(61,220,132,0.26)] disabled:opacity-40"
             >
-              <Play size={13} fill="currentColor" aria-hidden="true" />
+              {checkingLink
+                ? <Loader2 size={13} className="animate-spin" aria-hidden="true" />
+                : <Play size={13} fill="currentColor" aria-hidden="true" />}
             </button>
             <button
               type="button"
@@ -384,7 +394,7 @@ function RoomSidePanel({
           <PlaylistPanel
             roomId={roomId}
             isOwner={isOwner}
-            onPlayNow={(videoUrl, videoPlatform) => sendMediaChange(videoUrl, undefined, videoPlatform)}
+            onPlayNow={async (videoUrl, videoPlatform) => sendMediaChange(videoUrl, undefined, await resolveLinkPlatform(videoUrl, videoPlatform))}
           />
         )}
       </div>
@@ -428,7 +438,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
     const play = searchParams.get('play');
     if (!play || playHandledRef.current || !roomJoined || !isOwner) return;
     playHandledRef.current = true;
-    sendMediaChange(play);
+    void resolveLinkPlatform(play, detectVideoPlatform(play)).then((platform) => sendMediaChange(play, undefined, platform));
     window.history.replaceState(null, '', window.location.pathname);
   }, [searchParams, roomJoined, isOwner, sendMediaChange]);
 
@@ -475,6 +485,24 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
     const url = room?.videoUrl;
     if (url && unwrapVbProxyUrl(url) === url) originalSourceUrlRef.current = url;
   }, [room?.videoUrl]);
+
+  // Owner-initiated, per-URL VB opens (from the generic iframe's "Open in Virtual Browser" button) —
+  // `showVBPanel` keeps the VB view mounted so its unreachable state is visible if the start fails.
+  const handleOpenUrlInVB = useCallback((url: string) => {
+    setShowVBPanel(true);
+    vbStart(url);
+  }, [vbStart]);
+
+  // VB said the site is unreachable from the server — the viewer's own network may still reach it,
+  // so offer the plain iframe ('webview') for the same URL without another embed-check.
+  const handleTryIframe = useCallback((url: string | null) => {
+    const target = url ?? originalSourceUrlRef.current;
+    if (!target) return;
+    const normalized = /^https?:\/\//i.test(target) ? target : `https://${target}`;
+    vbStop();
+    setShowVBPanel(false);
+    sendMediaChange(normalized, undefined, 'webview');
+  }, [vbStop, sendMediaChange]);
 
   const handleVideoFatalError = useCallback(() => {
     if (!isOwner || showVB) return;
@@ -567,6 +595,8 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                 error={vbError}
                 blocked={vbBlocked}
                 queuePosition={vbQueuePosition}
+                unreachable={vbUnreachable}
+                onTryIframe={handleTryIframe}
                 start={vbStart}
                 stop={handleVBStop}
                 sendInput={vbSendInput}
@@ -583,6 +613,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                 onFatalError={handleVideoFatalError}
                 onPickDifferentVideo={() => setCandidatePickerOpen(true)}
                 onOpenVirtualBrowser={() => setShowVBPanel(true)}
+                onOpenUrlInVirtualBrowser={handleOpenUrlInVB}
                 sourceUnreachable={vbUnreachable}
                 duckAudio={anyoneSpeaking}
               />

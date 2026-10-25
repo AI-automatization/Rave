@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Globe, Loader2, MousePointer2, X } from 'lucide-react';
+import { Globe, Keyboard, Loader2, Maximize, Minimize, MousePointer2, X } from 'lucide-react';
 import type { VBInput } from '@/hooks/use-virtual-browser';
 
 interface Props {
@@ -17,42 +17,77 @@ interface Props {
   /** 1-indexed position while waiting for a Free-tier slot — see use-virtual-browser.ts. null =
    * not queued (Pro never queues, or the session just hasn't hit the cap). */
   queuePosition: number | null;
+  /** VB reported the site itself can't be reached (use-virtual-browser.ts) — shown instead of the
+   * generic URL screen, with a way to try the page as a plain iframe or pick another link. */
+  unreachable: boolean;
   start: (url: string) => void;
   stop: () => void;
   sendInput: (input: VBInput) => void;
   /** Owner-only: opens the same video-candidate picker "Это не то видео" already opens — the
    * blocked-badge's escape hatch to pick a different source instead of waiting out a dead session. */
   onPickDifferentVideo?: () => void;
+  /** Owner-only: re-open `url` as a plain iframe room media ('webview') instead of the VB — the
+   * unreachable state's escape hatch (the server's IP may be blocked while the viewer's isn't). */
+  onTryIframe?: (url: string | null) => void;
 }
+
+// Hidden-input sentinel: a zero-width char the phone keyboard can "delete", so Backspace still
+// produces an input event on an otherwise empty field (Android fires nothing for an empty one).
+const KB_BASE = '\u200b';
 
 // Kosmi-style shared virtual browser: a real headless Chromium page runs on the server, the
 // owner controls it with mouse/keyboard, and every room member just watches the same live JPEG
 // frame stream. See services/watch-party/src/services/virtualBrowser.service.ts for the server
 // side (CDP screencast + input dispatch). State/socket wiring lives in the parent's
 // useVirtualBrowser() call (RoomContent.tsx) — this component is presentational + input capture.
-export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocked, queuePosition, start, stop, sendInput, onPickDifferentVideo }: Props) {
+export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocked, queuePosition, unreachable, start, stop, sendInput, onPickDifferentVideo, onTryIframe }: Props) {
   const t = useTranslations('party');
   const [urlInput, setUrlInput] = useState('');
+  const lastUrlRef = useRef<string | null>(null);
+  const urlInputRef = useRef<HTMLInputElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const kbInputRef = useRef<HTMLInputElement>(null);
+  const kbPrevRef = useRef(KB_BASE);
+  // 'css' = fixed full-viewport fallback for iOS Safari on iPhone, where element fullscreen
+  // (requestFullscreen on a non-<video> element) is unsupported.
+  const [fsMode, setFsMode] = useState<'none' | 'native' | 'css'>('none');
+  // Primary pointer is a finger — set in an effect (not initial state) so SSR/hydration match.
+  const [isCoarse, setIsCoarse] = useState(false);
+  const [kbOpen, setKbOpen] = useState(false);
+  const kbOpenRef = useRef(false);
+  kbOpenRef.current = kbOpen;
   const lastMoveRef = useRef(0);
   // Owner's own pointer position in CSS space (not server-viewport space) — purely local visual
   // feedback, no round-trip needed since it's just "where is MY mouse over the stream right now".
   const [localCursorCss, setLocalCursorCss] = useState<{ x: number; y: number } | null>(null);
 
-  // Maps a viewport-space client point to the server-side browser's fixed viewport (1280x720
-  // by default) regardless of how large the <img> is actually rendered on screen. Takes raw
-  // coordinates rather than a React.MouseEvent so the touch handlers below can reuse it —
-  // a TouchEvent has no clientX of its own, only per-Touch ones.
-  const clientToViewport = useCallback((clientX: number, clientY: number): { x: number; y: number } | null => {
+  // Displayed-pixels per server-viewport pixel. The <img> is object-contain, so the picture can be
+  // letterboxed inside the element (portrait phone frame in a wide box, landscape in a tall one) —
+  // the scale is the smaller of the two axes, not the element's own width/height ratio.
+  const getScale = useCallback((): number | null => {
     if (!imgRef.current || !dimensions) return null;
     const rect = imgRef.current.getBoundingClientRect();
-    const scaleX = dimensions.width / rect.width;
-    const scaleY = dimensions.height / rect.height;
-    return {
-      x: Math.round((clientX - rect.left) * scaleX),
-      y: Math.round((clientY - rect.top) * scaleY),
-    };
+    if (!rect.width || !rect.height) return null;
+    return Math.min(rect.width / dimensions.width, rect.height / dimensions.height);
   }, [dimensions]);
+
+  // Maps a viewport-space client point to the server-side browser's viewport regardless of how
+  // large (or letterboxed) the <img> is rendered on screen. Takes raw coordinates rather than a
+  // React.MouseEvent so the touch handlers below can reuse it — a TouchEvent has no clientX of its
+  // own, only per-Touch ones.
+  const clientToViewport = useCallback((clientX: number, clientY: number): { x: number; y: number } | null => {
+    const scale = getScale();
+    if (!imgRef.current || !dimensions || !scale) return null;
+    const rect = imgRef.current.getBoundingClientRect();
+    const offsetX = (rect.width - dimensions.width * scale) / 2;
+    const offsetY = (rect.height - dimensions.height * scale) / 2;
+    const clamp = (v: number, max: number) => Math.max(0, Math.min(max - 1, Math.round(v)));
+    return {
+      x: clamp((clientX - rect.left - offsetX) / scale, dimensions.width),
+      y: clamp((clientY - rect.top - offsetY) / scale, dimensions.height),
+    };
+  }, [dimensions, getScale]);
 
   const toViewportCoords = useCallback(
     (e: React.MouseEvent) => clientToViewport(e.clientX, e.clientY),
@@ -131,7 +166,8 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
   //
   // A finger drag is translated to WHEEL, not to a held mousemove: on a touch device dragging
   // means "scroll the page", whereas a held pointer drag would select text on the remote page.
-  // A tap (no meaningful movement) becomes mousedown+mouseup, i.e. a click.
+  // A tap (no meaningful movement) becomes a real `tap` input — the server dispatches an actual
+  // touch, which is what mobile-layout pages (menus, custom players) react to, unlike a mouse click.
   useEffect(() => {
     const el = imgRef.current;
     if (!el || !isOwner) return;
@@ -139,19 +175,26 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
     // Below this, the finger hasn't really moved — treat the gesture as a tap.
     const TAP_SLOP_PX = 10;
     let startX = 0, startY = 0, lastX = 0, lastY = 0, moved = false;
+    // touchmove fires ~60x/s; every one used to be its own socket emit, which on a phone connection
+    // made scrolling lag behind the finger. Deltas are summed and flushed at most every 40ms.
+    let accX = 0, accY = 0, flushTimer: ReturnType<typeof setTimeout> | null = null;
+    const flushWheel = () => {
+      flushTimer = null;
+      if (accX || accY) sendInput({ type: 'wheel', deltaX: accX, deltaY: accY });
+      accX = 0;
+      accY = 0;
+    };
 
     const onTouchStart = (e: TouchEvent) => {
       const t = e.touches[0];
       if (!t) return;
       e.preventDefault();
-      el.focus(); // same Safari focus problem as mousedown
+      // Same Safari focus problem as mousedown — but not while the on-screen keyboard is open:
+      // moving focus off its hidden input would close the keyboard on every tap.
+      if (!kbOpenRef.current) el.focus();
       startX = lastX = t.clientX;
       startY = lastY = t.clientY;
       moved = false;
-      // Move the remote pointer to where the finger landed, so hover-dependent controls
-      // (menus, custom players) behave as they would under a mouse.
-      const pos = clientToViewport(t.clientX, t.clientY);
-      if (pos) sendInput({ type: 'mousemove', x: pos.x, y: pos.y });
     };
 
     const onTouchMove = (e: TouchEvent) => {
@@ -165,31 +208,110 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
       }
       lastX = t.clientX;
       lastY = t.clientY;
+      if (!moved) return;
       // Negated: dragging the finger UP should scroll the content DOWN, which is a positive
-      // wheel delta — the same convention as native touch scrolling.
-      if (moved) sendInput({ type: 'wheel', deltaX: -dx, deltaY: -dy });
+      // wheel delta — the same convention as native touch scrolling. Divided by the display scale
+      // so the remote page moves with the finger even when the frame is shown smaller/larger than
+      // the server viewport.
+      const scale = getScale() || 1;
+      accX += -dx / scale;
+      accY += -dy / scale;
+      if (!flushTimer) flushTimer = setTimeout(flushWheel, 40);
     };
 
     const onTouchEnd = (e: TouchEvent) => {
       e.preventDefault();
-      if (moved) return; // it was a scroll, not a click
+      if (flushTimer) { clearTimeout(flushTimer); flushWheel(); }
+      if (moved) return; // it was a scroll, not a tap
       const pos = clientToViewport(startX, startY);
-      if (!pos) return;
-      sendInput({ type: 'mousedown', x: pos.x, y: pos.y });
-      sendInput({ type: 'mouseup' });
+      if (pos) sendInput({ type: 'tap', x: pos.x, y: pos.y });
+    };
+
+    const onTouchCancel = () => {
+      // System interrupted the gesture (call, notification shade, …) — never a tap.
+      if (flushTimer) { clearTimeout(flushTimer); flushWheel(); }
+      moved = true;
     };
 
     el.addEventListener('touchstart', onTouchStart, { passive: false });
     el.addEventListener('touchmove', onTouchMove, { passive: false });
     el.addEventListener('touchend', onTouchEnd, { passive: false });
-    el.addEventListener('touchcancel', onTouchEnd, { passive: false });
+    el.addEventListener('touchcancel', onTouchCancel);
     return () => {
+      if (flushTimer) clearTimeout(flushTimer);
       el.removeEventListener('touchstart', onTouchStart);
       el.removeEventListener('touchmove', onTouchMove);
       el.removeEventListener('touchend', onTouchEnd);
-      el.removeEventListener('touchcancel', onTouchEnd);
+      el.removeEventListener('touchcancel', onTouchCancel);
     };
-  }, [isOwner, sendInput, frame, clientToViewport]);
+  }, [isOwner, sendInput, frame, clientToViewport, getScale]);
+
+  useEffect(() => {
+    setIsCoarse(window.matchMedia('(pointer: coarse)').matches);
+  }, []);
+
+  // Native fullscreen can also end from outside our button (Esc, iOS swipe, browser UI).
+  useEffect(() => {
+    const onChange = () => setFsMode((m) => (m === 'native' && !document.fullscreenElement ? 'none' : m));
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (fsMode !== 'none') {
+      if (fsMode === 'native' && document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+      setFsMode('none');
+      return;
+    }
+    const el = containerRef.current;
+    if (el && document.fullscreenEnabled && typeof el.requestFullscreen === 'function') {
+      el.requestFullscreen().then(() => setFsMode('native')).catch(() => setFsMode('css'));
+    } else {
+      setFsMode('css');
+    }
+  };
+
+  // On-screen keyboard (phones have no key events for a non-input <img>). A hidden text input takes
+  // focus so the OS keyboard opens; its value is diffed against the previous one on every input
+  // event, which handles predictive/IME composition too (a replaced word becomes N Backspaces +
+  // the new text). Sent through the same `type` / keydown+keyup inputs as desktop typing.
+  const toggleKeyboard = () => {
+    const input = kbInputRef.current;
+    if (!input) return;
+    if (document.activeElement === input) input.blur();
+    else input.focus(); // must stay inside the click handler — iOS only opens the keyboard from a user gesture
+  };
+
+  const resetKbInput = (el: HTMLInputElement) => {
+    el.value = KB_BASE;
+    kbPrevRef.current = KB_BASE;
+    el.setSelectionRange(KB_BASE.length, KB_BASE.length);
+  };
+
+  const handleKbInput = (e: React.FormEvent<HTMLInputElement>) => {
+    const el = e.currentTarget;
+    const cur = el.value;
+    const prev = kbPrevRef.current;
+    let common = 0;
+    while (common < prev.length && common < cur.length && prev[common] === cur[common]) common++;
+    for (let i = 0; i < prev.length - common; i++) {
+      sendInput({ type: 'keydown', key: 'Backspace' });
+      sendInput({ type: 'keyup', key: 'Backspace' });
+    }
+    const added = cur.slice(common);
+    if (added) sendInput({ type: 'type', text: added });
+    kbPrevRef.current = cur;
+    // Never reset mid-composition (it would cancel the word the keyboard is building).
+    const composing = (e.nativeEvent as InputEvent).isComposing;
+    if (!composing && (cur.length > 32 || !cur.startsWith(KB_BASE))) resetKbInput(el);
+  };
+
+  const handleKbKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    sendInput({ type: 'keydown', key: 'Enter' });
+    sendInput({ type: 'keyup', key: 'Enter' });
+  };
 
   // 2026-08-25 (Saidazim: "виден только владельцу"). VB_FRAME is now emitted to the owner's
   // socket only (vbSession.helper.ts), so a non-owner never receives frame/dimensions data at
@@ -204,7 +326,7 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
     );
   }
 
-  if (!frame && !dimensions) {
+  if (!frame && (!dimensions || unreachable)) {
     if (queuePosition !== null) {
       return (
         <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-2 text-center px-6">
@@ -214,21 +336,52 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
       );
     }
     return (
-      <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-3 px-6 text-center">
-        <Globe size={24} className="text-violet-400/60" />
+      <div className={`bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-3 px-6 text-center ${unreachable ? 'min-h-[16rem] py-5' : 'aspect-video'}`}>
+        {unreachable ? (
+          <div role="alert" className="flex flex-col items-center gap-2" data-testid="vb-unreachable">
+            <Globe size={24} className="text-red-400/80" />
+            <p className="text-white text-sm font-semibold">{t('vbUnreachableTitle')}</p>
+            <p className="text-white/55 text-xs max-w-sm">{t('vbUnreachableHint')}</p>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {onTryIframe && (lastUrlRef.current || urlInput) && (
+                <button
+                  type="button"
+                  onClick={() => onTryIframe(lastUrlRef.current ?? urlInput.trim())}
+                  className="h-11 sm:h-9 rounded-lg px-4 text-[13px] font-medium text-white cursor-pointer bg-violet-600 hover:bg-violet-500"
+                >
+                  {t('vbTryIframe')}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => { setUrlInput(''); urlInputRef.current?.focus(); }}
+                className="h-11 sm:h-9 rounded-lg px-4 text-[13px] font-medium text-white/80 bg-white/10 hover:bg-white/15 cursor-pointer"
+              >
+                {t('vbTryAnother')}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <Globe size={24} className="text-violet-400/60" />
+        )}
         <div className="flex gap-2 w-full max-w-sm">
           <input
+            ref={urlInputRef}
             type="url"
+            inputMode="url"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
             value={urlInput}
             onChange={(e) => setUrlInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && urlInput) start(urlInput); }}
+            onKeyDown={(e) => { if (e.key === 'Enter' && urlInput) { lastUrlRef.current = urlInput; start(urlInput); } }}
             placeholder="https://..."
-            className="flex-1 h-10 px-3 bg-[#111118] border border-white/[0.08] rounded-lg text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/50"
+            className="flex-1 h-11 sm:h-10 px-3 bg-[#111118] border border-white/[0.08] rounded-lg text-base sm:text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/50"
           />
           <button
-            onClick={() => urlInput && start(urlInput)}
+            onClick={() => { if (urlInput) { lastUrlRef.current = urlInput; start(urlInput); } }}
             disabled={!urlInput}
-            className="h-10 px-4 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-30 text-white text-sm font-medium transition-colors cursor-pointer"
+            className="h-11 sm:h-10 px-4 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-30 text-white text-sm font-medium transition-colors cursor-pointer"
           >
             {t('vbOpen')}
           </button>
@@ -238,17 +391,97 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
     );
   }
 
+  // Portrait frame (phone-sized viewport): sized by the frame's own ratio but capped to 70% of the
+  // screen height so the chat below the player is never pushed off a phone. Landscape frames keep
+  // the full-width 16:9 box. Fullscreen modes ignore all of this and fill the screen.
+  const ratio = dimensions ? dimensions.width / dimensions.height : 16 / 9;
+  const boxStyle: React.CSSProperties | undefined = fsMode !== 'none'
+    ? undefined
+    : ratio < 1
+      ? { aspectRatio: ratio, width: `min(100%, calc(70dvh * ${ratio}))` }
+      : { aspectRatio: ratio };
+  const btnCls = `${isCoarse ? 'w-11 h-11' : 'w-8 h-8'} rounded-lg bg-black/60 hover:bg-black/80 flex items-center justify-center text-white cursor-pointer`;
+
   return (
-    <div className="relative aspect-video bg-black rounded-xl overflow-hidden">
-      {isOwner && (
+    <div
+      ref={containerRef}
+      style={boxStyle}
+      className={`bg-black overflow-hidden ${
+        fsMode === 'css'
+          ? 'fixed inset-0 z-[70] h-[100dvh] w-screen'
+          : fsMode === 'native'
+            ? 'relative h-full w-full'
+            : 'relative mx-auto rounded-xl'
+      }`}
+    >
+      {/* Control cluster: pointer-events-none wrapper padded by the safe-area insets (notch / home
+          bar in the CSS-fullscreen mode), buttons re-enable pointer events. */}
+      <div
+        className="absolute inset-x-0 top-0 z-10 flex justify-end gap-2 p-2 pointer-events-none"
+        style={{
+          paddingTop: 'max(0.5rem, env(safe-area-inset-top))',
+          paddingRight: 'max(0.5rem, env(safe-area-inset-right))',
+        }}
+      >
+        {isCoarse && frame && (
+          <button
+            type="button"
+            // preventDefault on mousedown keeps focus where it is, so a tap on this button while the
+            // keyboard is open closes it instead of blurring-then-reopening it.
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={toggleKeyboard}
+            aria-pressed={kbOpen}
+            title={t('vbKeyboard')}
+            aria-label={t('vbKeyboard')}
+            className={`${btnCls} pointer-events-auto ${kbOpen ? '!bg-violet-600' : ''}`}
+          >
+            <Keyboard size={18} />
+          </button>
+        )}
+        {frame && (
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            title={fsMode === 'none' ? t('vbFullscreen') : t('vbExitFullscreen')}
+            aria-label={fsMode === 'none' ? t('vbFullscreen') : t('vbExitFullscreen')}
+            className={`${btnCls} pointer-events-auto`}
+          >
+            {fsMode === 'none' ? <Maximize size={16} /> : <Minimize size={16} />}
+          </button>
+        )}
         <button
+          type="button"
           onClick={stop}
           title={t('vbClose')}
-          className="absolute top-2 right-2 z-10 w-8 h-8 rounded-lg bg-black/60 hover:bg-black/80 flex items-center justify-center text-white cursor-pointer"
+          aria-label={t('vbClose')}
+          className={`${btnCls} pointer-events-auto`}
         >
           <X size={16} />
         </button>
-      )}
+      </div>
+
+      {/* Hidden input that owns the phone keyboard — see toggleKeyboard. 16px font so iOS doesn't
+          zoom the page on focus; opacity-0 rather than display:none (a non-rendered input can't
+          take focus). */}
+      <input
+        ref={kbInputRef}
+        type="text"
+        inputMode="text"
+        enterKeyHint="go"
+        autoCapitalize="off"
+        autoCorrect="off"
+        autoComplete="off"
+        spellCheck={false}
+        defaultValue={KB_BASE}
+        aria-label={t('vbKeyboard')}
+        tabIndex={-1}
+        onFocus={(e) => { setKbOpen(true); resetKbInput(e.currentTarget); }}
+        onBlur={() => setKbOpen(false)}
+        onInput={handleKbInput}
+        onKeyDown={handleKbKeyDown}
+        className="absolute bottom-0 left-0 h-px w-px opacity-0 pointer-events-none"
+        style={{ fontSize: 16 }}
+      />
 
       {!frame && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#0A0A12]/80">
@@ -262,9 +495,12 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
               VB is a real page the owner has to click through (play button, ads, captchas). Without
               this hint people stared at a loaded page with no idea they were the ones expected to
               act on it. */}
-          <div className="absolute top-2 left-2 z-10 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/70 backdrop-blur-sm border border-violet-500/20 pointer-events-none">
-            <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
-            <span className="text-white/80 text-xs font-medium">{t('vbStartVideo')}</span>
+          <div
+            className="absolute z-10 flex max-w-[calc(100%-10rem)] items-center gap-2 px-3 py-1.5 rounded-lg bg-black/70 backdrop-blur-sm border border-violet-500/20 pointer-events-none"
+            style={{ top: 'max(0.5rem, env(safe-area-inset-top))', left: 'max(0.5rem, env(safe-area-inset-left))' }}
+          >
+            <span className="w-1.5 h-1.5 shrink-0 rounded-full bg-violet-400 animate-pulse" />
+            <span className="truncate text-white/80 text-xs font-medium">{t('vbStartVideo')}</span>
           </div>
 
           {/* eslint-disable-next-line @next/next/no-img-element -- live JPEG frame stream (base64 data URL), not a real <Image>-optimizable asset */}

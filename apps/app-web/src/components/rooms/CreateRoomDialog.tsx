@@ -15,6 +15,7 @@ import { useApiError } from '@/hooks/use-api-error';
 import { ApiError } from '@/lib/api-client';
 import { trackClick } from '@/lib/analytics';
 import { trackRoomCreated } from '@/lib/measurement-events';
+import { resolveLinkPlatform } from '@/lib/link-routing';
 
 interface Props {
   open: boolean;
@@ -323,6 +324,8 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
   const parseError = useApiError();
   const router = useRouter();
   const createRoom = useCreateRoom();
+  // True while the pasted link is being checked for iframe-embeddability (before the room request).
+  const [checkingLink, setCheckingLink] = useState(false);
 
   const [step, setStep]                       = useState<1 | 2>(1);
   const [videoUrl, setVideoUrl]               = useState('');
@@ -455,6 +458,7 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
 
   /* ── Create room ────────────────────────────────────── */
   async function handleCreate() {
+    if (checkingLink) return;
     trackClick('create_room:submit', { isPrivate });
     const pickedUrl = videoUrl && !/^https?:\/\//i.test(videoUrl) ? `https://${videoUrl}` : videoUrl;
     try {
@@ -471,13 +475,25 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
       // Safety net alongside toAbsoluteThumbnailUrl (used when storing it from fetchVideoMeta):
       // re-validate here too so a malformed thumbnail can never 422 the whole room-create request.
       const safeThumbnail = videoThumbnail ? toAbsoluteThumbnailUrl(videoThumbnail) : null;
+      // Link no dedicated player handles → ask the server whether the page can be framed; framable
+      // pages become plain-iframe ('webview') rooms, the rest keep the old path (backend starts the
+      // Virtual Browser). Picked-platform rooms (YouTube etc.) skip the check inside the helper.
+      let platform = backendPlatform;
+      if (normalizedVideoUrl && (!platform || platform === 'other')) {
+        setCheckingLink(true);
+        try {
+          platform = await resolveLinkPlatform(normalizedVideoUrl, platform ?? 'other');
+        } finally {
+          setCheckingLink(false);
+        }
+      }
       const res = await createRoom.mutateAsync({
         // Backend `name` caps at 80 chars (Joi) — trim here, mirrors mobile's useMediaDetection slice(0, 60)
         name:             roomName ? roomName.slice(0, 60) : undefined,
         videoUrl:         normalizedVideoUrl || undefined,
         videoTitle:       videoTitle || undefined,
         videoThumbnail:   safeThumbnail || undefined,
-        videoPlatform:    backendPlatform,
+        videoPlatform:    platform,
         isPrivate,
       });
       onOpenChange(false);
@@ -871,11 +887,13 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
 
             <button
               onClick={() => void handleCreate()}
-              disabled={createRoom.isPending}
+              disabled={createRoom.isPending || checkingLink}
               className="w-full h-12 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] cursor-pointer"
               style={{ background: 'linear-gradient(135deg,#7C3AED,#5B21B6)' }}
             >
-              {createRoom.isPending
+              {checkingLink
+                ? <><Loader2 size={16} className="animate-spin" />{t('checkingLink')}</>
+                : createRoom.isPending
                 ? <><Loader2 size={16} className="animate-spin" />{t('creating')}</>
                 : <><Link2 size={15} />{t('createBtn')}</>}
             </button>
