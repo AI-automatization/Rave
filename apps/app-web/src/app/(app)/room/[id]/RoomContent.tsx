@@ -8,7 +8,7 @@ import { MessageCircle, Users as UsersIcon, ListVideo, X, ChevronRight, Loader2,
 import type { IChatReplyTo, VideoCandidate } from '@/types';
 import { useWatchParty } from '@/hooks/use-watch-party';
 import { useVirtualBrowser } from '@/hooks/use-virtual-browser';
-import { VideoPlayer, isDedicatedPlayerUrl } from '@/components/party/VideoPlayer';
+import { VideoPlayer } from '@/components/party/VideoPlayer';
 import { VirtualBrowserPlayer } from '@/components/party/VirtualBrowserPlayer';
 import { resolveLinkPlatform, normalizeLinkInput } from '@/lib/link-routing';
 import { ChatPanel } from '@/components/party/ChatPanel';
@@ -28,6 +28,13 @@ import { ApiError } from '@/lib/api-client';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { toast } from '@/hooks/use-toast';
+
+// Same host list as the server's isOfficialEmbedHost (services/watch-party extractionClient.ts) —
+// only these does VB_START switch to the normal player, so only these may close the VB panel.
+const OFFICIAL_EMBED_HOST_RE = /^(www\.|m\.|player\.)?(youtube\.com|youtu\.be|vk\.com|vkvideo\.ru|rutube\.ru|twitch\.tv|vimeo\.com|dailymotion\.com|dai\.ly|tiktok\.com|trovo\.live)$/i;
+function hostOf(url: string): string {
+  try { return new URL(url).hostname; } catch { return ''; }
+}
 import { trackClick } from '@/lib/analytics';
 
 interface PlaylistItem {
@@ -499,7 +506,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   // normal player instead (vbEvents.handler.ts — the VB stream has no sound), so just close the
   // panel; it would otherwise stay open on top, waiting for a session that never starts.
   const handleVBPanelStart = useCallback((url: string) => {
-    if (isDedicatedPlayerUrl(url)) setShowVBPanel(false);
+    if (OFFICIAL_EMBED_HOST_RE.test(hostOf(url))) setShowVBPanel(false);
     vbStart(url);
   }, [vbStart]);
 
@@ -534,6 +541,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   // Pre-load room via REST immediately — don't wait 2-3s for socket ROOM_JOINED
   useEffect(() => {
     let mounted = true;
+    setRoomGone(false);
     roomsApi.getById(roomId).then((res) => {
       if (mounted && res.data) setRoom(res.data);
     }).catch((e: unknown) => {

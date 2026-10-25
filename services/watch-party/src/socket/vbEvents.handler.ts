@@ -12,6 +12,7 @@ import { getUserPlan } from '@shared/utils/serviceClient';
 import { isOfficialEmbedHost, isOwnVbUrl, isPrivateUrl } from '../services/extractionClient';
 import { REDIS_KEYS } from '@shared/constants';
 import { isDomainBlocked } from '../controllers/domain.admin.controller';
+import { recordMediaChange } from '../services/watchStats.service';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -62,6 +63,9 @@ export const registerVBEvents = (
 
   const switchToEmbed = async (roomId: string, videoUrl: string): Promise<void> => {
     try {
+      // A VB request still waiting in the free-tier queue would otherwise start later on top of
+      // the player this switches to.
+      removeFromQueue(roomId);
       if (hasSession(roomId)) await stopSession(roomId);
       // Always — the owner's client already shows the VB loading overlay from its own start() call
       // and only VB_STOPPED clears it, whether or not a session existed.
@@ -71,6 +75,7 @@ export const registerVBEvents = (
         videoUrl, videoTitle: null, videoPlatform: null,
       });
       io.to(roomId).emit(SERVER_EVENTS.ROOM_UPDATED, updated);
+      void recordMediaChange(roomId, videoUrl, null, null).catch(() => {}); // same history/top stat CHANGE_MEDIA records
       upgradeEmbedToDirect(io, redis, roomId, userId, videoUrl);
       logger.info('VB start redirected to official player', { roomId, userId, url: videoUrl });
     } catch (e) {
