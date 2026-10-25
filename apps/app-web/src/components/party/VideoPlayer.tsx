@@ -1660,11 +1660,39 @@ export function VideoPlayer({
     }
   }, [heartbeat, isEmbed, isOwner, syncState.isPlaying]);
 
+  // Where the room says playback should be right now. Used to tell a real user action apart from
+  // this client merely catching up to the room.
+  const syncStateRef = useRef(syncState);
+  syncStateRef.current = syncState;
+  const expectedRoomTime = useCallback(() => {
+    const s = syncStateRef.current;
+    const elapsed = s.isPlaying && s.serverTimestamp
+      ? Math.min(30, Math.max(0, (Date.now() - s.serverTimestamp) / 1000))
+      : 0;
+    return s.currentTime + elapsed;
+  }, []);
+
   const handlePlay = useCallback(() => {
     if (isRemoteAction.current) return;
     if (isOwner) ownerExplicitlyPausedRef.current = false;
     setAutoplayBlocked(false);
     playPendingRef.current = false; // play() resolved — clear guard
+    // Room is already playing → this is a local catch-up (late joiner tapping "tap to play", a
+    // play() that resolved after the 200ms remote window), not a room action. Broadcasting it sent
+    // this client's stale position and yanked everyone back in time whenever someone joined.
+    if (roomPlayingRef.current) {
+      if (pendingEmitRef.current) { clearTimeout(pendingEmitRef.current); pendingEmitRef.current = null; }
+      const v = videoRef.current;
+      if (v && !isOwner) {
+        const expected = expectedRoomTime();
+        if (Math.abs(v.currentTime - expected) > 1) {
+          isRemoteAction.current = true;
+          v.currentTime = expected;
+          setTimeout(() => { isRemoteAction.current = false; }, 200);
+        }
+      }
+      return;
+    }
     // Debounce: cancel any pending emit (e.g. a pause that followed this play within 80ms)
     // and schedule the play emit. This collapses rapid play→pause→play into one final event.
     if (pendingEmitRef.current) clearTimeout(pendingEmitRef.current);
@@ -1672,7 +1700,7 @@ export function VideoPlayer({
       pendingEmitRef.current = null;
       if (videoRef.current) onPlay(videoRef.current.currentTime);
     }, 80);
-  }, [onPlay, isOwner]);
+  }, [onPlay, isOwner, expectedRoomTime]);
 
   const handlePause = useCallback(() => {
     if (isRemoteAction.current) return;
@@ -1681,6 +1709,8 @@ export function VideoPlayer({
     const v = videoRef.current;
     if (!isOwner && (document.visibilityState === 'hidden' || v?.ended)) return;
     if (isOwner) ownerExplicitlyPausedRef.current = true;
+    // Room already paused → nothing to announce (late sync-effect pause, echo).
+    if (!roomPlayingRef.current) return;
     if (pendingEmitRef.current) clearTimeout(pendingEmitRef.current);
     pendingEmitRef.current = setTimeout(() => {
       pendingEmitRef.current = null;
@@ -1689,10 +1719,14 @@ export function VideoPlayer({
   }, [onPause, isOwner]);
 
   const handleSeeked = useCallback(() => {
-    if (!isRemoteAction.current && videoRef.current) {
-      onSeek(videoRef.current.currentTime);
-    }
-  }, [onSeek]);
+    const v = videoRef.current;
+    if (isRemoteAction.current || !v) return;
+    // `seeked` lands after the seek finishes — for HLS that is often past the 200ms remote window,
+    // so a seek this client made to FOLLOW the room was re-broadcast as a new seek. Only announce
+    // a position that actually differs from where the room already is.
+    if (Math.abs(v.currentTime - expectedRoomTime()) < 1.5) return;
+    onSeek(v.currentTime);
+  }, [onSeek, expectedRoomTime]);
 
   function handleOverlayClick() {
     // Guard: v.paused stays true while play() promise is pending, so rapid clicks
