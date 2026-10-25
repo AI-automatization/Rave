@@ -646,6 +646,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                 stop={handleVBStop}
                 sendInput={vbSendInput}
                 onPickDifferentVideo={() => setCandidatePickerOpen(true)}
+                audioUrl={`${process.env.NEXT_PUBLIC_SOCKET_URL ?? 'http://localhost:3004'}/api/v1/watch-party/vb-audio/${roomId}`}
               />
             ) : (
               <VideoPlayer

@@ -15,6 +15,8 @@ import { requireInternalSecret } from '@shared/utils/serviceClient';
 import { createRoomLimiter, joinRoomLimiter, vbMediaProxyLimiter, vbCaptureLimiter, embedCheckLimiter } from '../middleware/rateLimiter';
 import { validate, createRoomSchema, joinRoomSchema } from '../validators/watchParty.validator';
 import { getHistory, getWeeklyTop } from '../services/watchStats.service';
+import { addAudioListener } from '../services/vbAudio.service';
+import { hasSession } from '../services/virtualBrowser.service';
 
 export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router => {
   const router = Router();
@@ -85,6 +87,19 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   // no attacker-supplied URL (lower risk than vb-media-proxy below) but still had no rate limiter
   // at all until GitHub issue #76 — vbCaptureLim closes that.
   router.get('/vb-capture/:roomId', vbCaptureLim, vbCaptureController.stream);
+
+  // GET /watch-party/vb-audio/:roomId — live MP3 of what the room's VB page is playing (the JPEG
+  // screencast has no sound — vbAudio.service.ts). Same public/roomId-keyed trust model and rate
+  // limiter as vb-capture; only answers while that room actually has a VB session, so it can't be
+  // used to spin up encoders for arbitrary ids.
+  router.get('/vb-audio/:roomId', vbCaptureLim, (req, res) => {
+    const { roomId } = req.params;
+    if (!/^[a-f0-9]{24}$/i.test(roomId) || !hasSession(roomId)) {
+      res.status(404).json({ success: false, message: 'No virtual browser session' });
+      return;
+    }
+    addAudioListener(roomId, res);
+  });
 
   // GET /watch-party/vb-capture/:roomId/:track (track = video|audio) — the same room's ISOLATED
   // per-track buffer (vbCapture.service.ts's dual-track addition, 2026-08-14), for sources whose

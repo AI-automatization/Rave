@@ -8,6 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium, Browser, BrowserContext, Page, CDPSession } from 'playwright-chromium';
+import { pushAudioChunk, stopAudio, VB_AUDIO_TAP_SCRIPT } from './vbAudio.service';
 import { logger } from '@shared/utils/logger';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { startCapture, appendCapture, appendCaptureTrack, stopCapture, clearCapture } from './vbCapture.service';
@@ -703,7 +704,8 @@ export async function startSession(
     const context = await chromium.launchPersistentContext(profileDir, {
       headless: !stream,
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', ...STEALTH_LAUNCH_ARGS, ...ANTI_THROTTLE_LAUNCH_ARGS],
+      // autoplay flag: the audio tap's AudioContext must run without a user gesture in the page.
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--autoplay-policy=no-user-gesture-required', ...STEALTH_LAUNCH_ARGS, ...ANTI_THROTTLE_LAUNCH_ARGS],
       viewport,
       userAgent: mobile ? MOBILE_USER_AGENT : STEALTH_USER_AGENT,
       ...(mobile ? { isMobile: true, hasTouch: true, deviceScaleFactor: 1 } : {}),
@@ -867,6 +869,17 @@ export async function startSession(
         if (track !== 'video' && track !== 'audio') return;
         appendCaptureTrack(roomId, track, Buffer.from(base64Chunk, 'base64'));
       });
+      // Sound for the owner (vbAudio.service.ts) — the screencast itself carries none. Keyed by
+      // frame so a player inside an iframe and one on the top page don't interleave two webm
+      // streams into one encoder.
+      const audioFrameKeys = new WeakMap<object, string>();
+      let audioFrameSeq = 0;
+      await page.exposeBinding('__wewatchAudioChunk', (source, first: boolean, base64Chunk: string) => {
+        let key = audioFrameKeys.get(source.frame);
+        if (!key) { key = String(++audioFrameSeq); audioFrameKeys.set(source.frame, key); }
+        pushAudioChunk(roomId, key, first === true, Buffer.from(base64Chunk, 'base64'));
+      });
+      await page.addInitScript(VB_AUDIO_TAP_SCRIPT);
       // Real prod finding 2026-08-16 (uzmovi.net, live-tested): sites using videojs-contrib-ads +
       // a VAST plugin (videojsx.vast.js) play the pre-/mid-roll ad creative through the SAME
       // Video.js instance and, on at least this site, the SAME MediaSource/SourceBuffer pipeline
@@ -1187,6 +1200,7 @@ export async function stopSession(roomId: string): Promise<void> {
   try { await s.context.close(); } catch { /* already gone */ }
   stopCapture(roomId);
   clearCapture(roomId);
+  stopAudio(roomId);
   // Tears down ffmpeg, Xvfb, the PulseAudio sink and the HLS directory — all no-ops when this
   // session never had a stream (flag off).
   await vbStream.stopStream(roomId);

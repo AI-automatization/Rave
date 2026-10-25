@@ -699,6 +699,8 @@
     "iframeOpenVB": "Open in Virtual Browser",
     "vbKeyboard": "Keyboard",
     "vbFullscreen": "Fullscreen",
+    "vbSoundOn": "Turn sound on",
+    "vbSoundOff": "Mute",
     "vbExitFullscreen": "Exit fullscreen",
     "vbUnreachableTitle": "This site didn't open",
     "vbUnreachableHint": "The virtual browser couldn't reach the site. Try it as a plain embedded page, or paste another link.",

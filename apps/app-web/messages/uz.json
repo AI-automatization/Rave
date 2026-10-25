@@ -660,6 +660,8 @@
     "iframeOpenVB": "Virtual brauzerda ochish",
     "vbKeyboard": "Klaviatura",
     "vbFullscreen": "To'liq ekran",
+    "vbSoundOn": "Ovozni yoqish",
+    "vbSoundOff": "Ovozni o'chirish",
     "vbExitFullscreen": "To'liq ekrandan chiqish",
     "vbUnreachableTitle": "Sayt ochilmadi",
     "vbUnreachableHint": "Virtual brauzer saytga ulana olmadi. Uni oddiy ichki sahifa sifatida sinab ko'ring yoki boshqa havola kiriting.",

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Globe, Keyboard, Loader2, Maximize, Minimize, MousePointer2, X } from 'lucide-react';
 import type { VBFrameSource, VBInput } from '@/hooks/use-virtual-browser';
+import { VirtualBrowserAudio } from './VirtualBrowserAudio';
 
 interface Props {
   isOwner: boolean;
@@ -32,6 +33,8 @@ interface Props {
   /** Owner-only: re-open `url` as a plain iframe room media ('webview') instead of the VB — the
    * unreachable state's escape hatch (the server's IP may be blocked while the viewer's isn't). */
   onTryIframe?: (url: string | null) => void;
+  /** Live MP3 of the VB page's sound (GET /vb-audio/:roomId) — played while frames are showing. */
+  audioUrl?: string;
 }
 
 // Hidden-input sentinel: a zero-width char the phone keyboard can "delete", so Backspace still
@@ -43,7 +46,7 @@ const KB_BASE = '\u200b';
 // frame stream. See services/watch-party/src/services/virtualBrowser.service.ts for the server
 // side (CDP screencast + input dispatch). State/socket wiring lives in the parent's
 // useVirtualBrowser() call (RoomContent.tsx) — this component is presentational + input capture.
-export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimensions, error, blocked, queuePosition, unreachable, start, stop, sendInput, onPickDifferentVideo, onTryIframe }: Props) {
+export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimensions, error, blocked, queuePosition, unreachable, start, stop, sendInput, onPickDifferentVideo, onTryIframe, audioUrl }: Props) {
   const t = useTranslations('party');
   const [urlInput, setUrlInput] = useState('');
   const lastUrlRef = useRef<string | null>(null);
@@ -444,6 +447,7 @@ export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimension
           paddingRight: 'max(0.5rem, env(safe-area-inset-right))',
         }}
       >
+        {hasFrame && audioUrl && <VirtualBrowserAudio src={audioUrl} />}
         {isCoarse && hasFrame && (
           <button
             type="button"
