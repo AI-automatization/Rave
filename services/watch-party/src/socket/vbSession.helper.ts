@@ -10,6 +10,7 @@ import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS } from '@shared/constants/socketEvents';
 import { REDIS_KEYS } from '@shared/constants';
 import { VideoCandidate } from '@shared/types';
+import { rankCandidates } from './vbCandidateRank.helper';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { signProxyUrl } from '@shared/utils/proxySignature';
 import { getSessionViewport, startSession, getSessionPageTitle, enableAutoProxy, MediaType } from '../services/virtualBrowser.service';
@@ -195,6 +196,11 @@ export async function startVBForRoom(
   // was found under, so a later real-playback confirmation (which only ever sees real network
   // URLs, never our own signed vbMediaProxy wrapper) can still be matched against it.
   const rawUrlByCandidateIndex: string[] = [];
+  // Same index again: file size (mp4 only, from the sniffer) and the order in which real playback
+  // confirmed each candidate — both feed rankCandidates().
+  const bytesByCandidateIndex: (number | undefined)[] = [];
+  const confirmSeqByCandidateIndex: number[] = [];
+  let confirmSeq = 0;
   const confirmedRawUrls = new Set<string>();
   // MSE-played candidates (category B/C, 'capture'-kind) never surface their real CDN URL to the
   // page at all — the browser's <video> element plays a `blob:` URL backed by SourceBuffer, which
@@ -233,8 +239,7 @@ export async function startVBForRoom(
       // onRealPlaybackConfirmed above) is a strictly stronger signal than "network response
       // shaped like media" — rank it first. Falls back to the existing vb-capture tiebreak
       // among non-confirmed candidates, unchanged.
-      candidates.sort((a, b) => Number(b.confirmed) - Number(a.confirmed)
-        || Number(b.url.includes('/vb-capture/')) - Number(a.url.includes('/vb-capture/')));
+      rankCandidates(candidates, rawUrlByCandidateIndex, bytesByCandidateIndex, confirmSeqByCandidateIndex, getSessionPageTitle(roomId));
       try {
         await redis.setex(REDIS_KEYS.videoCandidates(roomId), CANDIDATES_TTL_SEC, JSON.stringify(candidates));
       } catch (e) {
@@ -271,7 +276,7 @@ export async function startVBForRoom(
     // instead of the room broadcast. volatile: a lagging owner client jumps to the latest frame
     // instead of draining a backlog; ack-capable clients are paced end-to-end (vbFrameSender.helper.ts).
     emitVbFrame(io, ownerId, base64Jpeg);
-  }, (mediaUrl, mediaType, kind, duration) => {
+  }, (mediaUrl, mediaType, kind, duration, bytes) => {
     // 'capture' mediaUrl already points at our own vb-capture endpoint — only 'url' (a raw,
     // independently-fetchable CDN URL) needs the same-IP proxy wrapper.
     const roomVideoUrl = kind === 'url' ? proxiedMediaUrl(mediaUrl, mediaType, roomId) : mediaUrl;
@@ -287,6 +292,8 @@ export async function startVBForRoom(
     const confirmed = kind === 'url' ? confirmedRawUrls.has(mediaUrl) : mseConfirmed;
     candidates.push({ url: roomVideoUrl, type: mediaType, source: 'vb', title: getSessionPageTitle(roomId), duration, confirmed });
     rawUrlByCandidateIndex.push(mediaUrl);
+    bytesByCandidateIndex.push(bytes);
+    confirmSeqByCandidateIndex.push(confirmed ? ++confirmSeq : 0);
   }, () => {
     // Collection window closed — always show the picker with whatever was found.
     if (autoCommitTimer) { clearTimeout(autoCommitTimer); autoCommitTimer = null; }
@@ -295,13 +302,19 @@ export async function startVBForRoom(
   }, (src) => {
     if (src.startsWith('blob:')) {
       mseConfirmed = true;
-      candidates.forEach((c, i) => { if (c.url.includes('/vb-capture/')) candidates[i] = { ...c, confirmed: true }; });
+      candidates.forEach((c, i) => {
+        if (!c.url.includes('/vb-capture/')) return;
+        candidates[i] = { ...c, confirmed: true };
+        confirmSeqByCandidateIndex[i] = ++confirmSeq;
+      });
       // scheduleAutoCommit() call removed here — see the REVERTED note above AUTO_COMMIT_DELAY_MS.
       return;
     }
     confirmedRawUrls.add(src);
     rawUrlByCandidateIndex.forEach((rawUrl, i) => {
-      if (rawUrl === src) candidates[i] = { ...candidates[i], confirmed: true };
+      if (rawUrl !== src) return;
+      candidates[i] = { ...candidates[i], confirmed: true };
+      confirmSeqByCandidateIndex[i] = ++confirmSeq;
     });
     // scheduleAutoCommit() call removed here — see the REVERTED note above AUTO_COMMIT_DELAY_MS.
   }, (cookieHeader) => {

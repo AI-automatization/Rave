@@ -474,7 +474,7 @@ function parseMpdDurationSecs(xml: string): number {
 function attachResponseSniffer(
   page: Page,
   logId: string,
-  onFound: (mediaUrl: string, type: MediaType, duration?: number) => void,
+  onFound: (mediaUrl: string, type: MediaType, duration?: number, bytes?: number) => void,
   // Real prod case 2026-08-06 (uzmovi.net serial page): the first accepted match wasn't the right
   // episode — a related-content widget's clip passed every ad heuristic (real extension, real
   // Content-Type, past the size/duration floor) just like a genuine result would. Default false
@@ -485,7 +485,7 @@ function attachResponseSniffer(
 ): void {
   let found = false;
   const seenUrls = new Set<string>();
-  const hit = (mediaUrl: string, type: MediaType, how: string, duration?: number, extra?: Record<string, unknown>) => {
+  const hit = (mediaUrl: string, type: MediaType, how: string, duration?: number, extra?: Record<string, unknown>, bytes?: number) => {
     if (collectMultiple) {
       if (seenUrls.has(mediaUrl)) return;
       seenUrls.add(mediaUrl);
@@ -494,7 +494,7 @@ function attachResponseSniffer(
       found = true;
     }
     logger.info(`VB: media URL intercepted (by ${how})`, { logId, url: mediaUrl.slice(0, 120), type, ...extra });
-    onFound(mediaUrl, type, duration);
+    onFound(mediaUrl, type, duration, bytes);
   };
   // Ad candidates are logged then dropped, WITHOUT setting `found` — the real video is expected
   // to load right after, and the listener must keep watching for it.
@@ -557,7 +557,7 @@ function attachResponseSniffer(
       rejectAsAd(mediaUrl, type, 'mp4_size', { bytes: measuredBytes, viaContentRange: !Number.isNaN(rangeTotal) });
       return;
     }
-    hit(mediaUrl, type, how);
+    hit(mediaUrl, type, how, undefined, undefined, Number.isNaN(measuredBytes) ? undefined : measuredBytes);
   };
 
   page.on('response', (response) => {
@@ -617,7 +617,7 @@ export async function startSession(
   ownerId: string,
   url: string,
   onFrame: (base64Jpeg: string) => void,
-  onMediaFound?: (mediaUrl: string, type: MediaType, kind: MediaFoundKind, duration?: number) => void,
+  onMediaFound?: (mediaUrl: string, type: MediaType, kind: MediaFoundKind, duration?: number, bytes?: number) => void,
   onCollectionEnd?: () => void,
   // T-S196: `attachResponseSniffer`/capture catch anything network-shaped-like-media over the
   // whole COLLECTION_WINDOW_MS — ads, related-content widgets, etc. can pass the same heuristics
@@ -779,9 +779,9 @@ export async function startSession(
         }, COLLECTION_WINDOW_MS);
       };
 
-      attachResponseSniffer(page, roomId, (mediaUrl, type, duration) => {
+      attachResponseSniffer(page, roomId, (mediaUrl, type, duration, bytes) => {
         if (windowClosed) return;
-        onMediaFound(mediaUrl, type, 'url', duration);
+        onMediaFound(mediaUrl, type, 'url', duration, bytes);
         openWindowIfNeeded();
       }, true /* collectMultiple */);
 
