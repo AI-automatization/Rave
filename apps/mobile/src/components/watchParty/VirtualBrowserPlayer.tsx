@@ -16,6 +16,7 @@ import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useT } from '@i18n/index';
 import type { VBInput, VBFrameStore } from '@hooks/useVirtualBrowser';
 import { toViewportPoint, containRect, frameHeight, dragToWheel } from '@utils/vbGeometry';
+import { useVbAudio } from '@hooks/useVbAudio';
 
 interface Props {
   isOwner: boolean;
@@ -111,6 +112,8 @@ export function VirtualBrowserPlayer({ isOwner, frameStore, hasFrame, dimensions
   const hlsUrl = `${process.env.EXPO_PUBLIC_WATCH_PARTY_URL}/api/v1/watch-party/vb-stream/${roomId}/index.m3u8`;
   const hlsPlayer = createExpoPlayer(null, (p) => { p.loop = false; });
   const { status: hlsStatus } = useEvent(hlsPlayer, 'statusChange', { status: hlsPlayer.status });
+  // The HLS stream carries its own sound; the JPEG fallback gets the separate MP3 tap.
+  const vbAudio = useVbAudio(roomId, isOwner && hasFrame && !hlsReady);
 
   useEffect(() => {
     // Non-owners never receive VB_FRAME either (server-side, owner-only broadcast) — same
@@ -271,6 +274,11 @@ export function VirtualBrowserPlayer({ isOwner, frameStore, hasFrame, dimensions
   return (
     <View style={[s.root, { height }]}>
       <View style={s.toolbar}>
+        {!hlsReady && (
+          <TrackedTouchable trackId="watchparty:vb_sound" style={s.toolBtn} onPress={vbAudio.toggleMuted} activeOpacity={0.75} accessibilityLabel={t('watchParty', vbAudio.muted ? 'vbSoundOn' : 'vbSoundOff')}>
+            <Ionicons name={vbAudio.muted ? 'volume-mute-outline' : 'volume-high-outline'} size={16} color="#fff" />
+          </TrackedTouchable>
+        )}
         <TrackedTouchable trackId="watchparty:vb_keyboard" style={s.toolBtn} onPress={() => kbInputRef.current?.focus()} activeOpacity={0.75} accessibilityLabel={t('watchParty', 'vbKeyboard')}>
           <Ionicons name="keypad-outline" size={16} color="#fff" />
         </TrackedTouchable>

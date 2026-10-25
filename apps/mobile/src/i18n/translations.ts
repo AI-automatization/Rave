@@ -646,6 +646,8 @@ export const translations = {
     vbOwnerPicking: { uz: "Xona egasi video tanlamoqda...", ru: 'Владелец комнаты выбирает видео...', en: 'Room owner is picking a video...' },
     vbBlocked: { uz: "Bu saytni ocha olmaymiz, boshqasini sinab ko'ring", ru: 'Не можем открыть этот сайт, попробуйте другой', en: "Can't open this site, try another" },
     vbKeyboard: { uz: 'Klaviatura', ru: 'Клавиатура', en: 'Keyboard' },
+    vbSoundOn: { uz: 'Ovozni yoqish', ru: 'Включить звук', en: 'Turn sound on' },
+    vbSoundOff: { uz: "Ovozni o'chirish", ru: 'Выключить звук', en: 'Mute' },
     vbExpand: { uz: 'Kattalashtirish', ru: 'Развернуть', en: 'Expand' },
     vbCollapse: { uz: 'Kichraytirish', ru: 'Свернуть', en: 'Collapse' },
     vbUnreachable: { uz: "Sayt ochilmadi yoki javob bermayapti", ru: 'Сайт не открывается или не отвечает', en: "The site didn't open or isn't responding" },

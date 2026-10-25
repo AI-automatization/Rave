@@ -8,7 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium, Browser, BrowserContext, Page, CDPSession } from 'playwright-chromium';
-import { pushAudioChunk, stopAudio, VB_AUDIO_TAP_SCRIPT } from './vbAudio.service';
+import { pushAudioChunk, stopAudio, VB_AUDIO_TAP_SCRIPT, MAX_AUDIO_CHUNK_BASE64_LEN } from './vbAudio.service';
 import { logger } from '@shared/utils/logger';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { startCapture, appendCapture, appendCaptureTrack, stopCapture, clearCapture } from './vbCapture.service';
@@ -875,6 +875,9 @@ export async function startSession(
       const audioFrameKeys = new WeakMap<object, string>();
       let audioFrameSeq = 0;
       await page.exposeBinding('__wewatchAudioChunk', (source, first: boolean, base64Chunk: string) => {
+        // Any page script can call this binding — drop oversize input and late calls after stop.
+        if (typeof base64Chunk !== 'string' || base64Chunk.length > MAX_AUDIO_CHUNK_BASE64_LEN) return;
+        if (!sessions.has(roomId)) return;
         let key = audioFrameKeys.get(source.frame);
         if (!key) { key = String(++audioFrameSeq); audioFrameKeys.set(source.frame, key); }
         pushAudioChunk(roomId, key, first === true, Buffer.from(base64Chunk, 'base64'));

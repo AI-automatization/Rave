@@ -4,8 +4,9 @@
 // from YouTube/any site opened in VB (real report 2026-10-25). The Xvfb+PulseAudio live stream
 // (vbStream.service.ts) only exists on Linux and no client ever plays it.
 //
-// This taps the sound inside the page instead: an init script routes every <video>/<audio> the
-// page plays through WebAudio into a MediaRecorder (webm/opus, 250ms slices) and hands the bytes
+// This taps the sound inside the page instead: an init script mirrors every <video>/<audio> the
+// page plays (captureStream — the element keeps its own output, so a site's own WebAudio graph
+// and the Xvfb/PulseAudio mode are untouched) through WebAudio into a MediaRecorder (webm/opus, 250ms slices) and hands the bytes
 // to Node via a page binding (VB_AUDIO_TAP_SCRIPT + virtualBrowser.service.ts). Here one ffmpeg
 // per room re-encodes that to a plain MP3 byte stream, fanned out to every HTTP listener of
 // GET /vb-audio/:roomId. MP3 on purpose: frames self-sync, so a listener joining mid-stream needs
@@ -24,6 +25,9 @@ interface AudioRoom {
   listeners: Set<Response>;
   /** Frame whose recorder feeds ffmpeg — a second frame starting its own recorder takes over. */
   frameKey: string;
+  /** Encoder (re)starts in the current window — the page controls `first`, so it's capped. */
+  restarts: number;
+  restartWindowStart: number;
 }
 
 const rooms = new Map<string, AudioRoom>();
@@ -31,10 +35,15 @@ const MP3_BITRATE = '128k';
 // Each listener gets its own copy of the stream — a stalled one (slow phone) must not grow memory
 // without bound; drop it and let the client reconnect.
 const MAX_LISTENER_BACKLOG_BYTES = 512 * 1024;
+// A 250ms opus slice at 128 kbit/s is ~4 KB; anything far bigger is a page abusing the binding.
+export const MAX_AUDIO_CHUNK_BASE64_LEN = 256 * 1024;
+const MAX_RESTARTS_PER_WINDOW = 20;
+const RESTART_WINDOW_MS = 60_000;
 
 function startEncoder(roomId: string): ChildProcessWithoutNullStreams {
   const ffmpeg = spawn('ffmpeg', [
     '-hide_banner', '-loglevel', 'error',
+    '-protocol_whitelist', 'pipe',
     '-fflags', 'nobuffer', '-probesize', '32', '-analyzeduration', '0',
     '-f', 'webm', '-i', 'pipe:0',
     '-vn', '-ac', '2', '-ar', '44100', '-c:a', 'libmp3lame', '-b:a', MP3_BITRATE,
@@ -62,22 +71,33 @@ function startEncoder(roomId: string): ChildProcessWithoutNullStreams {
   return ffmpeg;
 }
 
+function newRoom(roomId: string, frameKey: string): AudioRoom {
+  return { ffmpeg: startEncoder(roomId), listeners: new Set(), frameKey, restarts: 0, restartWindowStart: Date.now() };
+}
+
 /**
  * One MediaRecorder slice from the page. `first` marks a recorder's opening slice (it carries the
- * webm header) — a new recorder, possibly in another frame (players in iframes), replaces the old
- * stream, since ffmpeg can't continue one webm stream with another's bytes.
+ * webm header) — every new recorder (another frame's player, or the same frame after a navigation)
+ * replaces the old stream, since ffmpeg can't continue one webm stream with another's header.
  */
 export function pushAudioChunk(roomId: string, frameKey: string, first: boolean, chunk: Buffer): void {
   let room = rooms.get(roomId);
   if (!room) {
     if (!first) return; // mid-stream slice with no header — wait for a recorder's first slice
-    room = { ffmpeg: startEncoder(roomId), listeners: new Set(), frameKey };
+    room = newRoom(roomId, frameKey);
     rooms.set(roomId, room);
-  } else if (first && (frameKey !== room.frameKey || room.ffmpeg.exitCode !== null)) {
-    room.ffmpeg.stdin.end();
-    room.ffmpeg.kill('SIGKILL');
-    room.ffmpeg = startEncoder(roomId);
-    room.frameKey = frameKey;
+  } else if (first) {
+    if (room.frameKey === '') {
+      room.frameKey = frameKey; // placeholder encoder a listener opened — nothing fed it yet
+    } else {
+      const now = Date.now();
+      if (now - room.restartWindowStart > RESTART_WINDOW_MS) { room.restarts = 0; room.restartWindowStart = now; }
+      if (++room.restarts > MAX_RESTARTS_PER_WINDOW) return;
+      room.ffmpeg.stdin.end();
+      room.ffmpeg.kill('SIGKILL');
+      room.ffmpeg = startEncoder(roomId);
+      room.frameKey = frameKey;
+    }
   } else if (frameKey !== room.frameKey) {
     return; // a second frame's recorder while the first still feeds — ignore it
   }
@@ -98,7 +118,7 @@ export function addAudioListener(roomId: string, res: Response): void {
   if (!room) {
     // Listener can arrive before the page plays anything (it opens with VB_STARTED) — park it on
     // a placeholder room so the first slice's encoder already has it.
-    room = { ffmpeg: startEncoder(roomId), listeners: new Set(), frameKey: '' };
+    room = newRoom(roomId, '');
     rooms.set(roomId, room);
   }
   room.listeners.add(res);
@@ -116,16 +136,15 @@ export function stopAudio(roomId: string): void {
 
 /**
  * Init script for every frame of a VB page. Hooks play() and the 'play' event (autoplay without a
- * play() call), routes each media element into one AudioContext per frame and records that mix.
- * Never throws into the page: a site that already owns the element's WebAudio graph just isn't
- * tapped.
+ * play() call) and mirrors each media element's audio tracks (captureStream) into one recorder per
+ * frame. Never throws into the page and never reroutes the element's own output.
  */
 export const VB_AUDIO_TAP_SCRIPT = /* js */ `
 (function () {
   if (window.__wewatchAudioTap) return;
   window.__wewatchAudioTap = true;
-  var ctx = null, dest = null, rec = null, first = true;
-  var hooked = new WeakSet();
+  var ctx = null, dest = null, rec = null, first = true, sendQueue = Promise.resolve();
+  var hooked = new WeakSet(), wired = new WeakSet();
   function startRecorder() {
     if (rec || typeof MediaRecorder === 'undefined') return;
     try {
@@ -133,24 +152,38 @@ export const VB_AUDIO_TAP_SCRIPT = /* js */ `
     } catch (e) { rec = null; return; }
     rec.ondataavailable = function (e) {
       if (!e.data || !e.data.size || typeof window.__wewatchAudioChunk !== 'function') return;
-      e.data.arrayBuffer().then(function (ab) {
+      // Flag and order fixed here, synchronously — arrayBuffer() promises may resolve out of order.
+      var isFirst = first, blob = e.data;
+      first = false;
+      sendQueue = sendQueue.then(function () { return blob.arrayBuffer(); }).then(function (ab) {
         var bytes = new Uint8Array(ab), s = '';
         for (var i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
-        var isFirst = first; first = false;
         window.__wewatchAudioChunk(isFirst, btoa(s));
-      });
+      }).catch(function () {});
     };
     rec.start(250);
+  }
+  function wire(track) {
+    if (track.kind !== 'audio' || wired.has(track)) return;
+    wired.add(track);
+    try {
+      ctx.createMediaStreamSource(new MediaStream([track])).connect(dest);
+      startRecorder();
+    } catch (e) { /* tainted or closed track */ }
   }
   function tap(el) {
     if (!el || hooked.has(el)) return;
     hooked.add(el);
     try {
+      var capture = el.captureStream || el.mozCaptureStream;
+      if (!capture) return;
+      var stream = capture.call(el);
       if (!ctx) { ctx = new AudioContext(); dest = ctx.createMediaStreamDestination(); }
-      ctx.createMediaElementSource(el).connect(dest);
       if (ctx.state === 'suspended') ctx.resume();
-      startRecorder();
-    } catch (e) { /* already wired into another graph */ }
+      stream.getAudioTracks().forEach(wire);
+      // Tracks show up after metadata loads and are replaced on every src change.
+      stream.addEventListener('addtrack', function (e) { wire(e.track); });
+    } catch (e) { /* cross-origin media without CORS can't be captured */ }
   }
   var origPlay = HTMLMediaElement.prototype.play;
   HTMLMediaElement.prototype.play = function () { tap(this); return origPlay.apply(this, arguments); };
