@@ -13,7 +13,7 @@ import { VideoCandidate } from '@shared/types';
 import { rankCandidates } from './vbCandidateRank.helper';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { signProxyUrl } from '@shared/utils/proxySignature';
-import { getSessionViewport, startSession, getSessionPageTitle, enableAutoProxy, MediaType, VB_WATCH_IN_BROWSER } from '../services/virtualBrowser.service';
+import { getSessionViewport, startSession, getSessionPageTitle, enableAutoProxy, MediaType, VB_WATCH_IN_BROWSER, getSessionCurrentUrl, hasSession, setOnSessionEnded } from '../services/virtualBrowser.service';
 import { WatchPartyRoom } from '../models/watchPartyRoom.model';
 import { WatchPartyPlaylistService } from '../services/watchPartyPlaylist.service';
 import { resolveDirectMedia } from './directResolve.helper';
@@ -165,6 +165,32 @@ async function ownerIsMobile(redis: Redis, ownerId: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+// Resume info for watch-in-VB rooms: the page the VB is on, kept while the session runs and
+// dropped when it is closed on purpose. A restart/crash/deploy kills the in-process browser but
+// leaves this, so the owner's next JOIN_ROOM reopens the VB on that page (roomEvents.handler.ts).
+export const vbWatchKey = (roomId: string): string => `party:vb_watch:${roomId}`;
+const VB_WATCH_SAVE_MS = 10_000;
+let sessionEndHookSet = false;
+
+function keepWatchResumeInfo(redis: Redis, roomId: string, startUrl: string): void {
+  if (!sessionEndHookSet) {
+    sessionEndHookSet = true;
+    setOnSessionEnded((id) => { void redis.del(vbWatchKey(id)).catch(() => {}); });
+  }
+  const save = (url: string) => {
+    void redis.setex(vbWatchKey(roomId), CANDIDATES_TTL_SEC, url).catch((e) => {
+      logger.warn('VB: failed to save resume info', { roomId, error: (e as Error).message });
+    });
+  };
+  save(startUrl);
+  const timer = setInterval(() => {
+    if (!hasSession(roomId)) { clearInterval(timer); return; }
+    const url = getSessionCurrentUrl(roomId);
+    if (url && /^https?:\/\//i.test(url)) save(url);
+  }, VB_WATCH_SAVE_MS);
+  timer.unref();
 }
 
 export async function startVBForRoom(
@@ -353,4 +379,5 @@ export async function startVBForRoom(
   }
   const viewport = getSessionViewport(roomId);
   io.to(roomId).emit(SERVER_EVENTS.VB_STARTED, { url, width: viewport.width, height: viewport.height, ownerId });
+  if (VB_WATCH_IN_BROWSER && hasSession(roomId)) keepWatchResumeInfo(redis, roomId, url);
 }

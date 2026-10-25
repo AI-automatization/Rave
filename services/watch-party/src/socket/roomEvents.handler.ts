@@ -8,7 +8,7 @@ import { JwtPayload, VideoPlatform } from '@shared/types';
 import { recordWatchHistoryInternal, getUserPlan } from '@shared/utils/serviceClient';
 import { bufferTimeouts, resumeBufferedRoom } from './videoEvents.handler';
 import { stopSession, getSessionSnapshot, getSessionLastFrame, hasSession, markSessionCommitted } from '../services/virtualBrowser.service';
-import { startVBForRoom, upgradeEmbedToDirect } from './vbSession.helper';
+import { startVBForRoom, upgradeEmbedToDirect, vbWatchKey } from './vbSession.helper';
 import { enqueueVBRequest } from './vbQueue.helper';
 import { cancelVbDisconnectGrace } from './vbEvents.handler';
 import { isOfficialEmbedHost, isOwnVbUrl, isPrivateUrl, isInsecureWebviewUrl } from '../services/extractionClient';
@@ -138,6 +138,17 @@ export function scheduleDisconnectLeave(
   disconnectGraceTimers.set(key, timer);
 }
 
+async function resumeVbIfNeeded(io: SocketServer, redis: Redis, roomId: string, ownerId: string): Promise<void> {
+  try {
+    const url = await redis.get(vbWatchKey(roomId));
+    if (!url || hasSession(roomId)) return;
+    logger.info('VB: resuming watch-in-VB session after it was lost', { roomId, url });
+    await startVBForRoom(io, redis, roomId, ownerId, url, await getUserPlan(ownerId));
+  } catch (e) {
+    logger.warn('VB: resume after lost session failed', { roomId, error: (e as Error).message });
+  }
+}
+
 export const registerRoomEvents = (
   io: SocketServer,
   socket: Socket,
@@ -213,6 +224,11 @@ export const registerRoomEvents = (
         if (lastFrame) socket.emit(SERVER_EVENTS.VB_FRAME, { data: lastFrame });
       }
       socket.to(data.roomId).emit(SERVER_EVENTS.MEMBER_JOINED, { userId });
+      // Watch-in-VB room whose browser is gone (server restart/crash/deploy) — the owner coming
+      // back reopens it on the page it was on (see vbWatchKey). Members just wait for VB_STARTED.
+      if (!vb && userId === String(room.ownerId)) {
+        void resumeVbIfNeeded(io, redis, data.roomId, userId);
+      }
       void recordRoomWatch(userId, room);
 
       logger.info('Socket joined room', { userId, roomId: data.roomId });

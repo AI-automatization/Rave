@@ -115,6 +115,22 @@ export function setOnSlotFreed(cb: () => void): void {
   onSlotFreed = cb;
 }
 
+// Called when a session is closed on purpose (owner closed it, media changed, room closed) — NOT
+// on process shutdown, so a restart/deploy leaves the room's resume info in Redis
+// (vbSession.helper.ts, vbWatchKey) and the owner's next join reopens the VB.
+let onSessionEnded: ((roomId: string) => void) | null = null;
+let shuttingDown = false;
+export function setOnSessionEnded(cb: (roomId: string) => void): void {
+  onSessionEnded = cb;
+}
+
+/** The page the VB is on right now (the owner may have clicked far from the start URL). */
+export function getSessionCurrentUrl(roomId: string): string | null {
+  const s = sessions.get(roomId);
+  if (!s) return null;
+  try { return s.page.url(); } catch { return null; }
+}
+
 // Real prod finding 2026-08-20: a fresh `browser.newContext()` on every VB open means Google's
 // reCAPTCHA sees a brand-new, history-less Chromium instance every single time — its risk engine
 // downweights that regardless of whether the owner's forwarded click on the checkbox was genuine,
@@ -1257,10 +1273,12 @@ export async function stopSession(roomId: string): Promise<void> {
   // session never had a stream (flag off).
   await vbStream.stopStream(roomId);
   logger.info('VB session stopped', { roomId });
+  if (!shuttingDown) onSessionEnded?.(roomId);
   onSlotFreed?.();
 }
 
 export async function stopAllSessions(): Promise<void> {
+  shuttingDown = true;
   await Promise.all([...sessions.keys()].map((roomId) => stopSession(roomId)));
 }
 
