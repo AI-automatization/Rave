@@ -463,7 +463,14 @@ export class WatchPartyService {
     await WatchPartyRoom.updateOne({ _id: roomId }, { lastActivityAt: new Date() });
   }
 
-  async closeInactiveRooms(thresholdMinutes = 5): Promise<string[]> {
+  /**
+   * @param isOccupied — rooms with a live socket in them are never "inactive", whatever
+   * lastActivityAt says: that timestamp only moves on play/pause/seek/heartbeat, so a room
+   * people sit in with the video paused (snack break, chatting) was closed on them after 5 min
+   * (local repro 2026-10-25). Truly empty rooms still close via the disconnect timer
+   * (watchParty.socket.ts roomCloseTimers) and via this sweep.
+   */
+  async closeInactiveRooms(thresholdMinutes = 5, isOccupied?: (roomId: string) => boolean): Promise<string[]> {
     const cutoff = new Date(Date.now() - thresholdMinutes * 60 * 1000);
     const stale = await WatchPartyRoom.find({
       status: { $in: ['waiting', 'playing', 'paused'] },
@@ -477,7 +484,8 @@ export class WatchPartyService {
     // video (page navigation, a Cloudflare challenge, clicking through player tabs — all real
     // time, none of it a "sync" event). A room the owner is actively working through VB on is by
     // definition not abandoned, whatever this timestamp says.
-    const ids = stale.map((r) => r._id.toString()).filter((id) => !hasSession(id));
+    const ids = stale.map((r) => r._id.toString()).filter((id) => !hasSession(id) && !isOccupied?.(id));
+    if (ids.length === 0) return [];
     await WatchPartyRoom.updateMany({ _id: { $in: ids } }, { status: 'ended' });
     await Promise.all(ids.map((id) => this.redis.del(REDIS_KEYS.watchPartyRoom(id))));
     ids.forEach((id) => this.lastMongoHeartbeatWrite.delete(id));

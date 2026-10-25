@@ -77,7 +77,9 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
   // Auto-close inactive rooms every minute, purge old ended rooms every hour
   const cleanupInterval = setInterval(async () => {
     try {
-      const closedIds = await watchPartyService.closeInactiveRooms(INACTIVE_THRESHOLD_MINUTES);
+      // Single replica (server.ts), so this node's adapter knows every connected socket.
+      const isOccupied = (roomId: string) => (io.of('/').adapter.rooms.get(roomId)?.size ?? 0) > 0;
+      const closedIds = await watchPartyService.closeInactiveRooms(INACTIVE_THRESHOLD_MINUTES, isOccupied);
       for (const roomId of closedIds) {
         void stopSession(roomId);
         io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'inactivity' });
