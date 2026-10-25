@@ -207,8 +207,8 @@ export const VideoSection = React.memo(function VideoSection({
           bridge with no clean player API (WebViewAdapters.ts) — a bare _csVideo.play()/pause()
           call there doesn't reliably start/stop the real page's stream, so the owner still needs
           to tap the embed's own UI directly (T-S125 — regressed briefly when T-S124 made this
-          unconditional for every webview). Non-owner taps are still independently blocked by
-          WebViewPlayer's memberLockOverlay regardless of platform. */}
+          unconditional for every webview). Members can tap those embeds too — any member may
+          play/pause (useWatchPartyRoom handleWebViewPlay/Pause); seek stays owner-only. */}
       {blockEmbedTouch && (
         <TrackedTouchable
           trackId="watchparty:video_tap"

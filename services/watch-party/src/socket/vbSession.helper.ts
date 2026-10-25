@@ -16,6 +16,7 @@ import { getSessionViewport, startSession, getSessionPageTitle, enableAutoProxy,
 import { WatchPartyRoom } from '../models/watchPartyRoom.model';
 import { WatchPartyPlaylistService } from '../services/watchPartyPlaylist.service';
 import { resolveDirectMedia } from './directResolve.helper';
+import { emitVbFrame } from './vbFrameSender.helper';
 
 // TTL for the candidates Redis entry — matches how long "the current video session" is a
 // meaningful concept; deliberately generous since a room can sit on one video for hours. Defined
@@ -268,8 +269,8 @@ export async function startVBForRoom(
     // server bandwidth by room size for something non-owners can't even interact with. Every
     // socket already joins `user:${userId}` on connect (watchParty.socket.ts) — reuse that
     // instead of the room broadcast. volatile: a lagging owner client jumps to the latest frame
-    // instead of draining a backlog.
-    io.to(`user:${ownerId}`).volatile.emit(SERVER_EVENTS.VB_FRAME, { data: base64Jpeg });
+    // instead of draining a backlog; ack-capable clients are paced end-to-end (vbFrameSender.helper.ts).
+    emitVbFrame(io, ownerId, base64Jpeg);
   }, (mediaUrl, mediaType, kind, duration) => {
     // 'capture' mediaUrl already points at our own vb-capture endpoint — only 'url' (a raw,
     // independently-fetchable CDN URL) needs the same-IP proxy wrapper.

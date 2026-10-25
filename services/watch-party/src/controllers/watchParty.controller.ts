@@ -14,6 +14,7 @@ import { startVBForRoom, upgradeEmbedToDirect } from '../socket/vbSession.helper
 import { enqueueVBRequest } from '../socket/vbQueue.helper';
 import { isOfficialEmbedHost, isOwnVbUrl } from '../services/extractionClient';
 import { isDomainBlocked } from './domain.admin.controller';
+import { fetchRoomSockets } from '../socket/roomSockets.helper';
 
 export class WatchPartyController {
   constructor(
@@ -599,7 +600,7 @@ export class WatchPartyController {
     try {
       const { userId } = req.params;
       // Find all sockets in the user's personal room and disconnect them
-      const sockets = await this.io.in(`user:${userId}`).fetchSockets();
+      const sockets = await fetchRoomSockets(this.io, `user:${userId}`);
       for (const s of sockets) {
         s.emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'account_blocked' });
         s.disconnect(true);

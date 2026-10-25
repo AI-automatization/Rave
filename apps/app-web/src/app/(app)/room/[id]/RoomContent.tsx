@@ -455,7 +455,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   // VB's found candidate never auto-commits (see vbSession.helper.ts) — it lands in the same
   // picker as "Это не то видео", just auto-opened instead of waiting for the owner to find the
   // menu entry themselves.
-  const { frame: vbFrame, active: vbActive, dimensions: vbDimensions, error: vbError, blocked: vbBlocked, queuePosition: vbQueuePosition, unreachable: vbUnreachable, start: vbStart, stop: vbStop, sendInput: vbSendInput } = useVirtualBrowser(isOwner, () => setCandidatePickerOpen(true));
+  const { hasFrame: vbHasFrame, frameSource: vbFrameSource, active: vbActive, dimensions: vbDimensions, error: vbError, blocked: vbBlocked, queuePosition: vbQueuePosition, unreachable: vbUnreachable, start: vbStart, stop: vbStop, sendInput: vbSendInput } = useVirtualBrowser(isOwner, () => setCandidatePickerOpen(true));
   const [showVBPanel, setShowVBPanel] = useState(false);
   const showVB = vbActive || (isOwner && showVBPanel);
   const handleVBStop = () => { vbStop(); setShowVBPanel(false); };
@@ -596,7 +596,8 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
             {showVB ? (
               <VirtualBrowserPlayer
                 isOwner={isOwner}
-                frame={vbFrame}
+                hasFrame={vbHasFrame}
+                frameSource={vbFrameSource}
                 dimensions={vbDimensions}
                 error={vbError}
                 blocked={vbBlocked}

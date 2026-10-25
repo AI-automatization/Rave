@@ -2,6 +2,7 @@ import { Server as SocketServer, Socket } from 'socket.io';
 import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { JwtPayload, MeshSignalPayload } from '@shared/types';
+import { fetchRoomSockets } from './roomSockets.helper';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -33,7 +34,7 @@ export const registerMeshHandlers = (
   const verifyPeer = async (toUserId: string): Promise<boolean> => {
     const roomId = authSocket.roomId;
     if (!roomId) return false;
-    const sockets = await io.in(roomId).fetchSockets();
+    const sockets = await fetchRoomSockets(io, roomId);
     return sockets.some((s) => (s as unknown as AuthenticatedSocket).user?.userId === toUserId);
   };
 

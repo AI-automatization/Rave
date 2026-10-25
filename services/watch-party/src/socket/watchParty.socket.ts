@@ -16,6 +16,7 @@ import { registerHandEvents } from './handEvents.handler';
 import { registerDMEvents } from './dmEvents.handler';
 import { registerVBEvents } from './vbEvents.handler';
 import { stopSession, stopAllSessions, hasSession } from '../services/virtualBrowser.service';
+import { fetchRoomSockets } from './roomSockets.helper';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -186,7 +187,7 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
         scheduleDisconnectLeave(io, watchPartyService, userId, roomId);
 
         // Start inactivity timer if room is now empty (no sockets connected)
-        const sockets = await io.in(roomId).fetchSockets();
+        const sockets = await fetchRoomSockets(io, roomId);
         if (sockets.length === 0) {
           if (!roomCloseTimers.has(roomId)) {
             logger.info('Room empty after disconnect — starting 5-minute inactivity timer', { roomId });

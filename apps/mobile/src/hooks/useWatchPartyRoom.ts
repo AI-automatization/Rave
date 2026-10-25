@@ -512,11 +512,23 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     prevIsPlayingRef.current = status.isPlaying;
   }, [isOwner, emitPause, emitBufferState]);
 
+  // Any member may play/pause from the embed's own UI (WebViewPlayer no longer locks members out).
+  // A member only broadcasts a CHANGE of room state — a stall-resume PLAY while the room already
+  // plays, or a PAUSE the OS forced on a backgrounded app, is not a decision to share.
   const handleWebViewPlay = useCallback((secs: number) => {
     setIsPlaying(true);
-    if (isOwner && !isSyncing.current) emitPlay(secs);
+    if (isSyncing.current) return;
+    if (!isOwner && intendedPlayingRef.current) return;
+    intendedPlayingRef.current = true;
+    emitPlay(secs);
   }, [isOwner, emitPlay]);
-  const handleWebViewPause = useCallback((secs: number) => { setIsPlaying(false); if (isOwner && !isSyncing.current) emitPause(secs); }, [isOwner, emitPause]);
+  const handleWebViewPause = useCallback((secs: number) => {
+    setIsPlaying(false);
+    if (isSyncing.current) return;
+    if (!isOwner && (!intendedPlayingRef.current || AppState.currentState !== 'active')) return;
+    intendedPlayingRef.current = false;
+    emitPause(secs);
+  }, [isOwner, emitPause]);
   // T-E101: WebView buffering callback
   const handleWebViewBuffering = useCallback((isBuffering: boolean) => { emitBufferState(isBuffering); }, [emitBufferState]);
   const handleWebViewSeek = useCallback((secs: number) => { if (isOwner && !isSyncing.current) emitSeek(secs); }, [isOwner, emitSeek]);

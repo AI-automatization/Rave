@@ -87,6 +87,9 @@ export function TwitchPlayer({ id, type, isOwner, onPlay, onPause, onSeek, onHea
   const lastPolledTime = useRef(0);
 
   const isOwnerRef = useRef(isOwner);   isOwnerRef.current = isOwner;
+  // Room state as last applied — a member's play/pause is only broadcast when it CHANGES the room
+  // (any member may play/pause, same as YouTubePlayer; seek/heartbeat stay owner-only).
+  const roomPlayingRef = useRef(syncState.isPlaying); roomPlayingRef.current = syncState.isPlaying;
   const onPlayRef = useRef(onPlay);     onPlayRef.current = onPlay;
   const onPauseRef = useRef(onPause);   onPauseRef.current = onPause;
   const onSeekRef = useRef(onSeek);     onSeekRef.current = onSeek;
@@ -129,13 +132,17 @@ export function TwitchPlayer({ id, type, isOwner, onPlay, onPause, onSeek, onHea
       // owner's did, with no "watch together" benefit since there's no position to keep in sync.
       // Removed for channels (2026-07-19); VODs still sync fully.
       if (isVod) {
+        // Non-owner: a resume after a stall re-fires VIDEO_PLAY while the room already plays, and
+        // a backgrounded tab can pause on its own — neither is a decision to share.
         embed.addEventListener(Twitch.Embed.VIDEO_PLAY, () => {
-          if (!isOwnerRef.current || isRemoteAction.current) return;
+          if (isRemoteAction.current) return;
+          if (!isOwnerRef.current && roomPlayingRef.current) return;
           const p = playerRef.current;
           if (p) onPlayRef.current(p.getCurrentTime());
         });
         embed.addEventListener(Twitch.Embed.VIDEO_PAUSE, () => {
-          if (!isOwnerRef.current || isRemoteAction.current) return;
+          if (isRemoteAction.current) return;
+          if (!isOwnerRef.current && (!roomPlayingRef.current || document.visibilityState === 'hidden')) return;
           const p = playerRef.current;
           if (p) onPauseRef.current(p.getCurrentTime());
         });
@@ -160,10 +167,12 @@ export function TwitchPlayer({ id, type, isOwner, onPlay, onPause, onSeek, onHea
     return () => clearInterval(iid);
   }, [ready, isOwner, isVod]);
 
-  // Viewer: apply incoming syncState (VOD only).
+  // Apply incoming syncState (VOD only). The owner too — a member may have played/paused — but only
+  // when the player actually differs, so the owner's own echo never fights their local player.
   useEffect(() => {
     const p = playerRef.current;
-    if (!ready || isOwner || !p || !isVod) return;
+    if (!ready || !p || !isVod) return;
+    if (isOwner && p.isPaused() === !syncState.isPlaying) return;
     isRemoteAction.current = true;
     const elapsed = syncState.isPlaying && syncState.serverTimestamp
       ? Math.min(MAX_COMPENSATION_SECS, Math.max(0, (Date.now() - syncState.serverTimestamp) / 1000))

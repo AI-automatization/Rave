@@ -3,11 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Globe, Keyboard, Loader2, Maximize, Minimize, MousePointer2, X } from 'lucide-react';
-import type { VBInput } from '@/hooks/use-virtual-browser';
+import type { VBFrameSource, VBInput } from '@/hooks/use-virtual-browser';
 
 interface Props {
   isOwner: boolean;
-  frame: string | null;
+  /** A frame has arrived for the current session (state — flips once per session). */
+  hasFrame: boolean;
+  /** The frames themselves, outside React — the <img> below swaps its src on each one. */
+  frameSource: VBFrameSource;
   dimensions: { width: number; height: number } | null;
   error: string | null;
   /** Page VB is showing is a bot-challenge wall — see use-virtual-browser.ts's `blocked`. Not an
@@ -40,7 +43,7 @@ const KB_BASE = '\u200b';
 // frame stream. See services/watch-party/src/services/virtualBrowser.service.ts for the server
 // side (CDP screencast + input dispatch). State/socket wiring lives in the parent's
 // useVirtualBrowser() call (RoomContent.tsx) — this component is presentational + input capture.
-export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocked, queuePosition, unreachable, start, stop, sendInput, onPickDifferentVideo, onTryIframe }: Props) {
+export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimensions, error, blocked, queuePosition, unreachable, start, stop, sendInput, onPickDifferentVideo, onTryIframe }: Props) {
   const t = useTranslations('party');
   const [urlInput, setUrlInput] = useState('');
   const lastUrlRef = useRef<string | null>(null);
@@ -159,7 +162,7 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
-  }, [isOwner, sendInput, frame]); // re-attach if the <img> node identity changes across renders
+  }, [isOwner, sendInput, hasFrame]); // re-attach when the <img> mounts/unmounts
 
   // Touch input. Before this the component listened for mouse events ONLY, so on a phone or a
   // touchscreen laptop the virtual browser was completely uncontrollable — the reported bug.
@@ -179,8 +182,8 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
 
     // Below this, the finger hasn't really moved — treat the gesture as a tap.
     const TAP_SLOP_PX = 10;
-    // Gesture state lives in a ref, not in this closure: the effect re-runs on every new `frame`
-    // (~7/s on a phone session), and closure-local state used to reset mid-swipe — lastX/lastY
+    // Gesture state lives in a ref, not in this closure: this effect used to re-run on every new
+    // frame (~7/s on a phone session), and closure-local state reset mid-swipe — lastX/lastY
     // fell back to 0, so each re-attach emitted a huge opposite wheel delta that cancelled the
     // scroll (reproduced 2026-10-25: alternating +37 / -560 deltas, page never moved).
     const g = gestureRef.current;
@@ -253,11 +256,20 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
       el.removeEventListener('touchend', onTouchEnd);
       el.removeEventListener('touchcancel', onTouchCancel);
     };
-  }, [isOwner, sendInput, frame, clientToViewport, getScale]);
+  }, [isOwner, sendInput, hasFrame, clientToViewport, getScale]);
 
   useEffect(() => {
     setIsCoarse(window.matchMedia('(pointer: coarse)').matches);
   }, []);
+
+  // Live frames straight into the <img>, no React render per frame (see use-virtual-browser.ts).
+  useEffect(() => {
+    const el = imgRef.current;
+    if (!el || !hasFrame) return;
+    const show = (frame: string | null) => { if (frame) el.src = `data:image/jpeg;base64,${frame}`; };
+    show(frameSource.get());
+    return frameSource.subscribe(show);
+  }, [hasFrame, frameSource, isOwner]);
 
   // Native fullscreen can also end from outside our button (Esc, iOS swipe, browser UI).
   useEffect(() => {
@@ -335,7 +347,7 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
     );
   }
 
-  if (!frame && (!dimensions || unreachable)) {
+  if (!hasFrame && (!dimensions || unreachable)) {
     if (queuePosition !== null) {
       return (
         <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-2 text-center px-6">
@@ -432,7 +444,7 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
           paddingRight: 'max(0.5rem, env(safe-area-inset-right))',
         }}
       >
-        {isCoarse && frame && (
+        {isCoarse && hasFrame && (
           <button
             type="button"
             // preventDefault on mousedown keeps focus where it is, so a tap on this button while the
@@ -447,7 +459,7 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
             <Keyboard size={18} />
           </button>
         )}
-        {frame && (
+        {hasFrame && (
           <button
             type="button"
             onClick={toggleFullscreen}
@@ -492,13 +504,13 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
         style={{ fontSize: 16 }}
       />
 
-      {!frame && (
+      {!hasFrame && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#0A0A12]/80">
           <Loader2 size={28} className="animate-spin text-violet-400" />
         </div>
       )}
 
-      {frame && (
+      {hasFrame && (
         <>
           {/* Nothing in the room auto-plays here on purpose — the whole point of falling back to
               VB is a real page the owner has to click through (play button, ads, captchas). Without
@@ -515,7 +527,6 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
           {/* eslint-disable-next-line @next/next/no-img-element -- live JPEG frame stream (base64 data URL), not a real <Image>-optimizable asset */}
           <img
             ref={imgRef}
-            src={`data:image/jpeg;base64,${frame}`}
             alt=""
             draggable={false}
             tabIndex={isOwner ? 0 : -1}

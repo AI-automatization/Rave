@@ -4,6 +4,7 @@ import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { JwtPayload } from '@shared/types';
 import { getUserPlan } from '@shared/utils/serviceClient';
+import { fetchRoomSockets } from './roomSockets.helper';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -193,7 +194,7 @@ export const registerVideoEvents = (
   const DEMOCRATIC_PAUSE_MAX_MEMBERS = 3;
 
   const liveMemberCount = async (roomId: string): Promise<number> => {
-    const sockets = await io.in(roomId).fetchSockets();
+    const sockets = await fetchRoomSockets(io, roomId);
     return sockets.length;
   };
 

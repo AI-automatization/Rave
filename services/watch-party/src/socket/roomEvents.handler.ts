@@ -18,6 +18,7 @@ import { getFaststartFixedFileName } from '../services/faststartRemux.service';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { clearHand } from './handEvents.handler';
 import { recordRoomWatch, recordMediaChange } from '../services/watchStats.service';
+import { fetchRoomSockets } from './roomSockets.helper';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -51,7 +52,7 @@ function scheduleRoomEmptyCheck(
   roomId: string,
 ): void {
   void (async () => {
-    const sockets = await io.in(roomId).fetchSockets();
+    const sockets = await fetchRoomSockets(io, roomId);
     if (sockets.length === 0 && !roomCloseTimers.has(roomId)) {
       logger.info('Room empty — starting 5-minute inactivity timer', { roomId });
       const timer = setTimeout(() => {
@@ -101,7 +102,7 @@ async function finalizeRoomLeave(
       io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'owner_left' });
     } else if (result.newOwnerId) {
       // Update cached ownerId on all sockets in the room so video events skip DB
-      const roomSockets = await io.in(roomId).fetchSockets();
+      const roomSockets = await fetchRoomSockets(io, roomId);
       for (const s of roomSockets) {
         (s as unknown as AuthenticatedSocket).roomOwnerId = result.newOwnerId;
       }
@@ -478,7 +479,7 @@ export const registerRoomEvents = (
       io.to(authSocket.roomId).emit(SERVER_EVENTS.MEMBER_KICKED, { userId: data.targetUserId });
 
       // Force disconnect the kicked user's socket in this room
-      const sockets = await io.in(authSocket.roomId).fetchSockets();
+      const sockets = await fetchRoomSockets(io, authSocket.roomId);
       for (const s of sockets) {
         if ((s as unknown as AuthenticatedSocket).user?.userId === data.targetUserId) {
           s.leave(authSocket.roomId ?? '');

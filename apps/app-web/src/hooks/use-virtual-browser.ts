@@ -16,6 +16,13 @@ export type VBInput =
   | { type: 'keyup'; key: string }
   | { type: 'type'; text: string };
 
+/** Live frame feed that bypasses React state — see `frameSource` in useVirtualBrowser. */
+export interface VBFrameSource {
+  get(): string | null;
+  /** cb runs on every new frame (base64 JPEG) and with null when the session ends. */
+  subscribe(cb: (frame: string | null) => void): () => void;
+}
+
 // Kosmi-style shared virtual browser: server runs a real headless Chromium page and streams it
 // as JPEG frames (Chrome DevTools Protocol screencast, services/watch-party/src/services/
 // virtualBrowser.service.ts) — this hook just wires the socket side, VirtualBrowserPlayer.tsx
@@ -28,7 +35,20 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
   tRef.current = t;
   const onCandidateNeedsConfirmationRef = useRef(onCandidateNeedsConfirmation);
   onCandidateNeedsConfirmationRef.current = onCandidateNeedsConfirmation;
-  const [frame, setFrame] = useState<string | null>(null);
+  // Frames do NOT go through React state: at 7–10 frames/s that re-rendered the whole room page
+  // (chat, voice, members — RoomContent owns this hook) on every frame, which on a phone cost more
+  // main-thread time than decoding the JPEG and made taps feel late. Only "is there a frame at all"
+  // is state; the <img> subscribes to the feed and swaps its src directly (VirtualBrowserPlayer).
+  const [hasFrame, setHasFrame] = useState(false);
+  const frameRef = useRef<string | null>(null);
+  const frameSubsRef = useRef(new Set<(frame: string | null) => void>());
+  const [frameSource] = useState<VBFrameSource>(() => ({
+    get: () => frameRef.current,
+    subscribe: (cb) => {
+      frameSubsRef.current.add(cb);
+      return () => { frameSubsRef.current.delete(cb); };
+    },
+  }));
   const [active, setActive] = useState(false);
   // Read inside the socket handlers below without re-subscribing on every toggle.
   const activeRef = useRef(false);
@@ -77,15 +97,37 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
     // proof-of-active makes this self-healing regardless of which specific race caused the miss —
     // the very next frame corrects the UI instead of requiring VB_STARTED/ROOM_JOINED to have
     // landed at exactly the right moment.
-    const onFrame = (data: { data: string }) => {
-      if (endedRef.current) return; // late frame from a session that already ended — see endedRef
-      setFrame(data.data);
+    // pendingAck: the server paces frames to one in flight per socket (vbFrameSender.helper.ts,
+    // opted into via auth.vbFrameAck in lib/socket.ts) — ack once the frame has been handed to the
+    // <img> on the next paint, so the next one is always the newest instead of a queued stale one.
+    let rafId: number | null = null;
+    let pendingAck: (() => void) | null = null;
+    const publishFrame = (frame: string | null) => {
+      frameRef.current = frame;
+      frameSubsRef.current.forEach((cb) => cb(frame));
+    };
+    const onFrame = (data: { data: string }, ack?: () => void) => {
+      if (endedRef.current) { ack?.(); return; } // late frame from a session that already ended — see endedRef
+      frameRef.current = data.data;
+      setHasFrame(true);
       setActive(true);
+      const prevAck = pendingAck;
+      pendingAck = ack ?? null;
+      prevAck?.();
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        publishFrame(frameRef.current);
+        const done = pendingAck;
+        pendingAck = null;
+        done?.();
+      });
     };
     const onStopped = (data?: { reason?: string; needsConfirmation?: boolean }) => {
       endedRef.current = true;
       setActive(false);
-      setFrame(null);
+      setHasFrame(false);
+      publishFrame(null);
       setBlocked(null);
       setQueuePosition(null);
       // needsConfirmation: true — VB found *something* but, unlike a normal extraction result,
@@ -149,6 +191,8 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
       socket.off(SERVER_EVENTS.VB_BLOCKED, onBlocked);
       socket.off(SERVER_EVENTS.VB_QUEUED, onQueued);
       socket.off(SERVER_EVENTS.ROOM_JOINED, onRoomJoined);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      pendingAck?.();
     };
   }, [socket, isConnected]);
 
@@ -170,5 +214,5 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
     socket?.emit(CLIENT_EVENTS.VB_INPUT, input);
   }, [socket, isOwner]);
 
-  return { frame, active, dimensions, error, blocked, queuePosition, unreachable, start, stop, sendInput };
+  return { hasFrame, frameSource, active, dimensions, error, blocked, queuePosition, unreachable, start, stop, sendInput };
 }
