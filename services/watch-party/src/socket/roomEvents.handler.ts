@@ -262,6 +262,18 @@ export const registerRoomEvents = (
       logger.warn('Failed to resolve buffer-pause on room leave', { userId, roomId, error: e });
     }
 
+    // Owner alone in the room: a LEAVE_ROOM here deletes the room outright (leaveRoom), and the web
+    // client emits one on every re-run of its join effect, immediately followed by a new JOIN_ROOM
+    // — real bug 2026-10-25: a page reload left the owner on a 404 "room not found". Give it the
+    // same 20s grace as a raw disconnect (JOIN_ROOM cancels it); the "end room" button closes
+    // explicitly over REST (closeRoom) and doesn't go through here.
+    const room = await watchPartyService.getRoom(roomId).catch(() => null);
+    if (room && room.ownerId === userId && room.members.every((m) => m === userId)) {
+      scheduleDisconnectLeave(io, watchPartyService, userId, roomId);
+      logger.info('Socket left room — sole owner, deferred by grace period', { userId, roomId });
+      return;
+    }
+
     await finalizeRoomLeave(io, watchPartyService, userId, roomId, socket);
 
     logger.info('Socket left room', { userId, roomId });

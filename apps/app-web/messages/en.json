@@ -632,6 +632,8 @@
     "ownerOnly": "Only the room owner can control the video",
     "noVideo": "Video not available",
     "roomClosed": "This room has been closed",
+    "roomClosedHint": "Ask the host for a new link, or create your own room.",
+    "goHome": "Go to home",
     "roomClosedInactive": "This room was automatically closed due to 5 minutes of inactivity.",
     "leaveConfirmTitle": "Leave room?",
     "leaveConfirmMsg": "You are the owner. If you leave, ownership transfers to the next member.",

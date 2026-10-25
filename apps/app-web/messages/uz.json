@@ -598,6 +598,8 @@
     "ownerOnly": "Faqat xona egasi video ni boshqara oladi",
     "noVideo": "Video mavjud emas",
     "roomClosed": "Bu xona yopilgan",
+    "roomClosedHint": "Egasidan yangi havola so'rang yoki o'zingiz xona oching.",
+    "goHome": "Bosh sahifaga",
     "roomClosedInactive": "Xona 5 daqiqa faolsizligi sababli avtomatik yopildi.",
     "chat": "Chat",
     "members": "A'zolar",

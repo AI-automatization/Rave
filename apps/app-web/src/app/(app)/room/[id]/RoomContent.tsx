@@ -24,6 +24,7 @@ import { ChangeVideoDialog } from '@/components/party/ChangeVideoDialog';
 import { useVoiceChat } from '@/hooks/use-voice-chat';
 import { useSocket } from '@/hooks/use-socket';
 import { roomsApi } from '@/lib/api/rooms.api';
+import { ApiError } from '@/lib/api-client';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { toast } from '@/hooks/use-toast';
@@ -528,12 +529,18 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
     vbStart(targetUrl);
   }, [isOwner, showVB, vbStart]);
 
+  const [roomGone, setRoomGone] = useState(false);
+
   // Pre-load room via REST immediately — don't wait 2-3s for socket ROOM_JOINED
   useEffect(() => {
     let mounted = true;
     roomsApi.getById(roomId).then((res) => {
       if (mounted && res.data) setRoom(res.data);
-    }).catch(() => {});
+    }).catch((e: unknown) => {
+      // Ended/deleted room: without this the page sat on an empty player forever and a member's
+      // play/pause went nowhere (real report 2026-10-25, phone opened an old invite link).
+      if (mounted && e instanceof ApiError && e.status === 404) setRoomGone(true);
+    });
     return () => {
       mounted = false;
       // Reset store when leaving room so stale data doesn't flash on next room visit
@@ -551,6 +558,21 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   // math needed — the room route no longer sits inside (app)/layout.tsx's padded `main` or under
   // the global AppNav (both are hidden for /room/* — see (app)/layout.tsx's `inRoom` check — so
   // this component owns the full viewport itself).
+  if (roomGone) {
+    return (
+      <div className="ww-grain flex h-screen flex-col items-center justify-center gap-3 px-4 text-center">
+        <p className="text-lg font-semibold text-white">{t('roomClosed')}</p>
+        <p className="max-w-sm text-sm text-slate-400">{t('roomClosedHint')}</p>
+        <a
+          href="/home"
+          className="ww-btn-accent mt-2 rounded-[var(--ww-r-sm)] px-5 py-2.5 text-sm font-semibold text-white"
+        >
+          {t('goHome')}
+        </a>
+      </div>
+    );
+  }
+
   return (
     <div className="ww-grain relative flex h-screen flex-col overflow-hidden">
       {/* Ambient depth — real-user feedback (2026-07-28): the room "feels like a brick", too dark,
