@@ -16,12 +16,14 @@
 // Known limit: a cross-origin media file served without CORS headers is "tainted" for WebAudio and
 // records as silence. Those are exactly the plain-file sources the VB sniffer already hands to the
 // room as a direct video (which plays with sound), so the gap is small.
-import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
+import { spawn, ChildProcess } from 'child_process';
 import { Response } from 'express';
 import { logger } from '@shared/utils/logger';
 
 interface AudioRoom {
-  ffmpeg: ChildProcessWithoutNullStreams;
+  ffmpeg: ChildProcess;
+  /** Fed from the PulseAudio monitor (Linux stream mode) — page-tap slices are ignored then. */
+  pulse: boolean;
   listeners: Set<Response>;
   /** Frame whose recorder feeds ffmpeg — a second frame starting its own recorder takes over. */
   frameKey: string;
@@ -40,16 +42,19 @@ export const MAX_AUDIO_CHUNK_BASE64_LEN = 256 * 1024;
 const MAX_RESTARTS_PER_WINDOW = 20;
 const RESTART_WINDOW_MS = 60_000;
 
-function startEncoder(roomId: string): ChildProcessWithoutNullStreams {
-  const ffmpeg = spawn('ffmpeg', [
-    '-hide_banner', '-loglevel', 'error',
-    '-protocol_whitelist', 'pipe',
-    '-fflags', 'nobuffer', '-probesize', '32', '-analyzeduration', '0',
-    '-f', 'webm', '-i', 'pipe:0',
-    '-vn', '-ac', '2', '-ar', '44100', '-c:a', 'libmp3lame', '-b:a', MP3_BITRATE,
-    '-flush_packets', '1', '-f', 'mp3', 'pipe:1',
-  ]);
-  ffmpeg.stdout.on('data', (data: Buffer) => {
+const MP3_OUT_ARGS = ['-vn', '-ac', '2', '-ar', '44100', '-c:a', 'libmp3lame', '-b:a', MP3_BITRATE, '-flush_packets', '1', '-f', 'mp3', 'pipe:1'];
+
+// Page tap: webm/opus slices arrive on stdin. Pulse: ffmpeg reads the sink monitor itself.
+function startEncoder(roomId: string, pulse?: { source: string; runtimeDir: string }): ChildProcess {
+  const input = pulse
+    ? ['-f', 'pulse', '-i', pulse.source]
+    : ['-protocol_whitelist', 'pipe', '-fflags', 'nobuffer', '-probesize', '32', '-analyzeduration', '0', '-f', 'webm', '-i', 'pipe:0'];
+  const ffmpeg = spawn('ffmpeg', ['-hide_banner', '-loglevel', 'error', ...input, ...MP3_OUT_ARGS], {
+    stdio: [pulse ? 'ignore' : 'pipe', 'pipe', 'pipe'],
+    // Without XDG_RUNTIME_DIR ffmpeg can't find the PulseAudio daemon (see vbStream.service.ts).
+    env: pulse ? { ...process.env, XDG_RUNTIME_DIR: pulse.runtimeDir } : process.env,
+  });
+  ffmpeg.stdout?.on('data', (data: Buffer) => {
     const room = rooms.get(roomId);
     if (!room || room.ffmpeg !== ffmpeg) return;
     for (const res of room.listeners) {
@@ -61,8 +66,8 @@ function startEncoder(roomId: string): ChildProcessWithoutNullStreams {
       res.write(data);
     }
   });
-  ffmpeg.stderr.on('data', (d: Buffer) => logger.warn('VB audio: ffmpeg', { roomId, msg: d.toString().slice(0, 200) }));
-  ffmpeg.stdin.on('error', () => { /* encoder gone — next chunk restarts it */ });
+  ffmpeg.stderr?.on('data', (d: Buffer) => logger.warn('VB audio: ffmpeg', { roomId, msg: d.toString().slice(0, 200) }));
+  ffmpeg.stdin?.on('error', () => { /* encoder gone — next chunk restarts it */ });
   ffmpeg.on('error', (e) => logger.error('VB audio: ffmpeg failed to start', { roomId, error: e.message }));
   ffmpeg.on('exit', () => {
     const room = rooms.get(roomId);
@@ -72,7 +77,7 @@ function startEncoder(roomId: string): ChildProcessWithoutNullStreams {
 }
 
 function newRoom(roomId: string, frameKey: string): AudioRoom {
-  return { ffmpeg: startEncoder(roomId), listeners: new Set(), frameKey, restarts: 0, restartWindowStart: Date.now() };
+  return { ffmpeg: startEncoder(roomId), pulse: false, listeners: new Set(), frameKey, restarts: 0, restartWindowStart: Date.now() };
 }
 
 /**
@@ -82,6 +87,7 @@ function newRoom(roomId: string, frameKey: string): AudioRoom {
  */
 export function pushAudioChunk(roomId: string, frameKey: string, first: boolean, chunk: Buffer): void {
   let room = rooms.get(roomId);
+  if (room?.pulse) return; // the sink monitor already carries this sound (and cross-origin media too)
   if (!room) {
     if (!first) return; // mid-stream slice with no header — wait for a recorder's first slice
     room = newRoom(roomId, frameKey);
@@ -93,7 +99,7 @@ export function pushAudioChunk(roomId: string, frameKey: string, first: boolean,
       const now = Date.now();
       if (now - room.restartWindowStart > RESTART_WINDOW_MS) { room.restarts = 0; room.restartWindowStart = now; }
       if (++room.restarts > MAX_RESTARTS_PER_WINDOW) return;
-      room.ffmpeg.stdin.end();
+      room.ffmpeg.stdin?.end();
       room.ffmpeg.kill('SIGKILL');
       room.ffmpeg = startEncoder(roomId);
       room.frameKey = frameKey;
@@ -101,7 +107,8 @@ export function pushAudioChunk(roomId: string, frameKey: string, first: boolean,
   } else if (frameKey !== room.frameKey) {
     return; // a second frame's recorder while the first still feeds — ignore it
   }
-  if (!room.ffmpeg.stdin.destroyed) room.ffmpeg.stdin.write(chunk);
+  const stdin = room.ffmpeg.stdin;
+  if (stdin && !stdin.destroyed) stdin.write(chunk);
 }
 
 /** GET /vb-audio/:roomId — live MP3 for as long as the session (or the listener) lasts. */
@@ -125,11 +132,34 @@ export function addAudioListener(roomId: string, res: Response): void {
   res.on('close', () => rooms.get(roomId)?.listeners.delete(res));
 }
 
+/**
+ * Linux stream mode (VB_STREAM_ENABLED): feed the room's MP3 from the session's PulseAudio monitor
+ * instead of the in-page tap. The tap can't record cross-origin media without CORS (Chrome throws
+ * "Cannot capture from element with cross-origin data" — confirmed locally 2026-10-25 on
+ * asilmedia.org → fayllar.com), so most movie sites were silent; the sink hears everything Chrome
+ * plays. Listeners already parked on a placeholder room keep their connection.
+ */
+export function useSystemAudio(roomId: string, monitor: { source: string; runtimeDir: string }): void {
+  const room = rooms.get(roomId);
+  if (room) {
+    if (room.pulse) return;
+    try { room.ffmpeg.stdin?.end(); } catch { /* already closed */ }
+    room.ffmpeg.kill('SIGKILL');
+    room.ffmpeg = startEncoder(roomId, monitor);
+    room.pulse = true;
+    return;
+  }
+  rooms.set(roomId, {
+    ffmpeg: startEncoder(roomId, monitor), pulse: true, listeners: new Set(), frameKey: 'pulse', restarts: 0, restartWindowStart: Date.now(),
+  });
+  logger.info('VB audio: using PulseAudio monitor', { roomId, source: monitor.source });
+}
+
 export function stopAudio(roomId: string): void {
   const room = rooms.get(roomId);
   if (!room) return;
   rooms.delete(roomId);
-  try { room.ffmpeg.stdin.end(); } catch { /* already closed */ }
+  try { room.ffmpeg.stdin?.end(); } catch { /* already closed */ }
   room.ffmpeg.kill('SIGKILL');
   for (const res of room.listeners) res.end();
 }

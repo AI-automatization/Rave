@@ -8,7 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium, Browser, BrowserContext, Page, CDPSession } from 'playwright-chromium';
-import { pushAudioChunk, stopAudio, VB_AUDIO_TAP_SCRIPT, MAX_AUDIO_CHUNK_BASE64_LEN } from './vbAudio.service';
+import { pushAudioChunk, stopAudio, useSystemAudio, VB_AUDIO_TAP_SCRIPT, MAX_AUDIO_CHUNK_BASE64_LEN } from './vbAudio.service';
 import { logger } from '@shared/utils/logger';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { startCapture, appendCapture, appendCaptureTrack, stopCapture, clearCapture } from './vbCapture.service';
@@ -1095,6 +1095,9 @@ export async function startSession(
       // display came up would spend CPU encoding a black screen and pad the live HLS window with
       // dead segments the first viewer would have to sit through.
       vbStream.startEncoder(roomId);
+      // Same sink, second consumer: the owner's live MP3 (/vb-audio) now carries every site's sound.
+      const monitor = vbStream.getAudioMonitor(roomId);
+      if (monitor) useSystemAudio(roomId, monitor);
       const s = sessions.get(roomId);
       if (s) {
         // Best-effort — a title read failing (page navigated away again, closed, etc.) shouldn't
