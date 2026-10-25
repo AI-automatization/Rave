@@ -46,6 +46,8 @@ const KB_BASE = '\u200b';
 const FRAME_PIPELINE_S = 0.15;
 const MIN_FRAME_DELAY_MS = 50;
 const MAX_FRAME_DELAY_MS = 2500;
+// Buttons and the hint fade out after the mouse/finger rests this long, back on the next move.
+const CONTROLS_HIDE_MS = 2500;
 
 // Kosmi-style shared virtual browser: a real headless Chromium page runs on the server, the
 // owner controls it with mouse/keyboard, and every room member just watches the same live JPEG
@@ -59,6 +61,17 @@ export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimension
   const urlInputRef = useRef<HTMLInputElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const frameDelayMsRef = useRef(0);
+  const [controlsShown, setControlsShown] = useState(true);
+  const hideControlsTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const wakeControls = useCallback(() => {
+    setControlsShown(true);
+    clearTimeout(hideControlsTimer.current);
+    hideControlsTimer.current = setTimeout(() => setControlsShown(false), CONTROLS_HIDE_MS);
+  }, []);
+  useEffect(() => {
+    wakeControls();
+    return () => clearTimeout(hideControlsTimer.current);
+  }, [wakeControls]);
   const setFrameDelay = useCallback((audioDelayS: number) => {
     frameDelayMsRef.current = Math.max(0, (audioDelayS - FRAME_PIPELINE_S) * 1000);
   }, []);
@@ -458,12 +471,16 @@ export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimension
     : ratio < 1
       ? { aspectRatio: ratio, width: `min(100%, calc(70dvh * ${ratio}))` }
       : { aspectRatio: ratio };
+  // Hidden controls must not catch clicks meant for the page underneath.
+  const fadeCls = controlsShown || kbOpen ? 'opacity-100' : 'opacity-0 [&_*]:!pointer-events-none';
   const btnCls = `${isCoarse ? 'w-11 h-11' : 'w-8 h-8'} rounded-lg bg-black/60 hover:bg-black/80 flex items-center justify-center text-white cursor-pointer`;
 
   return (
     <div
       ref={containerRef}
       style={boxStyle}
+      onPointerMove={wakeControls}
+      onPointerDown={wakeControls}
       className={`bg-black overflow-hidden ${
         fsMode === 'css'
           ? 'fixed inset-0 z-[70] h-[100dvh] w-screen'
@@ -475,7 +492,7 @@ export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimension
       {/* Control cluster: pointer-events-none wrapper padded by the safe-area insets (notch / home
           bar in the CSS-fullscreen mode), buttons re-enable pointer events. */}
       <div
-        className="absolute inset-x-0 top-0 z-10 flex justify-end gap-2 p-2 pointer-events-none"
+        className={`absolute inset-x-0 top-0 z-10 flex justify-end gap-2 p-2 pointer-events-none transition-opacity duration-300 ${fadeCls}`}
         style={{
           paddingTop: 'max(0.5rem, env(safe-area-inset-top))',
           paddingRight: 'max(0.5rem, env(safe-area-inset-right))',
@@ -557,7 +574,7 @@ export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimension
               this hint people stared at a loaded page with no idea they were the ones expected to
               act on it. */}
           <div
-            className="absolute z-10 flex max-w-[calc(100%-10rem)] items-center gap-2 px-3 py-1.5 rounded-lg bg-black/70 backdrop-blur-sm border border-violet-500/20 pointer-events-none"
+            className={`absolute z-10 flex max-w-[calc(100%-10rem)] items-center gap-2 px-3 py-1.5 rounded-lg bg-black/70 backdrop-blur-sm border border-violet-500/20 pointer-events-none transition-opacity duration-300 ${fadeCls}`}
             style={{ top: 'max(0.5rem, env(safe-area-inset-top))', left: 'max(0.5rem, env(safe-area-inset-left))' }}
           >
             <span className="w-1.5 h-1.5 shrink-0 rounded-full bg-violet-400 animate-pulse" />
