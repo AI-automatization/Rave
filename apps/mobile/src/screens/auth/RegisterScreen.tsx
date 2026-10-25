@@ -78,7 +78,7 @@ export function RegisterScreen() {
     if (!email.trim()) return t('register', 'errEmail');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return t('register', 'errEmailFormat');
     if (!password) return t('register', 'errPassword');
-    if (password.length < 8) return t('register', 'errPasswordShort');
+    if (password.length < 6) return t('register', 'errPasswordShort');
     if (password !== confirm) return t('register', 'errPasswordMatch');
     return null;
   };

@@ -127,7 +127,7 @@ export function ResetPasswordForm({ token }: Props) {
   }
 
   const mismatch = confirm.length > 0 && password !== confirm;
-  const tooShort = password.length > 0 && password.length < 8;
+  const tooShort = password.length > 0 && password.length < 6;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

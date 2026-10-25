@@ -167,7 +167,9 @@ export const MONGO_OPTIONS = {
 
 export const PATTERNS = {
   USERNAME: /^[a-zA-Z0-9_]{3,20}$/,
-  PASSWORD: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/,
+  // 6+ of any characters, simple ones allowed (product decision 2026-10-25: no upper/lower/digit
+  // rule, it blocked real sign-ups). 128 cap keeps bcrypt input bounded.
+  PASSWORD: /^[\s\S]{6,128}$/,
   OBJECT_ID: /^[a-f\d]{24}$/i,
 } as const;
 

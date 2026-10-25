@@ -11,7 +11,7 @@ interface StrengthLevel { pct: number; label: string; color: string; }
 function getStrength(pass: string, t: ReturnType<typeof useT>['t'], colors: ThemeColors): StrengthLevel {
   if (!pass) return { pct: 0, label: '', color: colors.bgElevated };
   let score = 0;
-  if (pass.length >= 8) score++;
+  if (pass.length >= 6) score++;
   if (pass.length >= 12) score++;
   if (/[A-Z]/.test(pass)) score++;
   if (/[0-9]/.test(pass)) score++;

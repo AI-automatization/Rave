@@ -108,7 +108,7 @@ export function SettingsContent() {
     e.preventDefault();
     setPwError('');
 
-    if (newPassword.length < 8) {
+    if (newPassword.length < 6) {
       setPwError(t('pwMinLength'));
       return;
     }

@@ -9,7 +9,7 @@ export const registerSchema = Joi.object({
     'string.pattern.base': 'Username must be 3-20 chars: letters, numbers, underscore only',
   }),
   password: Joi.string().pattern(PATTERNS.PASSWORD).required().messages({
-    'string.pattern.base': 'Password must be 8+ chars with uppercase, lowercase and number',
+    'string.pattern.base': 'Password must be at least 6 characters',
   }),
 });
 
@@ -33,7 +33,7 @@ export const forgotPasswordSchema = Joi.object({
 export const resetPasswordSchema = Joi.object({
   token: Joi.string().required(),
   newPassword: Joi.string().pattern(PATTERNS.PASSWORD).required().messages({
-    'string.pattern.base': 'Password must be 8+ chars with uppercase, lowercase and number',
+    'string.pattern.base': 'Password must be at least 6 characters',
   }),
 });
 
@@ -58,7 +58,7 @@ export const appleIdTokenSchema = Joi.object({
 export const changePasswordSchema = Joi.object({
   oldPassword: Joi.string().required(),
   newPassword: Joi.string().pattern(PATTERNS.PASSWORD).required().messages({
-    'string.pattern.base': 'Password must be 8+ chars with uppercase, lowercase and number',
+    'string.pattern.base': 'Password must be at least 6 characters',
   }),
 });
 
