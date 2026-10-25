@@ -333,13 +333,19 @@ export function useWatchParty(roomId: string) {
     socket?.emit(CLIENT_EVENTS.SEND_MESSAGE, { roomId, message: text, replyTo });
   }, [socket, roomId]);
 
+  // Any member may play/pause now (server videoEvents.handler.ts). The server echoes to everyone
+  // EXCEPT the sender, so the sender's own store must flip here — otherwise its sync effects still
+  // see the old isPlaying and immediately undo the tap (e.g. a viewer's pause re-played by the
+  // next heartbeat reconcile).
   const sendPlay = useCallback((currentTime: number) => {
     socket?.emit(CLIENT_EVENTS.PLAY, { roomId, currentTime });
-  }, [socket, roomId]);
+    setSyncState({ isPlaying: true, currentTime, serverTimestamp: Date.now() });
+  }, [socket, roomId, setSyncState]);
 
   const sendPause = useCallback((currentTime: number) => {
     socket?.emit(CLIENT_EVENTS.PAUSE, { roomId, currentTime });
-  }, [socket, roomId]);
+    setSyncState({ isPlaying: false, currentTime, serverTimestamp: undefined });
+  }, [socket, roomId, setSyncState]);
 
   const sendSeek = useCallback((currentTime: number) => {
     socket?.emit(CLIENT_EVENTS.SEEK, { roomId, currentTime });

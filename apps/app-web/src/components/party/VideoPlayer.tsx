@@ -1131,7 +1131,6 @@ function NativeVideoPlayer({
 
   function handleVideoAreaClick() {
     revealControls();
-    if (!isOwner) return;
     const v = videoRef.current;
     if (!v) return;
     trackClick('video:toggle_play_pause');
@@ -1197,8 +1196,10 @@ function NativeVideoPlayer({
         disablePictureInPicture
         {...({ 'x-webkit-airplay': 'deny' } as Record<string, string>)}
         className="w-full h-full"
-        onPlay={isOwner ? onPlay : undefined}
-        onPause={isOwner ? onPause : undefined}
+        // Play/pause from ANY member is broadcast (server accepts it since 2026-10-25); seeking
+        // stays owner-only.
+        onPlay={onPlay}
+        onPause={onPause}
         onSeeked={isOwner ? onSeeked : undefined}
         onWaiting={() => {
           const v = videoRef.current;
@@ -1302,8 +1303,8 @@ function NativeVideoPlayer({
 
             {/* Controls row */}
             <div className="flex items-center gap-3">
-              {/* Play/Pause — owner only */}
-              {isOwner && (
+              {/* Play/Pause — every member (seek bar stays owner-only) */}
+              {(
                 <button
                   onClick={(e) => { e.stopPropagation(); handleVideoAreaClick(); }}
                   className="w-9 h-9 rounded-full flex items-center justify-center text-white transition-all hover:bg-white/10 active:scale-90 flex-shrink-0"
@@ -1502,12 +1503,11 @@ export function VideoPlayer({
     }
 
     if (syncState.isPlaying && video.paused) {
-      // Don't auto-resume if owner deliberately paused — only their own play click should resume.
-      // ownerExplicitlyPausedRef is cleared in handlePlay and set in handlePause (user-initiated only).
-      if (isOwner && ownerExplicitlyPausedRef.current) {
-        isRemoteAction.current = false;
-        return;
-      }
+      // Used to skip this when the owner had deliberately paused — the owner's own store never
+      // learned about its pause, so any later effect run would resume it. sendPause now flips the
+      // store locally (use-watch-party), so isPlaying=true here really is a room play — possibly
+      // another member's, which the owner must follow like everyone else.
+      ownerExplicitlyPausedRef.current = false;
       video.play()
         .then(() => setAutoplayBlocked(false))
         .catch((e: unknown) => {
@@ -1676,6 +1676,10 @@ export function VideoPlayer({
 
   const handlePause = useCallback(() => {
     if (isRemoteAction.current) return;
+    // A viewer's browser/OS pause (screen lock, background tab, the pause fired before `ended`)
+    // is not that person pressing pause — it must not pause the whole room.
+    const v = videoRef.current;
+    if (!isOwner && (document.visibilityState === 'hidden' || v?.ended)) return;
     if (isOwner) ownerExplicitlyPausedRef.current = true;
     if (pendingEmitRef.current) clearTimeout(pendingEmitRef.current);
     pendingEmitRef.current = setTimeout(() => {

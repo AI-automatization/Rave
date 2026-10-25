@@ -15,7 +15,7 @@ import { useApiError } from '@/hooks/use-api-error';
 import { ApiError } from '@/lib/api-client';
 import { trackClick } from '@/lib/analytics';
 import { trackRoomCreated } from '@/lib/measurement-events';
-import { resolveLinkPlatform } from '@/lib/link-routing';
+import { resolveLinkPlatform, normalizeLinkInput } from '@/lib/link-routing';
 
 interface Props {
   open: boolean;
@@ -460,7 +460,7 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
   async function handleCreate() {
     if (checkingLink) return;
     trackClick('create_room:submit', { isPrivate });
-    const pickedUrl = videoUrl && !/^https?:\/\//i.test(videoUrl) ? `https://${videoUrl}` : videoUrl;
+    const pickedUrl = normalizeLinkInput(videoUrl);
     try {
       const backendPlatform = activePlatform?.id
         ? (PLATFORM_TO_BACKEND[activePlatform.id] ?? 'other')
@@ -469,9 +469,7 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
       // a bare paste like "youtube.com/watch?v=..." (no scheme) reaches here as-is and fails
       // backend Joi's videoUrl.uri() check with a 422 the user never sees the reason for
       // (button just resets). Normalize before sending, same as mobile's URL handling.
-      const normalizedVideoUrl = videoUrl && !/^https?:\/\//i.test(videoUrl)
-        ? `https://${videoUrl}`
-        : videoUrl;
+      const normalizedVideoUrl = pickedUrl;
       // Safety net alongside toAbsoluteThumbnailUrl (used when storing it from fetchVideoMeta):
       // re-validate here too so a malformed thumbnail can never 422 the whole room-create request.
       const safeThumbnail = videoThumbnail ? toAbsoluteThumbnailUrl(videoThumbnail) : null;
@@ -556,7 +554,8 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="bg-[#0C0B18] border-white/[0.07] text-white max-w-[620px] p-0 overflow-hidden rounded-2xl">
+      {/* grid-cols-[minmax(0,1fr)]: the base DialogContent is an auto-column grid, so the long video title / platform chip row widened it past a 390px screen (input + arrow cut off on the right). */}
+      <DialogContent className="bg-[#0C0B18] border-white/[0.07] text-white max-w-[620px] grid-cols-[minmax(0,1fr)] p-0 overflow-hidden rounded-2xl">
 
         {/* Header */}
         <DialogHeader className="px-6 pt-6 pb-0">

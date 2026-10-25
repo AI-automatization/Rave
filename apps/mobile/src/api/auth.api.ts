@@ -9,6 +9,12 @@ export const authApi = {
     return res.data.data;
   },
 
+  async guest(name: string): Promise<LoginResponse> {
+    const res = await authClient.post<ApiResponse<LoginResponse>>('/auth/guest', { name });
+    if (!res.data.data) throw new Error('Guest response is empty');
+    return res.data.data;
+  },
+
   async register(data: RegisterRequest): Promise<{ _dev_otp?: string }> {
     const res = await authClient.post<ApiResponse<{ _dev_otp?: string }>>('/auth/register', data);
     return res.data.data ?? {};

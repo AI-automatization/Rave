@@ -10,7 +10,7 @@ import { useWatchParty } from '@/hooks/use-watch-party';
 import { useVirtualBrowser } from '@/hooks/use-virtual-browser';
 import { VideoPlayer } from '@/components/party/VideoPlayer';
 import { VirtualBrowserPlayer } from '@/components/party/VirtualBrowserPlayer';
-import { resolveLinkPlatform } from '@/lib/link-routing';
+import { resolveLinkPlatform, normalizeLinkInput } from '@/lib/link-routing';
 import { ChatPanel } from '@/components/party/ChatPanel';
 import { MemberList } from '@/components/party/MemberList';
 import { RoomHeader } from '@/components/party/RoomHeader';
@@ -130,10 +130,9 @@ function PlaylistPanel({
   const [checkingLink, setCheckingLink] = useState(false);
 
   async function handlePlayNow() {
-    const url = urlInput.trim();
-    if (!url || checkingLink) return;
+    const normalizedUrl = normalizeLinkInput(urlInput);
+    if (!normalizedUrl || checkingLink) return;
     trackClick('room:playlist_play_now');
-    const normalizedUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
     setCheckingLink(true);
     try {
       await onPlayNow(normalizedUrl, detectVideoPlatform(normalizedUrl));
@@ -152,7 +151,7 @@ function PlaylistPanel({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ videoUrl: urlInput.trim() }),
+        body: JSON.stringify({ videoUrl: normalizeLinkInput(urlInput) }),
       });
       if (res.ok) {
         setUrlInput('');

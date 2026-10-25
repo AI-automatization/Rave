@@ -266,7 +266,11 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     // Server broadcasts democratic buffer pause/resume via io.to(roomId) which reaches the owner too.
     // Without this guard the owner's video would jump to the stale Redis position on every
     // member buffer event — particularly frequent on Android due to ExoPlayer HLS segment fetching.
-    if (isOwner) {
+    // Exception: a play/pause a regular member pressed (updatedBy = that member, not the owner)
+    // must be applied by the owner too — any member may control play/pause. Buffer-driven
+    // events carry updatedBy = owner, so they still hit the guard below.
+    const fromMember = !!syncState.updatedBy && syncState.updatedBy !== userId && syncState.updatedBy !== room?.ownerId;
+    if (isOwner && !fromMember) {
       if (ownerInitialSyncedRef.current) {
         intendedPlayingRef.current = syncState.isPlaying;
         return;
@@ -538,8 +542,9 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     setTimeout(() => { isSyncing.current = false; }, 1500);
   }, [isOwner, videoIsLive, emitSeek]);
 
+  // Any room member may play/pause (seek/stop stay owner-only).
   const handlePlayPause = useCallback(async () => {
-    if (!isOwner || isActionInFlight.current) return;
+    if (isActionInFlight.current) return;
     isActionInFlight.current = true;
     try {
       const nextPlaying = !intendedPlayingRef.current;
@@ -550,7 +555,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       if (nextPlaying) { await playerRef.current?.play(); emitPlay(posMs / 1000); }
       else { await playerRef.current?.pause(); emitPause(posMs / 1000); }
     } finally { setTimeout(() => { isActionInFlight.current = false; isSyncing.current = false; }, 300); }
-  }, [isOwner, emitPlay, emitPause]);
+  }, [emitPlay, emitPause]);
 
   const handleStop = useCallback(async () => {
     if (!isOwner) return;

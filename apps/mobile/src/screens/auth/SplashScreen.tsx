@@ -8,6 +8,7 @@ import { WeWatchLogo } from '@components/common/WeWatchLogo';
 import { AuthStackParamList } from '@app-types/index';
 import { useAuthStore } from '@store/auth.store';
 import { useT } from '@i18n/index';
+import { pendingRoomLink } from '@utils/pendingRoomLink';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Splash'>;
 
@@ -36,7 +37,8 @@ export function SplashScreen() {
     // hideAsync App.tsx da chaqiriladi — bu yerda faqat navigatsiya
     const timer = setTimeout(() => {
       if (isAuthenticated) return; // AppNavigator handles redirect
-      navigation.replace('LanguageSelect');
+      // Opened via a room link while signed out → join as guest with just a name
+      navigation.replace(pendingRoomLink.get() ? 'GuestJoin' : 'LanguageSelect');
     }, 1800);
 
     return () => clearTimeout(timer);

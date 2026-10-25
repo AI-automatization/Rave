@@ -78,11 +78,53 @@ async function extractViaContentService(url: string): Promise<DirectMedia | null
   }
 }
 
+// Public Telegram channel post: t.me/<channel>/<id> (also t.me/s/<channel>/<id>). The post page
+// itself refuses framing (frame-ancestors https://web.telegram.org) and VB would have to sniff it,
+// but the post's embed widget (?embed=1) carries the video as a plain <video src> on Telegram's CDN
+// (cdn*.telesco.pe/file/*.mp4, signed token, Range-capable) — played through vb-media-proxy like
+// any direct mp4, so every member gets the synced native player (2026-10-25: "telegramdan
+// keladigan videoni ham ochadigan qil"). Private channels / non-video posts → null → VB as before.
+const TELEGRAM_POST_RE = /^https?:\/\/(?:www\.)?(?:t\.me|telegram\.me)\/(?:s\/)?([A-Za-z0-9_]{4,64})\/(\d{1,12})(?:[/?#]|$)/i;
+
+export function parseTelegramPost(url: string): { channel: string; postId: string } | null {
+  const m = url.match(TELEGRAM_POST_RE);
+  return m ? { channel: m[1], postId: m[2] } : null;
+}
+
+async function extractTelegramPost(url: string): Promise<DirectMedia | null> {
+  const post = parseTelegramPost(url);
+  if (!post) return null;
+  try {
+    const res = await axios.get<string>(
+      `https://t.me/${post.channel}/${post.postId}?embed=1&mode=tme`,
+      {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36' },
+        responseType: 'text',
+        timeout: PROBE_TIMEOUT_MS,
+        maxRedirects: 3,
+      },
+    );
+    const html = String(res.data ?? '');
+    const src = html.match(/<video[^>]+src="([^"]+)"/i)?.[1]?.replace(/&amp;/g, '&');
+    if (!src) return null;
+    const mediaUrl = new URL(src);
+    // Only Telegram's own CDN — never follow an arbitrary URL out of fetched HTML.
+    if (mediaUrl.protocol !== 'https:' || !/(^|\.)telesco\.pe$|(^|\.)telegram\.org$/i.test(mediaUrl.hostname)) return null;
+    const title = html.match(/<meta property="og:description" content="([^"]{1,200})/i)?.[1] ?? null;
+    return { mediaUrl: mediaUrl.href, type: 'mp4', title };
+  } catch (err) {
+    logger.info('directResolve: telegram post fetch failed', { url, error: (err as Error).message });
+    return null;
+  }
+}
+
 export async function resolveDirectMedia(url: string): Promise<DirectMedia | null> {
   const extType = typeFromExtension(url);
   const media = extType
     ? { mediaUrl: url, type: extType, title: null }
-    : await extractViaContentService(url);
+    : parseTelegramPost(url)
+      ? await extractTelegramPost(url)
+      : await extractViaContentService(url);
   if (!media) return null;
   if (!(await probe(media.mediaUrl, media.type))) {
     logger.info('directResolve: probe failed, falling back to VB', { url, mediaUrl: media.mediaUrl.slice(0, 120) });

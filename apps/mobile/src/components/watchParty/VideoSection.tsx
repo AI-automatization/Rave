@@ -256,13 +256,13 @@ export const VideoSection = React.memo(function VideoSection({
         </View>
       </Animated.View>
 
-      {/* Center controls — owner only */}
-      {isOwnerMode && (
+      {/* Center controls — play/pause for every member; seek buttons owner only */}
+      {blockEmbedTouch && (
         <Animated.View
           style={[s.centerControls, { opacity: ctrlOpacity }]}
           pointerEvents={ctrlPointerEvents}
         >
-          {!videoIsLive && (
+          {isOwnerMode && !videoIsLive && (
             <TrackedTouchable trackId="watchparty:seek_back" style={s.seekBtn} onPress={() => onSeekDirection('back')}>
               <Ionicons name="play-back" size={22} color="#fff" />
               <Text style={s.seekLabel}>{pendingSkipSecs != null ? `${pendingSkipSecs > 0 ? '+' : ''}${pendingSkipSecs}s` : '10s'}</Text>
@@ -278,7 +278,7 @@ export const VideoSection = React.memo(function VideoSection({
             />
           </TrackedTouchable>
 
-          {!videoIsLive && (
+          {isOwnerMode && !videoIsLive && (
             <TrackedTouchable trackId="watchparty:seek_forward" style={s.seekBtn} onPress={() => onSeekDirection('forward')}>
               <Ionicons name="play-forward" size={22} color="#fff" />
               <Text style={s.seekLabel}>{pendingSkipSecs != null ? `${pendingSkipSecs > 0 ? '+' : ''}${pendingSkipSecs}s` : '10s'}</Text>

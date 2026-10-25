@@ -141,6 +141,17 @@ export const translations = {
     orContinueWith: { uz: 'yoki davom eting', ru: 'или войти через', en: 'or continue with' },
   },
 
+  // ─── Auth — Guest join (room link, no account) ───
+  guestJoin: {
+    title: { uz: 'Xonaga kirish', ru: 'Вход в комнату', en: 'Join the room' },
+    subtitle: { uz: "Ro'yxatdan o'tish shart emas — faqat ismingizni kiriting", ru: 'Регистрация не нужна — просто введите имя', en: 'No sign-up needed — just enter your name' },
+    namePlaceholder: { uz: 'Ismingiz', ru: 'Ваше имя', en: 'Your name' },
+    joinBtn: { uz: 'Xonaga kirish', ru: 'Войти в комнату', en: 'Join room' },
+    haveAccount: { uz: 'Akkauntim bor', ru: 'У меня есть аккаунт', en: 'I have an account' },
+    errorEmpty: { uz: 'Ismingizni kiriting', ru: 'Введите имя', en: 'Enter your name' },
+    errorFailed: { uz: "Kirib bo'lmadi, qayta urinib ko'ring", ru: 'Не удалось войти, попробуйте снова', en: 'Could not join, please try again' },
+  },
+
   // ─── Auth — Register ───
   register: {
     title: { uz: "Ro'yxatdan o'tish", ru: 'Регистрация', en: 'Sign Up' },

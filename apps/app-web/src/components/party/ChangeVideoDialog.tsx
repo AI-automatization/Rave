@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
+import { normalizeLinkInput } from '@/lib/link-routing';
 
 interface Props {
   open: boolean;
@@ -25,9 +26,8 @@ export function ChangeVideoDialog({ open, onOpenChange, onSubmit }: Props) {
   const [busy, setBusy] = useState(false);
 
   async function submit() {
-    const raw = url.trim();
-    if (!raw || busy) return;
-    const normalized = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    const normalized = normalizeLinkInput(url);
+    if (!normalized || busy) return;
     setBusy(true);
     try {
       await onSubmit(normalized);

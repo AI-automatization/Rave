@@ -5,6 +5,27 @@ import { isDedicatedPlayerUrl } from '@/components/party/VideoPlayer';
 // handle them) — skip the embed check entirely.
 const DIRECT_MEDIA_RE = /\.(mp4|m4v|webm|mkv|mov|m3u8|mpd|mp3)(?:$|[?#])/i;
 
+/**
+ * Turns whatever the user pasted into one absolute, encoded URL — or '' if there's nothing.
+ * Backend Joi `.uri()` rejects all of these, and the room-create toast just said
+ * '"videoUrl" must be a valid uri' (real report 2026-10-25):
+ *  - surrounding spaces / a trailing newline from the clipboard;
+ *  - share text with the link inside it ("Посмотри: https://…");
+ *  - no scheme ("youtube.com/watch?v=…");
+ *  - non-ASCII host or path (кириллица) — `URL.href` punycodes / percent-encodes it.
+ */
+export function normalizeLinkInput(raw: string): string {
+  const text = raw.trim();
+  if (!text) return '';
+  const found = text.match(/https?:\/\/[^\s<>"']+/i)?.[0] ?? text.split(/\s+/)[0];
+  const withScheme = /^https?:\/\//i.test(found) ? found : `https://${found}`;
+  try {
+    return new URL(withScheme).href;
+  } catch {
+    return withScheme;
+  }
+}
+
 export interface ResolvedLink {
   platform: string;
   /** The url to STORE as the room media — the check's finalUrl when it became a 'webview', else the typed one. */

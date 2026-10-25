@@ -1,5 +1,5 @@
 // WeWatch Mobile — Root Navigator
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { View, AppState, type AppStateStatus } from 'react-native';
 import { NavigationContainer, useNavigationContainerRef, getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import * as Linking from 'expo-linking';
@@ -22,6 +22,7 @@ import { MaintenanceScreen } from '@components/common/MaintenanceScreen';
 import { UpdateRequiredScreen } from '@components/common/UpdateRequiredScreen';
 import { onAccountBlocked } from '@api/client';
 import { privacyPolicyStorage, activeRoomStorage } from '@utils/storage';
+import { parseRoomLink, pendingRoomLink } from '@utils/pendingRoomLink';
 import { adminApi } from '@api/admin.api';
 import { watchPartyApi } from '@api/watchParty.api';
 import Constants from 'expo-constants';
@@ -185,20 +186,11 @@ export function AppNavigator() {
     }
   }, [lastResponse, isNavReady, isAuthenticated, needsProfileSetup, navigationRef]);
 
-  // Deep link: wewatch://join/:inviteCode
+  // Deep link: bind-email (room/join links are handled via pendingRoomLink below)
   useEffect(() => {
     if (!isAuthenticated || !navigationRef.isReady()) return;
 
     const handleDeepLink = (url: string) => {
-      const match = url.match(/wewatch:\/\/join\/([A-Fa-f0-9]{6})/i);
-      if (match) {
-        navigationRef.navigate('Modal', {
-          screen: 'WatchPartyJoin',
-          params: { inviteCode: match[1].toUpperCase() },
-        });
-        return;
-      }
-
       // https://app.wewatch.uz/bind-email — Telegram nudge button / Android App Link
       // (app.json android.intentFilters pathPrefix "/bind-email"). Same nested-navigate
       // pattern as the BindEmail push-tap case above.
@@ -209,30 +201,6 @@ export function AppNavigator() {
           params: { screen: 'BindEmail', params: { mode: 'bind' } },
         });
         return;
-      }
-
-      // https://app.wewatch.uz/room/:roomId?code=INVITECODE — room share link / Android App Link
-      // (app.json android.intentFilters pathPrefix "/room"). `code` present → go through the
-      // existing join-by-invite-code flow (works whether or not the user is already a member);
-      // no `code` → navigate straight to the room by id.
-      const roomMatch = url.match(/\/room\/([^/?#]+)/i);
-      if (roomMatch) {
-        const roomId = decodeURIComponent(roomMatch[1]);
-        let inviteCode: string | null = null;
-        try {
-          inviteCode = new URL(url).searchParams.get('code');
-        } catch {
-          // malformed URL — fall back to roomId-only navigation below
-        }
-
-        if (inviteCode) {
-          navigationRef.navigate('Modal', {
-            screen: 'WatchPartyJoin',
-            params: { inviteCode: inviteCode.toUpperCase() },
-          });
-        } else {
-          navigationRef.navigate('Modal', { screen: 'WatchParty', params: { roomId } });
-        }
       }
     };
 
@@ -248,6 +216,44 @@ export function AppNavigator() {
 
     return () => subscription.remove();
   }, [isAuthenticated, navigationRef]);
+
+  // Room/join links (wewatch://join/CODE, https://app.wewatch.uz/room/:id?code=X) are parked in
+  // pendingRoomLink — regardless of auth state — and consumed once the Main/Modal stack is
+  // actually mounted (authenticated + privacy accepted + profile setup done). Signed-out users
+  // are routed to the name-only GuestJoin screen instead of Login.
+  const pendingLink = useSyncExternalStore(pendingRoomLink.subscribe, pendingRoomLink.get);
+
+  useEffect(() => {
+    const capture = (url: string | null) => {
+      const link = url ? parseRoomLink(url) : null;
+      if (link) pendingRoomLink.set(link);
+    };
+    Linking.getInitialURL().then(capture).catch(() => {});
+    const subscription = Linking.addEventListener('url', (event) => capture(event.url));
+    return () => subscription.remove();
+  }, []);
+
+  // Warm start while signed out (cold start is handled by SplashScreen).
+  useEffect(() => {
+    if (!pendingLink || isAuthenticated || !isNavReady) return;
+    const route = navigationRef.getCurrentRoute()?.name as string | undefined;
+    if (route === 'Splash' || route === 'GuestJoin' || route === 'Login') return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (navigationRef.navigate as any)('Auth', { screen: 'GuestJoin' });
+  }, [pendingLink, isAuthenticated, isNavReady, navigationRef]);
+
+  useEffect(() => {
+    if (!pendingLink || !isNavReady || !isAuthenticated || privacyAccepted !== true || needsProfileSetup) return;
+    const link = pendingRoomLink.take();
+    if (!link) return;
+    if (link.kind === 'join') {
+      navigationRef.navigate('Modal', { screen: 'WatchPartyJoin', params: { inviteCode: link.inviteCode } });
+    } else if (link.inviteCode) {
+      navigationRef.navigate('Modal', { screen: 'WatchPartyJoin', params: { inviteCode: link.inviteCode } });
+    } else {
+      navigationRef.navigate('Modal', { screen: 'WatchParty', params: { roomId: link.roomId } });
+    }
+  }, [pendingLink, isNavReady, isAuthenticated, privacyAccepted, needsProfileSetup, navigationRef]);
 
   // Analytics: init/update session when auth state changes
   useEffect(() => {
