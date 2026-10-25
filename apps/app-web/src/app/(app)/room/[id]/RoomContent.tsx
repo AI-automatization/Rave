@@ -8,7 +8,7 @@ import { MessageCircle, Users as UsersIcon, ListVideo, X, ChevronRight, Loader2,
 import type { IChatReplyTo, VideoCandidate } from '@/types';
 import { useWatchParty } from '@/hooks/use-watch-party';
 import { useVirtualBrowser } from '@/hooks/use-virtual-browser';
-import { VideoPlayer } from '@/components/party/VideoPlayer';
+import { VideoPlayer, isDedicatedPlayerUrl } from '@/components/party/VideoPlayer';
 import { VirtualBrowserPlayer } from '@/components/party/VirtualBrowserPlayer';
 import { resolveLinkPlatform, normalizeLinkInput } from '@/lib/link-routing';
 import { ChatPanel } from '@/components/party/ChatPanel';
@@ -494,6 +494,14 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
 
   // Owner-initiated, per-URL VB opens (from the generic iframe's "Open in Virtual Browser" button) —
   // `showVBPanel` keeps the VB view mounted so its unreachable state is visible if the start fails.
+  // A YouTube/VK/Rutube/... link typed into the VB panel: the server switches the room to its
+  // normal player instead (vbEvents.handler.ts — the VB stream has no sound), so just close the
+  // panel; it would otherwise stay open on top, waiting for a session that never starts.
+  const handleVBPanelStart = useCallback((url: string) => {
+    if (isDedicatedPlayerUrl(url)) setShowVBPanel(false);
+    vbStart(url);
+  }, [vbStart]);
+
   const handleOpenUrlInVB = useCallback((url: string) => {
     setShowVBPanel(true);
     vbStart(url);
@@ -604,7 +612,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                 queuePosition={vbQueuePosition}
                 unreachable={vbUnreachable}
                 onTryIframe={handleTryIframe}
-                start={vbStart}
+                start={handleVBPanelStart}
                 stop={handleVBStop}
                 sendInput={vbSendInput}
                 onPickDifferentVideo={() => setCandidatePickerOpen(true)}
