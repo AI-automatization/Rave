@@ -13,7 +13,7 @@ import { VideoCandidate } from '@shared/types';
 import { rankCandidates } from './vbCandidateRank.helper';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { signProxyUrl } from '@shared/utils/proxySignature';
-import { getSessionViewport, startSession, getSessionPageTitle, enableAutoProxy, MediaType } from '../services/virtualBrowser.service';
+import { getSessionViewport, startSession, getSessionPageTitle, enableAutoProxy, MediaType, VB_WATCH_IN_BROWSER } from '../services/virtualBrowser.service';
 import { WatchPartyRoom } from '../models/watchPartyRoom.model';
 import { WatchPartyPlaylistService } from '../services/watchPartyPlaylist.service';
 import { resolveDirectMedia } from './directResolve.helper';
@@ -251,6 +251,11 @@ export async function startVBForRoom(
     // needsConfirmation: true even when empty — auto-opens the SAME picker (its existing "нет
     // вариантов" state, see VideoCandidatePicker.tsx) instead of the screencast just quietly
     // stopping with no feedback at all.
+    if (VB_WATCH_IN_BROWSER) {
+      // The room keeps watching the VB — no picker, no stop (see VB_WATCH_IN_BROWSER).
+      logger.info('VB: collection window closed, room keeps watching in the VB', { roomId, count: candidates.length });
+      return;
+    }
     io.to(roomId).emit(SERVER_EVENTS.VIDEO_CANDIDATES, { candidates });
     io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'media_found', needsConfirmation: true });
     logger.info('VB: collection window closed, candidates ready for owner confirmation', { roomId, count: candidates.length });
@@ -275,7 +280,8 @@ export async function startVBForRoom(
     // socket already joins `user:${userId}` on connect (watchParty.socket.ts) — reuse that
     // instead of the room broadcast. volatile: a lagging owner client jumps to the latest frame
     // instead of draining a backlog; ack-capable clients are paced end-to-end (vbFrameSender.helper.ts).
-    emitVbFrame(io, ownerId, base64Jpeg);
+    // Watch-in-VB mode: the VB IS the room's player, so every member gets the frames.
+    emitVbFrame(io, VB_WATCH_IN_BROWSER ? roomId : `user:${ownerId}`, base64Jpeg);
   }, (mediaUrl, mediaType, kind, duration, bytes) => {
     // 'capture' mediaUrl already points at our own vb-capture endpoint — only 'url' (a raw,
     // independently-fetchable CDN URL) needs the same-IP proxy wrapper.

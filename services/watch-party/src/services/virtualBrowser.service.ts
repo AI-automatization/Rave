@@ -603,6 +603,14 @@ function attachResponseSniffer(
 // before finalizing, instead of committing to whatever arrived first.
 const COLLECTION_WINDOW_MS = 40_000;
 
+// 2026-10-26 (Javodbek, live test): the candidate picker kept failing on real movie sites (CDN
+// hotlink 403s, endless "checking quality" spinners), while the movie played fine inside the VB.
+// So by default the room now watches the VB itself: the session keeps running after the
+// collection window, every member gets the frames and the sound, and no picker opens.
+// Candidates are still stored, so "pick a different video" keeps working. VB_CANDIDATE_PICKER=1
+// restores the old picker flow.
+export const VB_WATCH_IN_BROWSER = process.env.VB_CANDIDATE_PICKER !== '1';
+
 // CONNECTION_TIMED_OUT / TIMED_OUT are Chromium's own TCP-level timeouts (a datacenter-IP blackhole:
 // SYNs silently dropped) — distinct from Playwright's "Timeout 20000ms exceeded" below. They used
 // to fall through to "navigation failed, keep the session", leaving the owner on a blank error page.
@@ -803,8 +811,10 @@ export async function startSession(
                 logger.warn('VB: failed to read session cookies at collection end', { roomId, error: (e as Error).message });
               }
             }
-            if (!capturedAsCandidate) void stopSession(roomId);
-            else void pauseScreencast(roomId);
+            if (!VB_WATCH_IN_BROWSER) {
+              if (!capturedAsCandidate) void stopSession(roomId);
+              else void pauseScreencast(roomId);
+            }
             onCollectionEnd?.();
           })();
         }, COLLECTION_WINDOW_MS);

@@ -341,7 +341,10 @@ export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimension
   // socket only (vbSession.helper.ts), so a non-owner never receives frame/dimensions data at
   // all — show a status message instead of the live screencast unconditionally, not just for the
   // pre-session (!frame && !dimensions) state.
-  if (!isOwner) {
+  // 2026-10-26: when the room watches the VB itself (VB_WATCH_IN_BROWSER, watch-party
+  // virtualBrowser.service.ts) members do get frames — then they watch the live screen too
+  // (view only: every input handler above is owner-gated).
+  if (!isOwner && !hasFrame) {
     return (
       <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-2 text-center px-6">
         <Globe size={24} className="text-zinc-700" />
@@ -448,7 +451,7 @@ export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimension
         }}
       >
         {hasFrame && audioUrl && <VirtualBrowserAudio src={audioUrl} />}
-        {isCoarse && hasFrame && (
+        {isOwner && isCoarse && hasFrame && (
           <button
             type="button"
             // preventDefault on mousedown keeps focus where it is, so a tap on this button while the
@@ -474,15 +477,17 @@ export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimension
             {fsMode === 'none' ? <Maximize size={16} /> : <Minimize size={16} />}
           </button>
         )}
-        <button
-          type="button"
-          onClick={stop}
-          title={t('vbClose')}
-          aria-label={t('vbClose')}
-          className={`${btnCls} pointer-events-auto`}
-        >
-          <X size={16} />
-        </button>
+        {isOwner && (
+          <button
+            type="button"
+            onClick={stop}
+            title={t('vbClose')}
+            aria-label={t('vbClose')}
+            className={`${btnCls} pointer-events-auto`}
+          >
+            <X size={16} />
+          </button>
+        )}
       </div>
 
       {/* Hidden input that owns the phone keyboard — see toggleKeyboard. 16px font so iOS doesn't

@@ -21,7 +21,8 @@ function sendPaced(socket: Socket, pacer: Pacer, frame: string): void {
 }
 
 /**
- * Delivers one VB screencast frame to every socket of the session owner.
+ * Delivers one VB screencast frame to every socket in `target` — the owner's `user:<id>` room
+ * while picking, or the whole watch-party room when the room watches the VB itself.
  *
  * volatile alone only drops a frame while THIS server's write is busy — on a slow phone link the
  * kernel/proxy buffers still queue several 30–70 KB frames, so what the owner sees runs seconds
@@ -30,9 +31,9 @@ function sendPaced(socket: Socket, pacer: Pacer, frame: string): void {
  * one next, so latency stays one frame deep at any bandwidth. Everyone else (mobile app, older web
  * builds) keeps the old volatile broadcast unchanged.
  */
-export function emitVbFrame(io: SocketServer, ownerId: string, frame: string): void {
+export function emitVbFrame(io: SocketServer, target: string, frame: string): void {
   const nsp = io.of('/');
-  const ids = nsp.adapter.rooms.get(`user:${ownerId}`);
+  const ids = nsp.adapter.rooms.get(target);
   if (!ids) return;
   for (const id of ids) {
     const socket = nsp.sockets.get(id);
