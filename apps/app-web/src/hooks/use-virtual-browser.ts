@@ -16,6 +16,9 @@ export type VBInput =
   | { type: 'keyup'; key: string }
   | { type: 'type'; text: string };
 
+/** The movie playing inside the VB — see VB_MEDIA_STATE (watch-party vbSession.helper.ts). */
+export interface VBMediaState { paused: boolean; currentTime: number; duration: number | null }
+
 /** Live frame feed that bypasses React state — see `frameSource` in useVirtualBrowser. */
 export interface VBFrameSource {
   get(): string | null;
@@ -50,6 +53,7 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
     },
   }));
   const [active, setActive] = useState(false);
+  const [mediaState, setMediaState] = useState<VBMediaState | null>(null);
   // Read inside the socket handlers below without re-subscribing on every toggle.
   const activeRef = useRef(false);
   activeRef.current = active;
@@ -175,6 +179,11 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
       }
     };
 
+    const onMediaState = (data: VBMediaState | null) => setMediaState(data);
+    const clearMediaState = () => setMediaState(null);
+
+    socket.on(SERVER_EVENTS.VB_MEDIA_STATE, onMediaState);
+    socket.on(SERVER_EVENTS.VB_STOPPED, clearMediaState);
     socket.on(SERVER_EVENTS.VB_STARTED, onStarted);
     socket.on(SERVER_EVENTS.VB_FRAME, onFrame);
     socket.on(SERVER_EVENTS.VB_STOPPED, onStopped);
@@ -184,6 +193,8 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
     socket.on(SERVER_EVENTS.ROOM_JOINED, onRoomJoined);
 
     return () => {
+      socket.off(SERVER_EVENTS.VB_MEDIA_STATE, onMediaState);
+      socket.off(SERVER_EVENTS.VB_STOPPED, clearMediaState);
       socket.off(SERVER_EVENTS.VB_STARTED, onStarted);
       socket.off(SERVER_EVENTS.VB_FRAME, onFrame);
       socket.off(SERVER_EVENTS.VB_STOPPED, onStopped);
@@ -214,5 +225,11 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
     socket?.emit(CLIENT_EVENTS.VB_INPUT, input);
   }, [socket, isOwner]);
 
-  return { hasFrame, frameSource, active, dimensions, error, blocked, queuePosition, unreachable, start, stop, sendInput };
+  // WeWatch's own control bar for the movie inside the VB (owner only — the server checks too).
+  const mediaControl = useCallback((action: 'play' | 'pause' | 'seek', time?: number) => {
+    if (!isOwner) return;
+    socket?.emit(CLIENT_EVENTS.VB_MEDIA_CONTROL, { action, time });
+  }, [socket, isOwner]);
+
+  return { hasFrame, frameSource, active, dimensions, error, blocked, queuePosition, unreachable, start, stop, sendInput, mediaState, mediaControl };
 }

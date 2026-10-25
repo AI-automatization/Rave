@@ -463,7 +463,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   // VB's found candidate never auto-commits (see vbSession.helper.ts) — it lands in the same
   // picker as "Это не то видео", just auto-opened instead of waiting for the owner to find the
   // menu entry themselves.
-  const { hasFrame: vbHasFrame, frameSource: vbFrameSource, active: vbActive, dimensions: vbDimensions, error: vbError, blocked: vbBlocked, queuePosition: vbQueuePosition, unreachable: vbUnreachable, start: vbStart, stop: vbStop, sendInput: vbSendInput } = useVirtualBrowser(isOwner, () => setCandidatePickerOpen(true));
+  const { hasFrame: vbHasFrame, frameSource: vbFrameSource, active: vbActive, dimensions: vbDimensions, error: vbError, blocked: vbBlocked, queuePosition: vbQueuePosition, unreachable: vbUnreachable, start: vbStart, stop: vbStop, sendInput: vbSendInput, mediaState: vbMediaState, mediaControl: vbMediaControl } = useVirtualBrowser(isOwner, () => setCandidatePickerOpen(true));
   const [showVBPanel, setShowVBPanel] = useState(false);
   const showVB = vbActive || (isOwner && showVBPanel);
   const handleVBStop = () => { vbStop(); setShowVBPanel(false); };
@@ -647,6 +647,8 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                 sendInput={vbSendInput}
                 onPickDifferentVideo={() => setCandidatePickerOpen(true)}
                 audioUrl={`${process.env.NEXT_PUBLIC_SOCKET_URL ?? 'http://localhost:3004'}/api/v1/watch-party/vb-audio/${roomId}`}
+                mediaState={vbMediaState}
+                onMediaControl={vbMediaControl}
               />
             ) : (
               <VideoPlayer

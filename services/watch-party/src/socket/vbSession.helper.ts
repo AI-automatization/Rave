@@ -13,7 +13,7 @@ import { VideoCandidate } from '@shared/types';
 import { rankCandidates } from './vbCandidateRank.helper';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { signProxyUrl } from '@shared/utils/proxySignature';
-import { getSessionViewport, startSession, getSessionPageTitle, enableAutoProxy, MediaType, VB_WATCH_IN_BROWSER, getSessionCurrentUrl, hasSession, setOnSessionEnded } from '../services/virtualBrowser.service';
+import { getSessionViewport, startSession, getSessionPageTitle, enableAutoProxy, MediaType, VB_WATCH_IN_BROWSER, getSessionCurrentUrl, hasSession, setOnSessionEnded, getMovieState } from '../services/virtualBrowser.service';
 import { WatchPartyRoom } from '../models/watchPartyRoom.model';
 import { WatchPartyPlaylistService } from '../services/watchPartyPlaylist.service';
 import { resolveDirectMedia } from './directResolve.helper';
@@ -190,6 +190,29 @@ function keepWatchResumeInfo(redis: Redis, roomId: string, startUrl: string): vo
     const url = getSessionCurrentUrl(roomId);
     if (url && /^https?:\/\//i.test(url)) save(url);
   }, VB_WATCH_SAVE_MS);
+  timer.unref();
+}
+
+const MOVIE_STATE_MS = 1000;
+
+// Room-wide VB_MEDIA_STATE once a second while the session lives — feeds WeWatch's own control
+// bar (play/pause, seek, time) over the VB stream. null once the movie is gone.
+function broadcastMovieState(io: SocketServer, roomId: string): void {
+  let hadState = false;
+  let busy = false;
+  const timer = setInterval(() => {
+    if (!hasSession(roomId)) {
+      clearInterval(timer);
+      if (hadState) io.to(roomId).emit(SERVER_EVENTS.VB_MEDIA_STATE, null);
+      return;
+    }
+    if (busy) return;
+    busy = true;
+    void getMovieState(roomId).then((state) => {
+      if (state || hadState) io.to(roomId).emit(SERVER_EVENTS.VB_MEDIA_STATE, state);
+      hadState = state !== null;
+    }).finally(() => { busy = false; });
+  }, MOVIE_STATE_MS);
   timer.unref();
 }
 
@@ -379,5 +402,8 @@ export async function startVBForRoom(
   }
   const viewport = getSessionViewport(roomId);
   io.to(roomId).emit(SERVER_EVENTS.VB_STARTED, { url, width: viewport.width, height: viewport.height, ownerId });
-  if (VB_WATCH_IN_BROWSER && hasSession(roomId)) keepWatchResumeInfo(redis, roomId, url);
+  if (VB_WATCH_IN_BROWSER && hasSession(roomId)) {
+    keepWatchResumeInfo(redis, roomId, url);
+    broadcastMovieState(io, roomId);
+  }
 }

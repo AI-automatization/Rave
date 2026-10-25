@@ -124,6 +124,44 @@ export function setOnSessionEnded(cb: (roomId: string) => void): void {
   onSessionEnded = cb;
 }
 
+export interface VBMovieState { paused: boolean; currentTime: number; duration: number | null }
+export type VBMovieAction = 'play' | 'pause' | 'seek';
+
+/**
+ * The movie VB_FULLSCREEN_SCRIPT maximized (vbFullscreen.script.ts), from whichever frame holds
+ * it — null when nothing is maximized. Drives WeWatch's own control bar for the VB.
+ */
+export async function getMovieState(roomId: string): Promise<VBMovieState | null> {
+  const s = sessions.get(roomId);
+  if (!s) return null;
+  for (const frame of s.page.frames()) {
+    try {
+      const st = await frame.evaluate(() => {
+        const fn = (window as unknown as { __wewatchMovieState?: () => VBMovieState | null }).__wewatchMovieState;
+        return typeof fn === 'function' ? fn() : null;
+      });
+      if (st) return st;
+    } catch { /* frame navigating or detached */ }
+  }
+  return null;
+}
+
+/** play / pause / seek on the maximized movie. Returns false when there is none. */
+export async function controlMovie(roomId: string, action: VBMovieAction, time?: number): Promise<boolean> {
+  const s = sessions.get(roomId);
+  if (!s) return false;
+  for (const frame of s.page.frames()) {
+    try {
+      const done = await frame.evaluate(([a, t]) => {
+        const fn = (window as unknown as { __wewatchMovieControl?: (a: string, t?: number) => boolean }).__wewatchMovieControl;
+        return typeof fn === 'function' ? fn(a as string, t as number | undefined) : false;
+      }, [action, time] as const);
+      if (done) return true;
+    } catch { /* frame navigating or detached */ }
+  }
+  return false;
+}
+
 /** The page the VB is on right now (the owner may have clicked far from the start URL). */
 export function getSessionCurrentUrl(roomId: string): string | null {
   const s = sessions.get(roomId);

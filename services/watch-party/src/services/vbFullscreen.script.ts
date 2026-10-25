@@ -1,10 +1,12 @@
 // Movie sites show their player as a small box inside the page (header, ads, comments around it),
-// so the VB screencast showed the film letterboxed in page clutter. This init script (every frame
-// of a VB page, see virtualBrowser.service.ts) blows the playing movie's player up to the whole
-// viewport with CSS: the player box keeps its own pixel size and is scaled (transform) to fit, so
-// the site's own play button / control bar stay laid out exactly as the site's JS placed them
-// (resizing the box instead left them off-center and off-screen — live test 2026-10-26). The Fullscreen API can't be used: it needs a user gesture the VB page
-// rarely has, and CSS works the same in any frame.
+// so the VB screencast showed the film small among page clutter. This init script (every frame of
+// a VB page, see virtualBrowser.service.ts) makes the playing movie's <video> element itself fill
+// the whole viewport (object-fit: contain — never cropped). The site's own player chrome stays
+// underneath: WeWatch draws one control bar of its own instead (VirtualBrowserPlayer.tsx), driven
+// through window.__wewatchMovieState / __wewatchMovieControl below (virtualBrowser.service.ts).
+// Two earlier tries failed live on 2026-10-26: resizing the site's player box left its play
+// button off-center, scaling the box cropped the film — and both showed two sets of controls.
+// The Fullscreen API can't be used: it needs a user gesture the VB page rarely has.
 //
 // Rules: only a real movie (not looping, >= 90s or live, big enough on screen, no videojs ad
 // playing) — short pre-rolls and muted background loops stay where they are. A player inside an
@@ -16,64 +18,30 @@ export const VB_FULLSCREEN_SCRIPT = /* js */ `
   window.__wewatchFullscreen = true;
   var ATTR = 'data-wewatch-full', ANC = 'data-wewatch-full-anc', MSG = '__wewatchFull';
   var MIN_DURATION_S = 90, MIN_W = 240, MIN_H = 135, CHECK_MS = 2000;
-  var current = null, box = null, exited = new WeakSet(), childFrame = null;
+  var current = null, exited = new WeakSet(), childFrame = null;
 
   function ensureStyle() {
     if (document.getElementById('__wewatch_full_style')) return;
     var s = document.createElement('style');
     s.id = '__wewatch_full_style';
-    var fixed = 'position:fixed!important;margin:0!important;max-width:none!important;max-height:none!important;' +
-      'min-width:0!important;min-height:0!important;z-index:2147483647!important;';
     s.textContent =
-      // Player box in this document: frozen at its own size, scaled to fit, centered.
-      '[' + ATTR + '="scale"]{' + fixed + 'left:var(--ww-x)!important;top:var(--ww-y)!important;right:auto!important;' +
-      'bottom:auto!important;width:var(--ww-w)!important;height:var(--ww-h)!important;' +
-      'transform:scale(var(--ww-k))!important;transform-origin:0 0!important;}' +
-      // An iframe holding the player: really resized, so the frame's own page lays out for it.
-      '[' + ATTR + '="fill"]{' + fixed + 'left:0!important;top:0!important;width:100vw!important;height:100vh!important;' +
-      'transform:none!important;border:0!important;}' +
+      '[' + ATTR + ']{position:fixed!important;left:0!important;top:0!important;right:auto!important;bottom:auto!important;' +
+      'width:100vw!important;height:100vh!important;max-width:none!important;max-height:none!important;' +
+      'min-width:0!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;' +
+      'transform:none!important;z-index:2147483647!important;visibility:visible!important;opacity:1!important;}' +
+      'video[' + ATTR + ']{object-fit:contain!important;background:#000!important;}' +
       '#__wewatch_full_bg{position:fixed;left:0;top:0;width:100vw;height:100vh;background:#000;z-index:2147483646;}' +
       // Ancestors: a transform/filter/contain makes position:fixed relative to them, and their own
-      // z-index would keep the player under the site header — neutralize while maximized.
+      // z-index would keep the video under the site header — neutralize while maximized.
       '[' + ANC + ']{transform:none!important;filter:none!important;perspective:none!important;contain:none!important;' +
       'will-change:auto!important;z-index:auto!important;overflow:visible!important;}' +
       'html[' + ANC + '],html[' + ANC + '] body{overflow:hidden!important;}';
     (document.head || document.documentElement).appendChild(s);
   }
 
-  // The site's player box (video + its controls overlay): climb while the parent is about the
-  // video's size, so the site's own play/pause/seek controls come along.
-  function playerBox(video) {
-    var vr = video.getBoundingClientRect(), node = video;
-    while (node.parentElement && node.parentElement !== document.body && node.parentElement !== document.documentElement) {
-      var r = node.parentElement.getBoundingClientRect();
-      if (r.width > vr.width * 1.15 || r.height > vr.height * 1.4 || r.width < vr.width * 0.9) break;
-      node = node.parentElement;
-    }
-    return node;
-  }
-
-  // Size of the box before it was taken out of the page — the scale is always worked out from it.
-  var boxW = 0, boxH = 0;
-
-  function fit(el) {
-    var vw = window.innerWidth, vh = window.innerHeight;
-    var k = Math.min(vw / boxW, vh / boxH);
-    el.style.setProperty('--ww-k', String(k));
-    el.style.setProperty('--ww-w', boxW + 'px');
-    el.style.setProperty('--ww-h', boxH + 'px');
-    el.style.setProperty('--ww-x', Math.round((vw - boxW * k) / 2) + 'px');
-    el.style.setProperty('--ww-y', Math.round((vh - boxH * k) / 2) + 'px');
-  }
-
-  function apply(el, mode) {
+  function apply(el) {
     ensureStyle();
-    if (mode === 'scale') {
-      var r = el.getBoundingClientRect();
-      boxW = Math.max(1, r.width); boxH = Math.max(1, r.height);
-      fit(el);
-    }
-    el.setAttribute(ATTR, mode);
+    el.setAttribute(ATTR, '');
     for (var a = el.parentElement; a; a = a.parentElement) a.setAttribute(ANC, '');
     if (!document.getElementById('__wewatch_full_bg')) {
       var bg = document.createElement('div');
@@ -87,14 +55,10 @@ export const VB_FULLSCREEN_SCRIPT = /* js */ `
 
   function clear() {
     var marked = document.querySelectorAll('[' + ATTR + '],[' + ANC + ']');
-    for (var i = 0; i < marked.length; i++) {
-      marked[i].removeAttribute(ATTR);
-      marked[i].removeAttribute(ANC);
-      ['--ww-k', '--ww-w', '--ww-h', '--ww-x', '--ww-y'].forEach(function (v) { marked[i].style.removeProperty(v); });
-    }
+    for (var i = 0; i < marked.length; i++) { marked[i].removeAttribute(ATTR); marked[i].removeAttribute(ANC); }
     var bg = document.getElementById('__wewatch_full_bg');
     if (bg) bg.remove();
-    current = null; box = null; childFrame = null;
+    current = null; childFrame = null;
     if (window.parent !== window) {
       try { window.parent.postMessage({ type: MSG, on: false }, '*'); } catch (e) { /* detached */ }
     }
@@ -118,9 +82,25 @@ export const VB_FULLSCREEN_SCRIPT = /* js */ `
     if (current && current.isConnected && !current.paused && !current.ended) return;
     clear();
     current = v;
-    box = playerBox(v);
-    apply(box, 'scale');
+    apply(v);
   }
+
+  // For the server (virtualBrowser.service.ts): the maximized movie's state, and play/pause/seek
+  // on it — WeWatch's own control bar replaces the site's (hidden under the video now).
+  window.__wewatchMovieState = function () {
+    var v = current;
+    if (!v || !v.isConnected) return null;
+    return { paused: v.paused, currentTime: v.currentTime, duration: isFinite(v.duration) ? v.duration : null };
+  };
+  window.__wewatchMovieControl = function (action, time) {
+    var v = current;
+    if (!v || !v.isConnected) return false;
+    if (action === 'play') { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
+    else if (action === 'pause') v.pause();
+    else if (action === 'seek' && typeof time === 'number' && isFinite(time)) v.currentTime = Math.max(0, time);
+    else return false;
+    return true;
+  };
 
   document.addEventListener('playing', function (e) {
     try { if (isMovie(e.target)) maximize(e.target); } catch (err) { /* never break playback */ }
@@ -139,8 +119,6 @@ export const VB_FULLSCREEN_SCRIPT = /* js */ `
     clear();
   }, true);
   setInterval(function () { if (current && !current.isConnected) clear(); }, CHECK_MS);
-  // An iframe player's window grows when the parent frame maximizes the iframe — refit.
-  window.addEventListener('resize', function () { if (box) fit(box); });
 
   // A child frame maximized its player — maximize that iframe here (and on up to the top page).
   window.addEventListener('message', function (e) {
@@ -158,7 +136,7 @@ export const VB_FULLSCREEN_SCRIPT = /* js */ `
         if (childFrame === frames[i]) return;
         clear();
         childFrame = frames[i];
-        apply(frames[i], 'fill');
+        apply(frames[i]);
       } else if (childFrame === frames[i]) {
         clear();
       }

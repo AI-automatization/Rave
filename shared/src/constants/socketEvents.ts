@@ -78,6 +78,9 @@ export const SERVER_EVENTS = Object.freeze({
   // vbQueue.helper.ts. `position` is 1-indexed, re-broadcast to the whole room every time it
   // changes (another room dequeues ahead of it) so the UI can show "N-я в очереди" live.
   VB_QUEUED: 'vb:queued',
+  // State of the movie playing inside the VB (vbFullscreen.script.ts maximizes it) — paused,
+  // currentTime, duration — so every client can draw WeWatch's own control bar over the stream.
+  VB_MEDIA_STATE: 'vb:media_state',
 
   // Owner-only: the video-candidate picker. Server pushes whatever candidates it currently has
   // for the room's video session (from generic-extraction regex matches and/or VB's sniffer) —
@@ -151,6 +154,8 @@ export const CLIENT_EVENTS = Object.freeze({
   VB_START: 'vb:start',
   VB_INPUT: 'vb:input',
   VB_STOP:  'vb:stop',
+  // Owner-only: play / pause / seek the movie inside the VB from WeWatch's control bar.
+  VB_MEDIA_CONTROL: 'vb:media_control',
 
   // Owner-only: "show me what candidates you've found so far" — fires when opening the picker
   // (either the initial "is this the right video?" flow, or later via the player's "Это не то

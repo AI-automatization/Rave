@@ -5,7 +5,7 @@ import { WatchPartyService } from '../services/watchParty.service';
 import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { JwtPayload } from '@shared/types';
-import { VBInput, stopSession, sendInput, getSessionOwner, hasSession } from '../services/virtualBrowser.service';
+import { VBInput, stopSession, sendInput, getSessionOwner, hasSession, controlMovie, getMovieState } from '../services/virtualBrowser.service';
 import { startVBForRoom, upgradeEmbedToDirect } from './vbSession.helper';
 import { enqueueVBRequest, removeFromQueue } from './vbQueue.helper';
 import { getUserPlan } from '@shared/utils/serviceClient';
@@ -159,6 +159,20 @@ export const registerVBEvents = (
       socket.emit(SERVER_EVENTS.VB_ERROR, { message: 'Не удалось открыть виртуальный браузер' });
       logger.error('VB start failed', { roomId, userId, error: (e as Error).message });
     }
+  });
+
+  // WeWatch's own control bar over the VB stream (vbFullscreen.script.ts hides the site's).
+  socket.on(CLIENT_EVENTS.VB_MEDIA_CONTROL, async (data: { action?: unknown; time?: unknown }) => {
+    if (!authSocket.roomId) return;
+    const roomId = authSocket.roomId;
+    if (getSessionOwner(roomId) !== userId) return;
+    const action = data?.action;
+    if (action !== 'play' && action !== 'pause' && action !== 'seek') return;
+    const time = typeof data.time === 'number' && Number.isFinite(data.time) ? data.time : undefined;
+    if (action === 'seek' && time === undefined) return;
+    if (!await controlMovie(roomId, action, time)) return;
+    // Answer right away instead of waiting for the next once-a-second state tick.
+    io.to(roomId).emit(SERVER_EVENTS.VB_MEDIA_STATE, await getMovieState(roomId));
   });
 
   socket.on(CLIENT_EVENTS.VB_INPUT, async (input: VBInput) => {

@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Globe, Keyboard, Loader2, Maximize, Minimize, MousePointer2, X } from 'lucide-react';
-import type { VBFrameSource, VBInput } from '@/hooks/use-virtual-browser';
+import type { VBFrameSource, VBInput, VBMediaState } from '@/hooks/use-virtual-browser';
 import { VirtualBrowserAudio } from './VirtualBrowserAudio';
+import { VirtualBrowserMediaControls } from './VirtualBrowserMediaControls';
 
 interface Props {
   isOwner: boolean;
@@ -35,6 +36,9 @@ interface Props {
   onTryIframe?: (url: string | null) => void;
   /** Live MP3 of the VB page's sound (GET /vb-audio/:roomId) — played while frames are showing. */
   audioUrl?: string;
+  /** The movie playing inside the VB (VB_MEDIA_STATE) — shows WeWatch's own control bar. */
+  mediaState?: VBMediaState | null;
+  onMediaControl?: (action: 'play' | 'pause' | 'seek', time?: number) => void;
 }
 
 // Hidden-input sentinel: a zero-width char the phone keyboard can "delete", so Backspace still
@@ -54,7 +58,7 @@ const CONTROLS_HIDE_MS = 2500;
 // frame stream. See services/watch-party/src/services/virtualBrowser.service.ts for the server
 // side (CDP screencast + input dispatch). State/socket wiring lives in the parent's
 // useVirtualBrowser() call (RoomContent.tsx) — this component is presentational + input capture.
-export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimensions, error, blocked, queuePosition, unreachable, start, stop, sendInput, onPickDifferentVideo, onTryIframe, audioUrl }: Props) {
+export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimensions, error, blocked, queuePosition, unreachable, start, stop, sendInput, onPickDifferentVideo, onTryIframe, audioUrl, mediaState, onMediaControl }: Props) {
   const t = useTranslations('party');
   const [urlInput, setUrlInput] = useState('');
   const lastUrlRef = useRef<string | null>(null);
@@ -567,19 +571,22 @@ export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimension
         </div>
       )}
 
+      {hasFrame && mediaState && onMediaControl && (
+        <VirtualBrowserMediaControls state={mediaState} isOwner={isOwner} fadeCls={fadeCls} onControl={onMediaControl} />
+      )}
       {hasFrame && (
         <>
           {/* Nothing in the room auto-plays here on purpose — the whole point of falling back to
               VB is a real page the owner has to click through (play button, ads, captchas). Without
               this hint people stared at a loaded page with no idea they were the ones expected to
               act on it. */}
-          <div
+          {!mediaState && <div
             className={`absolute z-10 flex max-w-[calc(100%-10rem)] items-center gap-2 px-3 py-1.5 rounded-lg bg-black/70 backdrop-blur-sm border border-violet-500/20 pointer-events-none transition-opacity duration-300 ${fadeCls}`}
             style={{ top: 'max(0.5rem, env(safe-area-inset-top))', left: 'max(0.5rem, env(safe-area-inset-left))' }}
           >
             <span className="w-1.5 h-1.5 shrink-0 rounded-full bg-violet-400 animate-pulse" />
             <span className="truncate text-white/80 text-xs font-medium">{t('vbStartVideo')}</span>
-          </div>
+          </div>}
 
           {/* eslint-disable-next-line @next/next/no-img-element -- live JPEG frame stream (base64 data URL), not a real <Image>-optimizable asset */}
           <img
