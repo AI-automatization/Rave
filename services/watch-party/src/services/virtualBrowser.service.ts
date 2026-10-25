@@ -258,6 +258,10 @@ interface VBSession {
   /** Phone-viewport session (see VB_VIEWPORT_MOBILE) — decides the dimensions reported to clients
    * and whether 'tap' goes through CDP touch events. */
   mobile: boolean;
+  /** Last relayed screencast frame. Chrome sends nothing for a page that isn't changing, so an
+   * owner who reloads / reconnects (phones do this constantly) would sit on a spinner until some
+   * unrelated repaint — ROOM_JOINED replays this instead (roomEvents.handler.ts). */
+  lastFrame?: string;
 }
 
 const sessions = new Map<string, VBSession>(); // roomId -> session
@@ -370,6 +374,10 @@ export function getSessionPageTitle(roomId: string): string | undefined {
 // VB_STARTED broadcast and just saw the old, now-not-actually-active video player instead.
 export function getSessionViewport(roomId: string): { width: number; height: number } {
   return sessions.get(roomId)?.mobile ? VB_VIEWPORT_MOBILE : VB_VIEWPORT;
+}
+
+export function getSessionLastFrame(roomId: string): string | null {
+  return sessions.get(roomId)?.lastFrame ?? null;
 }
 
 export function getSessionSnapshot(roomId: string): { url: string; width: number; height: number; ownerId: string; paused: boolean } | null {
@@ -1000,6 +1008,11 @@ export async function startSession(
     // Latest frame that arrived inside the cap window, waiting for its trailing flush (see below).
     let pendingFrame: string | null = null;
     let flushTimer: ReturnType<typeof setTimeout> | null = null;
+    const relay = (frame: string) => {
+      const s = sessions.get(roomId);
+      if (s?.cdp === cdp) s.lastFrame = frame;
+      onFrame(frame);
+    };
     cdp.on('Page.screencastFrame', (event: { data: string; sessionId: number }) => {
       // Ack every single frame immediately — Chrome pauses the screencast until acked, so a
       // missed/delayed ack stalls the whole stream regardless of what we do with the data.
@@ -1014,7 +1027,7 @@ export async function startSession(
       if (now - lastRelayedAt >= frameIntervalMs) {
         lastRelayedAt = now;
         pendingFrame = null;
-        onFrame(event.data);
+        relay(event.data);
         return;
       }
       // Inside the cap window. Plain dropping loses the LAST paint of a burst: Chrome sends no frame
@@ -1029,7 +1042,7 @@ export async function startSession(
         pendingFrame = null;
         if (frame === null || sessions.get(roomId)?.cdp !== cdp) return; // session gone/replaced
         lastRelayedAt = Date.now();
-        onFrame(frame);
+        relay(frame);
       }, frameIntervalMs - (now - lastRelayedAt));
     });
 

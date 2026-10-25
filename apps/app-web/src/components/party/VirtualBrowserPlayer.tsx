@@ -172,21 +172,25 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
   // means "scroll the page", whereas a held pointer drag would select text on the remote page.
   // A tap (no meaningful movement) becomes a real `tap` input — the server dispatches an actual
   // touch, which is what mobile-layout pages (menus, custom players) react to, unlike a mouse click.
+  const gestureRef = useRef({ startX: 0, startY: 0, lastX: 0, lastY: 0, moved: false, accX: 0, accY: 0, flushTimer: null as ReturnType<typeof setTimeout> | null });
   useEffect(() => {
     const el = imgRef.current;
     if (!el || !isOwner) return;
 
     // Below this, the finger hasn't really moved — treat the gesture as a tap.
     const TAP_SLOP_PX = 10;
-    let startX = 0, startY = 0, lastX = 0, lastY = 0, moved = false;
+    // Gesture state lives in a ref, not in this closure: the effect re-runs on every new `frame`
+    // (~7/s on a phone session), and closure-local state used to reset mid-swipe — lastX/lastY
+    // fell back to 0, so each re-attach emitted a huge opposite wheel delta that cancelled the
+    // scroll (reproduced 2026-10-25: alternating +37 / -560 deltas, page never moved).
+    const g = gestureRef.current;
     // touchmove fires ~60x/s; every one used to be its own socket emit, which on a phone connection
     // made scrolling lag behind the finger. Deltas are summed and flushed at most every 40ms.
-    let accX = 0, accY = 0, flushTimer: ReturnType<typeof setTimeout> | null = null;
     const flushWheel = () => {
-      flushTimer = null;
-      if (accX || accY) sendInput({ type: 'wheel', deltaX: accX, deltaY: accY });
-      accX = 0;
-      accY = 0;
+      g.flushTimer = null;
+      if (g.accX || g.accY) sendInput({ type: 'wheel', deltaX: g.accX, deltaY: g.accY });
+      g.accX = 0;
+      g.accY = 0;
     };
 
     const onTouchStart = (e: TouchEvent) => {
@@ -196,45 +200,45 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
       // Same Safari focus problem as mousedown — but not while the on-screen keyboard is open:
       // moving focus off its hidden input would close the keyboard on every tap.
       if (!kbOpenRef.current) el.focus();
-      startX = lastX = t.clientX;
-      startY = lastY = t.clientY;
-      moved = false;
+      g.startX = g.lastX = t.clientX;
+      g.startY = g.lastY = t.clientY;
+      g.moved = false;
     };
 
     const onTouchMove = (e: TouchEvent) => {
       const t = e.touches[0];
       if (!t) return;
       e.preventDefault();
-      const dx = t.clientX - lastX;
-      const dy = t.clientY - lastY;
-      if (Math.abs(t.clientX - startX) > TAP_SLOP_PX || Math.abs(t.clientY - startY) > TAP_SLOP_PX) {
-        moved = true;
+      const dx = t.clientX - g.lastX;
+      const dy = t.clientY - g.lastY;
+      if (Math.abs(t.clientX - g.startX) > TAP_SLOP_PX || Math.abs(t.clientY - g.startY) > TAP_SLOP_PX) {
+        g.moved = true;
       }
-      lastX = t.clientX;
-      lastY = t.clientY;
-      if (!moved) return;
+      g.lastX = t.clientX;
+      g.lastY = t.clientY;
+      if (!g.moved) return;
       // Negated: dragging the finger UP should scroll the content DOWN, which is a positive
       // wheel delta — the same convention as native touch scrolling. Divided by the display scale
       // so the remote page moves with the finger even when the frame is shown smaller/larger than
       // the server viewport.
       const scale = getScale() || 1;
-      accX += -dx / scale;
-      accY += -dy / scale;
-      if (!flushTimer) flushTimer = setTimeout(flushWheel, 40);
+      g.accX += -dx / scale;
+      g.accY += -dy / scale;
+      if (!g.flushTimer) g.flushTimer = setTimeout(flushWheel, 40);
     };
 
     const onTouchEnd = (e: TouchEvent) => {
       e.preventDefault();
-      if (flushTimer) { clearTimeout(flushTimer); flushWheel(); }
-      if (moved) return; // it was a scroll, not a tap
-      const pos = clientToViewport(startX, startY, true);
+      if (g.flushTimer) { clearTimeout(g.flushTimer); flushWheel(); }
+      if (g.moved) return; // it was a scroll, not a tap
+      const pos = clientToViewport(g.startX, g.startY, true);
       if (pos) sendInput({ type: 'tap', x: pos.x, y: pos.y });
     };
 
     const onTouchCancel = () => {
       // System interrupted the gesture (call, notification shade, …) — never a tap.
-      if (flushTimer) { clearTimeout(flushTimer); flushWheel(); }
-      moved = true;
+      if (g.flushTimer) { clearTimeout(g.flushTimer); flushWheel(); }
+      g.moved = true;
     };
 
     el.addEventListener('touchstart', onTouchStart, { passive: false });
@@ -242,7 +246,8 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, blocke
     el.addEventListener('touchend', onTouchEnd, { passive: false });
     el.addEventListener('touchcancel', onTouchCancel);
     return () => {
-      if (flushTimer) clearTimeout(flushTimer);
+      // Flush (not drop) a pending batch — the re-attached listeners keep accumulating into g.
+      if (g.flushTimer) { clearTimeout(g.flushTimer); flushWheel(); }
       el.removeEventListener('touchstart', onTouchStart);
       el.removeEventListener('touchmove', onTouchMove);
       el.removeEventListener('touchend', onTouchEnd);

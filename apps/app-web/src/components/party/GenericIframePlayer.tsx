@@ -33,7 +33,9 @@ export function GenericIframePlayer({ url, isOwner, onOpenInVirtualBrowser }: Pr
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="relative aspect-video bg-black rounded-xl overflow-hidden">
+      {/* A web page, not a video: 16:9 on a phone is ~200px tall — unusable. Give it most of the
+          screen there; keep the 16:9 box from sm up, where it matches the other players. */}
+      <div className="relative h-[62svh] sm:h-auto sm:aspect-video bg-black rounded-xl overflow-hidden">
         {safeUrl && (
           <iframe
             key={safeUrl}
@@ -61,7 +63,7 @@ export function GenericIframePlayer({ url, isOwner, onOpenInVirtualBrowser }: Pr
         )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-1">
+      <div className="flex flex-col items-start gap-2 px-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
         <p className="min-w-0 flex-1 text-[11.5px] leading-snug text-[var(--ww-text-4)]">
           {t('iframeNotSynced')}
           {isOwner && <> {t('iframeBlankHint')}</>}

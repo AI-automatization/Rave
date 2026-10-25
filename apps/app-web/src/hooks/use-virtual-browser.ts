@@ -30,6 +30,9 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
   onCandidateNeedsConfirmationRef.current = onCandidateNeedsConfirmation;
   const [frame, setFrame] = useState<string | null>(null);
   const [active, setActive] = useState(false);
+  // Read inside the socket handlers below without re-subscribing on every toggle.
+  const activeRef = useRef(false);
+  activeRef.current = active;
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Page VB is showing is a bot-challenge wall (Cloudflare/reCAPTCHA) — not solved/bypassed, just
@@ -91,6 +94,10 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
       // an explicit confirm/reject instead of silently switching everyone's player.
       if (data?.reason === 'unreachable') {
         setUnreachable(true);
+        // The server can give up before VB_STARTED ever reached us (DNS/refused fails in ~1s on
+        // CHANGE_MEDIA/create), so no overlay is open to show the "didn't open" state — the owner
+        // saw nothing happen at all (reproduced 2026-10-25). Say it in a toast in that case.
+        if (!activeRef.current) toast.error(`${tRef.current('vbUnreachableTitle')}. ${tRef.current('vbUnreachableHint')}`);
       } else if (data?.reason === 'media_found' && data.needsConfirmation) {
         onCandidateNeedsConfirmationRef.current?.();
       } else if (data?.reason === 'media_found') {

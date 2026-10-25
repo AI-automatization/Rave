@@ -7,7 +7,7 @@ import { REDIS_KEYS } from '@shared/constants';
 import { JwtPayload, VideoPlatform } from '@shared/types';
 import { recordWatchHistoryInternal, getUserPlan } from '@shared/utils/serviceClient';
 import { bufferTimeouts, resumeBufferedRoom } from './videoEvents.handler';
-import { stopSession, getSessionSnapshot, hasSession, markSessionCommitted } from '../services/virtualBrowser.service';
+import { stopSession, getSessionSnapshot, getSessionLastFrame, hasSession, markSessionCommitted } from '../services/virtualBrowser.service';
 import { startVBForRoom, upgradeEmbedToDirect } from './vbSession.helper';
 import { enqueueVBRequest } from './vbQueue.helper';
 import { cancelVbDisconnectGrace } from './vbEvents.handler';
@@ -205,6 +205,12 @@ export const registerRoomEvents = (
       const vb = getSessionSnapshot(data.roomId);
 
       socket.emit(SERVER_EVENTS.ROOM_JOINED, { room, syncState, vb });
+      // Frames are owner-only and Chrome sends none for a static page — replay the last one so a
+      // reloading/reconnecting owner sees the page right away instead of a spinner.
+      if (vb && !vb.paused && vb.ownerId === userId) {
+        const lastFrame = getSessionLastFrame(data.roomId);
+        if (lastFrame) socket.emit(SERVER_EVENTS.VB_FRAME, { data: lastFrame });
+      }
       socket.to(data.roomId).emit(SERVER_EVENTS.MEMBER_JOINED, { userId });
       void recordRoomWatch(userId, room);
 
