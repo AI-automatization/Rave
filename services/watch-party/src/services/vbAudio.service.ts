@@ -215,6 +215,49 @@ export const VB_AUDIO_TAP_SCRIPT = /* js */ `
       stream.addEventListener('addtrack', function (e) { wire(e.track); });
     } catch (e) { /* cross-origin media without CORS can't be captured */ }
   }
+  // Cross-origin files: load media in CORS mode so captureStream() is allowed — the matching
+  // response headers are added by virtualBrowser.service.ts (enableMediaCors). If the element
+  // still fails, drop the flag and reload once: the picture must never break for the sound.
+  var corsSet = new WeakSet(), corsUndone = new WeakSet();
+  function markCors(el) {
+    if (!el || el.hasAttribute('crossorigin') || corsUndone.has(el)) return false;
+    try { el.crossOrigin = 'use-credentials'; corsSet.add(el); return true; } catch (e) { return false; }
+  }
+  document.addEventListener('error', function (e) {
+    var el = e.target;
+    if (!(el instanceof HTMLMediaElement) || !corsSet.has(el) || corsUndone.has(el)) return;
+    corsUndone.add(el);
+    var wasPlaying = !el.paused || el.autoplay, src = el.currentSrc || el.getAttribute('src');
+    el.removeAttribute('crossorigin');
+    try { if (src && !el.querySelector('source')) el.src = src; el.load(); if (wasPlaying) el.play().catch(function () {}); } catch (err) { /* ignore */ }
+  }, true);
+  var srcDesc = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'src');
+  if (srcDesc && srcDesc.set) {
+    Object.defineProperty(HTMLMediaElement.prototype, 'src', {
+      configurable: true, enumerable: srcDesc.enumerable, get: srcDesc.get,
+      set: function (v) { markCors(this); srcDesc.set.call(this, v); },
+    });
+  }
+  var origSetAttr = Element.prototype.setAttribute;
+  Element.prototype.setAttribute = function (name, value) {
+    if (this instanceof HTMLMediaElement && String(name).toLowerCase() === 'src') markCors(this);
+    return origSetAttr.apply(this, arguments);
+  };
+  // Parser-inserted <video src> / <source> — catch it before the load starts.
+  new MutationObserver(function (list) {
+    list.forEach(function (m) {
+      m.addedNodes.forEach(function (n) {
+        if (n.nodeType !== 1) return;
+        var els = n instanceof HTMLMediaElement ? [n] : (n.querySelectorAll ? n.querySelectorAll('video,audio') : []);
+        for (var i = 0; i < els.length; i++) {
+          var el = els[i];
+          if (markCors(el) && el.readyState === 0 && (el.getAttribute('src') || el.querySelector('source'))) {
+            try { el.load(); } catch (e) { /* ignore */ }
+          }
+        }
+      });
+    });
+  }).observe(document.documentElement || document, { childList: true, subtree: true });
   var origPlay = HTMLMediaElement.prototype.play;
   HTMLMediaElement.prototype.play = function () { tap(this); return origPlay.apply(this, arguments); };
   document.addEventListener('play', function (e) { tap(e.target); }, true);

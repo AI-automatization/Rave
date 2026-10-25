@@ -612,6 +612,35 @@ const UNREACHABLE_NAV_ERROR = /net::ERR_(NAME_NOT_RESOLVED|NAME_RESOLUTION_FAILE
 // about:blank / a Chromium error page) — a slow site that already started rendering stays usable.
 const NAV_TIMEOUT_ERROR = /Timeout \d+ms exceeded/;
 
+// VB sound for cross-origin movie files (2026-10-26). Chrome refuses captureStream() on a <video>
+// whose file comes from another origin without CORS ("Cannot capture from element with
+// cross-origin data") — asilmedia.org plays fayllar.com MP4s exactly like that, so the owner heard
+// nothing. VB_AUDIO_TAP_SCRIPT now loads media elements in CORS mode, and this adds the matching
+// Access-Control-Allow-* headers to media responses INSIDE this throwaway browser only — the CDN
+// still serves the very same request to the very same browser; only the page-side taint changes.
+// Scoped to resourceType Media, so documents/XHR keep normal CORS rules. Cross-origin iframes run
+// in their own process (separate CDP target) and are not covered by this page-level session.
+async function enableMediaCors(cdp: CDPSession, roomId: string): Promise<void> {
+  try {
+    await cdp.send('Fetch.enable', { patterns: [{ resourceType: 'Media', requestStage: 'Response' }] });
+  } catch (e) {
+    logger.warn('VB: media CORS interception unavailable', { roomId, error: (e as Error).message });
+    return;
+  }
+  cdp.on('Fetch.requestPaused', (e) => {
+    const origin = e.request.headers['Origin'] ?? e.request.headers['origin'];
+    // No Origin = a plain no-cors load (our crossOrigin hook didn't apply) — nothing to fix.
+    if (!origin || e.responseStatusCode === undefined) {
+      cdp.send('Fetch.continueRequest', { requestId: e.requestId }).catch(() => { /* page gone */ });
+      return;
+    }
+    const headers = (e.responseHeaders ?? []).filter((h) => !/^access-control-allow-(origin|credentials)$/i.test(h.name));
+    headers.push({ name: 'Access-Control-Allow-Origin', value: origin }, { name: 'Access-Control-Allow-Credentials', value: 'true' });
+    cdp.send('Fetch.continueResponse', { requestId: e.requestId, responseCode: e.responseStatusCode, responseHeaders: headers })
+      .catch(() => cdp.send('Fetch.continueRequest', { requestId: e.requestId }).catch(() => { /* page gone */ }));
+  });
+}
+
 export async function startSession(
   roomId: string,
   ownerId: string,
@@ -731,6 +760,7 @@ export async function startSession(
     await applyStealthPatches(context);
     const page = await context.newPage();
     const cdp = await context.newCDPSession(page);
+    await enableMediaCors(cdp, roomId);
 
     // Owner can navigate deeper into the site after the initial load (click a link, follow a
     // "watch" button) — a challenge can appear on any of those, not just the first goto below.
