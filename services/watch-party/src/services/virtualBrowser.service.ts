@@ -412,7 +412,10 @@ export type MediaFoundKind = 'url' | 'capture';
 // deliberately treats as "can't measure, accept" to avoid false-rejecting real content whose
 // master playlist looks the same shape. A domain-name match is a stronger, more direct signal
 // than duration ever was for this case — checked first, before any duration/size heuristics run.
-const AD_DOMAIN_MARKERS = ['rtbcdn'];
+// 'dsp-ui.uz' — Uzbek ad platform (DSP = demand-side platform). Local test 2026-10-25 on
+// asilmedia.org: its pre-roll MP4s (storage.dsp-ui.uz/uploads/*.mp4, ~23–26MB) pass the size
+// floor and were offered to the owner first, ahead of the real movie on fayllar.com.
+const AD_DOMAIN_MARKERS = ['rtbcdn', 'dsp-ui.uz'];
 
 function isKnownAdDomain(url: string): boolean {
   try {
