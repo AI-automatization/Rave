@@ -1302,6 +1302,7 @@ export async function stopSession(roomId: string): Promise<void> {
   if (!s) return;
   sessions.delete(roomId);
   inputQueues.delete(roomId);
+  pendingWheels.delete(roomId);
   try { await s.cdp.send('Page.stopScreencast'); } catch { /* already gone */ }
   try { await s.context.close(); } catch { /* already gone */ }
   stopCapture(roomId);
@@ -1357,8 +1358,33 @@ const inputQueues = new Map<string, Promise<void>>();
 // Only the room owner may drive input — enforced by the caller (vbEvents.handler.ts) checking
 // getSessionOwner(roomId) === userId, but double-checked here too since this fires straight
 // into a real browser page (mistaken input source would let a random member navigate it).
+// Wheel events still waiting at the end of a room's queue. page.mouse.wheel waits for the page
+// to scroll, so a burst of wheels (trackpad momentum) built a backlog — the page kept scrolling
+// after the user stopped and clicks waited behind it. A new wheel is added to the one still
+// waiting instead of queueing another; any other input closes it so the order stays the same.
+const pendingWheels = new Map<string, { deltaX: number; deltaY: number }>();
+const WHEEL_MAX_DELTA = 2400;
+
 export async function sendInput(roomId: string, userId: string, input: VBInput): Promise<void> {
   const previous = inputQueues.get(roomId) ?? Promise.resolve();
+  if (input.type === 'wheel') {
+    const waiting = pendingWheels.get(roomId);
+    if (waiting) {
+      waiting.deltaX += input.deltaX;
+      waiting.deltaY += input.deltaY;
+      return previous;
+    }
+    const wheel = { deltaX: input.deltaX, deltaY: input.deltaY };
+    pendingWheels.set(roomId, wheel);
+    const clamp = (v: number) => Math.max(-WHEEL_MAX_DELTA, Math.min(WHEEL_MAX_DELTA, v));
+    const nextWheel = previous.then(() => {
+      if (pendingWheels.get(roomId) === wheel) pendingWheels.delete(roomId);
+      return dispatchInput(roomId, userId, { type: 'wheel', deltaX: clamp(wheel.deltaX), deltaY: clamp(wheel.deltaY) });
+    });
+    inputQueues.set(roomId, nextWheel.catch(() => {}));
+    return nextWheel;
+  }
+  pendingWheels.delete(roomId);
   const next = previous.then(() => dispatchInput(roomId, userId, input));
   // Swallow here so one bad input doesn't wedge the queue for every input after it — the real
   // error is still logged inside dispatchInput's own catch, this just keeps the chain alive.

@@ -34,6 +34,9 @@ interface AudioRoom {
 
 const rooms = new Map<string, AudioRoom>();
 const MP3_BITRATE = '128k';
+// MediaRecorder chunk length. Each chunk only leaves the page once it is complete, so this adds
+// up to its own length of delay to the sound — 250ms was most of the remaining lag (2026-10-26).
+const AUDIO_CHUNK_MS = 100;
 // Each listener gets its own copy of the stream — a stalled one (slow phone) must not grow memory
 // without bound; drop it and let the client reconnect.
 const MAX_LISTENER_BACKLOG_BYTES = 512 * 1024;
@@ -191,7 +194,7 @@ export const VB_AUDIO_TAP_SCRIPT = /* js */ `
         window.__wewatchAudioChunk(isFirst, btoa(s));
       }).catch(function () {});
     };
-    rec.start(250);
+    rec.start(${AUDIO_CHUNK_MS});
   }
   function wire(track) {
     if (track.kind !== 'audio' || wired.has(track)) return;
