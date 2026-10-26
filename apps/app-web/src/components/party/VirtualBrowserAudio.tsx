@@ -12,10 +12,11 @@ const CATCH_UP_LAG_S = 1.4;
 const JUMP_LAG_S = 4.0;
 const CATCH_UP_RATE = 1.06;
 const LAG_CHECK_MS = 1000;
-// Time a sound spends before it reaches this <audio> buffer: 250ms MediaRecorder slices in the
-// VB page + ffmpeg MP3 encode + network (vbAudio.service.ts). Added to the buffer lag to tell
-// the player how late the sound is, so it can hold the picture back by the same amount.
-const PIPELINE_DELAY_S = 0.35;
+// Time a sound spends before it reaches this <audio> buffer: 100ms MediaRecorder slices in the
+// VB page + ffmpeg MP3 encode + network + MP3 decoder start (vbAudio.service.ts). Added to the
+// buffer lag to tell the player how late the sound is, so it holds the picture back by the same
+// amount. 0.35 was too low — the sound was still heard a little after the picture (2026-10-26).
+const PIPELINE_DELAY_S = 0.45;
 const LAG_SMOOTHING = 0.3;
 const RECONNECT_MS = 1500;
 
