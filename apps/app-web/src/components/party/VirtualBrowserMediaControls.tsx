@@ -11,6 +11,8 @@ const LOCAL_TICK_MS = 250;
 // After the owner drags the bar, ignore server ticks this long so the thumb doesn't jump back to
 // the pre-seek time before the VB has actually seeked.
 const SEEK_SETTLE_MS = 1500;
+// How long a clicked play/pause wins over the server's report before we trust the server again.
+const PLAY_SETTLE_MS = 3000;
 
 function formatTime(totalS: number): string {
   const s = Math.max(0, Math.floor(totalS));
@@ -38,20 +40,36 @@ export function VirtualBrowserMediaControls({ state, isOwner, fadeCls, onControl
   const t = useTranslations('party');
   const [shownTime, setShownTime] = useState(state.currentTime);
   const seekUntilRef = useRef(0);
+  // Play/pause shows the new state at once instead of waiting for the server's next 1s report —
+  // waiting made a second click look necessary and it toggled the movie straight back.
+  const [pausedOverride, setPausedOverride] = useState<boolean | null>(null);
+  const overrideUntilRef = useRef(0);
+  useEffect(() => {
+    if (pausedOverride === null) return;
+    if (state.paused === pausedOverride) { setPausedOverride(null); return; }
+    const timer = setTimeout(() => setPausedOverride(null), Math.max(0, overrideUntilRef.current - Date.now()));
+    return () => clearTimeout(timer);
+  }, [state.paused, pausedOverride]);
+  const paused = pausedOverride ?? state.paused;
 
   useEffect(() => {
     if (Date.now() < seekUntilRef.current) return;
     setShownTime(state.currentTime);
   }, [state.currentTime]);
 
+
   useEffect(() => {
-    if (state.paused) return;
+    if (paused) return;
     const timer = setInterval(() => setShownTime((v) => v + LOCAL_TICK_MS / 1000), LOCAL_TICK_MS);
     return () => clearInterval(timer);
-  }, [state.paused, state.currentTime]);
+  }, [paused, state.currentTime]);
 
   const duration = state.duration ?? 0;
-  const togglePlay = () => onControl(state.paused ? 'play' : 'pause');
+  const togglePlay = () => {
+    overrideUntilRef.current = Date.now() + PLAY_SETTLE_MS;
+    setPausedOverride(!paused);
+    onControl(paused ? 'play' : 'pause');
+  };
   const seek = (time: number) => {
     seekUntilRef.current = Date.now() + SEEK_SETTLE_MS;
     setShownTime(time);
@@ -61,7 +79,7 @@ export function VirtualBrowserMediaControls({ state, isOwner, fadeCls, onControl
 
   return (
     <>
-      {state.paused && (
+      {paused && (
         <button
           type="button"
           onClick={togglePlay}
@@ -103,10 +121,10 @@ export function VirtualBrowserMediaControls({ state, isOwner, fadeCls, onControl
               type="button"
               onClick={togglePlay}
               disabled={!isOwner}
-              aria-label={state.paused ? t('playerPlay') : t('playerPause')}
+              aria-label={paused ? t('playerPlay') : t('playerPause')}
               className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-white transition-all hover:bg-white/10 active:scale-90 disabled:cursor-default disabled:hover:bg-transparent"
             >
-              {state.paused ? <Play size={20} fill="currentColor" /> : <Pause size={20} fill="currentColor" />}
+              {paused ? <Play size={20} fill="currentColor" /> : <Pause size={20} fill="currentColor" />}
             </button>
             <span className="text-xs tabular-nums text-white/80">
               {formatTime(shownTime)}{duration > 0 && ` / ${formatTime(duration)}`}
