@@ -52,6 +52,11 @@ const MIN_FRAME_DELAY_MS = 50;
 const MAX_FRAME_DELAY_MS = 2500;
 // Buttons and the hint fade out after the mouse/finger rests this long, back on the next move.
 const CONTROLS_HIDE_MS = 2500;
+// Desktop wheel: one emit per this many ms (deltas summed), at most WHEEL_MAX_DELTA px each.
+const WHEEL_FLUSH_MS = 50;
+const WHEEL_MAX_DELTA = 1200;
+const WHEEL_LINE_PX = 16;
+const WHEEL_PAGE_PX = 600;
 
 // Kosmi-style shared virtual browser: a real headless Chromium page runs on the server, the
 // owner controls it with mouse/keyboard, and every room member just watches the same live JPEG
@@ -186,12 +191,33 @@ export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimension
     const el = imgRef.current;
     if (!el || !isOwner) return;
 
+    // A trackpad fires 60-120 wheel events a second (more during momentum). One emit each piled
+    // up a queue on the server — the page kept scrolling after the hand stopped and every click
+    // waited behind the backlog (reported 2026-10-26: "scrolls further down and freezes").
+    // Sum the deltas and send at most one wheel per WHEEL_FLUSH_MS, capped per flush.
+    let accX = 0;
+    let accY = 0;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const clamp = (v: number) => Math.max(-WHEEL_MAX_DELTA, Math.min(WHEEL_MAX_DELTA, v));
+    const flush = () => {
+      timer = null;
+      if (accX || accY) sendInput({ type: 'wheel', deltaX: clamp(accX), deltaY: clamp(accY) });
+      accX = 0;
+      accY = 0;
+    };
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      sendInput({ type: 'wheel', deltaX: e.deltaX, deltaY: e.deltaY });
+      // deltaMode 1 = lines, 2 = pages (Firefox, some mice) — convert to pixels.
+      const unit = e.deltaMode === 1 ? WHEEL_LINE_PX : e.deltaMode === 2 ? WHEEL_PAGE_PX : 1;
+      accX += e.deltaX * unit;
+      accY += e.deltaY * unit;
+      if (!timer) timer = setTimeout(flush, WHEEL_FLUSH_MS);
     };
     el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
+    return () => {
+      el.removeEventListener('wheel', onWheel);
+      if (timer) clearTimeout(timer);
+    };
   }, [isOwner, sendInput, hasFrame]); // re-attach when the <img> mounts/unmounts
 
   // Touch input. Before this the component listened for mouse events ONLY, so on a phone or a
