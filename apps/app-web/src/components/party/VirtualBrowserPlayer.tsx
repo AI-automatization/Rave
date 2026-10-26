@@ -49,7 +49,9 @@ const KB_BASE = '\u200b';
 // sound is broken rather than late and the owner's clicks would feel dead.
 const FRAME_PIPELINE_S = 0.15;
 const MIN_FRAME_DELAY_MS = 50;
-const MAX_FRAME_DELAY_MS = 2500;
+const MAX_FRAME_DELAY_MS = 1200;
+// After an owner input, frames skip the sound-sync delay for this long.
+const INTERACTION_LIVE_MS = 4000;
 // Buttons and the hint fade out after the mouse/finger rests this long, back on the next move.
 const CONTROLS_HIDE_MS = 2500;
 // Desktop wheel: one emit per this many ms (deltas summed), at most WHEEL_MAX_DELTA px each.
@@ -63,7 +65,7 @@ const WHEEL_PAGE_PX = 600;
 // frame stream. See services/watch-party/src/services/virtualBrowser.service.ts for the server
 // side (CDP screencast + input dispatch). State/socket wiring lives in the parent's
 // useVirtualBrowser() call (RoomContent.tsx) — this component is presentational + input capture.
-export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimensions, error, blocked, queuePosition, unreachable, start, stop, sendInput, onPickDifferentVideo, onTryIframe, audioUrl, mediaState, onMediaControl }: Props) {
+export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimensions, error, blocked, queuePosition, unreachable, start, stop, sendInput: sendInputRaw, onPickDifferentVideo, onTryIframe, audioUrl, mediaState, onMediaControl }: Props) {
   const t = useTranslations('party');
   const [urlInput, setUrlInput] = useState('');
   const lastUrlRef = useRef<string | null>(null);
@@ -84,6 +86,21 @@ export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimension
   const setFrameDelay = useCallback((audioDelayS: number) => {
     frameDelayMsRef.current = Math.max(0, (audioDelayS - FRAME_PIPELINE_S) * 1000);
   }, []);
+  // While the owner is driving the page (clicks, scroll, keys, play/pause) frames are shown at
+  // once — holding them back for sound sync made every click land a second or two later and the
+  // VB felt frozen (reported 2026-10-26). Sound sync comes back once the owner leaves it alone.
+  const liveUntilRef = useRef(0);
+  const markInteraction = useCallback(() => {
+    liveUntilRef.current = Date.now() + INTERACTION_LIVE_MS;
+  }, []);
+  const sendInput = useCallback((input: VBInput) => {
+    if (input.type !== 'mousemove') markInteraction();
+    sendInputRaw(input);
+  }, [sendInputRaw, markInteraction]);
+  const mediaControl = useCallback((action: 'play' | 'pause' | 'seek', time?: number) => {
+    markInteraction();
+    onMediaControl?.(action, time);
+  }, [onMediaControl, markInteraction]);
   const containerRef = useRef<HTMLDivElement>(null);
   const kbInputRef = useRef<HTMLInputElement>(null);
   const kbPrevRef = useRef(KB_BASE);
@@ -335,7 +352,7 @@ export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimension
     const show = (frame: string | null) => {
       if (!frame) return;
       const n = ++seq;
-      const delayMs = Math.min(frameDelayMsRef.current, MAX_FRAME_DELAY_MS);
+      const delayMs = Date.now() < liveUntilRef.current ? 0 : Math.min(frameDelayMsRef.current, MAX_FRAME_DELAY_MS);
       if (delayMs < MIN_FRAME_DELAY_MS) { paint(frame, n); return; }
       const timer = setTimeout(() => { timers.delete(timer); paint(frame, n); }, delayMs);
       timers.add(timer);
@@ -598,7 +615,7 @@ export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimension
       )}
 
       {hasFrame && mediaState && onMediaControl && (
-        <VirtualBrowserMediaControls state={mediaState} isOwner={isOwner} fadeCls={fadeCls} onControl={onMediaControl} />
+        <VirtualBrowserMediaControls state={mediaState} isOwner={isOwner} fadeCls={fadeCls} onControl={mediaControl} />
       )}
       {hasFrame && (
         <>
