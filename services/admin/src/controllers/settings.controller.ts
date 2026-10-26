@@ -14,6 +14,11 @@ const DEFAULTS: Record<string, unknown> = {
   maxRoomDurationHours:  4,
 };
 
+// Emergency switch: MAINTENANCE_FORCE_OFF=1 on the admin service reports maintenance as off to
+// every service (they all poll /admin/app-config) even when the saved setting is on. Lets the
+// platform be reopened when nobody can log in to the admin panel. Unset it to obey the setting again.
+const MAINTENANCE_FORCE_OFF = process.env.MAINTENANCE_FORCE_OFF === '1';
+
 export class SettingsController {
   getAll = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -58,6 +63,7 @@ export class SettingsController {
       const docs = await AppSetting.find({ key: { $in: PUBLIC_KEYS } }).lean();
       const saved = Object.fromEntries(docs.map((d) => [d.key, d.value]));
       const config = Object.fromEntries(PUBLIC_KEYS.map(k => [k, saved[k] ?? DEFAULTS[k]]));
+      if (MAINTENANCE_FORCE_OFF) config.maintenanceMode = false;
       res.json(config);
     } catch (err) {
       next(err);
