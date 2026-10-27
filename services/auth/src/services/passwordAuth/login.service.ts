@@ -159,6 +159,13 @@ export class LoginService {
     logger.info('All sessions revoked + block reason persisted in auth DB', { userId, reason });
   }
 
+  // Counterpart of revokeAndMarkBlocked: without it the auth DB kept isBlocked=true after an
+  // admin unblock, so the user still got ACCOUNT_BLOCKED on every login.
+  async markUnblocked(userId: string): Promise<void> {
+    await User.updateOne({ _id: userId }, { isBlocked: false, blockReason: null, blockedAt: null });
+    logger.info('Block cleared in auth DB', { userId });
+  }
+
   async verifyEmail(token: string): Promise<void> {
     const tokenHash = hashToken(token);
     const user = await User.findOne({

@@ -66,6 +66,7 @@ export class PasswordAuthService {
 
   revokeAndMarkBlocked = (userId: string, reason?: string) =>
     this.loginSvc.revokeAndMarkBlocked(userId, reason);
+  markUnblocked = (userId: string) => this.loginSvc.markUnblocked(userId);
 
   verifyEmail = (token: string) =>
     this.loginSvc.verifyEmail(token);

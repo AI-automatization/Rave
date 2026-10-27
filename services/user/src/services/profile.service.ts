@@ -5,7 +5,7 @@ import { Friendship } from '../models/friendship.model';
 import { logger } from '@shared/utils/logger';
 import { NotFoundError, BadRequestError } from '@shared/utils/errors';
 import { REDIS_KEYS, TTL } from '@shared/constants';
-import { getUserWatchStats, revokeUserSessions, disconnectUserSocket, cascadeDeleteUser } from '@shared/utils/serviceClient';
+import { getUserWatchStats, revokeUserSessions, unblockAuthUser, disconnectUserSocket, cascadeDeleteUser } from '@shared/utils/serviceClient';
 import { containsBannedWord } from '@shared/utils/bannedWords';
 
 export class ProfileService {
@@ -293,6 +293,8 @@ export class ProfileService {
 
     // Remove Redis blocked flag — user can access again immediately
     await this.redis.del(REDIS_KEYS.blockedUser(userId));
+    // Auth DB keeps its own copy of the block (set by revokeUserSessions) — clear it too
+    await unblockAuthUser(userId);
 
     logger.info('User unblocked via admin API', { userId });
   }

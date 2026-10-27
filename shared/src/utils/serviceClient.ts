@@ -319,6 +319,19 @@ export async function revokeUserSessions(userId: string, reason?: string): Promi
   }
 }
 
+export async function unblockAuthUser(userId: string): Promise<void> {
+  try {
+    await axios.post(
+      `${authServiceUrl}/api/v1/auth/internal/users/${userId}/unblock`,
+      {}, { headers: internalHeaders, timeout: 5000 },
+    );
+    logger.info('[serviceClient] unblockAuthUser', { userId });
+  } catch (err) {
+    const error = err as AxiosError;
+    logger.error('[serviceClient] unblockAuthUser failed', { userId, message: error.message });
+  }
+}
+
 export async function disconnectUserSocket(userId: string): Promise<void> {
   try {
     await axios.post(

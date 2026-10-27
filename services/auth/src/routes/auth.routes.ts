@@ -127,6 +127,9 @@ export const createAuthRouter = (redis: Redis): Router => {
   // POST /auth/internal/users/:userId/revoke-sessions — admin blocks user, revoke all refresh tokens
   router.post('/internal/users/:userId/revoke-sessions', requireInternalSecret, authController.revokeUserSessions);
 
+  // POST /auth/internal/users/:userId/unblock — admin unblocks user, clear block flag in auth DB
+  router.post('/internal/users/:userId/unblock', requireInternalSecret, authController.unblockUser);
+
   // POST /auth/internal/appeal-decision-email — send appeal result to user email
   router.post('/internal/appeal-decision-email', requireInternalSecret, authController.sendAppealDecisionEmail);
 

@@ -191,6 +191,15 @@ export class AuthController {
     }
   };
 
+  unblockUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await this.authService.markUnblocked(req.params.userId);
+      res.json(apiResponse.success(null, 'User unblocked'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   sendAppealDecisionEmail = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { userId, status, note } = req.body as { userId: string; status: 'approved' | 'rejected'; note?: string };

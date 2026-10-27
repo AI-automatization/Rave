@@ -65,6 +65,7 @@ export class AuthService {
 
   revokeAndMarkBlocked = (userId: string, reason?: string) =>
     this.password.revokeAndMarkBlocked(userId, reason);
+  markUnblocked = (userId: string) => this.password.markUnblocked(userId);
 
   verifyEmail = (token: string) =>
     this.password.verifyEmail(token);
