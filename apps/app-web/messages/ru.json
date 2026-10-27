@@ -190,6 +190,7 @@
     "forgotPassword": "Забыли?",
     "confirmPasswordLabel": "Подтвердите пароль",
     "usernameLabel": "Имя пользователя",
+    "usernamePattern": "3–20 символов: только латинские буквы, цифры и _ (без пробелов)",
     "noAccount": "Нет аккаунта?",
     "registerLink": "Зарегистрироваться",
     "hasAccount": "Уже есть аккаунт?",

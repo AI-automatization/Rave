@@ -59,10 +59,11 @@ export function RegisterForm({ onVerify }: Props) {
   // and only failed once it hit the server.
   const passwordInvalid = password.length > 0 && !PATTERNS.PASSWORD.test(password);
   const strength = passwordStrength(password);
+  const usernameInvalid = username.length > 0 && !PATTERNS.USERNAME.test(username);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (tooShort || passwordInvalid || !username || !email || !password) return;
+    if (tooShort || passwordInvalid || usernameInvalid || !username || !email || !password) return;
     trackClick('register:submit');
     trackRegistrationStart(locale);
 
@@ -88,7 +89,7 @@ export function RegisterForm({ onVerify }: Props) {
   }
 
   const disabled =
-    isPending || tooShort || passwordInvalid || !username || !email || !password;
+    isPending || tooShort || passwordInvalid || usernameInvalid || !username || !email || !password;
 
   return (
     <div className="flex flex-col gap-6 sm:gap-7">
@@ -100,12 +101,12 @@ export function RegisterForm({ onVerify }: Props) {
       </header>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 sm:gap-5" noValidate>
-        <Field label={t('usernameLabel')}>
+        <Field label={t('usernameLabel')} error={usernameInvalid ? t('usernamePattern') : undefined}>
           <Input
             type="text"
             icon={User}
             value={username}
-            onChange={(e) => { setUsername(e.target.value); setError(''); }}
+            onChange={(e) => { setUsername(e.target.value.trim()); setError(''); }}
             required
             autoFocus
             autoComplete="username"

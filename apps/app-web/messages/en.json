@@ -190,6 +190,7 @@
     "forgotPassword": "Forgot?",
     "confirmPasswordLabel": "Confirm Password",
     "usernameLabel": "Username",
+    "usernamePattern": "3–20 characters: Latin letters, numbers and _ only (no spaces)",
     "noAccount": "No account?",
     "registerLink": "Register",
     "hasAccount": "Already have an account?",

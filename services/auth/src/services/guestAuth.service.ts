@@ -4,6 +4,7 @@ import { logger } from '@shared/utils/logger';
 import { BadRequestError } from '@shared/utils/errors';
 import { containsBannedWord } from '@shared/utils/bannedWords';
 import { generateUniqueUsername } from './passwordAuth.service';
+import { usernameBase } from '../utils/username';
 
 const MIN_USERNAME_LENGTH = 3;
 const GUEST_FALLBACK_NAME = 'mehmon';
@@ -18,8 +19,8 @@ export async function createGuestUser(displayName: string): Promise<IUserDocumen
     throw new BadRequestError('This name is not allowed');
   }
 
-  let base = name.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 15);
-  if (base.length < MIN_USERNAME_LENGTH) base = GUEST_FALLBACK_NAME;
+  let base = usernameBase(name);
+  if (base.length < MIN_USERNAME_LENGTH || base === 'user') base = GUEST_FALLBACK_NAME;
   const username = await generateUniqueUsername(base);
   const email = `guest_${randomBytes(8).toString('hex')}@guest.wewatch.internal`;
 
