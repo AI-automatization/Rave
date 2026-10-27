@@ -6,6 +6,7 @@ import { logger } from '@shared/utils/logger';
 import { UnauthorizedError } from '@shared/utils/errors';
 import { REDIS_KEYS } from '@shared/constants';
 import { generateUniqueUsername } from './passwordAuth.service';
+import { isAccountBlockingEnabled } from '@shared/utils/accountBlocking';
 
 const APPLE_JWKS_URL = 'https://appleid.apple.com/auth/keys';
 const APPLE_ISSUER = 'https://appleid.apple.com';
@@ -122,7 +123,7 @@ export class AppleAuthService {
     }
 
     const redisBlocked = await this.redis.get(REDIS_KEYS.blockedUser(String(user._id))).catch(() => null);
-    if (user.isBlocked || redisBlocked !== null) {
+    if (isAccountBlockingEnabled() && (user.isBlocked || redisBlocked !== null)) {
       const reason = user.blockReason ?? (redisBlocked !== '1' ? redisBlocked : null) ?? 'No reason provided';
       const err = Object.assign(new Error(reason), {
         statusCode: 403,
