@@ -10,6 +10,7 @@ import { JwtPayload, UserRole } from '@shared/types';
 import { REDIS_KEYS } from '@shared/constants';
 import { comparePassword, generateTokens, hashToken } from './crypto';
 import { checkBruteForce, incrementLoginAttempts, clearLoginAttempts } from './bruteForce';
+import { isAccountBlockingEnabled } from '@shared/utils/accountBlocking';
 
 export class LoginService {
   constructor(private redis: Redis) {}
@@ -31,7 +32,7 @@ export class LoginService {
 
     // Check MongoDB flag AND Redis flag (admin panel sets Redis directly without updating auth DB)
     const redisBlockedValue = await this.redis.get(REDIS_KEYS.blockedUser(String(user._id))).catch(() => null);
-    if (user.isBlocked || redisBlockedValue !== null) {
+    if (isAccountBlockingEnabled() && (user.isBlocked || redisBlockedValue !== null)) {
       // Redis value stores the block reason (or '' / '1' for legacy entries)
       const redisReason = redisBlockedValue && redisBlockedValue !== '1' ? redisBlockedValue : null;
       const reason = user.blockReason ?? redisReason ?? 'No reason provided';
@@ -105,7 +106,7 @@ export class LoginService {
       throw new UnauthorizedError('User not found');
     }
     const redisBlockedOnRefresh = await this.redis.get(REDIS_KEYS.blockedUser(String(user._id))).catch(() => null);
-    if (user.isBlocked || redisBlockedOnRefresh !== null) {
+    if (isAccountBlockingEnabled() && (user.isBlocked || redisBlockedOnRefresh !== null)) {
       const redisReason = redisBlockedOnRefresh && redisBlockedOnRefresh !== '1' ? redisBlockedOnRefresh : null;
       const reason = user.blockReason ?? redisReason ?? 'No reason provided';
       const err = new Error(reason) as Error & { statusCode: number; code: string; reason: string; userId: string };

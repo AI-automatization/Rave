@@ -7,6 +7,7 @@ import { logger } from '@shared/utils/logger';
 import { UnauthorizedError } from '@shared/utils/errors';
 import { REDIS_KEYS } from '@shared/constants';
 import { generateUniqueUsername } from './passwordAuth.service';
+import { isAccountBlockingEnabled } from '@shared/utils/accountBlocking';
 
 const MOBILE_STATE_TTL = 300;  // 5 min — user has time to complete Google login
 const MOBILE_RESULT_TTL = 120; // 2 min — result kept until mobile polls
@@ -126,7 +127,7 @@ export class GoogleAuthService {
     }
 
     const redisBlockedValue = await this.redis.get(REDIS_KEYS.blockedUser(String(user._id))).catch(() => null);
-    if (user.isBlocked || redisBlockedValue !== null) {
+    if (isAccountBlockingEnabled() && (user.isBlocked || redisBlockedValue !== null)) {
       const redisReason = redisBlockedValue && redisBlockedValue !== '1' ? redisBlockedValue : null;
       const reason = user.blockReason ?? redisReason ?? 'No reason provided';
       const err = new Error(reason) as Error & { statusCode: number; code: string; reason: string; userId: string };

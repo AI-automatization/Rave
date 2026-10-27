@@ -5,6 +5,7 @@ import { JwtPayload, AuthenticatedRequest, OptionalAuthRequest, UserRole } from 
 import { UnauthorizedError, ForbiddenError } from '../utils/errors';
 import { logger } from '../utils/logger';
 import { REDIS_KEYS } from '../constants/index';
+import { isAccountBlockingEnabled } from '../utils/accountBlocking';
 
 const getPublicKey = (): string => {
   const key = process.env.JWT_PUBLIC_KEY;
@@ -110,7 +111,7 @@ export const requireVerified = (
 export const requireNotBlocked = (redis: Redis) =>
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const user = (req as AuthenticatedRequest).user;
-    if (!user) return next();
+    if (!user || !isAccountBlockingEnabled()) return next();
     try {
       const blocked = await redis.get(REDIS_KEYS.blockedUser(user.userId));
       if (blocked) {
