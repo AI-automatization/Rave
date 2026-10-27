@@ -190,6 +190,7 @@
     "forgotPassword": "Unutdingizmi?",
     "confirmPasswordLabel": "Parolni tasdiqlang",
     "usernameLabel": "Foydalanuvchi nomi",
+    "usernamePattern": "3–20 belgi: faqat lotin harflari, raqamlar va _ (bo'sh joysiz)",
     "noAccount": "Hisob yo'qmi?",
     "registerLink": "Ro'yxatdan o'ting",
     "hasAccount": "Hisob bormi?",

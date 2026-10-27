@@ -8,17 +8,21 @@ import { containsBannedWord } from '@shared/utils/bannedWords';
 import { getAppSetting } from '@shared/utils/appSettings';
 import { REDIS_KEYS } from '@shared/constants';
 import { hashPassword, hashToken } from './crypto';
+import { usernameBase } from '../../utils/username';
 
 export async function generateUniqueUsername(displayName: string): Promise<string> {
-  const base = displayName.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 15) || 'user';
-  let username = base;
-  let suffix = 1;
+  const base = usernameBase(displayName);
+  if (!(await User.exists({ username: base }))) return base;
 
-  while (await User.findOne({ username })) {
-    username = `${base}${suffix++}`;
+  // Random suffix instead of counting 1,2,3…: with many "user" accounts the old loop made
+  // one DB query per existing name and could time out the sign-in.
+  for (let i = 0; i < 10; i++) {
+    const digits = i < 5 ? 4 : 5;
+    const n = Math.floor(10 ** (digits - 1) + Math.random() * 9 * 10 ** (digits - 1));
+    const candidate = `${base}${n}`;
+    if (!(await User.exists({ username: candidate }))) return candidate;
   }
-
-  return username;
+  return `user${Date.now().toString(36)}`.slice(0, 20);
 }
 
 export class RegisterService {
