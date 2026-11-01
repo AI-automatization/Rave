@@ -1,6 +1,5 @@
 import { Router, Request, Response } from 'express';
 import Redis from 'ioredis';
-import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
 import { VideoExtractController } from '../controllers/videoExtract.controller';
 import { hlsProxyController } from '../controllers/hlsProxy.controller';
 import { ContentController } from '../controllers/content.controller';
@@ -11,9 +10,9 @@ import { requireInternalSecret } from '@shared/utils/serviceClient';
 import { UrlVisit } from '../models/urlVisit.model';
 import { watchHistoryService } from '../services/watchHistory.service';
 
-export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient): Router => {
+export const createContentRouter = (redis: Redis): Router => {
   const router = Router();
-  const contentService = new ContentService(redis, elastic);
+  const contentService = new ContentService(redis);
   const contentController = new ContentController(contentService);
   const videoExtractController = new VideoExtractController(redis);
   const notBlocked = requireNotBlocked(redis);
