@@ -599,7 +599,7 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
                   type="url"
                   value={videoUrl}
                   onChange={e => handleUrlChange(e.target.value)}
-                  placeholder="https://..."
+                  placeholder={t('urlPlaceholder')}
                   className="w-full h-12 bg-[#111118] border border-white/[0.08] rounded-xl text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
                   style={{ paddingLeft: activePlatform ? '2.5rem' : '1rem', paddingRight: '1rem' }}
                 />

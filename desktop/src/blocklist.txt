@@ -1,0 +1,17 @@
+# Свой чёрный список доменов (поддомены блокируются тоже). Основной фильтр — Cloudflare Family DNS.
+pornhub.com
+xvideos.com
+xnxx.com
+xhamster.com
+redtube.com
+youporn.com
+spankbang.com
+eporner.com
+onlyfans.com
+chaturbate.com
+stripchat.com
+bongacams.com
+livejasmin.com
+cam4.com
+rule34.xxx
+nhentai.net

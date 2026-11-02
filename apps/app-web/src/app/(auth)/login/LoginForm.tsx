@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -30,6 +30,10 @@ export function LoginForm() {
   const [isPending, startTransition] = useTransition();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isTelegramLoading, setIsTelegramLoading] = useState(false);
+  // Windows app (desktop/): the Telegram widget is a popup + postMessage flow that Electron's
+  // window handler does not carry back, so the button would just hang. Google works there.
+  const [isDesktopApp, setIsDesktopApp] = useState(false);
+  useEffect(() => { setIsDesktopApp(!!window.wewatchDesktop); }, []);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -223,7 +227,7 @@ export function LoginForm() {
           ketardi (prod buzilishi, 2026-08-14): panel ichki kengligi 336px → ustun 162px,
           undan 66px ikonka+padding'ga ketadi, matnga 96px qoladi, "Продолжить с Telegram"
           esa ~150px. To'liq matn aria-label'da qoldi — skrinrider kontekstni yo'qotmaydi. */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className={isDesktopApp ? 'grid grid-cols-1 gap-3' : 'grid grid-cols-2 gap-3'}>
         <Button
           type="button"
           variant="subtle"
@@ -242,7 +246,7 @@ export function LoginForm() {
           Google
         </Button>
 
-        <Button
+        {!isDesktopApp && <Button
           type="button"
           variant="subtle"
           size="xl"
@@ -256,7 +260,7 @@ export function LoginForm() {
             <path d="M5.5 11.8 17 7.4c.53-.19 1 .13.83.94l-2 9.42c-.14.63-.51.78-1.03.49l-2.85-2.1-1.37 1.32c-.15.15-.28.28-.57.28l.2-2.9 5.3-4.79c.23-.2-.05-.32-.36-.11l-6.55 4.12-2.83-.88c-.61-.19-.62-.61.13-.9z" fill="#fff"/>
           </svg>
           Telegram
-        </Button>
+        </Button>}
       </div>
 
       {/* Ajratgich */}
