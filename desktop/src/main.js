@@ -14,6 +14,12 @@ const { app, BrowserWindow, session, ipcMain, desktopCapturer, shell, net, dialo
 const path = require('node:path');
 const { configureDns, protectSession, checkUrl } = require('./safety');
 
+// With our secure DNS (safety.js) Chromium also reads the HTTPS/SVCB records of Cloudflare-fronted
+// hosts (alpn=h3,h2 + ECH keys) and changes how it connects. The room websocket to stream.wewatch.uz
+// then died with ERR_CONNECTION_RESET, while the same app on system DNS connected (checked 2026-11-02;
+// turning off only ECH/post-quantum TLS did not help). Ignoring those records keeps the DoH filter.
+app.commandLine.appendSwitch('disable-features', 'UseDnsHttpsSvcbAlpn,UseDnsHttpsSvcb');
+
 const APP_URL = process.env.WW_APP_URL || 'https://app.wewatch.uz';
 const APP_ORIGIN = new URL(APP_URL).origin;
 // Hosts the main window may navigate to without leaving for the system browser.
