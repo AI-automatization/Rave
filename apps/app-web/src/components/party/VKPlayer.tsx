@@ -17,21 +17,44 @@
 // questionable, same category of risk as pirate-site extraction, just against a legitimate
 // platform).
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { AlertCircle, Info, Loader2 } from 'lucide-react';
 
 interface Props {
   ownerId: string;
   videoId: string;
+  /** VK embed brauzer tomonidan bloklandi (CSP frame-src) — egasi uchun virtual brauzerga avto-o'tish. */
+  onBlocked?: () => void;
 }
 
-export function VKPlayer({ ownerId, videoId }: Props) {
+export function VKPlayer({ ownerId, videoId, onBlocked }: Props) {
   const t = useTranslations('party');
   const [ready, setReady] = useState(false);
   // Holds a message KEY, not text — so the error follows the language switcher and effects
   // never need `t` in their dependency list.
   const [error, setError] = useState<string | null>(null);
+
+  // 2026-10-05 (Abdulaziz: "yangi userlar tugmani bilmaydi — o'zi virtual brauzerga o'tib ketsin"):
+  // VK embed bloklanganda iframe `load` baribir ishlaydi (xato sahifasi ham yuklanadi), shuning
+  // uchun onLoad/onError ishonchsiz. Lekin bloklash bizning CSP (frame-src) sabab bo'lsa,
+  // brauzer `securitypolicyviolation` hodisasi yuboradi — aynan shu signal bo'yicha ushlaymiz
+  // (haqiqiy hodisa: VK akkauntga kirgan foydalanuvchi login.vk.com ga yo'naltiriladi).
+  useEffect(() => {
+    const onViolation = (e: SecurityPolicyViolationEvent) => {
+      if (!/frame-src|child-src/.test(e.violatedDirective)) return;
+      try {
+        const host = new URL(e.blockedURI).hostname;
+        if (!/(^|\.)(vk\.com|vkvideo\.ru|vk\.ru)$/.test(host)) return;
+      } catch {
+        return;
+      }
+      setError('playerEmbedBlocked');
+      onBlocked?.();
+    };
+    document.addEventListener('securitypolicyviolation', onViolation);
+    return () => document.removeEventListener('securitypolicyviolation', onViolation);
+  }, [onBlocked]);
 
   function handleLoad() {
     setError(null);

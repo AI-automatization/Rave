@@ -40,6 +40,9 @@ interface WatchPartyState {
   // Anything that needs to emit a room-scoped event (e.g. CHANGE_MEDIA) must wait for this, or
   // the server sees "socket has no roomId" and silently drops it — a real race, not hypothetical.
   roomJoined: boolean;
+  // Seek gate (SEEK_WAIT): members still loading the owner's seek target — the owner's player
+  // shows "wait for your friend" while non-empty. Empty = no gate.
+  seekWaiting: string[];
 
   setRoom: (room: IWatchPartyRoom | null) => void;
   setMembers: (members: WatchPartyMember[]) => void;
@@ -51,6 +54,7 @@ interface WatchPartyState {
   setHeartbeat: (hb: Heartbeat) => void;
   setConnected: (connected: boolean) => void;
   setRoomJoined: (joined: boolean) => void;
+  setSeekWaiting: (waiting: string[]) => void;
   reset: () => void;
 }
 
@@ -68,6 +72,7 @@ export const useWatchPartyStore = create<WatchPartyState>((set) => ({
   heartbeat: null,
   isConnected: false,
   roomJoined: false,
+  seekWaiting: [],
 
   setRoom: (room) => set({ room }),
   setMembers: (members) => set({ members: members ?? [] }),
@@ -90,6 +95,7 @@ export const useWatchPartyStore = create<WatchPartyState>((set) => ({
   setHeartbeat: (hb) => set({ heartbeat: hb }),
   setConnected: (connected) => set({ isConnected: connected }),
   setRoomJoined: (joined) => set({ roomJoined: joined }),
+  setSeekWaiting: (waiting) => set({ seekWaiting: waiting }),
   reset: () =>
     set({
       room: null,
@@ -99,5 +105,6 @@ export const useWatchPartyStore = create<WatchPartyState>((set) => ({
       heartbeat: null,
       isConnected: false,
       roomJoined: false,
+      seekWaiting: [],
     }),
 }));

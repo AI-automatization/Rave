@@ -415,7 +415,7 @@ function RoomSidePanel({
 
 export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props) {
   const t = useTranslations('party');
-  const { sendMessage, sendPlay, sendPause, sendSeek, sendEmoji, sendHeartbeat, sendBufferStart, sendBufferEnd, sendMediaChange, reactions, reactionCooldownSec, videoCandidates, requestCandidates, kickMember, muteMember, unmuteMember, renameRoom, raisedHands, setHand } = useWatchParty(roomId);
+  const { sendMessage, sendPlay, sendPause, sendSeek, sendEmoji, sendHeartbeat, sendBufferStart, sendBufferEnd, sendSeekReady, sendMediaChange, reactions, reactionCooldownSec, videoCandidates, requestCandidates, kickMember, muteMember, unmuteMember, renameRoom, raisedHands, setHand } = useWatchParty(roomId);
   const [rightTab, setRightTab] = useState<RightTab>('chat');
   /** Whose profile the modal is showing — `null` means closed. */
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
@@ -428,6 +428,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   const reset = useWatchPartyStore((s) => s.reset);
   const room = useWatchPartyStore((s) => s.room);
   const roomJoined = useWatchPartyStore((s) => s.roomJoined);
+  const seekWaiting = useWatchPartyStore((s) => s.seekWaiting);
 
   // Voice runs for the whole room session, not just while the chat tab is open — leaving the tab
   // must not drop the call. Gated on roomJoined because the server only accepts voice:join once
@@ -465,8 +466,19 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   // menu entry themselves.
   const { hasFrame: vbHasFrame, frameSource: vbFrameSource, active: vbActive, dimensions: vbDimensions, error: vbError, blocked: vbBlocked, queuePosition: vbQueuePosition, unreachable: vbUnreachable, start: vbStart, stop: vbStop, sendInput: vbSendInput, mediaState: vbMediaState, mediaControl: vbMediaControl } = useVirtualBrowser(isOwner, () => setCandidatePickerOpen(true));
   const [showVBPanel, setShowVBPanel] = useState(false);
+  // True between the owner's VB click (VB_START emitted with the room's own source page) and the
+  // session actually starting — the panel shows a spinner instead of the URL form meanwhile.
+  const [vbStarting, setVbStarting] = useState(false);
   const showVB = vbActive || (isOwner && showVBPanel);
-  const handleVBStop = () => { vbStop(); setShowVBPanel(false); };
+  const handleVBStop = () => { vbStop(); setShowVBPanel(false); setVbStarting(false); };
+  // Server-side stop (candidates ready, pick timeout, error) — drop the local panel too, otherwise
+  // the owner is left on an empty URL form after the session is already gone.
+  const prevVbActiveRef = useRef(vbActive);
+  useEffect(() => {
+    if (vbActive) setVbStarting(false);
+    else if (prevVbActiveRef.current) setShowVBPanel(false);
+    prevVbActiveRef.current = vbActive;
+  }, [vbActive]);
 
   // Extraction reporting "success" (found a videoUrl) doesn't guarantee our own proxy can
   // actually retrieve it — a file-host mirror 403ing our proxied request is a different failure
@@ -631,6 +643,14 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
               }}
             >
             <ReactionOverlay reactions={reactions} />
+            {isOwner && seekWaiting.length > 0 && (
+              <div className="pointer-events-none absolute inset-x-0 top-3 z-20 flex justify-center px-3">
+                <span className="flex items-center gap-2 rounded-full bg-black/75 px-3 py-1.5 text-[12.5px] text-white">
+                  <Loader2 size={13} className="animate-spin" aria-hidden="true" />
+                  {t('seekWaitingFriend')}
+                </span>
+              </div>
+            )}
             {showVB ? (
               <VirtualBrowserPlayer
                 isOwner={isOwner}
@@ -643,6 +663,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                 unreachable={vbUnreachable}
                 onTryIframe={handleTryIframe}
                 start={handleVBPanelStart}
+                starting={vbStarting && !vbError}
                 stop={handleVBStop}
                 sendInput={vbSendInput}
                 onPickDifferentVideo={() => setCandidatePickerOpen(true)}
@@ -658,6 +679,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                 onHeartbeat={sendHeartbeat}
                 onBufferStart={sendBufferStart}
                 onBufferEnd={sendBufferEnd}
+                onSeekReady={sendSeekReady}
                 onFatalError={handleVideoFatalError}
                 onPickDifferentVideo={() => setCandidatePickerOpen(true)}
                 onOpenVirtualBrowser={() => setShowVBPanel(true)}
@@ -681,7 +703,12 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                 </button>
                 {!showVB && (
                   <button
-                    onClick={() => { trackClick('room:open_vb_panel'); setShowVBPanel(true); }}
+                    onClick={() => {
+                      trackClick('room:open_vb_panel');
+                      setShowVBPanel(true);
+                      const src = originalSourceUrlRef.current;
+                      if (src) { setVbStarting(true); vbStart(src); }
+                    }}
                     type="button"
                     className="ww-btn-subtle flex h-9 cursor-pointer items-center gap-1.5 rounded-[var(--ww-r-sm)] px-3 text-[12.5px] font-medium text-[var(--ww-text-2)]"
                   >

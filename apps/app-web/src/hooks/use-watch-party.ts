@@ -224,6 +224,18 @@ export function useWatchParty(roomId: string) {
       setSyncState({ currentTime: state.currentTime, serverTimestamp: toLocalTs(state.serverTimestamp) });
     });
 
+    // Seek gate (services/watch-party videoEvents.handler.ts): while members load the owner's
+    // seek target everyone holds paused at it; `release` restarts everyone from one timestamp.
+    socket.on(SERVER_EVENTS.SEEK_WAIT, (data: { waiting: string[]; currentTime?: number; release?: boolean; serverTimestamp?: number }) => {
+      useWatchPartyStore.getState().setSeekWaiting(data.waiting ?? []);
+      if (typeof data.currentTime !== 'number') return;
+      if (data.release) {
+        setSyncState({ isPlaying: true, currentTime: data.currentTime, serverTimestamp: toLocalTs(data.serverTimestamp) });
+      } else if (data.waiting?.length) {
+        setSyncState({ isPlaying: false, currentTime: data.currentTime, serverTimestamp: undefined });
+      }
+    });
+
     socket.on(SERVER_EVENTS.VIDEO_SYNC, (state: ServerSyncPayload) => {
       setSyncState({ currentTime: state.currentTime, isPlaying: state.isPlaying, serverTimestamp: toLocalTs(state.serverTimestamp) });
     });
@@ -312,6 +324,7 @@ export function useWatchParty(roomId: string) {
       socket.off(SERVER_EVENTS.VIDEO_PLAY);
       socket.off(SERVER_EVENTS.VIDEO_PAUSE);
       socket.off(SERVER_EVENTS.VIDEO_SEEK);
+      socket.off(SERVER_EVENTS.SEEK_WAIT);
       socket.off(SERVER_EVENTS.VIDEO_SYNC);
       socket.off(SERVER_EVENTS.VIDEO_HEARTBEAT);
       socket.off(SERVER_EVENTS.ROOM_CLOSED);
@@ -387,6 +400,10 @@ export function useWatchParty(roomId: string) {
     socket?.emit(CLIENT_EVENTS.BUFFER_START, { roomId });
   }, [socket, roomId]);
 
+  const sendSeekReady = useCallback(() => {
+    socket?.emit(CLIENT_EVENTS.SEEK_READY, { roomId });
+  }, [socket, roomId]);
+
   const sendBufferEnd = useCallback(() => {
     socket?.emit(CLIENT_EVENTS.BUFFER_END, { roomId });
   }, [socket, roomId]);
@@ -424,6 +441,7 @@ export function useWatchParty(roomId: string) {
     sendHeartbeat,
     sendBufferStart,
     sendBufferEnd,
+    sendSeekReady,
     sendMediaChange,
     kickMember,
     muteMember,

@@ -21,6 +21,15 @@ interface Props {
   onConfirm: (candidate: VideoCandidate) => void;
 }
 
+// How long the "this option didn't load" overlay stays before cycling to the next candidate.
+const FAILED_ADVANCE_MS = 1500;
+// 2026-10-25 (Abdulaziz): each candidate gets this long in cycle mode; no pick → next one by itself.
+// Mirrors PICK_MS_PER_CANDIDATE in watch-party's vbSession.helper.ts, which stops VB once the
+// whole cycle is over.
+const PICK_SECONDS_PER_CANDIDATE = 60;
+// Seconds of real playback before judging "has an audio track" (see CandidatePreview.checkAudio).
+const AUDIO_CHECK_AFTER_SECS = 2;
+
 function fmtDuration(seconds?: number): string | null {
   if (!seconds || !isFinite(seconds) || seconds <= 0) return null;
   return formatDuration(seconds);
@@ -57,12 +66,21 @@ function captureVideoFrame(video: HTMLVideoElement): string | null {
 function CandidatePreview({
   candidate,
   onCapture,
+  onFailed,
+  onAudioInfo,
 }: {
   candidate: VideoCandidate;
   /** Real duration/poster pulled from the actual playing element — see captureVideoFrame above.
    *  Only fires once per successful capture; the caller merges this into candidate display data
    *  (grid thumbnails, duration badge) without mutating the server-provided candidate itself. */
   onCapture?: (info: { poster?: string; duration?: number }) => void;
+  /** Fires once when this candidate can't be loaded at all (media error, fatal hls/dash/MSE
+   *  error) — live 2026-10-24: a dead candidate used to sit on a black 0:00 frame with no hint. */
+  onFailed?: () => void;
+  /** Fires once, ~2s into real playback: does this candidate carry an audio track at all? Sites
+   *  like arte.tv split video and audio into separate files, and a video-only one gave a silent
+   *  room (live 2026-10-24). Not fired on browsers that expose none of the signals below. */
+  onAudioInfo?: (hasAudio: boolean) => void;
 }) {
   const t = useTranslations('party');
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -93,8 +111,32 @@ function CandidatePreview({
         onCapture?.({ poster: frame });
       }
     };
+    let failReported = false;
+    const reportFailed = () => {
+      if (failReported || cancelled) return;
+      failReported = true;
+      onFailed?.();
+    };
+    // Decoder-level counters — they grow while the preview is `muted` too (checked live in Chrome
+    // 2026-10-24: an archive.org mp4 with sound → >0 bytes after 6s muted, arte's video-only
+    // _v720_crf_h264.mp4 → 0). Firefox: mozHasAudio, Safari: audioTracks.
+    let audioReported = false;
+    const checkAudio = () => {
+      if (audioReported || cancelled || video.currentTime < AUDIO_CHECK_AFTER_SECS) return;
+      const v = video as HTMLVideoElement & {
+        webkitAudioDecodedByteCount?: number; mozHasAudio?: boolean; audioTracks?: { length: number };
+      };
+      let hasAudio: boolean | null = null;
+      if (typeof v.webkitAudioDecodedByteCount === 'number') hasAudio = v.webkitAudioDecodedByteCount > 0;
+      else if (typeof v.mozHasAudio === 'boolean') hasAudio = v.mozHasAudio;
+      else if (v.audioTracks) hasAudio = v.audioTracks.length > 0;
+      audioReported = true;
+      if (hasAudio !== null) onAudioInfo?.(hasAudio);
+    };
     video.addEventListener('loadedmetadata', reportDuration);
     video.addEventListener('timeupdate', tryCaptureFrame);
+    video.addEventListener('timeupdate', checkAudio);
+    video.addEventListener('error', reportFailed);
 
     // candidate.url is always cross-origin from the browser's point of view — a raw CDN url from
     // content-service's extraction, or our own watch-party service's vb-capture/vb-media-proxy —
@@ -110,7 +152,8 @@ function CandidatePreview({
           dashRef.current = player;
           player.initialize(video, proxiedUrl, false);
           player.on(dashjs.MediaPlayer.events.CAN_PLAY, () => { video.play().catch(() => {}); });
-        }).catch(() => {});
+          player.on(dashjs.MediaPlayer.events.ERROR, reportFailed);
+        }).catch(reportFailed);
         return;
       }
 
@@ -123,7 +166,7 @@ function CandidatePreview({
       // same "null means fall back to plain src" contract as the player.
       if (candidate.url.includes('/vb-capture/')) {
         void setupCaptureMse(video, proxiedUrl, {
-          onFatal: () => {},
+          onFatal: reportFailed,
           onReady: () => { video.play().catch(() => {}); },
           isCancelled: () => cancelled,
         }).then((result) => {
@@ -152,13 +195,16 @@ function CandidatePreview({
         hls.loadSource(proxiedUrl);
         hls.attachMedia(video);
         hls.once(Hls.Events.MANIFEST_PARSED, () => { video.play().catch(() => {}); });
-      }).catch(() => {});
-    }).catch(() => {});
+        hls.on(Hls.Events.ERROR, (_event, data) => { if (data.fatal) reportFailed(); });
+      }).catch(reportFailed);
+    }).catch(reportFailed);
 
     return () => {
       cancelled = true;
       video.removeEventListener('loadedmetadata', reportDuration);
       video.removeEventListener('timeupdate', tryCaptureFrame);
+      video.removeEventListener('timeupdate', checkAudio);
+      video.removeEventListener('error', reportFailed);
       hlsRef.current?.destroy();
       hlsRef.current = null;
       dashRef.current?.reset();
@@ -168,7 +214,7 @@ function CandidatePreview({
       captureMseRef.current?.teardown();
       captureMseRef.current = null;
     };
-  }, [candidate.url, candidate.type, onCapture]);
+  }, [candidate.url, candidate.type, onCapture, onFailed, onAudioInfo]);
 
   if (candidate.type === 'embed') {
     return (
@@ -221,6 +267,25 @@ export function VideoCandidatePicker({ open, onOpenChange, candidates, onRequest
     }
     return captureCallbacks.current[i];
   }
+  // Same stable-per-index pattern as captureFor — a fresh closure every render would retrigger
+  // CandidatePreview's load effect and restart the preview.
+  const [failed, setFailed] = useState<Record<number, true>>({});
+  const failCallbacks = useRef<Record<number, () => void>>({});
+  function failFor(i: number) {
+    if (!failCallbacks.current[i]) {
+      failCallbacks.current[i] = () => setFailed((prev) => ({ ...prev, [i]: true }));
+    }
+    return failCallbacks.current[i];
+  }
+  // Same stable-per-index pattern — `false` = preview played but decoded no audio at all.
+  const [audioInfo, setAudioInfo] = useState<Record<number, boolean>>({});
+  const audioCallbacks = useRef<Record<number, (hasAudio: boolean) => void>>({});
+  function audioFor(i: number) {
+    if (!audioCallbacks.current[i]) {
+      audioCallbacks.current[i] = (hasAudio) => setAudioInfo((prev) => ({ ...prev, [i]: hasAudio }));
+    }
+    return audioCallbacks.current[i];
+  }
 
   // Fresh request + reset every time the dialog opens — a candidate set from a previous open (or
   // a previous videoUrl) shouldn't linger. onRequestCandidates is a stable useCallback off the
@@ -232,9 +297,17 @@ export function VideoCandidatePicker({ open, onOpenChange, candidates, onRequest
     setGridSelected(null);
     setCaptured({});
     captureCallbacks.current = {};
+    setFailed({});
+    failCallbacks.current = {};
+    setAudioInfo({});
+    audioCallbacks.current = {};
     onRequestCandidates();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // Tagged with the candidate index it counts for — a stale 0 left over from the previous
+  // candidate must not instantly skip the next one before the reset lands.
+  const [countdown, setCountdown] = useState({ i: -1, left: PICK_SECONDS_PER_CANDIDATE });
 
   function handleReject() {
     trackClick('room:candidate_reject');
@@ -256,6 +329,34 @@ export function VideoCandidatePicker({ open, onOpenChange, candidates, onRequest
   const empty = candidates !== null && candidates.length === 0;
   const current = candidates && candidates[index] ? candidates[index] : null;
   const gridCandidate = candidates && gridSelected !== null ? candidates[gridSelected] : null;
+  const currentFailed = mode === 'cycle' && !!failed[index];
+
+  // A dead candidate shouldn't make the owner stare at a black 0:00 frame — show why, then move
+  // on by itself. Only in cycle mode, and only past the last one into the grid (same as Reject).
+  useEffect(() => {
+    if (!currentFailed || !candidates) return;
+    const id = setTimeout(() => {
+      if (index + 1 < candidates.length) setIndex(index + 1);
+      else setMode('grid');
+    }, FAILED_ADVANCE_MS);
+    return () => clearTimeout(id);
+  }, [currentFailed, index, candidates]);
+
+  // Per-candidate countdown — restarts on every candidate change, runs only while a live preview
+  // is on screen (a failed one already advances itself after FAILED_ADVANCE_MS).
+  const countdownActive = open && mode === 'cycle' && !!current && !currentFailed;
+  useEffect(() => {
+    if (!countdownActive) return;
+    setCountdown({ i: index, left: PICK_SECONDS_PER_CANDIDATE });
+    const id = setInterval(() => setCountdown((c) => ({ ...c, left: Math.max(c.left - 1, 0) })), 1000);
+    return () => clearInterval(id);
+  }, [countdownActive, index]);
+  useEffect(() => {
+    if (!countdownActive || countdown.i !== index || countdown.left > 0 || !candidates) return;
+    if (index + 1 < candidates.length) setIndex(index + 1);
+    else setMode('grid');
+  }, [countdownActive, countdown, index, candidates]);
+  const secondsLeft = countdown.i === index ? countdown.left : PICK_SECONDS_PER_CANDIDATE;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -285,13 +386,46 @@ export function VideoCandidatePicker({ open, onOpenChange, candidates, onRequest
 
         {!loading && !empty && mode === 'cycle' && current && (
           <div className="flex flex-col gap-3">
+            {countdownActive && (
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[12px] text-slate-300 tabular-nums">
+                  {t('videoCandidateCountdown', { seconds: secondsLeft })}
+                </p>
+                <div className="h-1 w-full rounded-full bg-white/[0.06] overflow-hidden">
+                  <div
+                    className="h-full bg-violet-500 transition-[width] duration-1000 ease-linear"
+                    style={{ width: `${(secondsLeft / PICK_SECONDS_PER_CANDIDATE) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
             {current.confirmed && (
               <div className="flex items-center gap-1.5 text-[11px] text-emerald-400 bg-emerald-500/10 rounded-lg px-2.5 py-1.5 w-fit">
                 <Check size={12} />
                 {t('videoCandidateConfirmedBadge')}
               </div>
             )}
-            <CandidatePreview candidate={current} onCapture={captureFor(index)} />
+            {current.complete && (
+              <div className="flex items-center gap-1.5 text-[11px] text-violet-300 bg-violet-500/10 rounded-lg px-2.5 py-1.5 w-fit">
+                <Check size={12} />
+                {t('videoCandidateComplete')}
+              </div>
+            )}
+            <div className="relative">
+              <CandidatePreview candidate={current} onCapture={captureFor(index)} onFailed={failFor(index)} onAudioInfo={audioFor(index)} />
+              {currentFailed && (
+                <div className="absolute inset-0 rounded-xl bg-black/80 flex flex-col items-center justify-center gap-2 px-4 text-center">
+                  <XIcon size={22} className="text-red-400" />
+                  <p className="text-slate-300 text-sm">{t('videoCandidateFailed')}</p>
+                </div>
+              )}
+            </div>
+            {audioInfo[index] === false && !currentFailed && (
+              <div className="flex items-center gap-1.5 text-[11px] text-amber-300 bg-amber-500/10 rounded-lg px-2.5 py-1.5 w-fit">
+                <span aria-hidden>🔇</span>
+                {t('videoCandidateNoAudio')}
+              </div>
+            )}
             <div className="flex items-center justify-between gap-2">
               <span className="text-[11px] text-slate-500 tabular-nums">
                 {index + 1} / {candidates!.length}

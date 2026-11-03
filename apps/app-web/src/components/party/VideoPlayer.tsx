@@ -109,6 +109,50 @@ function OwnerVideoStuckOverlay({ onPickDifferentVideo }: { onPickDifferentVideo
   );
 }
 
+// VB sessiyasi yo'qolganda (server restart, bot-challenge, navbat, xato) VideoLoading hech qachon
+// tugamasdi — foydalanuvchi chiqish yo'lini ko'rmasdi (2026-10-05, lokal test: sahifani yangilagach
+// "Server bilan sinxronlashtirmoqdamiz" cheksiz aylandi). Shuning uchun STUCK_AFTER_MS dan keyin
+// spinner ostida tushuntirish + chiqish tugmasi chiqadi.
+const LOADING_STUCK_AFTER_MS = 45_000;
+
+function VideoLoadingWithEscape({ isOwner, onPickDifferentVideo }: { isOwner: boolean; onPickDifferentVideo?: () => void }) {
+  const t = useTranslations('party');
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setStuck(true), LOADING_STUCK_AFTER_MS);
+    return () => clearTimeout(id);
+  }, []);
+  return (
+    <div className="relative">
+      <VideoLoading />
+      {stuck && (
+        <div className="absolute inset-x-3 bottom-3 flex flex-col items-center gap-2 rounded-xl bg-black/75 p-3 text-center backdrop-blur-sm">
+          <p className="text-[12.5px] leading-snug text-white/80">
+            {isOwner ? t('playerLoadingTimeoutOwner') : t('playerLoadingTimeoutMember')}
+          </p>
+          {isOwner && onPickDifferentVideo ? (
+            <button
+              type="button"
+              onClick={() => { trackClick('video:loading_timeout_pick_different'); onPickDifferentVideo(); }}
+              className="cursor-pointer rounded-full bg-violet-600 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-violet-500"
+            >
+              {t('playerPickAnother')}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => { trackClick('video:loading_timeout_reload'); window.location.reload(); }}
+              className="cursor-pointer rounded-full bg-white/15 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-white/25"
+            >
+              {t('playerLoadingReload')}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Shown to a NON-owner viewer when playback has genuinely failed. The owner-only VB auto-fallback
 // (RoomContent's handleVideoFatalError → vbStart) is what actually recovers this room — a non-
 // owner can never trigger that themselves (vbStart is gated on isOwner), so leaving them on the
@@ -190,6 +234,8 @@ interface Props {
   onHeartbeat: (time: number, frame?: string) => void;
   onBufferStart: () => void;
   onBufferEnd: () => void;
+  /** Seek gate: this member's player has the owner's seek target loaded (SEEK_READY). */
+  onSeekReady?: () => void;
   /** Real playback failure (not just autoplay needing a click) on the generic extract+proxy path
    * — owner-only VB auto-fallback lives in the caller (RoomContent), mirroring mobile's
    * UniversalPlayer → WatchPartyScreen `onFatalError` chain. Official embeds (YouTube/VK/Twitch/
@@ -508,6 +554,15 @@ function runCaptureTailPump(
         continue;
       }
       if (stopped || cb.isCancelled()) return;
+      // 404 = the capture buffer is gone for good (VB session stopped, or watch-party restarted —
+      // vbCapture keeps it in memory only). Retrying never recovers; live 2026-10-24 a stale tab
+      // polled a dead buffer every second for 15+ minutes and the picker's "didn't load" state
+      // never fired. Give up and let the caller's fatal path take over.
+      if (res.status === 404) {
+        stopped = true;
+        cb.onFatal();
+        return;
+      }
       if (!res.ok || !res.body) {
         await new Promise((r) => setTimeout(r, POLL_MS));
         continue;
@@ -539,6 +594,31 @@ function runCaptureTailPump(
   })();
 
   return () => { stopped = true; };
+}
+
+// A capture holds exactly what the source page appended — and the page can jump. Live 2026-10-25
+// (arte.tv): it loaded 0–6s, then resumed from 174s, so the buffer was [0–6] + [174–…] and every
+// player sat on 6.0s forever ("video takes too long"). hls.js skips such holes on its own; MSE
+// doesn't. Whenever playback can't advance (readyState < HAVE_FUTURE_DATA) at the end of a buffered
+// range — or inside a hole — and a later range exists, jump to its start.
+const GAP_CHECK_MS = 500;
+const GAP_EDGE_SECS = 0.5;
+function watchBufferGaps(video: HTMLVideoElement): () => void {
+  const id = setInterval(() => {
+    if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) return;
+    const t = video.currentTime;
+    const b = video.buffered;
+    for (let i = 0; i < b.length; i++) {
+      const inRange = t >= b.start(i) && t <= b.end(i);
+      const nearEnd = inRange && b.end(i) - t <= GAP_EDGE_SECS;
+      if (inRange && !nearEnd) return; // still has data ahead — just slow, not a hole
+      if (b.start(i) > t) {
+        video.currentTime = b.start(i) + 0.05;
+        return;
+      }
+    }
+  }, GAP_CHECK_MS);
+  return () => clearInterval(id);
 }
 
 // VB capture (categories B/C, vbCapture.service.ts) is a live-growing raw fMP4 byte stream with
@@ -629,7 +709,8 @@ export async function setupCaptureMse(
           const fireReadyOnce = () => { if (!readyFired) { readyFired = true; cb.onReady(); } };
           const stopVideo = runCaptureTailPump(video, `${src}/video`, videoBuffer, { onFatal: cb.onFatal, onFirstAppend: fireReadyOnce, isCancelled: cb.isCancelled });
           const stopAudio = runCaptureTailPump(video, `${src}/audio`, audioBuffer, { onFatal: cb.onFatal, onFirstAppend: fireReadyOnce, isCancelled: cb.isCancelled });
-          return { mediaSource, objectUrl, teardown: () => { stopVideo(); stopAudio(); } };
+          const stopGaps = watchBufferGaps(video);
+          return { mediaSource, objectUrl, teardown: () => { stopVideo(); stopAudio(); stopGaps(); } };
         }
         // Cancelled or the source closed itself while awaiting sourceopen — still return a real
         // result so the caller's cleanup can revoke/close it, matching the single-buffer path.
@@ -671,7 +752,8 @@ export async function setupCaptureMse(
   }
 
   const stop = runCaptureTailPump(video, src, sourceBuffer, { onFatal: cb.onFatal, onFirstAppend: cb.onReady, isCancelled: cb.isCancelled });
-  return { mediaSource, objectUrl, teardown: stop };
+  const stopGaps = watchBufferGaps(video);
+  return { mediaSource, objectUrl, teardown: () => { stop(); stopGaps(); } };
 }
 
 // iOS (every browser engine on it — Chrome/Firefox/Edge for iOS are all WebKit under the hood)
@@ -1381,6 +1463,10 @@ function NativeVideoPlayer({
   );
 }
 
+const SEEK_READY_POLL_MS = 200;
+const SEEK_READY_TOLERANCE_SECS = 1.5;
+const SEEK_READY_EMBED_DELAY_MS = 1500;
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export function VideoPlayer({
@@ -1396,6 +1482,7 @@ export function VideoPlayer({
   onOpenUrlInVirtualBrowser,
   sourceUnreachable,
   duckAudio,
+  onSeekReady,
 }: Props) {
   const t = useTranslations('party');
   const room = useWatchPartyStore((s) => s.room);
@@ -1481,6 +1568,28 @@ export function VideoPlayer({
     setIsHls(videoUrl.includes('.m3u8'));
     setIsDash(videoUrl.includes('.mpd'));
   }, [isOwnVb, videoUrl]);
+
+  // Seek gate — this member is on the server's waiting list (SEEK_WAIT): report SEEK_READY once
+  // the paused player actually has the target loaded. Embeds expose no reliable buffer state, so
+  // they report after a fixed short delay instead (the server still caps the wait).
+  const seekWaiting = useWatchPartyStore((s) => s.seekWaiting);
+  const amSeekWaiting = !!currentUser && seekWaiting.includes(currentUser._id);
+  useEffect(() => {
+    if (!amSeekWaiting || !onSeekReady) return;
+    let done = false;
+    const report = () => { if (!done) { done = true; onSeekReady(); } };
+    if (isEmbed) {
+      const id = setTimeout(report, SEEK_READY_EMBED_DELAY_MS);
+      return () => clearTimeout(id);
+    }
+    const id = setInterval(() => {
+      const video = videoRef.current;
+      const target = useWatchPartyStore.getState().syncState.currentTime;
+      if (video && !video.seeking && video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA
+          && Math.abs(video.currentTime - target) < SEEK_READY_TOLERANCE_SECS) report();
+    }, SEEK_READY_POLL_MS);
+    return () => clearInterval(id);
+  }, [amSeekWaiting, onSeekReady, isEmbed]);
 
   // ── Sync incoming state to HTML5 video ────────────────────────────────────
   useEffect(() => {
@@ -1805,6 +1914,7 @@ export function VideoPlayer({
       <VKPlayer
         ownerId={vkIds.ownerId}
         videoId={vkIds.videoId}
+        onBlocked={reportPlaybackFatal}
       />
     );
   }
@@ -1971,7 +2081,7 @@ export function VideoPlayer({
     if (unresolved || sourceUnreachable) {
       return <UnresolvedVideoOverlay isOwner={isOwner} onOpenVirtualBrowser={onOpenVirtualBrowser} onPickDifferentVideo={onPickDifferentVideo} />;
     }
-    return <VideoLoading />;
+    return <VideoLoadingWithEscape isOwner={isOwner} onPickDifferentVideo={onPickDifferentVideo} />;
   }
 
   return null;

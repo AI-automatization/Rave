@@ -39,6 +39,8 @@ interface Props {
   /** The movie playing inside the VB (VB_MEDIA_STATE) — shows WeWatch's own control bar. */
   mediaState?: VBMediaState | null;
   onMediaControl?: (action: 'play' | 'pause' | 'seek', time?: number) => void;
+  /** VB_START was emitted for the room source, but the first frame has not arrived yet. */
+  starting?: boolean;
 }
 
 // Hidden-input sentinel: a zero-width char the phone keyboard can "delete", so Backspace still
@@ -65,7 +67,7 @@ const WHEEL_PAGE_PX = 600;
 // frame stream. See services/watch-party/src/services/virtualBrowser.service.ts for the server
 // side (CDP screencast + input dispatch). State/socket wiring lives in the parent's
 // useVirtualBrowser() call (RoomContent.tsx) — this component is presentational + input capture.
-export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimensions, error, blocked, queuePosition, unreachable, start, stop, sendInput: sendInputRaw, onPickDifferentVideo, onTryIframe, audioUrl, mediaState, onMediaControl }: Props) {
+export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimensions, error, blocked, queuePosition, unreachable, start, stop, sendInput: sendInputRaw, onPickDifferentVideo, onTryIframe, audioUrl, mediaState, onMediaControl, starting }: Props) {
   const t = useTranslations('party');
   const [urlInput, setUrlInput] = useState('');
   const lastUrlRef = useRef<string | null>(null);
@@ -450,6 +452,14 @@ export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimension
         <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-2 text-center px-6">
           <Loader2 size={24} className="text-violet-400/60 animate-spin" />
           <p className="text-sm text-zinc-300">{t('vbQueued', { position: queuePosition })}</p>
+        </div>
+      );
+    }
+    if (starting) {
+      return (
+        <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-2 text-center px-6">
+          <Loader2 size={24} className="text-violet-400/60 animate-spin" />
+          <p className="text-sm text-zinc-300">{t('vbStarting')}</p>
         </div>
       );
     }

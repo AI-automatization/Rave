@@ -344,7 +344,15 @@ export function useVoiceChat(socket: Socket | null, active: boolean, currentUser
       // Raw DOMException text ("Permission denied", "Requested device not found") is English
       // browser jargon — show a plain message instead.
       const name = (err as DOMException)?.name;
-      setErrorMsg(name === 'NotFoundError' ? 'Mikrofon topilmadi' : 'Mikrofonga ruxsat berilmadi');
+      if (name === 'NotAllowedError' || name === 'SecurityError') {
+        setErrorMsg('Mikrofonga ruxsat berilmagan. Brauzer manzil qatoridagi 🔒 belgisini bosib, mikrofonga ruxsat bering va qayta urining.');
+      } else if (name === 'NotFoundError' || name === 'OverconstrainedError') {
+        setErrorMsg('Mikrofon topilmadi. Mikrofonni ulang va qayta urining.');
+      } else if (name === 'NotReadableError' || name === 'AbortError') {
+        setErrorMsg('Mikrofon band — boshqa ilova ishlatayotgan bo\'lishi mumkin. Uni yoping va qayta urining.');
+      } else {
+        setErrorMsg(err instanceof Error ? err.message : 'Mikrofonga ruxsat berilmadi');
+      }
     }
   }, [socket, isMuted, startSpeakingDetection]);
 

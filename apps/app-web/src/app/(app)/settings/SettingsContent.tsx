@@ -12,6 +12,7 @@ import { trackClick } from '@/lib/analytics';
 import { useLocaleStore } from '@/store/locale.store';
 import { paymentApi, type PlanInfo, type BillingProvider } from '@/lib/api/payment.api';
 import { ApiError } from '@/lib/api-client';
+import { vbSettingsApi } from '@/lib/api/vb-settings.api';
 
 // The app ships uz/ru/en and Providers re-renders on locale change, but the only switcher UI lived
 // in LandingNav — a component this app never renders (the landing moved to apps/web). So the
@@ -53,6 +54,29 @@ export function SettingsContent() {
       .catch(() => setPlan(null))
       .finally(() => setPlanLoading(false));
   }, []);
+
+  // Virtual brauzer: reklama bloklash (default yoqiq; server tomonda Redis'da saqlanadi)
+  const [adBlock, setAdBlock] = useState(true);
+  const [adBlockLoading, setAdBlockLoading] = useState(true);
+
+  useEffect(() => {
+    vbSettingsApi.get()
+      .then((res) => { if (res.data) setAdBlock(res.data.adBlock); })
+      .catch(() => undefined)
+      .finally(() => setAdBlockLoading(false));
+  }, []);
+
+  const toggleAdBlock = async () => {
+    const next = !adBlock;
+    trackClick('settings:vb_adblock', { enabled: next });
+    setAdBlock(next); // optimistik
+    try {
+      await vbSettingsApi.setAdBlock(next);
+    } catch {
+      setAdBlock(!next);
+      toast({ title: t('vbSaveError'), variant: 'destructive' });
+    }
+  };
 
   // tezcode-billing checkout muvaffaqiyatli/bekor bo'lib qaytgandan keyin (services/payment
   // startCheckout() shu sahifaga ?checkout=success|canceled bilan redirect qiladi)
@@ -223,6 +247,34 @@ export function SettingsContent() {
               </button>
             );
           })}
+        </div>
+      </section>
+
+      {/* Virtual brauzer — reklama bloklash */}
+      <section className="ww-panel p-6">
+        <SectionTitle>{t('vbTitle')}</SectionTitle>
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-[14px] font-medium text-[var(--ww-text)]">{t('vbAdBlock')}</p>
+            <p className="mt-1 text-[13px] leading-relaxed text-[var(--ww-text-2)]">{t('vbAdBlockDesc')}</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={adBlock}
+            aria-label={t('vbAdBlock')}
+            disabled={adBlockLoading}
+            onClick={toggleAdBlock}
+            className={`relative h-7 w-12 shrink-0 cursor-pointer rounded-full transition-colors disabled:opacity-50 ${
+              adBlock ? 'bg-[var(--ww-accent)]' : 'bg-white/15'
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${
+                adBlock ? 'left-[22px]' : 'left-0.5'
+              }`}
+            />
+          </button>
         </div>
       </section>
 
