@@ -116,6 +116,14 @@ export const translations = {
     scrolledHint: { uz: 'Siz hamma narsani o\'qidingiz', ru: 'Вы всё прочитали', en: 'You\'ve read everything' },
     skipToEnd: { uz: 'Oxiriga o\'tish va qabul qilish', ru: 'Пролистать до конца и принять', en: 'Skip to end and accept' },
     accept: { uz: 'Qabul qilaman', ru: 'Принять', en: 'Accept' },
+    summaryTitle: { uz: 'Qisqacha', ru: 'Коротко', en: 'In short' },
+    summary: {
+      uz: "• Biz oladigan ma'lumotlar: ism, email, parol (shifrlangan), profil rasmi, xona chati, ko'rish tarixi va ochgan video havolalaringiz.\n• Olmaymiz: GPS joylashuv, kontaktlar, biometrika, bank karta ma'lumotlari, reklama identifikatori.\n• Ma'lumotlaringizni sotmaymiz va reklama uchun ishlatmaymiz.\n• Akkauntni Sozlamalar → Akkaunt orqali o'chirsangiz, shaxsiy ma'lumotlaringiz 30 kunda o'chiriladi.\n• Savollar uchun: support@wewatch.uz",
+      ru: '• Что мы собираем: имя, email, пароль (в зашифрованном виде), фото профиля, чат комнаты, историю просмотров и ссылки на видео, которые вы открывали.\n• Не собираем: GPS-геолокацию, контакты, биометрию, данные банковских карт, рекламный идентификатор.\n• Мы не продаём ваши данные и не используем их для рекламы.\n• Если удалить аккаунт в Настройки → Аккаунт, личные данные удаляются в течение 30 дней.\n• Вопросы: support@wewatch.uz',
+      en: '• What we collect: name, email, password (stored encrypted), profile photo, room chat, watch history and the video links you open.\n• What we never collect: GPS location, contacts, biometrics, bank card data, advertising identifiers.\n• We do not sell your data or use it for advertising.\n• If you delete your account in Settings → Account, personal data is erased within 30 days.\n• Questions: support@wewatch.uz',
+    },
+    showFull: { uz: "To'liq ma'lumot", ru: 'Полный текст', en: 'Full details' },
+    showSummary: { uz: 'Qisqacha ko\'rish', ru: 'Показать коротко', en: 'Show summary' },
     version: { uz: 'Versiya 2.0 · 11-iyun 2026-yil', ru: 'Версия 2.0 · 11 июня 2026', en: 'Version 2.0 · June 11, 2026' },
   },
 
@@ -634,6 +642,7 @@ export const translations = {
     videoSourceExpiredViewer: { uz: "Video manbasi eskirdi — egasi yangilaydi", ru: 'Видео источник устарел — хозяин обновит', en: 'Video source expired — owner will update' },
     updateSource: { uz: 'Yangilash', ru: 'Обновить', en: 'Update' },
     quality: { uz: 'Sifat', ru: 'Качество', en: 'Quality' },
+    qualityAuto: { uz: 'Avto', ru: 'Авто', en: 'Auto' },
     episodes: { uz: 'Epizodlar', ru: 'Эпизоды', en: 'Episodes' },
     goBack: { uz: 'Orqaga qaytish', ru: 'Вернуться назад', en: 'Go back' },
     voiceMute: { uz: "O'chirish", ru: 'Выключить', en: 'Mute' },
@@ -643,6 +652,8 @@ export const translations = {
     voiceEmpty: { uz: "Ovozli chatda hech kim yo'q", ru: 'Никого нет в голосовом чате', en: 'No one in voice chat' },
     voiceRetry: { uz: 'Qayta urinish', ru: 'Повторить', en: 'Retry' },
     vbStartVideo: { uz: 'Saytda videoni ishga tushiring', ru: 'Запустите видео на сайте', en: 'Start the video on the site' },
+    vbOpenChip: { uz: 'Virtual brauzer', ru: 'Виртуальный браузер', en: 'Virtual browser' },
+    seekWaitingFriend: { uz: "Do'stingiz yetib olguncha kuting...", ru: 'Ждём, пока друг догрузит...', en: 'Waiting for your friend to catch up...' },
     vbOwnerPicking: { uz: "Xona egasi video tanlamoqda...", ru: 'Владелец комнаты выбирает видео...', en: 'Room owner is picking a video...' },
     vbBlocked: { uz: "Bu saytni ocha olmaymiz, boshqasini sinab ko'ring", ru: 'Не можем открыть этот сайт, попробуйте другой', en: "Can't open this site, try another" },
     vbKeyboard: { uz: 'Klaviatura', ru: 'Клавиатура', en: 'Keyboard' },
@@ -795,6 +806,9 @@ export const translations = {
     directLinkLabel: { uz: "Yoki to'g'ri video havolasini joylashtiring", ru: 'Или вставьте прямую ссылку на видео', en: 'Or paste a direct video link' },
     createRoomNoMedia: { uz: 'Mediasiz xona yaratish', ru: 'Создать комнату без медиа', en: 'Create room without media' },
     nothingFound: { uz: 'Hech narsa topilmadi', ru: 'Ничего не найдено', en: 'Nothing found' },
+    searchingVideos: { uz: 'Videolar qidirilmoqda...', ru: 'Ищем видео...', en: 'Searching videos...' },
+    searchError: { uz: "Qidiruvda xato. Qayta urinib ko'ring.", ru: 'Ошибка поиска. Попробуйте ещё раз.', en: 'Search failed. Please try again.' },
+    sourcesLabel: { uz: 'Manbalar', ru: 'Источники', en: 'Sources' },
   },
 
   // ─── In-App Browser ───

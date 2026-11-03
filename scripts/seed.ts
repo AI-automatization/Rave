@@ -220,7 +220,10 @@ async function seed(): Promise<void> {
       console.log(`   ⏭  User profil mavjud: ${u.username}`);
       continue;
     }
+    // user service profilni findById(authUserId) bilan qidiradi (services/user profile.service.ts) —
+    // shuning uchun profil _id si auth ID bilan bir xil bo'lishi SHART (aks holda /users/me 404).
     await UserProfile.create({
+      _id: u.id,
       authId: u.id.toString(),
       email: u.email,
       username: u.username,

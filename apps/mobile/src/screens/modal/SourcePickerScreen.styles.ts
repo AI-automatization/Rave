@@ -41,6 +41,19 @@ export const s = StyleSheet.create({
     borderColor: 'rgba(229,9,20,0.3)', backgroundColor: 'rgba(229,9,20,0.06)',
   },
   createRoomText: { ...typography.body, color: colors.primary, fontWeight: '600' },
+  resultRow: {
+    flexDirection: 'row', gap: spacing.md, alignItems: 'center',
+    marginHorizontal: spacing.lg, marginBottom: spacing.md,
+  },
+  resultThumb: { width: 120, height: 68, borderRadius: borderRadius.md, backgroundColor: 'rgba(255,255,255,0.07)' },
+  resultInfo: { flex: 1, gap: 4 },
+  resultTitle: { ...typography.body, color: '#fff', fontWeight: '600' },
+  resultMeta: { ...typography.caption, color: '#9CA3AF' },
+  resultBadge: {
+    alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8,
+    backgroundColor: 'rgba(123,114,248,0.18)',
+  },
+  resultBadgeText: { ...typography.caption, color: '#A5A0FF', fontWeight: '700' },
   empty: {
     alignItems: 'center', justifyContent: 'center',
     paddingTop: spacing.xxxl * 2, gap: spacing.md,

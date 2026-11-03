@@ -110,6 +110,16 @@ export const chatStyles = StyleSheet.create({
     backgroundColor: '#111120',
     borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)',
   },
+  emojiSlot: {
+    paddingVertical: 8, alignItems: 'center',
+    backgroundColor: '#111120',
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)',
+  },
+  emojiBtn: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: '#1C1C2E', alignItems: 'center', justifyContent: 'center',
+  },
+  emojiBtnOn: { backgroundColor: 'rgba(123,114,248,0.22)' },
   input: {
     flex: 1, backgroundColor: '#1C1C2E',
     borderRadius: 22, paddingHorizontal: 16, paddingVertical: 10,

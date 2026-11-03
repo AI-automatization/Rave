@@ -88,8 +88,9 @@ export function VoiceStrip({ currentUserId, isJoined, isMuted, isLoading, errorM
       ) : (
         <View style={s.row}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.avatarScroll} contentContainerStyle={s.avatarScrollContent}>
-            {all.map((p) => (
-              <Avatar key={p.userId} p={p} isSelf={p.userId === currentUserId} isMuted={p.isMuted} />
+            {all.map((p, i) => (
+              // userId yagona emas: bir akkaunt ikki qurilmadan kirsa takrorlanadi ("two children with the same key")
+              <Avatar key={`${p.userId}-${i}`} p={p} isSelf={p.userId === currentUserId} isMuted={p.isMuted} />
             ))}
           </ScrollView>
           {isJoined && (

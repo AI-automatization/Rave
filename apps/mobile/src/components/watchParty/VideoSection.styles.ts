@@ -10,6 +10,7 @@ export const videoStyles = StyleSheet.create({
     backgroundColor: '#000',
     overflow: 'hidden',
   },
+  containerCompact: { height: 96 },
   containerFullscreen: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,

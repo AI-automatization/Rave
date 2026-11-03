@@ -2,6 +2,7 @@
 import { useState, useCallback } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { showAlert } from '@components/common/AppAlert';
+import { askRoomSetup } from '@components/common/RoomSetupModal';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { watchPartyApi, RoomAlreadyExistsError } from '@api/watchParty.api';
 import type { VideoSearchItem } from '@api/content.api';
@@ -17,7 +18,11 @@ export function useCreateWatchParty(onSuccess?: () => void) {
     if (creating) return;
     setCreating(true);
     try {
+      const setup = await askRoomSetup(item.title.slice(0, 50));
+      if (!setup) return;
       const room = await watchPartyApi.createRoom({
+        name:           setup.name,
+        isPrivate:      setup.isPrivate,
         videoUrl:       item.url,
         videoTitle:     item.title,
         videoThumbnail: item.thumbnail || undefined,

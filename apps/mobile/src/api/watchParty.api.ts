@@ -62,12 +62,20 @@ export const watchPartyApi = {
         const res = await watchPartyClient.post<ApiResponse<IWatchPartyRoom>>('/watch-party/rooms', data);
         return res.data.data!;
       } catch (err) {
-        const body = axios.isAxiosError(err) ? (err.response?.data as { code?: string; roomId?: string } | undefined) : undefined;
-        if (err && axios.isAxiosError(err) && err.response?.status === 409 && body?.code === 'ROOM_ALREADY_EXISTS' && body.roomId) {
+        // 409 javobi serverda ikki xil shaklda kelishi mumkin: `{ code, roomId }` yoki
+        // `{ message: 'ROOM_ALREADY_EXISTS', data: { roomId } }` (haqiqiy javob shu — lokal test
+        // 2026-10-06). Faqat birinchisi tekshirilgani uchun ilova mavjud xonaga o'tmasdi va
+        // foydalanuvchiga xom "ROOM_ALREADY_EXISTS" xatosi chiqardi.
+        const body = axios.isAxiosError(err)
+          ? (err.response?.data as { code?: string; roomId?: string; message?: string; data?: { roomId?: string } } | undefined)
+          : undefined;
+        const existingRoomId = body?.roomId ?? body?.data?.roomId;
+        const isRoomExists = body?.code === 'ROOM_ALREADY_EXISTS' || body?.message === 'ROOM_ALREADY_EXISTS';
+        if (err && axios.isAxiosError(err) && err.response?.status === 409 && isRoomExists && existingRoomId) {
           // Fetch the room so callers get the same shape they would from a successful create and
           // can navigate immediately. If THAT fails, fall through to the original error rather than
           // inventing a room object.
-          const existing = await this.getRoomById(body.roomId).catch(() => null);
+          const existing = await this.getRoomById(existingRoomId).catch(() => null);
           if (existing) throw new RoomAlreadyExistsError(existing);
         }
         const gotNoResponse = axios.isAxiosError(err) && !err.response;

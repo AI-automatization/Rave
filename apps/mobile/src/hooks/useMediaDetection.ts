@@ -23,6 +23,7 @@ import {
 } from '@utils/webViewScripts';
 import type { ModalStackParamList } from '@app-types/index';
 import { appAlert } from '@components/common/AppAlert';
+import { askRoomSetup } from '@components/common/RoomSetupModal';
 
 type Nav = NativeStackNavigationProp<ModalStackParamList>;
 type RouteType = RouteProp<ModalStackParamList, 'MediaWebView'>;
@@ -246,8 +247,10 @@ export function useMediaDetection() {
         navigation.navigate('WatchParty', { roomId: params.roomId });
         return;
       }
+      const setup = await askRoomSetup(effective.videoTitle.slice(0, 50));
+      if (!setup) return;
       const room = await watchPartyApi.createRoom({
-        name: effective.videoTitle.slice(0, 60), videoUrl: effective.videoUrl,
+        name: setup.name, isPrivate: setup.isPrivate, videoUrl: effective.videoUrl,
         videoTitle: effective.videoTitle, videoPlatform: effective.videoPlatform,
         videoReferer: effective.videoReferer,
       });

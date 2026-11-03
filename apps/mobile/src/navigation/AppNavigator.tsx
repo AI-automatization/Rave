@@ -18,6 +18,7 @@ import { usePushNotifications } from '@hooks/usePushNotifications';
 import { LanguageTransition } from '@components/common/LanguageTransition';
 import { BlockedAccountModal } from '@components/common/BlockedAccountModal';
 import { AppAlertHost } from '@components/common/AppAlert';
+import { RoomSetupHost } from '@components/common/RoomSetupModal';
 import { MaintenanceScreen } from '@components/common/MaintenanceScreen';
 import { UpdateRequiredScreen } from '@components/common/UpdateRequiredScreen';
 import { onAccountBlocked } from '@api/client';
@@ -387,6 +388,7 @@ export function AppNavigator() {
     </NavigationContainer>
 
     <AppAlertHost />
+    <RoomSetupHost />
 
     <BlockedAccountModal
       visible={blockedVisible}

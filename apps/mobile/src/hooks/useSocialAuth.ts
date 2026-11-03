@@ -10,7 +10,10 @@ import { authApi } from '@api/auth.api';
 import { useAuthStore } from '@store/auth.store';
 import { useT } from '@i18n/index';
 
-const GOOGLE_WEB_CLIENT_ID = '756077214118-top29idd8ialmj2njm9p6m0hk053fk50.apps.googleusercontent.com';
+// Overridable for local/dev builds that use their own OAuth project (must match the auth service's
+// GOOGLE_CLIENT_ID — it's the idToken audience); falls back to the production web client.
+const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
+  || '756077214118-top29idd8ialmj2njm9p6m0hk053fk50.apps.googleusercontent.com';
 // iOS OAuth client (bundle com.wewatch.app) — required for native Google Sign-In on iOS.
 const GOOGLE_IOS_CLIENT_ID = '756077214118-t309035asjucgjm96b365sp92n807ne1.apps.googleusercontent.com';
 const AUTH_BASE_URL = (process.env.EXPO_PUBLIC_AUTH_URL ?? '').replace('/api/v1', '');

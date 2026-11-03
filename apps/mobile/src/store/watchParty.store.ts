@@ -55,10 +55,13 @@ export const useWatchPartyStore = create<WatchPartyState>((set) => ({
   setRoom: (room) => set({ room }),
   setSyncState: (syncState) => set({ syncState }),
 
+  // Idempotent by id — live 2026-10-25 the same ROOM_MESSAGE (same server id) arrived twice after
+  // a room re-join, and the duplicate key broke ChatPanel ("Encountered two children with the
+  // same key").
   addMessage: (message) =>
-    set((state) => ({
-      messages: [...state.messages.slice(-99), message],
-    })),
+    set((state) => (state.messages.some((m) => m.id === message.id)
+      ? state
+      : { messages: [...state.messages.slice(-99), message] })),
 
   setActiveMembers: (members) => set({ activeMembers: members }),
 

@@ -29,6 +29,8 @@ interface VideoSectionProps {
   isOwner: boolean;
   isPlaying: boolean;
   isFullscreen: boolean;
+  /** Klaviatura ochiq paytida video past qatorga qisqaradi (chat uchun joy). */
+  compact?: boolean;
   videoIsLive: boolean;
   floatingEmojis: FloatingEmoji[];
   onPlay: (secs: number) => void;
@@ -65,13 +67,16 @@ interface VideoSectionProps {
    * both failed) — passed through so the screen can react (owner-only: auto-fall back to VB
    * instead of leaving everyone staring at a permanently broken player). */
   onFatalError?: () => void;
+  /** Room-wide speed; owner taps the badge to cycle 0.5→2x. */
+  roomRate?: number;
+  onCycleRate?: () => void;
 }
 
 const SHOW_MS = 3500; // controls visible duration after tap / mount
 
 export const VideoSection = React.memo(function VideoSection({
   playerRef, videoUrl, extractedUrl, videoReferer, videoHeaders, videoProxyUrl, isReady, isOwner, isPlaying,
-  isFullscreen, videoIsLive, floatingEmojis, onPlay, onPause, onSeek,
+  isFullscreen, compact = false, roomRate = 1, onCycleRate, videoIsLive, floatingEmojis, onPlay, onPause, onSeek,
   onPlaybackStatusUpdate, onStreamResolved, onProgress, onBuffering, onReady, onPlayPause, onStop,
   onSeekDirection, onToggleFullscreen, onRemoveEmoji,
   currentTime = 0, duration = 0, onProgressSeek, isWebView = false, isYouTubeEmbed = false, onCdnUrlSniffed,
@@ -152,7 +157,7 @@ export const VideoSection = React.memo(function VideoSection({
   const ctrlPointerEvents = ctrlVisible ? 'box-none' : 'none';
 
   return (
-    <View style={isFullscreen ? [s.container, s.containerFullscreen] : s.container}>
+    <View style={isFullscreen ? [s.container, s.containerFullscreen] : compact ? [s.container, s.containerCompact] : s.container}>
 
       {/* Video player */}
       {!isReady ? (
@@ -241,6 +246,11 @@ export const VideoSection = React.memo(function VideoSection({
         )}
 
         <View style={s.topRight}>
+          {(isOwnerMode || roomRate !== 1) && (
+            <TrackedTouchable trackId="watchparty:rate" style={s.topIconBtn} onPress={isOwnerMode ? onCycleRate : undefined} disabled={!isOwnerMode}>
+              <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: '700' }}>{`${roomRate}x`}</Text>
+            </TrackedTouchable>
+          )}
           {isOwnerMode && (
             <TrackedTouchable trackId="watchparty:stop" style={s.topIconBtn} onPress={onStop}>
               <Ionicons name="stop" size={14} color="rgba(255,255,255,0.82)" />
@@ -296,7 +306,7 @@ export const VideoSection = React.memo(function VideoSection({
       )}
 
       {/* Bottom bar: progress (hidden in fullscreen — rendered in WatchPartyScreen overlay) */}
-      {showProgress && !isFullscreen && (
+      {showProgress && !isFullscreen && !compact && (
         <Animated.View
           style={[s.bottomBar, { opacity: ctrlOpacity }]}
           pointerEvents={ctrlPointerEvents}

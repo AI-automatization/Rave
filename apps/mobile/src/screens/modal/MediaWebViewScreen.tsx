@@ -5,6 +5,7 @@ import {
   View, Text, ActivityIndicator,
   StyleSheet, Animated,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import WebView from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,6 +26,7 @@ function extractDomain(url: string): string {
 
 export function MediaWebViewScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const { t } = useT();
   const [blockedDomain, setBlockedDomain] = useState<string | null>(null);
   const [currentUrl, setCurrentUrl] = useState('');
@@ -73,7 +75,7 @@ export function MediaWebViewScreen() {
         {/* Close */}
         <TrackedTouchable
           trackId="browser:close"
-          onPress={() => webViewRef.current?.stopLoading()}
+          onPress={() => { webViewRef.current?.stopLoading(); if (navigation.canGoBack()) navigation.goBack(); }}
           style={s.iconBtn}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >

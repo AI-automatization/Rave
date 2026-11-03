@@ -27,7 +27,7 @@ interface Props {
   /** Page VB is showing is a bot-challenge wall — mirrors web's VirtualBrowserPlayer.tsx. Needs to
    * show ON TOP of a live, still-streaming frame (Twitch/Rutube keep sending screencast frames of
    * the challenge page itself, which without this just reads as the stream flickering/stuck). */
-  blocked: 'cloudflare' | 'recaptcha' | null;
+  blocked: 'cloudflare' | 'recaptcha' | 'geo' | null;
   stop: () => void;
   sendInput: (input: VBInput) => void;
   /** Owner-only escape hatch out of a blocked session — opens the same "Это не то видео" picker. */

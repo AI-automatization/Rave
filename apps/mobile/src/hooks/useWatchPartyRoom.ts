@@ -2,6 +2,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { Dimensions, Platform, AppState, BackHandler } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { PlaybackStatus } from '@app-types/index';
 import { useWatchParty } from '@hooks/useWatchParty';
@@ -17,6 +18,7 @@ import { VB_ENABLED } from '@constants/features';
 import { disconnectSocket, getSocket, CLIENT_EVENTS } from '@socket/client';
 import { UniversalPlayerRef, detectVideoPlatform, detectEmbedPlatform } from '@components/video/UniversalPlayer';
 import type { FloatingEmoji } from '@components/watchParty/VideoSection';
+import { fetchHlsQualities } from '@utils/videoPlayer';
 import type { QualityOption } from '@components/watchParty/QualityMenu';
 import type { Episode } from '@components/watchParty/EpisodeMenu';
 import { ModalStackParamList, VideoCandidate } from '@app-types/index';
@@ -59,6 +61,11 @@ const MAX_COMPENSATION_SECS = 30;
 // On play/pause, skip the hard seekTo if the player is already this close to the target — a seek
 // flushes ExoPlayer's HLS buffer (1-2s re-buffer). Small residual gaps are closed by drift micro-sync.
 const SEEK_SKIP_THRESHOLD_MS = 1000;
+const ROOM_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
+// Seek gate readiness polling (see the SEEK_WAIT effect).
+const SEEK_READY_POLL_MS = 200;
+const SEEK_READY_TOLERANCE_SECS = 1.5;
+const SEEK_READY_MAX_WAIT_MS = 12_000;
 
 // T-E101: Buffer event debounce — 2000ms so brief HLS segment-loading stalls (normal ExoPlayer
 // behaviour, typically <1s) don't trigger democratic pause for all viewers.
@@ -78,8 +85,8 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const selfUsername = useAuthStore(s => s.user?.username);
   const { t } = useT();
 
-  const { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction, reactionCooldownSec, activeTransport, getTransportSnapshot,
-    candidates, requestCandidates, emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji } = useWatchParty(roomId);
+  const { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, seekWait, lastReaction, reactionCooldownSec, activeTransport, getTransportSnapshot,
+    candidates, requestCandidates, roomRate, emitRate, roomQuality, emitQuality, emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji } = useWatchParty(roomId);
   const { isExtracting, result: extractResult, fallbackMode: extractFallback, error: extractionError, extract, reset: resetExtraction } = useVideoExtraction();
 
   const playerRef = useRef<UniversalPlayerRef>(null);
@@ -126,6 +133,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const skipAccumSecsRef = useRef(0);
   const skipTargetSecsRef = useRef(0);
   const skipBurstTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const roomRateRef = useRef(1.0); // owner-chosen room speed (mirrors roomRate state)
   const currentRateRef = useRef(1.0); // tracks active playback rate (micro-sync may change it)
   const heartbeatRef = useRef(heartbeat); // latest heartbeat — read in AppState callback without adding to deps
   heartbeatRef.current = heartbeat;
@@ -185,6 +193,10 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const [extractQualities, setExtractQualities] = useState<QualityOption[]>([]);
   const [extractEpisodes, setExtractEpisodes] = useState<Episode[]>([]);
   const [currentVideoUrl, setCurrentVideoUrl] = useState('');
+  // Per-viewer HLS quality (2026-11-02): read from the master playlist on this phone; picking one
+  // swaps only THIS player's source (no room reload) and resumes from the current position.
+  const [localQualities, setLocalQualities] = useState<QualityOption[]>([]);
+  const [qualityOverride, setQualityOverride] = useState<string | null>(null);
 
   const setWatchPartyOpen = useWatchPartyStore((s) => s.setWatchPartyOpen);
   useEffect(() => { setWatchPartyOpen(true); return () => setWatchPartyOpen(false); }, [setWatchPartyOpen]);
@@ -205,6 +217,19 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     void extractFnRef.current(rawUrl);
     return () => { extractStartedRef.current = false; resetExtractionFnRef.current(); };
   }, [room?.videoUrl]); // extract/resetExtraction excluded via refs to prevent re-trigger on token refresh
+
+  useEffect(() => {
+    setQualityOverride(null);
+    setLocalQualities([]);
+    if (!extractResult || extractResult.type !== 'hls' || !extractResult.videoUrl || extractResult.qualities?.length) return;
+    let cancelled = false;
+    const master = extractResult.videoUrl;
+    void fetchHlsQualities(master, extractResult.httpHeaders).then((list) => {
+      if (cancelled || list.length < 2) return;
+      setLocalQualities([{ label: t('watchParty', 'qualityAuto'), url: master }, ...list]);
+    });
+    return () => { cancelled = true; };
+  }, [extractResult]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!extractResult) return;
@@ -300,7 +325,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       // Player not mounted yet — sync will be re-attempted via pendingSyncRef when ready.
       if (!playerRef.current) { isSyncing.current = false; return; }
       // Reset micro-sync rate before hard seek — rate correction must not fight against the seek
-      if (currentRateRef.current !== 1.0) { currentRateRef.current = 1.0; playerRef.current.setRate(1.0); }
+      if (currentRateRef.current !== roomRateRef.current) { currentRateRef.current = roomRateRef.current; playerRef.current.setRate(roomRateRef.current); }
       lastExecutedSyncRef.current = { currentTime: syncState.currentTime, isPlaying: syncState.isPlaying, serverTimestamp: syncState.serverTimestamp };
       startSuppressBuffer();
       // Suppress drift correction for 8s after each sync — ExoPlayer HLS proxy needs
@@ -386,7 +411,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     // (negative elapsed) or far in the past → without this clamp the skew becomes a phantom
     // multi-second drift and fires a spurious macro-seek every heartbeat (F2).
     const sinceHeartbeatSecs = Math.min(MAX_HEARTBEAT_EXTRAPOLATION_MS, Math.max(0, Date.now() - heartbeat.timestamp)) / 1000;
-    const expected = heartbeat.currentTime + sinceHeartbeatSecs;
+    const expected = heartbeat.currentTime + sinceHeartbeatSecs * roomRateRef.current;
     const drift = videoCurrentTimeRef.current - expected; // positive = ahead of owner, negative = behind
     const absDrift = Math.abs(drift);
 
@@ -394,7 +419,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       // Macro sync — reset micro-sync rate first, then hard seek
       macroSeekCountRef.current += 1;
       recordDrift(absDrift * 1000);
-      if (currentRateRef.current !== 1.0) { currentRateRef.current = 1.0; playerRef.current?.setRate(1.0); }
+      if (currentRateRef.current !== roomRateRef.current) { currentRateRef.current = roomRateRef.current; playerRef.current?.setRate(roomRateRef.current); }
       suppressBufferRef.current = true;
       if (suppressBufferTimerRef.current) clearTimeout(suppressBufferTimerRef.current);
       suppressBufferTimerRef.current = setTimeout(() => { suppressBufferRef.current = false; suppressBufferTimerRef.current = null; }, 5000);
@@ -414,17 +439,17 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       // behind (drift < 0): speed up; ahead (drift > 0): slow down.
       const fraction = (absDrift - DRIFT_MICRO_RATE_SECS) / (DRIFT_MACRO_SEEK_SECS - DRIFT_MICRO_RATE_SECS);
       const rateOffset = fraction * DRIFT_RATE_MAX;
-      const targetRate = parseFloat((drift < 0 ? 1.0 + rateOffset : 1.0 - rateOffset).toFixed(3));
+      const targetRate = parseFloat((roomRateRef.current * (drift < 0 ? 1.0 + rateOffset : 1.0 - rateOffset)).toFixed(3));
       if (Math.abs(targetRate - currentRateRef.current) > 0.01) {
         currentRateRef.current = targetRate;
         playerRef.current?.setRate(targetRate);
         microAdjustCountRef.current += 1;
         recordDrift(absDrift * 1000);
       }
-    } else if (currentRateRef.current !== 1.0) {
-      // Within sync threshold — restore normal speed
-      currentRateRef.current = 1.0;
-      playerRef.current?.setRate(1.0);
+    } else if (currentRateRef.current !== roomRateRef.current) {
+      // Within sync threshold — restore the room speed
+      currentRateRef.current = roomRateRef.current;
+      playerRef.current?.setRate(roomRateRef.current);
     }
   }, [heartbeat, isOwner, isPlaying]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -457,13 +482,86 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     }, BUFFER_DEBOUNCE_MS);
   }, [roomId]);
 
+  // Seek gate (SEEK_WAIT) — the owner seeked while playing; the server holds everyone paused at
+  // the target until each member has it loaded. Owner: hold paused (it ignores syncState after the
+  // initial join, so it must be told directly). Member on the waiting list: go to the target,
+  // pause, then report SEEK_READY. Release: everyone restarts from the same server timestamp —
+  // driven by this event rather than VIDEO_PLAY, which mesh-fresh members skip on the socket path.
+  const handledSeekWaitSeqRef = useRef(0);
+  // Raw player buffering state (onPlaybackStatusUpdate / WebView callback), unlike isBufferingRef
+  // which only tracks what was last reported to the server.
+  const statusBufferingRef = useRef(false);
+  useEffect(() => {
+    if (!seekWait || seekWait.seq === handledSeekWaitSeqRef.current) return;
+    handledSeekWaitSeqRef.current = seekWait.seq;
+    const player = playerRef.current;
+    if (!player || seekWait.currentTime === undefined) return;
+    const targetSecs = seekWait.currentTime;
+    const amWaiting = seekWait.waiting.includes(userId);
+    if (!seekWait.release && !amWaiting && !isOwner) return; // someone else's gate, not ours to hold
+
+    isSyncing.current = true;
+    suppressBufferRef.current = true;
+    if (suppressBufferTimerRef.current) clearTimeout(suppressBufferTimerRef.current);
+    suppressBufferTimerRef.current = setTimeout(() => { suppressBufferRef.current = false; suppressBufferTimerRef.current = null; }, 5000);
+    suppressDriftRef.current = true;
+    if (suppressDriftTimerRef.current) clearTimeout(suppressDriftTimerRef.current);
+    suppressDriftTimerRef.current = setTimeout(() => { suppressDriftRef.current = false; suppressDriftTimerRef.current = null; }, 8000);
+    if (currentRateRef.current !== roomRateRef.current) { currentRateRef.current = roomRateRef.current; player.setRate(roomRateRef.current); }
+
+    if (seekWait.release) {
+      const elapsed = seekWait.serverTimestamp !== undefined
+        ? Math.min(MAX_COMPENSATION_SECS, Math.max(0, (Date.now() - seekWait.serverTimestamp) / 1000))
+        : 0;
+      const targetMs = (targetSecs + elapsed) * 1000;
+      intendedPlayingRef.current = true;
+      Promise.resolve(player.getPositionMs())
+        .then((curMs) => (Math.abs((curMs ?? targetMs) - targetMs) > SEEK_SKIP_THRESHOLD_MS ? player.seekTo(targetMs) : undefined))
+        .then(() => playerRef.current?.play())
+        .catch((e: unknown) => { syncErrorsRef.current.push(`seekGateRelease: ${String(e)}`); })
+        .finally(() => scheduleSyncRelease(400));
+      return;
+    }
+
+    intendedPlayingRef.current = false;
+    if (isOwner) {
+      Promise.resolve(player.pause()).catch(() => {}).finally(() => scheduleSyncRelease(400));
+      return;
+    }
+    // seekTo resolves before the player has the new position (expo-video sets currentTime, the
+    // WebView bridge is fire-and-forget) — poll until it sits at the target and has stopped
+    // buffering for two ticks in a row. The server releases the gate on its own after 15s anyway.
+    const waitUntilLoaded = () => new Promise<void>((resolve) => {
+      let steady = 0;
+      const startedAt = Date.now();
+      const tick = () => {
+        Promise.resolve(playerRef.current?.getPositionMs())
+          .then((posMs) => {
+            const atTarget = posMs !== undefined && Math.abs(posMs / 1000 - targetSecs) < SEEK_READY_TOLERANCE_SECS;
+            steady = atTarget && !statusBufferingRef.current ? steady + 1 : 0;
+            if (steady >= 2 || Date.now() - startedAt > SEEK_READY_MAX_WAIT_MS) resolve();
+            else setTimeout(tick, SEEK_READY_POLL_MS);
+          })
+          .catch(() => resolve());
+      };
+      setTimeout(tick, SEEK_READY_POLL_MS);
+    });
+    Promise.resolve(player.pause())
+      .then(() => player.seekTo(targetSecs * 1000))
+      .then(waitUntilLoaded)
+      .then(() => { getSocket()?.emit(CLIENT_EVENTS.SEEK_READY, { roomId }); })
+      .catch((e: unknown) => { syncErrorsRef.current.push(`seekGateHold: ${String(e)}`); })
+      .finally(() => scheduleSyncRelease(400));
+  }, [seekWait, userId, isOwner, roomId, scheduleSyncRelease]);
+  const seekWaitingFriend = isOwner && !!seekWait && !seekWait.release && seekWait.waiting.length > 0;
+
   // Cleanup timers on unmount; restore rate in case micro-sync left it non-1.0
   useEffect(() => () => {
     if (bufferDebounceRef.current) clearTimeout(bufferDebounceRef.current);
     if (suppressBufferTimerRef.current) clearTimeout(suppressBufferTimerRef.current);
     if (suppressDriftTimerRef.current) clearTimeout(suppressDriftTimerRef.current);
     if (skipBurstTimerRef.current) clearTimeout(skipBurstTimerRef.current);
-    if (currentRateRef.current !== 1.0) { currentRateRef.current = 1.0; playerRef.current?.setRate(1.0); }
+    if (currentRateRef.current !== roomRateRef.current) { currentRateRef.current = roomRateRef.current; playerRef.current?.setRate(roomRateRef.current); }
   }, []);
 
   // Android: re-sync when app comes back to foreground (background → active).
@@ -481,7 +579,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       // Cap at 120s: beyond 2min the video has likely been paused by owner anyway
       const compensationSecs = intendedPlayingRef.current ? Math.min(120, Math.max(0, elapsed)) : 0;
       const targetSecs = hb.currentTime + compensationSecs;
-      if (currentRateRef.current !== 1.0) { currentRateRef.current = 1.0; playerRef.current.setRate(1.0); }
+      if (currentRateRef.current !== roomRateRef.current) { currentRateRef.current = roomRateRef.current; playerRef.current.setRate(roomRateRef.current); }
       isSyncing.current = true;
       suppressBufferRef.current = true;
       if (suppressBufferTimerRef.current) clearTimeout(suppressBufferTimerRef.current);
@@ -502,6 +600,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   const onPlaybackStatusUpdate = useCallback((status: PlaybackStatus) => {
     if (!status.isLoaded) return;
+    if (status.isBuffering !== undefined) statusBufferingRef.current = status.isBuffering;
     if (!isSyncing.current) { setIsPlaying(status.isPlaying); intendedPlayingRef.current = status.isPlaying; }
     setVideoCurrentTime(status.positionMillis / 1000);
     if (status.durationMillis) setVideoDuration(status.durationMillis / 1000);
@@ -530,7 +629,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     emitPause(secs);
   }, [isOwner, emitPause]);
   // T-E101: WebView buffering callback
-  const handleWebViewBuffering = useCallback((isBuffering: boolean) => { emitBufferState(isBuffering); }, [emitBufferState]);
+  const handleWebViewBuffering = useCallback((isBuffering: boolean) => { statusBufferingRef.current = isBuffering; emitBufferState(isBuffering); }, [emitBufferState]);
   const handleWebViewSeek = useCallback((secs: number) => { if (isOwner && !isSyncing.current) emitSeek(secs); }, [isOwner, emitSeek]);
   // isSyncing guard: while a manual/drift seek is in flight, the WebView's own position-poll
   // (or a stale 'timeupdate' from the page's currentTime getter, which some adapters don't update
@@ -646,6 +745,27 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     setCurrentVideoUrl(option.url);
   }, [isOwner, room, roomId]);
 
+  // Owner picks → whole room (see roomQuality effect below); members can't pick.
+  const handleLocalQualitySelect = useCallback((option: QualityOption) => {
+    if (!isOwner) return;
+    emitQuality(option.url === localQualities[0]?.url ? 'auto' : option.label);
+  }, [isOwner, localQualities, emitQuality]);
+
+  // Apply the room's quality label to THIS player: pick our own variant with that height (or the
+  // closest lower one), swap the source, and resume from the current position.
+  useEffect(() => {
+    if (localQualities.length < 2) return;
+    let target: string | null = null;
+    if (roomQuality !== 'auto') {
+      const h = parseInt(roomQuality, 10);
+      target = localQualities.slice(1).find((q) => parseInt(q.label, 10) <= h)?.url ?? localQualities[localQualities.length - 1].url;
+    }
+    if (target === qualityOverride) return;
+    lastExecutedSyncRef.current = { currentTime: videoCurrentTimeRef.current, isPlaying: intendedPlayingRef.current, serverTimestamp: Date.now() };
+    playerReadyRef.current = false;
+    setQualityOverride(target);
+  }, [roomQuality, localQualities]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleEpisodeSelect = useCallback((episode: Episode) => {
     if (!isOwner || !room) return;
     getSocket()?.emit(CLIENT_EVENTS.CHANGE_MEDIA, { roomId, videoUrl: episode.url, videoTitle: episode.title, videoPlatform: room.videoPlatform ?? 'direct' });
@@ -701,6 +821,8 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     try { await watchPartyApi.playNext(roomId); } catch {}
   }, [isOwner, roomId]);
 
+  const queryClient = useQueryClient();
+
   const handleLeave = useCallback(() => {
     appAlert('Chiqish', 'Watch Party dan chiqmoqchimisiz?', [
       { text: 'Bekor', style: 'cancel' },
@@ -722,10 +844,15 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
         });
         try { if (isOwner) await watchPartyApi.closeRoom(roomId); else await watchPartyApi.leaveRoom(roomId); } catch {}
         disconnectSocket();
+        // Room lists (mine/recent/public) are cached up to 10s+ — without this the room we just
+        // left/closed stayed on the home screen until the next poll.
+        void queryClient.invalidateQueries({
+          predicate: (q) => typeof q.queryKey[0] === 'string' && q.queryKey[0].startsWith('watch-party-rooms'),
+        });
         navigation.goBack();
       }},
     ]);
-  }, [isOwner, roomId, navigation, userId, activeMembers.length, getTransportSnapshot]);
+  }, [isOwner, roomId, navigation, userId, activeMembers.length, getTransportSnapshot, queryClient]);
 
   // ModalNavigator sets gestureEnabled: false for this screen, but that only blocks iOS's
   // edge-swipe — Android's hardware/gesture back button still pops the screen by default.
@@ -746,7 +873,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   // Video URL computation
   const originalVideoUrl = room?.videoUrl ?? '';
   const accessToken = useAuthStore(s => s.accessToken);
-  const rawExtractedUrl = (!extractFallback && extractResult?.videoUrl) ? extractResult.videoUrl : undefined;
+  const rawExtractedUrl = (!extractFallback && extractResult?.videoUrl) ? (qualityOverride ?? extractResult.videoUrl) : undefined;
   const iosWebmBlocked = !!(rawExtractedUrl && Platform.OS === 'ios' && /\.webm(\?|#|$)/i.test(rawExtractedUrl));
   const extractedVideoUrl = iosWebmBlocked ? undefined : rawExtractedUrl;
 
@@ -878,6 +1005,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   // fallback re-sync) — with elapsed-time compensation in both cases.
   const handlePlayerReady = useCallback(() => {
     playerReadyRef.current = true;
+    if (currentRateRef.current !== roomRateRef.current) { currentRateRef.current = roomRateRef.current; playerRef.current?.setRate(roomRateRef.current); }
     // Pending sync (deferred because player wasn't ready yet) takes priority.
     // Fall back to lastExecutedSyncRef so proxy-fallback re-loads re-sync to the correct position
     // instead of starting from 0 (which leaves isPlaying=false → drift correction never fires).
@@ -888,7 +1016,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     isSyncing.current = true;
     intendedPlayingRef.current = syncToExecute.isPlaying; // needed so drift/buffer guards work correctly
     // Reset micro-sync rate before the initial seek
-    if (currentRateRef.current !== 1.0) { currentRateRef.current = 1.0; playerRef.current?.setRate(1.0); }
+    if (currentRateRef.current !== roomRateRef.current) { currentRateRef.current = roomRateRef.current; playerRef.current?.setRate(roomRateRef.current); }
     suppressBufferRef.current = true;
     if (suppressBufferTimerRef.current) clearTimeout(suppressBufferTimerRef.current);
     suppressBufferTimerRef.current = setTimeout(() => { suppressBufferRef.current = false; suppressBufferTimerRef.current = null; }, 5000);
@@ -917,11 +1045,23 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     isVkRutubeEmbedRef.current = false;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Room-wide speed (owner picks, everyone applies). Micro-sync steers around roomRateRef.
+  useEffect(() => {
+    roomRateRef.current = roomRate;
+    if (currentRateRef.current !== roomRate) { currentRateRef.current = roomRate; playerRef.current?.setRate(roomRate); }
+  }, [roomRate]);
+  const handleCycleRate = useCallback(() => {
+    const i = ROOM_RATES.indexOf(roomRateRef.current);
+    emitRate(ROOM_RATES[(i + 1) % ROOM_RATES.length]);
+  }, [emitRate]);
+
   return {
+    roomRate, handleCycleRate,
     playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout, activeTransport,
     isExtracting, extractResult, extractionError, extractFallback, showChat, showInvite, isPlaying, isFullscreen,
     videoIsLive, videoCurrentTime, videoDuration, pendingSkipSecs, floatingEmojis, reactionCooldownSec, showQualityMenu, showEpisodeMenu,
-    extractQualities, extractEpisodes, currentVideoUrl, bufferingUsers,
+    extractQualities: extractQualities.length ? extractQualities : localQualities, extractEpisodes,
+    currentVideoUrl: extractQualities.length ? currentVideoUrl : (qualityOverride ?? localQualities[0]?.url ?? ''), bufferingUsers, seekWaitingFriend,
     originalVideoUrl, extractedVideoUrl: playerExtractedUrl, extractedVideoHeaders, extractedVideoProxyUrl: playerProxyUrl, isWebViewMode, isYouTubeWebViewMode,
     setShowChat, setShowInvite, setShowQualityMenu, setShowEpisodeMenu, setVideoIsLive,
     sendMessage, sendEmoji,
@@ -929,7 +1069,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     handleWebViewBuffering, handleProgress, handleProgressSeek, handlePlayPause, handleStop,
     handleToggleFullscreen: useCallback(() => setIsFullscreen(v => !v), []),
     handleSeekDirection, handleEmojiSelect, handleRemoveEmoji,
-    handleChangeMedia, handleQualitySelect, handleEpisodeSelect, handleLeave, handlePlayerReady,
+    handleChangeMedia, handleQualitySelect: extractQualities.length ? handleQualitySelect : handleLocalQualitySelect, handleEpisodeSelect, handleLeave, handlePlayerReady,
     handleCdnUrlSniffed,
     playlist, handleAddToQueue, handlePlaylistRemove, handlePlaylistNext,
     candidates, showCandidatePicker, setShowCandidatePicker, handleOpenCandidatePicker, handleCandidateSelect,

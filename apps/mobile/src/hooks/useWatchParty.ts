@@ -18,6 +18,14 @@ const MESH_SCHEDULE_AHEAD_MS = 150;
 // (owner not on mesh / connection dropped), the member falls back to socket.
 const MESH_FRESH_MS = 6000;
 // Re-run the socket clock-offset burst this often so a long session doesn't accumulate skew.
+export interface SeekWaitState {
+  seq: number;
+  waiting: string[];
+  currentTime?: number;
+  release: boolean;
+  serverTimestamp?: number;
+}
+
 const CLOCK_RESYNC_INTERVAL_MS = 90 * 1000;
 
 interface MemberEvent {
@@ -46,6 +54,8 @@ export interface RoomClosedData {
 export interface HeartbeatData {
   currentTime: number; // owner video position (seconds)
   timestamp: number;   // owner Date.now() when sent
+  playbackRate?: number; // room-wide speed (server adds it to every heartbeat)
+  quality?: string;      // room-wide HLS quality label ('auto' | '720p')
 }
 
 // T-E106: Reaction broadcast from any room member
@@ -74,7 +84,12 @@ export function useWatchParty(roomId: string) {
   const [adminMonitoring, setAdminMonitoring] = useState(false);
   const [roomClosed, setRoomClosed] = useState<RoomClosedData | null>(null);
   const [heartbeat, setHeartbeat] = useState<HeartbeatData | null>(null);
+  const [roomRate, setRoomRate] = useState(1);
+  const [roomQuality, setRoomQuality] = useState('auto');
   const [bufferingUsers, setBufferingUsers] = useState<Set<string>>(new Set());
+  // Seek gate (SEEK_WAIT, services/watch-party videoEvents.handler.ts). `seq` makes every event a
+  // new object so the room hook reacts even to an identical repeat; serverTimestamp is local-clock.
+  const [seekWait, setSeekWait] = useState<SeekWaitState | null>(null);
   const [lastReaction, setLastReaction] = useState<ReactionBroadcast | null>(null);
   // Owner-only video-candidate picker (T-S190) — null = not requested yet / awaiting server
   // response (Redis lookup, fast but async), [] = server answered with none found. requestCandidates
@@ -248,11 +263,25 @@ export function useWatchParty(roomId: string) {
 
     // T-E099: Heartbeat listener — separate from syncState (no seekTo trigger).
     // Skipped while mesh is fresh: the mesh heartbeat (faster, clock-corrected) is the source.
+    socket.on(SERVER_EVENTS.VIDEO_RATE, (d: { rate: number }) => { if (typeof d?.rate === 'number') setRoomRate(d.rate); });
+    socket.on(SERVER_EVENTS.VIDEO_QUALITY, (d: { quality: string }) => { if (typeof d?.quality === 'string') setRoomQuality(d.quality); });
     socket.on(VIDEO_HEARTBEAT_EVENT, (data: HeartbeatData) => {
+      if (typeof data.quality === 'string') setRoomQuality(data.quality);
+      if (typeof data.playbackRate === 'number') setRoomRate(data.playbackRate); // late joiners / missed event
       if (!meshFresh()) {
         setTransport('socket');
         setHeartbeat({ currentTime: data.currentTime, timestamp: data.timestamp - serverClockOffsetRef.current });
       }
+    });
+
+    socket.on(SERVER_EVENTS.SEEK_WAIT, (data: { waiting: string[]; currentTime?: number; release?: boolean; serverTimestamp?: number }) => {
+      setSeekWait((prev) => ({
+        seq: (prev?.seq ?? 0) + 1,
+        waiting: data.waiting ?? [],
+        currentTime: data.currentTime,
+        release: data.release === true,
+        serverTimestamp: data.serverTimestamp !== undefined ? data.serverTimestamp - serverClockOffsetRef.current : undefined,
+      }));
     });
 
     // T-E101: Buffer event — track who is buffering
@@ -316,12 +345,15 @@ export function useWatchParty(roomId: string) {
       socket.off(SERVER_EVENTS.VIDEO_PAUSE);
       socket.off(SERVER_EVENTS.VIDEO_SEEK);
       socket.off(SERVER_EVENTS.VIDEO_BUFFER);
+      socket.off(SERVER_EVENTS.SEEK_WAIT);
       socket.off(SERVER_EVENTS.ROOM_MESSAGE);
       socket.off(SERVER_EVENTS.MEMBER_JOINED);
       socket.off(SERVER_EVENTS.MEMBER_LEFT);
       socket.off(SERVER_EVENTS.ROOM_CLOSED);
       socket.off(SERVER_EVENTS.ERROR);
       socket.off(VIDEO_HEARTBEAT_EVENT);
+      socket.off(SERVER_EVENTS.VIDEO_RATE);
+      socket.off(SERVER_EVENTS.VIDEO_QUALITY);
       socket.off(SERVER_EVENTS.PLAYLIST_UPDATED);
       socket.off(SERVER_EVENTS.REACTION_BROADCAST);
       socket.off(SERVER_EVENTS.REACTION_COOLDOWN);
@@ -421,6 +453,16 @@ export function useWatchParty(roomId: string) {
     [roomId],
   );
 
+  const emitRate = useCallback((rate: number) => {
+    setRoomRate(rate);
+    getSocket()?.emit(CLIENT_EVENTS.SET_RATE, { roomId, rate });
+  }, [roomId]);
+
+  const emitQuality = useCallback((quality: string) => {
+    setRoomQuality(quality);
+    getSocket()?.emit(CLIENT_EVENTS.SET_QUALITY, { roomId, quality });
+  }, [roomId]);
+
   // Heartbeat goes over BOTH paths: socket keeps the server's Redis position fresh
   // (late-join seed + admin monitoring), mesh delivers the fast clock-corrected copy.
   const emitHeartbeat = useCallback(
@@ -479,5 +521,5 @@ export function useWatchParty(roomId: string) {
     getSocket()?.emit(CLIENT_EVENTS.VOICE_LEAVE);
   }, []);
 
-  return { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction, reactionCooldownSec, activeTransport, getTransportSnapshot, candidates, requestCandidates, emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji, emitMediaChange, emitVoiceJoin, emitVoiceLeave };
+  return { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, seekWait, roomRate, emitRate, roomQuality, emitQuality, lastReaction, reactionCooldownSec, activeTransport, getTransportSnapshot, candidates, requestCandidates, emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji, emitMediaChange, emitVoiceJoin, emitVoiceLeave };
 }

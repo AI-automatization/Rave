@@ -50,7 +50,7 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
   // surfaced so the owner can pick a different source instead of staring at a stuck screencast
   // (Twitch/Rutube live report 2026-08-28: room looked "flickering"/stuck with no way out — this
   // was already fixed on web, apps/app-web/src/hooks/use-virtual-browser.ts, never ported here).
-  const [blocked, setBlocked] = useState<'cloudflare' | 'recaptcha' | null>(null);
+  const [blocked, setBlocked] = useState<'cloudflare' | 'recaptcha' | 'geo' | null>(null);
   const onCandidateNeedsConfirmationRef = useRef(onCandidateNeedsConfirmation);
   onCandidateNeedsConfirmationRef.current = onCandidateNeedsConfirmation;
 
@@ -92,7 +92,7 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
       }
     };
     const onError = (data: { message: string }) => setError(data.message);
-    const onBlocked = (data: { reason: 'cloudflare' | 'recaptcha' }) => setBlocked(data.reason);
+    const onBlocked = (data: { reason: 'cloudflare' | 'recaptcha' | 'geo' }) => setBlocked(data.reason);
 
     // Catch-up: ROOM_JOINED carries a `vb` snapshot (services/watch-party getSessionSnapshot)
     // for whoever joins/reconnects AFTER the owner already started a session — the one-shot

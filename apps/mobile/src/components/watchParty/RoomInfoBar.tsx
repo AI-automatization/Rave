@@ -3,6 +3,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
+import { useT } from '@i18n/index';
 
 interface RoomInfoBarProps {
   roomName: string;
@@ -48,6 +49,7 @@ export const RoomInfoBar = React.memo(function RoomInfoBar({
   onToggleMute,
   onLeave,
 }: RoomInfoBarProps) {
+  const { t } = useT();
   const transport = activeTransport ? TRANSPORT_META[activeTransport] : null;
   return (
     <View style={s.container}>
@@ -104,8 +106,10 @@ export const RoomInfoBar = React.memo(function RoomInfoBar({
           />
         </TrackedTouchable>
 
-        <TrackedTouchable trackId="roombar:leave" onPress={onLeave} style={[s.actionBtn, s.leaveBtn]} activeOpacity={0.7}>
+        {/* Faqat belgi emas, yozuv ham: "xonadan chiqish tugmasini topa olmadim" (Abdulaziz, 2026-10-06) */}
+        <TrackedTouchable trackId="roombar:leave" onPress={onLeave} style={[s.actionBtn, s.leaveBtn]} activeOpacity={0.7} accessibilityLabel={t('watchParty', 'leave')}>
           <Ionicons name="exit-outline" size={19} color="#F87171" />
+          <Text style={s.leaveText}>{t('watchParty', 'leave')}</Text>
         </TrackedTouchable>
       </View>
     </View>
@@ -197,7 +201,12 @@ const s = StyleSheet.create({
   leaveBtn: {
     backgroundColor: 'rgba(248,113,113,0.10)',
     marginLeft: 2,
+    width: 'auto',
+    flexDirection: 'row',
+    paddingHorizontal: 10,
+    gap: 4,
   },
+  leaveText: { color: '#F87171', fontSize: 12, fontWeight: '600' },
 
   actionBtnMicLive: {
     backgroundColor: 'rgba(74,222,128,0.14)',

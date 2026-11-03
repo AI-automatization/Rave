@@ -20,7 +20,7 @@ import { bindEmailBannerStorage } from '@utils/storage';
 import { ProfileHeader } from '@components/profile/ProfileHeader';
 import { ProfileEmptyState } from '@components/profile/ProfileEmptyState';
 import { ProfileEditModal } from '@components/profile/ProfileEditModal';
-import { NavItem, ComingSoonItem, SectionHeader } from '@components/profile/ProfileWidgets';
+import { NavItem, SectionHeader } from '@components/profile/ProfileWidgets';
 import { appAlert } from '@components/common/AppAlert';
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'Profile'>;
@@ -165,31 +165,6 @@ export function ProfileScreen() {
         <View style={s.section}>
           <SectionHeader label={t('profile', 'activity')} />
           <NavItem trackId="profile:watch_history" icon="time-outline" label={t('profile', 'watchHistory')} onPress={() => navigation.navigate('WatchHistory')} delay={450} />
-        </View>
-
-        {/* Subscriptions & Purchases — "Подписки" stays a web-only placeholder (no such
-            concept to manage on mobile per Google Play policy — see services/payment/README.md),
-            "История покупок" is real: current plan + subscription lifecycle history from
-            services/payment. Read-only, no checkout/price/CTA. */}
-        <View style={s.section}>
-          <SectionHeader label={t('profile', 'subscriptions')} />
-          <View style={s.navGroup}>
-            <ComingSoonItem
-              icon="card-outline"
-              label={t('profile', 'subHistory')}
-              subtitle={t('profile', 'subHistorySub')}
-              badgeKey="webOnly"
-              delay={500}
-            />
-            <NavItem
-              trackId="profile:purchase_history"
-              icon="receipt-outline"
-              label={t('profile', 'purchaseHistory')}
-              subtitle={t('profile', 'purchaseHistorySub')}
-              onPress={() => navigation.navigate('PurchaseHistory')}
-              delay={540}
-            />
-          </View>
         </View>
 
         {/* Settings shortcut */}

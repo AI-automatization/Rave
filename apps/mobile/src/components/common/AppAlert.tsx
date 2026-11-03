@@ -32,11 +32,15 @@ export interface AlertOptions {
 }
 
 // ── Imperative bridge ────────────────────────────────────────────────────────
-let emitter: ((opts: AlertOptions) => void) | null = null;
+// Stack of mounted hosts: the most recently mounted one wins. iOS can't present a RN <Modal>
+// from the root host while a native-stack `presentation: 'modal'` screen is on top (the alert
+// stays hidden under it), so the Modal navigator mounts its own host which takes over while open.
+const emitters: Array<(opts: AlertOptions) => void> = [];
 
 /** Show a themed alert (object form). */
 export function showAlert(opts: AlertOptions): void {
-  if (emitter) emitter(opts);
+  const emit = emitters[emitters.length - 1];
+  if (emit) emit(opts);
   else if (__DEV__) console.warn('[AppAlert] host not mounted — alert ignored');
 }
 
@@ -68,8 +72,12 @@ export function AppAlertHost() {
   }, [backdrop, scale]);
 
   useEffect(() => {
-    emitter = (next) => setOpts(next);
-    return () => { emitter = null; };
+    const emit = (next: AlertOptions) => setOpts(next);
+    emitters.push(emit);
+    return () => {
+      const i = emitters.indexOf(emit);
+      if (i >= 0) emitters.splice(i, 1);
+    };
   }, []);
 
   useEffect(() => {

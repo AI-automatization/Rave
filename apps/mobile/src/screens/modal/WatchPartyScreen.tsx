@@ -1,6 +1,6 @@
 // WeWatch Mobile — WatchPartyScreen
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, Platform, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, Text, Platform, StyleSheet, useWindowDimensions, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -93,6 +93,27 @@ function unwrapVbProxyUrl(url: string): string | null {
   return null; // nested deeper than any legitimate URL would be — refuse rather than guess
 }
 
+// Chat tabidagi ixcham ovoz qatori: ishtirokchilar soni + mik tugmasi (maket).
+function VoiceBar({ isJoined, isMuted, count, onOpen, onToggleMute }: {
+  isJoined: boolean; isMuted: boolean; count: number; onOpen: () => void; onToggleMute: () => void;
+}) {
+  return (
+    <View style={s.voiceBar}>
+      <TrackedTouchable trackId="watchparty:voicebar_open" style={s.voiceBarMain} onPress={onOpen} activeOpacity={0.8}>
+        <Ionicons name="radio-outline" size={16} color="#9C95FF" />
+        <Text style={s.voiceBarText}>
+          {isJoined ? `Ovozli chatda ${count} kishi` : "Ovozli chatga qo'shilish"}
+        </Text>
+      </TrackedTouchable>
+      {isJoined ? (
+        <TrackedTouchable trackId="watchparty:voicebar_mute" style={s.voiceBarMic} onPress={onToggleMute} activeOpacity={0.8}>
+          <Ionicons name={isMuted ? 'mic-off' : 'mic'} size={20} color={isMuted ? '#F87171' : '#4ADE80'} />
+        </TrackedTouchable>
+      ) : null}
+    </View>
+  );
+}
+
 export function WatchPartyScreen() {
   const { params } = useRoute<RouteType>();
   const { colors } = useTheme();
@@ -100,6 +121,16 @@ export function WatchPartyScreen() {
   const navigation = useNavigation<NavProp>();
   const { height: winHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+
+  // Klaviatura ochiq paytida (portret) emoji paneli va ovozli chat bloki yashiriladi: aks holda
+  // chat uchun klaviatura ustida joy qolmaydi va yozish maydoni klaviatura ostida qoladi.
+  const [kbOpen, setKbOpen] = useState(false);
+  const [panelTab, setPanelTab] = useState<'chat' | 'voice' | 'members'>('chat');
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () => setKbOpen(true));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKbOpen(false));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
 
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [showReport, setShowReport] = useState(false);
@@ -181,7 +212,7 @@ export function WatchPartyScreen() {
   const {
     playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout, activeTransport,
     showChat, showInvite, isPlaying, isFullscreen, videoIsLive,
-    videoCurrentTime, videoDuration, pendingSkipSecs, floatingEmojis, reactionCooldownSec, showQualityMenu, showEpisodeMenu,
+    videoCurrentTime, videoDuration, pendingSkipSecs, floatingEmojis, reactionCooldownSec, showQualityMenu, showEpisodeMenu, roomRate, handleCycleRate,
     extractQualities, extractEpisodes, currentVideoUrl, extractionError,
     originalVideoUrl, extractedVideoUrl, extractedVideoHeaders, extractedVideoProxyUrl, isWebViewMode, isYouTubeWebViewMode, isExtracting, extractFallback,
     playlist, handleAddToQueue, handlePlaylistRemove, handlePlaylistNext,
@@ -193,11 +224,12 @@ export function WatchPartyScreen() {
     handleChangeMedia, handleQualitySelect, handleEpisodeSelect, handleLeave, handlePlayerReady,
     handleCdnUrlSniffed,
     candidates, showCandidatePicker, setShowCandidatePicker, handleOpenCandidatePicker, handleCandidateSelect,
+    seekWaitingFriend,
   } = useWatchPartyRoom(params.roomId, params.videoReferer);
 
   // Voice connection lifted to screen level — stays alive across panel switches.
   // Auto-joins muted once the room is loaded; persists while user views chat.
-  const voice = useVoiceChat(!!room);
+  const voice = useVoiceChat(!!room, userId);
 
   // Virtual Browser (T-S188) — server auto-falls back to this when CHANGE_MEDIA's extraction
   // pipeline can't produce a playable result (services/watch-party roomEvents.handler.ts). No
@@ -255,6 +287,21 @@ export function WatchPartyScreen() {
   // this turns out to be wanted back.
   const handleVideoFatalError = useCallback(() => {}, []);
 
+  // 2026-10-25 (Abdulaziz): owner-started VB, same as web's "Virtual brauzer" button — opens the
+  // room's own source page straight away, no URL form. VB_ENABLED-gated like the player itself,
+  // so store builds (VB_ENABLED false) never show it. `vbStarting` covers the gap until the
+  // server's VB_STARTED flips vb.active.
+  const [vbStarting, setVbStarting] = useState(false);
+  useEffect(() => {
+    if (vb.active || vb.error) setVbStarting(false);
+  }, [vb.active, vb.error]);
+  const handleOpenVB = useCallback(() => {
+    const src = originalSourceUrlRef.current;
+    if (!src || vbStarting) return;
+    setVbStarting(true);
+    vb.start(src);
+  }, [vb, vbStarting]);
+
   // T-S189: room was created with a raw, unverified URL (user forced it via "try current
   // page anyway" — no client/server detection confirmed it beforehand). Mirrors web's
   // ?verify=1 (RoomContent.tsx): re-submit the room's own videoUrl through CHANGE_MEDIA once,
@@ -277,12 +324,31 @@ export function WatchPartyScreen() {
   // Lock orientation: landscape in fullscreen, portrait otherwise.
   // Entering fullscreen also closes the chat overlay so the video is the focus by default —
   // the user can tap the chat icon in the fullscreen action bar to bring it back.
+  // The virtual-browser hand-off has no end of its own: if VB never starts (engine down, source
+  // blocked) the "opening virtual browser" spinner would run forever. Give up after VB_WAIT_MS and
+  // show the terminal "video not found" state instead (kanban №7).
+  const [vbWaitExpired, setVbWaitExpired] = useState(false);
+  const waitingForVb = VB_ENABLED && extractFallback && !isWebViewMode && !showCandidatePicker && !vb.active;
+  useEffect(() => {
+    if (!waitingForVb) { setVbWaitExpired(false); return; }
+    const timer = setTimeout(() => setVbWaitExpired(true), 30_000);
+    return () => clearTimeout(timer);
+  }, [waitingForVb]);
+
+  // The chat state from before fullscreen is restored on exit — otherwise the portrait room is
+  // left with the chat panel closed and a large empty area under the emoji bar.
+  const chatBeforeFullscreenRef = useRef<boolean | null>(null);
   useEffect(() => {
     if (isFullscreen) {
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+      chatBeforeFullscreenRef.current = showChat;
       setShowChat(false);
     } else {
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+      if (chatBeforeFullscreenRef.current !== null) {
+        setShowChat(chatBeforeFullscreenRef.current);
+        chatBeforeFullscreenRef.current = null;
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFullscreen]);
@@ -325,7 +391,7 @@ export function WatchPartyScreen() {
 
   // Keep the members strip visible with voice open (voice is about who's in the room).
   // Only hide it for text chat, which needs the extra vertical space.
-  const showMembers = !isFullscreen && !!room && !showChat;
+  const showMembers = false; // A'zolar endi pastki panelning tabida
 
   return (
     // root previously had no top inset at all — on devices where the status bar isn't fully
@@ -415,12 +481,13 @@ export function WatchPartyScreen() {
         isReady={extractionError === 'video_source_expired' ? true : !!room && !isExtracting && (isWebViewMode || !extractFallback)}
         loadingStage={
           extractFallback && !isWebViewMode && !showCandidatePicker
-            ? (VB_ENABLED ? 'vb' : 'failed')
+            ? (VB_ENABLED && !vbWaitExpired ? 'vb' : 'failed')
             : 'extracting'
         }
         isOwner={isOwner}
         isPlaying={isPlaying}
         isFullscreen={isFullscreen}
+        compact={kbOpen}
         videoIsLive={videoIsLive}
         floatingEmojis={floatingEmojis}
         onPlay={handleWebViewPlay}
@@ -431,6 +498,8 @@ export function WatchPartyScreen() {
         onBuffering={handleWebViewBuffering}
         onStreamResolved={({ isLive }) => setVideoIsLive(isLive)}
         onReady={handlePlayerReady}
+        roomRate={roomRate}
+        onCycleRate={handleCycleRate}
         onFatalError={handleVideoFatalError}
         onPlayPause={handlePlayPause}
         currentTime={videoCurrentTime}
@@ -525,8 +594,8 @@ export function WatchPartyScreen() {
 
       {!isFullscreen && (
         <>
-          {/* Room info bar */}
-          <RoomInfoBar
+          {/* Room info bar (klaviatura ochiq paytida yashiriladi) */}
+          {!kbOpen && <RoomInfoBar
             roomName={room?.videoTitle ?? room?.name ?? 'Watch Party'}
             memberCount={activeMembers.length}
             participantsLabel={t('watchParty', 'participantsSuffix')}
@@ -540,10 +609,10 @@ export function WatchPartyScreen() {
             onToggleChat={() => setShowChat(v => !v)}
             onToggleMute={voice.toggleMute}
             onLeave={handleLeave}
-          />
+          />}
 
           {/* Quality / Episode / candidate-picker gear row */}
-          {isOwner && !showPlaylist && (
+          {isOwner && !showPlaylist && !kbOpen && (
             <View style={s.gearRow}>
               {extractQualities.length > 0 && (
                 <TrackedTouchable trackId="watchparty:open_quality_menu" style={s.gearChip} onPress={() => setShowQualityMenu(true)} activeOpacity={0.75}>
@@ -551,7 +620,7 @@ export function WatchPartyScreen() {
                   <Text style={s.gearChipText}>{t('watchParty', 'quality')}</Text>
                 </TrackedTouchable>
               )}
-              {extractEpisodes.length > 0 && (
+              {isOwner && extractEpisodes.length > 0 && (
                 <TrackedTouchable trackId="watchparty:open_episode_menu" style={s.gearChip} onPress={() => setShowEpisodeMenu(true)} activeOpacity={0.75}>
                   <Ionicons name="list-outline" size={13} color="rgba(255,255,255,0.5)" />
                   <Text style={s.gearChipText}>{t('watchParty', 'episodes')}</Text>
@@ -559,10 +628,24 @@ export function WatchPartyScreen() {
               )}
               {/* T-S190: owner-only video-candidate picker — "the extractor might have grabbed
                   a banner ad next to the real video, here's everything else it found". */}
-              <TrackedTouchable trackId="watchparty:open_candidate_picker" style={s.gearChip} onPress={handleOpenCandidatePicker} activeOpacity={0.75}>
+              {isOwner && <TrackedTouchable trackId="watchparty:open_candidate_picker" style={s.gearChip} onPress={handleOpenCandidatePicker} activeOpacity={0.75}>
                 <Ionicons name="film-outline" size={13} color="rgba(255,255,255,0.5)" />
                 <Text style={s.gearChipText}>{t('watchParty', 'wrongVideoChip')}</Text>
-              </TrackedTouchable>
+              </TrackedTouchable>}
+              {isOwner && VB_ENABLED && !vb.active && (
+                <TrackedTouchable trackId="watchparty:open_vb" style={s.gearChip} onPress={handleOpenVB} disabled={vbStarting} activeOpacity={0.75}>
+                  <Ionicons name="globe-outline" size={13} color="rgba(255,255,255,0.5)" />
+                  <Text style={s.gearChipText}>{t('watchParty', vbStarting ? 'loadingFallbackVB' : 'vbOpenChip')}</Text>
+                </TrackedTouchable>
+              )}
+            </View>
+          )}
+
+          {/* Seek gate — owner waits until every member has the new position loaded */}
+          {seekWaitingFriend && (
+            <View style={s.seekWaitBanner}>
+              <Ionicons name="hourglass-outline" size={13} color="#A78BFA" />
+              <Text style={s.seekWaitBannerText}>{t('watchParty', 'seekWaitingFriend')}</Text>
             </View>
           )}
 
@@ -583,26 +666,72 @@ export function WatchPartyScreen() {
             />
           )}
 
-          {/* Emoji reaction bar */}
-          <View style={[s.emojiBar, Platform.OS !== 'ios' && s.emojiBarAndroid]}>
-            <EmojiPickerBar onSelect={handleEmojiSelect} cooldownSec={reactionCooldownSec} />
-          </View>
-
-          {/* Chat panel — voice strip (T-S167, variant C) always renders above it now, replacing
-              the old separate toggled VoiceChat panel that made voice invisible while chatting. */}
+          {/* Pastki panel: Chat / Ovoz / A'zolar (tasdiqlangan maket, 2026-11-02) */}
           {showChat && (
             <View style={s.chatPanel}>
-              <VoiceStrip
-                currentUserId={userId}
-                isJoined={voice.isJoined}
-                isMuted={voice.isMuted}
-                isLoading={voice.isLoading}
-                errorMsg={voice.errorMsg}
-                participants={voice.participants}
-                onJoin={voice.joinVoice}
-                onLeave={voice.leaveVoice}
-              />
-              <ChatPanel messages={messages} currentUserId={userId} onSend={sendMessage} onOpenProfile={handleMemberPress} />
+              <View style={s.tabRow}>
+                {([
+                  ['chat', 'Chat'],
+                  ['voice', 'Ovoz'],
+                  ['members', "A'zolar"],
+                ] as const).map(([key, label]) => (
+                  <TrackedTouchable
+                    key={key}
+                    trackId={`watchparty:tab_${key}`}
+                    style={[s.tabBtn, panelTab === key && s.tabBtnOn]}
+                    onPress={() => setPanelTab(key)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[s.tabText, panelTab === key && s.tabTextOn]}>{label}</Text>
+                    {key === 'chat' && messages.length > 0 ? (
+                      <View style={s.tabBadge}><Text style={s.tabBadgeText}>{messages.length > 99 ? '99+' : String(messages.length)}</Text></View>
+                    ) : null}
+                  </TrackedTouchable>
+                ))}
+              </View>
+
+              {panelTab === 'chat' && (
+                <>
+                  {!kbOpen && (
+                    <VoiceBar
+                      isJoined={voice.isJoined}
+                      isMuted={voice.isMuted}
+                      count={voice.participants.length}
+                      onOpen={() => setPanelTab('voice')}
+                      onToggleMute={voice.toggleMute}
+                    />
+                  )}
+                  <ChatPanel
+                    messages={messages}
+                    currentUserId={userId}
+                    onSend={sendMessage}
+                    onOpenProfile={handleMemberPress}
+                    emojiSlot={<EmojiPickerBar onSelect={handleEmojiSelect} cooldownSec={reactionCooldownSec} />}
+                  />
+                </>
+              )}
+
+              {panelTab === 'voice' && (
+                <VoiceStrip
+                  currentUserId={userId}
+                  isJoined={voice.isJoined}
+                  isMuted={voice.isMuted}
+                  isLoading={voice.isLoading}
+                  errorMsg={voice.errorMsg}
+                  participants={voice.participants}
+                  onJoin={voice.joinVoice}
+                  onLeave={voice.leaveVoice}
+                />
+              )}
+
+              {panelTab === 'members' && !!room && (
+                <MembersStrip
+                  activeMembers={activeMembers}
+                  ownerId={room.ownerId}
+                  currentUserId={userId}
+                  onMemberPress={handleMemberPress}
+                />
+              )}
             </View>
           )}
 
@@ -621,14 +750,14 @@ export function WatchPartyScreen() {
           )}
 
           {/* FAB: Change media (owner) */}
-          {isOwner && !showPlaylist && (
+          {isOwner && !showPlaylist && !kbOpen && (
             <TrackedTouchable trackId="watchparty:fab_change_media" style={s.fabPrimary} onPress={handleChangeMedia} activeOpacity={0.85}>
               <Ionicons name="add" size={26} color="#fff" />
             </TrackedTouchable>
           )}
 
           {/* FAB: Playlist */}
-          {!showPlaylist && (
+          {!showPlaylist && !kbOpen && (
             <TrackedTouchable
               trackId="watchparty:fab_playlist_toggle"
               style={[s.fabSecondary, playlist.length > 0 && s.fabSecondaryActive]}
@@ -645,7 +774,7 @@ export function WatchPartyScreen() {
           )}
 
           {/* FAB: Report (viewer only) */}
-          {!isOwner && (
+          {!isOwner && !kbOpen && (
             <TrackedTouchable trackId="watchparty:fab_report" style={s.fabReport} onPress={() => setShowReport(true)} activeOpacity={0.8}>
               <Ionicons name="flag-outline" size={17} color="rgba(255,255,255,0.45)" />
             </TrackedTouchable>
@@ -822,6 +951,20 @@ const s = StyleSheet.create({
   },
 
   // ── Admin banner ────────────────────────────────────────────────
+  seekWaitBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    backgroundColor: 'rgba(124,58,237,0.12)',
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+  },
+  seekWaitBannerText: {
+    fontSize: 12,
+    color: '#C4B5FD',
+    fontWeight: '600',
+  },
   adminBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -854,6 +997,33 @@ const s = StyleSheet.create({
 
   // ── Chat / Voice panels ─────────────────────────────────────────
   chatPanel: { flex: 1 },
+  tabRow: {
+    flexDirection: 'row', gap: 4, paddingHorizontal: 8, paddingTop: 8,
+    backgroundColor: '#0D0D1A',
+  },
+  tabBtn: {
+    flex: 1, height: 44, borderTopLeftRadius: 12, borderTopRightRadius: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+  },
+  tabBtnOn: { backgroundColor: '#161628', borderBottomWidth: 2, borderBottomColor: '#7B72F8' },
+  tabText: { fontSize: 14, color: '#A8A8C0' },
+  tabTextOn: { color: '#fff', fontWeight: '600' },
+  tabBadge: {
+    minWidth: 18, height: 18, borderRadius: 9, backgroundColor: '#7B72F8',
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5,
+  },
+  tabBadgeText: { fontSize: 11, color: '#fff', fontWeight: '600' },
+  voiceBar: {
+    height: 52, flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 12, backgroundColor: '#161628',
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)',
+  },
+  voiceBarMain: { flex: 1, height: 44, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  voiceBarText: { fontSize: 13, color: '#A8A8C0' },
+  voiceBarMic: {
+    width: 44, height: 44, borderRadius: 22, backgroundColor: '#26263F',
+    alignItems: 'center', justifyContent: 'center',
+  },
 
   // ── Playlist overlay ────────────────────────────────────────────
   playlistSheet: {

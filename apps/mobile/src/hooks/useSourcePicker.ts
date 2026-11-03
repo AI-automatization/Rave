@@ -4,12 +4,13 @@ import { useState } from 'react';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useT } from '@i18n/index';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { contentApi } from '@api/content.api';
+import { contentApi, type VideoSearchItem } from '@api/content.api';
 import { watchPartyApi, RoomAlreadyExistsError } from '@api/watchParty.api';
 import { getSocket, CLIENT_EVENTS } from '@socket/client';
 import type { MediaSource } from '@constants/mediaSources';
 import type { ModalStackParamList } from '@app-types/index';
 import { appAlert } from '@components/common/AppAlert';
+import { askRoomSetup } from '@components/common/RoomSetupModal';
 
 type Nav = NativeStackNavigationProp<ModalStackParamList>;
 type RouteType = RouteProp<ModalStackParamList, 'SourcePicker'>;
@@ -75,8 +76,11 @@ export function useSourcePicker() {
         navigation.navigate('WatchParty', { roomId: params.roomId });
         return;
       }
+      const setup = await askRoomSetup((extracted.title || trimmed).slice(0, 50));
+      if (!setup) return;
       const room = await watchPartyApi.createRoom({
-        name: (extracted.title || trimmed).slice(0, 60),
+        name: setup.name,
+        isPrivate: setup.isPrivate,
         videoUrl: trimmed,
         videoTitle: extracted.title || trimmed,
         videoPlatform: extracted.platform,
@@ -106,6 +110,46 @@ export function useSourcePicker() {
     }
   }
 
+  /** Tapped a result of the live video search (YouTube/Rutube/VK): change / queue / new room, same as a pasted URL. */
+  async function handleVideoResultPress(item: VideoSearchItem) {
+    if (isExtracting) return;
+    setIsExtracting(true);
+    try {
+      if (params.mode === 'change') {
+        if (!params.roomId) return;
+        getSocket()?.emit(CLIENT_EVENTS.CHANGE_MEDIA, {
+          roomId: params.roomId, videoUrl: item.url, videoTitle: item.title, videoPlatform: item.platform,
+        });
+        navigation.navigate('WatchParty', { roomId: params.roomId });
+        return;
+      }
+      if (params.mode === 'queue') {
+        if (!params.roomId) return;
+        await watchPartyApi.addToPlaylist(params.roomId, {
+          videoUrl: item.url, videoTitle: item.title, videoPlatform: item.platform,
+        });
+        navigation.navigate('WatchParty', { roomId: params.roomId });
+        return;
+      }
+      const setup = await askRoomSetup(item.title.slice(0, 50));
+      if (!setup) return;
+      const room = await watchPartyApi.createRoom({
+        name: setup.name, isPrivate: setup.isPrivate,
+        videoUrl: item.url, videoTitle: item.title,
+        videoThumbnail: item.thumbnail || undefined, videoPlatform: item.platform,
+      });
+      navigation.navigate('WatchParty', { roomId: room._id });
+    } catch (err) {
+      if (err instanceof RoomAlreadyExistsError) {
+        navigation.navigate('WatchParty', { roomId: err.existingRoom._id });
+        return;
+      }
+      setUrlError(t('watchParty', 'errorExtract'));
+    } finally {
+      setIsExtracting(false);
+    }
+  }
+
   function handleCreateRoom() {
     navigation.navigate('WatchPartyCreate');
   }
@@ -118,6 +162,6 @@ export function useSourcePicker() {
   return {
     params,
     urlInput, isExtracting, urlError,
-    handleSourcePress, handleUrlExtract, handleCreateRoom, handleUrlChange,
+    handleSourcePress, handleUrlExtract, handleCreateRoom, handleUrlChange, handleVideoResultPress,
   };
 }

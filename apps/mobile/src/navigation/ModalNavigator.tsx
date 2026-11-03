@@ -13,11 +13,14 @@ import { SupportChatScreen } from '@screens/modal/SupportChatScreen';
 import { DMChatScreen } from '@screens/modal/DMChatScreen';
 import { FriendProfileScreen } from '@screens/friends/FriendProfileScreen';
 import { PlaceholderScreen } from './PlaceholderScreen';
+import { AppAlertHost } from '@components/common/AppAlert';
+import { RoomSetupHost } from '@components/common/RoomSetupModal';
 
 const Modal = createNativeStackNavigator<ModalStackParamList>();
 
 export function ModalNavigator() {
   return (
+    <>
     <Modal.Navigator
       screenOptions={{ headerShown: false, animation: 'slide_from_bottom', animationDuration: 300 }}
     >
@@ -32,5 +35,8 @@ export function ModalNavigator() {
       <Modal.Screen name="DMChat" component={DMChatScreen} options={{ animation: 'slide_from_right' }} />
       <Modal.Screen name="FriendProfile" component={FriendProfileScreen} options={{ animation: 'slide_from_right' }} />
     </Modal.Navigator>
+    <AppAlertHost />
+    <RoomSetupHost />
+    </>
   );
 }

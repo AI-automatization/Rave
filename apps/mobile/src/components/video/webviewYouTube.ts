@@ -57,12 +57,14 @@ export function buildYouTubeHtml(videoId: string): string {
         pendingPlay = false;
         if (ytPlayer) ytPlayer.pauseVideo();
       },
+      set playbackRate(r) { if (ytPlayer) { try { ytPlayer.setPlaybackRate(r); } catch(e) {} } },
       get paused() {
         if (!ytPlayer) return pendingPlay !== true;
         try { return ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING; } catch(e) { return true; }
       }
     };
 
+    var captionsHandled = false;
     function onYouTubeIframeAPIReady() {
       apiReadyFired = true;
       clearTimeout(apiLoadTimeout);
@@ -74,7 +76,8 @@ export function buildYouTubeHtml(videoId: string): string {
           controls: 1,
           rel: 0,
           modestbranding: 1,
-          iv_load_policy: 3
+          iv_load_policy: 3,
+          cc_load_policy: 0
         },
         events: {
           onReady: function(e) {
@@ -106,6 +109,12 @@ export function buildYouTubeHtml(videoId: string): string {
           onStateChange: function(e) {
             var ct = ytPlayer ? ytPlayer.getCurrentTime() : 0;
             if (e.data === YT.PlayerState.PLAYING) {
+              // Subtitles are off by default: the captions module loads once playback starts, so unload it here
+              // (the CC button in the player controls still lets the viewer turn them on).
+              if (!captionsHandled) {
+                captionsHandled = true;
+                try { ytPlayer.unloadModule('captions'); } catch (err) {}
+              }
               rn({ type: 'BUFFERING', isBuffering: false });
               rn({ type: 'PLAY', currentTime: ct });
             } else if (e.data === YT.PlayerState.PAUSED) {

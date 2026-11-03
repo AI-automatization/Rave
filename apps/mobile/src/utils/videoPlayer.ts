@@ -130,3 +130,44 @@ export async function resolveHlsMasterToVariant(
     return masterUrl;
   }
 }
+
+/**
+ * Reads an HLS master playlist and returns one entry per resolution height (best bandwidth
+ * wins), highest first. Empty when the URL is a media playlist, unreachable, or fetch fails —
+ * the caller then simply shows no quality chip.
+ */
+export async function fetchHlsQualities(
+  masterUrl: string,
+  headers?: Record<string, string>,
+): Promise<{ label: string; url: string }[]> {
+  try {
+    const res = await fetch(masterUrl, { headers });
+    if (!res.ok) return [];
+    const text = await res.text();
+    if (!/#EXT-X-STREAM-INF/i.test(text)) return [];
+    const lines = text.split('\n');
+    const byHeight = new Map<number, { bandwidth: number; url: string }>();
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!/^#EXT-X-STREAM-INF/i.test(line)) continue;
+      const height = parseInt(/RESOLUTION=\d+x(\d+)/i.exec(line)?.[1] ?? '0', 10);
+      if (!height) continue;
+      const bandwidth = parseInt(/BANDWIDTH=(\d+)/i.exec(line)?.[1] ?? '0', 10);
+      let variant = '';
+      for (let j = i + 1; j < lines.length; j++) {
+        const cand = lines[j].trim();
+        if (!cand || cand.startsWith('#')) continue;
+        variant = cand;
+        break;
+      }
+      if (!variant) continue;
+      let absolute: string;
+      try { absolute = new URL(variant, masterUrl).toString(); } catch { continue; }
+      const prev = byHeight.get(height);
+      if (!prev || bandwidth > prev.bandwidth) byHeight.set(height, { bandwidth, url: absolute });
+    }
+    return [...byHeight.entries()].sort((a, b) => b[0] - a[0]).map(([h, v]) => ({ label: `${h}p`, url: v.url }));
+  } catch {
+    return [];
+  }
+}

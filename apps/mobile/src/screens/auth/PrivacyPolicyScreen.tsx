@@ -36,6 +36,10 @@ export function PrivacyPolicyScreen({ onAccepted }: Props) {
   const scrollRef = useRef<ScrollView>(null);
   const [hasReadToBottom, setHasReadToBottom] = useState(false);
   const [isAccepting, setIsAccepting] = useState(false);
+  // Default view is a short summary (accept is available at once); the full legal text opens on demand
+  // and keeps the read-to-bottom gate.
+  const [showFull, setShowFull] = useState(false);
+  const canAccept = !showFull || hasReadToBottom;
   const buttonAnim = useRef(new Animated.Value(0)).current;
 
   const activateButton = useCallback(() => {
@@ -67,11 +71,11 @@ export function PrivacyPolicyScreen({ onAccepted }: Props) {
   }, [activateButton]);
 
   const handleAccept = useCallback(async () => {
-    if (!hasReadToBottom || isAccepting) return;
+    if (!canAccept || isAccepting) return;
     setIsAccepting(true);
     await privacyPolicyStorage.markAccepted(userId);
     onAccepted();
-  }, [hasReadToBottom, isAccepting, userId, onAccepted]);
+  }, [canAccept, isAccepting, userId, onAccepted]);
 
   const policyText = PRIVACY_POLICY[lang as 'uz' | 'ru' | 'en'] ?? PRIVACY_POLICY.ru;
 
@@ -90,8 +94,8 @@ export function PrivacyPolicyScreen({ onAccepted }: Props) {
         <Text style={s.subtitle}>{t('privacyPolicy', 'subtitle')}</Text>
       </View>
 
-      {/* ── Scroll indicator chip ── */}
-      <View style={s.chipRow}>
+      {/* ── Scroll indicator chip (full text only) ── */}
+      {showFull && <View style={s.chipRow}>
         <View style={[s.chip, hasReadToBottom && s.chipDone]}>
           <Text style={[s.chipText, hasReadToBottom && s.chipTextDone]}>
             {hasReadToBottom
@@ -99,7 +103,7 @@ export function PrivacyPolicyScreen({ onAccepted }: Props) {
               : t('privacyPolicy', 'scrollHint')}
           </Text>
         </View>
-      </View>
+      </View>}
 
       {/* ── Policy text ── */}
       <ScrollView
@@ -111,14 +115,29 @@ export function PrivacyPolicyScreen({ onAccepted }: Props) {
         showsVerticalScrollIndicator
         indicatorStyle="white"
       >
-        <Text style={s.policyText}>{policyText}</Text>
+        {showFull ? (
+          <Text style={s.policyText}>{policyText}</Text>
+        ) : (
+          <>
+            <Text style={s.summaryTitle}>{t('privacyPolicy', 'summaryTitle')}</Text>
+            <Text style={s.policyText}>{t('privacyPolicy', 'summary')}</Text>
+          </>
+        )}
+        <TrackedTouchable
+          trackId="privacy_policy:toggle_full"
+          style={s.fullBtn}
+          onPress={() => { setShowFull((v) => !v); scrollRef.current?.scrollTo({ y: 0, animated: false }); }}
+          activeOpacity={0.7}
+        >
+          <Text style={s.fullBtnText}>{showFull ? t('privacyPolicy', 'showSummary') : t('privacyPolicy', 'showFull')}</Text>
+        </TrackedTouchable>
         <Text style={s.versionText}>{t('privacyPolicy', 'version')}</Text>
         <View style={{ height: 24 }} />
       </ScrollView>
 
       {/* ── Bottom actions ── */}
       <View style={s.actions}>
-        {!hasReadToBottom && (
+        {showFull && !hasReadToBottom && (
           <TrackedTouchable trackId="privacy_policy:skip_to_end" style={s.skipBtn} onPress={handleSkipToEnd} activeOpacity={0.7}>
             <Text style={s.skipText}>{t('privacyPolicy', 'skipToEnd')}</Text>
           </TrackedTouchable>
@@ -127,14 +146,14 @@ export function PrivacyPolicyScreen({ onAccepted }: Props) {
         <Animated.View
           style={[
             s.acceptBtnWrap,
-            { opacity: acceptOpacity, transform: [{ scale: acceptScale }] },
+            showFull ? { opacity: acceptOpacity, transform: [{ scale: acceptScale }] } : null,
           ]}
         >
           <TrackedTouchable
             trackId="privacy_policy:accept"
-            style={[s.acceptBtn, !hasReadToBottom && s.acceptBtnDisabled]}
+            style={[s.acceptBtn, !canAccept && s.acceptBtnDisabled]}
             onPress={handleAccept}
-            disabled={!hasReadToBottom || isAccepting}
+            disabled={!canAccept || isAccepting}
             activeOpacity={0.85}
           >
             <Text style={s.acceptText}>{t('privacyPolicy', 'accept')}</Text>
@@ -207,6 +226,9 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
       lineHeight: 24,
       color: colors.textSecondary,
     },
+    summaryTitle: { fontSize: 16, fontWeight: '700', color: colors.textPrimary, marginBottom: 10 },
+    fullBtn: { alignSelf: 'center', marginTop: 20, paddingVertical: 8, paddingHorizontal: 12 },
+    fullBtnText: { fontSize: 14, color: colors.primary, fontWeight: '600', textDecorationLine: 'underline' },
     versionText: {
       fontSize: 11,
       color: colors.textDim,

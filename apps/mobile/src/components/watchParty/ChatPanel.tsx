@@ -1,8 +1,8 @@
 // WeWatch Mobile — WatchParty ChatPanel
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, FlatList, TextInput, Image, Animated,
-  KeyboardAvoidingView, Platform, ListRenderItemInfo,
+  Keyboard, Dimensions, ListRenderItemInfo,
 } from 'react-native';
 import {
   PanGestureHandler, State,
@@ -10,6 +10,7 @@ import {
 } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useT } from '@i18n/index';
 import type { ChatMessage, ReplyTo } from '@store/watchParty.store';
@@ -25,6 +26,8 @@ interface ChatPanelProps {
   onSend: (text: string, replyTo?: ReplyTo) => void;
   /** Wired by T-S163's UserProfileSheet. Absent → avatar/name render but don't respond to taps. */
   onOpenProfile?: (userId: string) => void;
+  /** Emoji reaksiya paneli: yozish maydonidagi emoji tugmasi bosilganda input tepasida ochiladi. */
+  emojiSlot?: React.ComponentProps<typeof View>['children'];
 }
 
 function formatTime(ts: number): string {
@@ -174,11 +177,33 @@ function MessageItem({
   );
 }
 
-export function ChatPanel({ messages, currentUserId, onSend, onOpenProfile }: ChatPanelProps) {
+export function ChatPanel({ messages, currentUserId, onSend, onOpenProfile, emojiSlot }: ChatPanelProps) {
   const { t } = useT();
+  const insets = useSafeAreaInsets();
   const [input, setInput] = useState('');
   const [replyTo, setReplyTo] = useState<ReplyTo | null>(null);
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const listRef = useRef<FlatList<ChatMessage>>(null);
+
+  // Klaviatura ochilganda input ustida qolishi uchun: panelning ekrandagi pastki chegarasi
+  // bilan klaviatura yuqori chegarasi orasidagi qoplanishni o'lchab, shuncha padding beramiz.
+  // KeyboardAvoidingView o'rniga: edge-to-edge Android'da va ichma-ich layoutda ishonchsiz edi.
+  const panelRef = useRef<View>(null);
+  const [kbOverlap, setKbOverlap] = useState(0);
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', e => {
+      const kbTop = e.endCoordinates.screenY;
+      const winH = Math.max(Dimensions.get('window').height, Dimensions.get('screen').height);
+      // Panel ekran tagigacha cho'ziladi (flex:1, root'da pastki padding yo'q): qoplanish = ekran balandligi - klaviatura tepasi.
+      const byScreen = Math.max(0, winH - kbTop);
+      panelRef.current?.measureInWindow((_x, y, _w, h) => {
+        if (__DEV__) console.log('[kb]', JSON.stringify({ kbTop, kbH: e.endCoordinates.height, winH, y, h, byScreen, byMeasure: y + h - kbTop }));
+        setKbOverlap(Math.max(byScreen, Math.max(0, y + h - kbTop)));
+      });
+    });
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKbOverlap(0));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
 
   const handleReply = (msg: ChatMessage) => {
     setReplyTo({ messageId: msg.id, senderName: msg.username, text: msg.text });
@@ -199,10 +224,7 @@ export function ChatPanel({ messages, currentUserId, onSend, onOpenProfile }: Ch
   const canSend = input.trim().length > 0;
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={s.container}
-    >
+    <View ref={panelRef} collapsable={false} style={[s.container, { paddingBottom: kbOverlap }]}>
       {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
@@ -249,8 +271,22 @@ export function ChatPanel({ messages, currentUserId, onSend, onOpenProfile }: Ch
         </View>
       )}
 
+      {/* Emoji reaksiyalar (tugma bilan ochiladi) */}
+      {emojiSlot && emojiOpen ? <View style={s.emojiSlot}>{emojiSlot}</View> : null}
+
       {/* Input */}
-      <View style={s.inputRow}>
+      <View style={[s.inputRow, { paddingBottom: kbOverlap > 0 ? 10 : Math.max(insets.bottom, 12) + 10 }]}>
+        {emojiSlot ? (
+          <TrackedTouchable
+            trackId="chat:toggle_emoji"
+            style={[s.emojiBtn, emojiOpen && s.emojiBtnOn]}
+            onPress={() => setEmojiOpen(v => !v)}
+            activeOpacity={0.8}
+            accessibilityLabel="Emoji"
+          >
+            <Ionicons name="happy-outline" size={22} color={emojiOpen ? '#9C95FF' : '#F5C451'} />
+          </TrackedTouchable>
+        ) : null}
         <TextInput
           style={s.input}
           value={input}
@@ -272,7 +308,7 @@ export function ChatPanel({ messages, currentUserId, onSend, onOpenProfile }: Ch
           <Ionicons name="send" size={15} color="#fff" style={{ marginLeft: 2 }} />
         </TrackedTouchable>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

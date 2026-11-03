@@ -159,9 +159,9 @@ export function ConversationsScreen() {
         </View>
       ) : conversations.length === 0 ? (
         <View style={s.empty}>
-          <View style={s.emptyGlow} />
-          <Image source={require('../../../assets/icon.png')} style={s.emptyMark} contentFit="contain" />
-          <Ionicons name="chatbubble-ellipses" size={40} color="rgba(123,114,248,0.55)" style={s.emptyIcon} />
+          <View style={s.emptyGlow}>
+            <Ionicons name="chatbubble-ellipses" size={44} color="rgba(123,114,248,0.7)" />
+          </View>
           <Text style={s.emptyTitle}>{t('dm', 'convEmpty')}</Text>
           <Text style={s.emptySub}>{t('dm', 'convEmptySub')}</Text>
         </View>
@@ -238,20 +238,13 @@ const s = StyleSheet.create({
     paddingBottom: 80,
   },
   emptyGlow: {
-    position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: 'rgba(123,114,248,0.10)',
-  },
-  emptyMark: {
-    width: 72,
-    height: 72,
-    opacity: 0.9,
-    marginBottom: -6,
-  },
-  emptyIcon: {
-    marginBottom: 6,
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    backgroundColor: 'rgba(123,114,248,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
   },
   emptyTitle: {
     fontSize: 16,
