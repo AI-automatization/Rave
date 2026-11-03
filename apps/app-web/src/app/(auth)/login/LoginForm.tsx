@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { authApi } from '@/lib/api/auth.api';
 import { ApiError } from '@/lib/api-client';
 import { trackClick } from '@/lib/analytics';
+import { safeRedirect, withRedirect } from '@/lib/safe-redirect';
 import { Button } from '@/components/ui/button';
 import { Field, Input, PasswordInput } from '@/components/ui/field';
 import { Notice } from '@/components/ui/notice';
@@ -45,8 +46,7 @@ export function LoginForm() {
         try {
           const res = await authApi.login({ email, password });
           setUser(res.data?.user ?? null);
-          const redirect = searchParams.get('redirect') || '/home';
-          router.push(redirect);
+          router.push(safeRedirect(searchParams.get('redirect')));
         } catch (err) {
           if (err instanceof ApiError) {
             // Same fix as RegisterForm — `errors` (Joi's specific per-field messages) is more
@@ -145,7 +145,7 @@ export function LoginForm() {
             killPopup(popup);
             setUser(me.data.user);
             // Full page reload — ensures freshly-set httpOnly cookies reach middleware
-            window.location.href = searchParams.get('redirect') || '/home';
+            window.location.href = safeRedirect(searchParams.get('redirect'));
           }
         } catch { /* still pending */ }
       };
@@ -352,7 +352,7 @@ export function LoginForm() {
       <p className="text-center text-[13.5px] text-[var(--ww-text-3)]">
         {t('noAccount')}{' '}
         <Link
-          href="/register"
+          href={withRedirect('/register', searchParams.get('redirect'))}
           onClick={() => trackClick('login:go_to_register')}
           className="-my-1.5 inline-block py-1.5 font-medium text-[var(--ww-accent-hi)] transition-colors hover:text-white"
         >
