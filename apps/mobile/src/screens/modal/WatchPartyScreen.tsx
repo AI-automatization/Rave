@@ -1,6 +1,6 @@
 // WeWatch Mobile — WatchPartyScreen
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, Platform, StyleSheet, useWindowDimensions, Keyboard } from 'react-native';
+import { View, Text, Platform, StyleSheet, useWindowDimensions, Keyboard, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -125,28 +125,40 @@ export function WatchPartyScreen() {
   // Klaviatura ochiq paytida (portret) emoji paneli va ovozli chat bloki yashiriladi: aks holda
   // chat uchun klaviatura ustida joy qolmaydi va yozish maydoni klaviatura ostida qoladi.
   const [kbOpen, setKbOpen] = useState(false);
-  // Adaptive klaviatura: root'ning pastki chegarasi (ekran o'lchamiga/gesture panelga bog'liq emas)
-  // klaviatura tepasidan pastda bo'lsa, farqi = padding. Tizim oynani o'zi kichraytirgan
-  // qurilmalarda root pastki chegarasi allaqachon klaviatura tepasida → padding 0.
-  const rootRef = useRef<View>(null);
-  const kbTopRef = useRef<number | null>(null);
+  // Adaptive klaviatura (koordinata aralashtirmasdan, faqat o'lcham ayirmasi):
+  //  kbHeight = ekran balandligi − klaviatura tepasi
+  //  shrink   = root klaviatura yopiq paytdagi balandligi − hozirgi balandligi (tizim adjustResize
+  //             qilib oynani o'zi kichraytirgan bo'lsa > 0)
+  //  padding  = max(0, kbHeight − shrink). Oyna kichraygan qurilmada → 0, kichraymaganda → to'liq.
+  // measureInWindow ishlatilmaydi: Android'da status bar/edge-to-edge tufayli y noto'g'ri chiqadi.
+  const kbHeightRef = useRef(0);
+  const rootHRef = useRef(0);
+  const rootClosedHRef = useRef(0);
   const [kbOverlap, setKbOverlap] = useState(0);
-  const remeasureKb = useCallback(() => {
-    const kbTop = kbTopRef.current;
-    if (kbTop == null) return;
-    rootRef.current?.measureInWindow((_x, y, _w, h) => {
-      setKbOverlap(Math.max(0, Math.round(y + h - kbTop)));
-    });
+  const recalcKb = useCallback(() => {
+    if (kbHeightRef.current <= 0) { setKbOverlap(0); return; }
+    const shrink = rootClosedHRef.current > 0 ? Math.max(0, rootClosedHRef.current - rootHRef.current) : 0;
+    const pad = Math.max(0, Math.round(kbHeightRef.current - shrink));
+    if (__DEV__) console.log('[kb3]', JSON.stringify({ kbH: kbHeightRef.current, closedH: rootClosedHRef.current, rootH: rootHRef.current, shrink, pad }));
+    setKbOverlap(pad);
   }, []);
+  const onRootLayout = useCallback((e: { nativeEvent: { layout: { height: number } } }) => {
+    rootHRef.current = e.nativeEvent.layout.height;
+    if (kbHeightRef.current <= 0) rootClosedHRef.current = rootHRef.current;
+    else recalcKb();
+  }, [recalcKb]);
   const [panelTab, setPanelTab] = useState<'chat' | 'voice' | 'members'>('chat');
   useEffect(() => {
     const show = Keyboard.addListener('keyboardDidShow', e => {
       setKbOpen(true);
-      kbTopRef.current = e.endCoordinates.screenY;
-      remeasureKb();
-      setTimeout(remeasureKb, 250);
+      kbHeightRef.current = Math.max(
+        e.endCoordinates.height,
+        Dimensions.get('screen').height - e.endCoordinates.screenY,
+      );
+      recalcKb();
+      setTimeout(recalcKb, 300);
     });
-    const hide = Keyboard.addListener('keyboardDidHide', () => { setKbOpen(false); kbTopRef.current = null; setKbOverlap(0); });
+    const hide = Keyboard.addListener('keyboardDidHide', () => { setKbOpen(false); kbHeightRef.current = 0; setKbOverlap(0); });
     return () => { show.remove(); hide.remove(); };
   }, []);
 
@@ -417,7 +429,7 @@ export function WatchPartyScreen() {
     // under it, reading as "player pressed to the top, covered by the clock/signal/battery icons"
     // (real report 2026-08-03). Skipped in fullscreen — that mode is meant to be edge-to-edge,
     // landscape, and already locks orientation away from the notch/status-bar area.
-    <View ref={rootRef} collapsable={false} onLayout={remeasureKb} style={[s.root, !isFullscreen && { paddingTop: insets.top }, kbOverlap > 0 && { paddingBottom: kbOverlap }]}>
+    <View onLayout={onRootLayout} style={[s.root, !isFullscreen && { paddingTop: insets.top }, kbOverlap > 0 && { paddingBottom: kbOverlap }]}>
 
       {/* Expired source banner */}
       {extractionError === 'video_source_expired' && (
