@@ -15,6 +15,14 @@ export const SERVER_EVENTS = Object.freeze({
   VIDEO_SYNC: 'video:sync',
   VIDEO_BUFFER: 'video:buffer',
   VIDEO_HEARTBEAT: 'video:heartbeat',
+  // Seek gate (2026-10-25): after the owner seeks while playing, every member pauses at the
+  // target and loads it; this tells the room who is still loading (owner shows "wait for your
+  // friend"), and with `release: true` that everyone is ready and playback restarts together.
+  SEEK_WAIT: 'video:seek_wait',
+  // Room-wide playback speed (2026-11-02): owner picks 0.5–2x, everyone applies it.
+  VIDEO_RATE: 'video:rate',
+  // Room-wide HLS quality label ('auto' | '720p' ...): owner picks, every client applies its own variant.
+  VIDEO_QUALITY: 'video:quality',
 
   // NTP-style clock sync: server echoes client ping with its own timestamp so the
   // client can measure the server↔client clock offset (used to de-skew scheduledAt +
@@ -47,6 +55,8 @@ export const SERVER_EVENTS = Object.freeze({
   VOICE_ANSWER:     'voice:answer',
   VOICE_ICE:        'voice:ice',
   VOICE_SPEAKING:   'voice:speaking',
+  // { userId, muted } — someone's mic mute state changed (relayed room-wide)
+  VOICE_MUTE:       'voice:mute',
 
   // WebRTC mesh signalling (Bosqich B)
   PEER_OFFER:        'mesh:peer_offer',
@@ -112,6 +122,9 @@ export const CLIENT_EVENTS = Object.freeze({
   SEEK: 'video:seek',
   BUFFER_START: 'video:buffer_start',
   BUFFER_END: 'video:buffer_end',
+  SET_RATE: 'video:set_rate', // owner picks the room playback speed
+  SET_QUALITY: 'video:set_quality', // owner picks the room HLS quality label
+  SEEK_READY: 'video:seek_ready', // member loaded the seek-gate target (see SEEK_WAIT)
   HEARTBEAT: 'video:heartbeat',
   CLOCK_PING: 'clock:ping',
 
@@ -128,6 +141,8 @@ export const CLIENT_EVENTS = Object.freeze({
   VOICE_ANSWER:   'voice:answer',
   VOICE_ICE:      'voice:ice',
   VOICE_SPEAKING: 'voice:speaking',
+  // { muted: boolean } — own mic mute state
+  VOICE_MUTE:     'voice:mute',
 
   SEND_REACTION: 'reaction:send',
   // { raised: boolean } — own hand; { targetUserId, raised: false } — owner lowers someone's;

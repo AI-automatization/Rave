@@ -27,6 +27,59 @@ export const bufferTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
 // needing a server-side debounce that would add latency to legitimate rapid seeks.
 export const lastSeekSeq = new Map<string, number>();
 
+// Seek gate (2026-10-25, Abdulaziz): when the owner seeks while playing, members used to jump
+// to the target and keep playing while still loading it, so whoever loaded faster ran ahead —
+// web and phone drifted seconds apart after every skip. Now: everyone pauses at the target,
+// each member reports SEEK_READY once its player has that position loaded, the owner sees "wait
+// for your friend" meanwhile (SEEK_WAIT), and once nobody is left (or SEEK_GATE_MAX_MS passes)
+// one VIDEO_PLAY — one server timestamp, clock-offset corrected on every client — restarts all.
+const SEEK_GATE_MAX_MS = 15_000;
+interface SeekGate { currentTime: number; ownerId: string; waiting: Set<string>; timer: ReturnType<typeof setTimeout> }
+export const seekGates = new Map<string, SeekGate>();
+
+// Room-wide playback speed (2026-11-02). In-memory per process; rides on the owner heartbeat so
+// late joiners pick it up too. Deleted never (tiny), reset to 1 by absence.
+export const ALLOWED_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
+export const roomRates = new Map<string, number>();
+export const roomQualities = new Map<string, string>();
+
+export const releaseSeekGate = async (
+  io: SocketServer,
+  watchPartyService: WatchPartyService,
+  roomId: string,
+): Promise<void> => {
+  const gate = seekGates.get(roomId);
+  if (!gate) return;
+  clearTimeout(gate.timer);
+  seekGates.delete(roomId);
+  const syncState = await watchPartyService.syncState(roomId, gate.ownerId, gate.currentTime, true);
+  io.to(roomId).emit(SERVER_EVENTS.VIDEO_PLAY, syncState);
+  io.to(roomId).emit(SERVER_EVENTS.SEEK_WAIT, { waiting: [], release: true, currentTime: gate.currentTime, serverTimestamp: syncState.serverTimestamp });
+  logger.info('Seek gate released', { roomId, currentTime: gate.currentTime });
+};
+
+// Drops a gate without restarting playback (owner paused or seeked again meanwhile).
+const cancelSeekGate = (io: SocketServer, roomId: string): void => {
+  const gate = seekGates.get(roomId);
+  if (!gate) return;
+  clearTimeout(gate.timer);
+  seekGates.delete(roomId);
+  io.to(roomId).emit(SERVER_EVENTS.SEEK_WAIT, { waiting: [] });
+};
+
+// A member that will never report (left, disconnected) must not hold the gate.
+export const dropFromSeekGate = async (
+  io: SocketServer,
+  watchPartyService: WatchPartyService,
+  roomId: string,
+  userId: string,
+): Promise<void> => {
+  const gate = seekGates.get(roomId);
+  if (!gate || !gate.waiting.delete(userId)) return;
+  if (gate.waiting.size === 0) await releaseSeekGate(io, watchPartyService, roomId);
+  else io.to(roomId).emit(SERVER_EVENTS.SEEK_WAIT, { waiting: [...gate.waiting], currentTime: gate.currentTime });
+};
+
 // Standalone (no closure over a specific socket) so LEAVE_ROOM in roomEvents.handler.ts can
 // call the exact same resume path a disconnecting/leaving buffering member should trigger.
 export const resumeBufferedRoom = async (
@@ -100,6 +153,8 @@ export const registerVideoEvents = (
     }
     if (typeof data?.currentTime !== 'number' || !Number.isFinite(data.currentTime)) return;
     const roomId = authSocket.roomId;
+    // Owner chose not to wait for the gate — play now, gate no longer matters.
+    cancelSeekGate(io, roomId);
 
     try {
       const syncState = await watchPartyService.syncState(roomId, userId, data.currentTime, true);
@@ -114,6 +169,9 @@ export const registerVideoEvents = (
     if (!authSocket.roomId) return;
     if (typeof data?.currentTime !== 'number' || !Number.isFinite(data.currentTime)) return;
     const roomId = authSocket.roomId;
+
+    // An explicit owner pause ends any seek gate — nothing should auto-resume after it.
+    cancelSeekGate(io, roomId);
 
     // Cancel any pending buffer resume timer so a buffering viewer can't auto-resume a paused room.
     const pendingResume = bufferTimeouts.get(roomId);
@@ -143,9 +201,32 @@ export const registerVideoEvents = (
     }
 
     try {
-      // Read isPlaying from Redis (fast) rather than MongoDB
+      // Read isPlaying from Redis (fast) rather than MongoDB. A seek that lands while a gate is
+      // still open (owner skipping again) keeps the room "playing" — the gate paused it, not him.
       const cached = await watchPartyService.getSyncState(roomId);
-      const isPlaying = cached?.isPlaying ?? false;
+      const isPlaying = seekGates.has(roomId) || (cached?.isPlaying ?? false);
+      if (seekGates.has(roomId)) cancelSeekGate(io, roomId);
+
+      const others = isPlaying
+        ? (await io.in(roomId).fetchSockets())
+            .map((s) => (s as unknown as AuthenticatedSocket))
+            .filter((s) => s.roomId === roomId && s.user?.userId && s.user.userId !== userId)
+            .map((s) => s.user.userId)
+        : [];
+      if (others.length > 0) {
+        // Seek gate — see SEEK_GATE_MAX_MS. Members get the target PAUSED; play restarts for
+        // everyone in releaseSeekGate.
+        const syncState = await watchPartyService.syncState(roomId, userId, data.currentTime, false);
+        socket.to(roomId).emit(SERVER_EVENTS.VIDEO_SEEK, syncState);
+        const waiting = new Set(others);
+        const timer = setTimeout(() => { void releaseSeekGate(io, watchPartyService, roomId); }, SEEK_GATE_MAX_MS);
+        seekGates.set(roomId, { currentTime: data.currentTime, ownerId: userId, waiting, timer });
+        io.to(roomId).emit(SERVER_EVENTS.SEEK_WAIT, { waiting: [...waiting], currentTime: data.currentTime });
+        await watchPartyService.trackSeek(roomId);
+        logger.info('Video sync: seek (gated)', { roomId, userId, currentTime: data.currentTime, waiting: waiting.size });
+        return;
+      }
+
       const syncState = await watchPartyService.syncState(roomId, userId, data.currentTime, isPlaying);
       socket.to(roomId).emit(SERVER_EVENTS.VIDEO_SEEK, syncState);
       // Grace period: the seek that's about to land on owner+members will force an HLS
@@ -155,6 +236,36 @@ export const registerVideoEvents = (
       logger.info('Video sync: seek', { roomId, userId, currentTime: data.currentTime });
     } catch (error) {
       logger.error('Socket seek error', { userId, error });
+    }
+  });
+
+  // SET_RATE — owner only; whole room plays at the chosen speed.
+  socket.on(CLIENT_EVENTS.SET_RATE, async (data: { rate: number }) => {
+    if (!authSocket.roomId || !await resolveIsOwner()) return;
+    if (typeof data?.rate !== 'number' || !ALLOWED_RATES.includes(data.rate)) return;
+    const roomId = authSocket.roomId;
+    roomRates.set(roomId, data.rate);
+    socket.to(roomId).emit(SERVER_EVENTS.VIDEO_RATE, { rate: data.rate });
+    logger.info('Video sync: rate', { roomId, userId, rate: data.rate });
+  });
+
+  // SET_QUALITY — owner only; label like 'auto' or '720p', each client maps it to its own variant.
+  socket.on(CLIENT_EVENTS.SET_QUALITY, async (data: { quality: string }) => {
+    if (!authSocket.roomId || !await resolveIsOwner()) return;
+    if (typeof data?.quality !== 'string' || !/^(auto|\d{3,4}p)$/.test(data.quality)) return;
+    const roomId = authSocket.roomId;
+    roomQualities.set(roomId, data.quality);
+    socket.to(roomId).emit(SERVER_EVENTS.VIDEO_QUALITY, { quality: data.quality });
+    logger.info('Video sync: quality', { roomId, userId, quality: data.quality });
+  });
+
+  // SEEK_READY — a member has the gated seek target loaded.
+  socket.on(CLIENT_EVENTS.SEEK_READY, async () => {
+    if (!authSocket.roomId) return;
+    try {
+      await dropFromSeekGate(io, watchPartyService, authSocket.roomId, userId);
+    } catch (error) {
+      logger.error('Socket seek_ready error', { userId, error });
     }
   });
 
@@ -175,6 +286,8 @@ export const registerVideoEvents = (
         currentTime: data.currentTime,
         timestamp: Date.now(),
         updatedBy: userId,
+        playbackRate: roomRates.get(roomId) ?? 1,
+        quality: roomQualities.get(roomId) ?? 'auto',
       };
 
       // Broadcast to all peers except sender — no scheduledAt, peers use drift correction only
@@ -295,6 +408,7 @@ export const registerVideoEvents = (
     if (!authSocket.roomId) return;
     const roomId = authSocket.roomId;
     try {
+      await dropFromSeekGate(io, watchPartyService, roomId, userId);
       const remaining = await watchPartyService.unmarkBuffering(roomId, userId);
       // BUG this fixes: this used to just clear the timeout without resuming, so a buffering
       // member disconnecting mid-democratic-pause left the room (e.g. the owner) stuck paused

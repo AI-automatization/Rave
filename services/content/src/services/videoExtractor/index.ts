@@ -14,7 +14,7 @@
 import Redis from 'ioredis';
 import { createHash } from 'crypto';
 import { logger } from '@shared/utils/logger';
-import { validateUrl, detectPlatform } from './detectPlatform';
+import { validateUrl, detectPlatform, isPlaywrightPlatform } from './detectPlatform';
 import { playwrightExtractor } from './playwrightExtractor';
 import { genericExtractor } from './genericExtractor';
 import { ytDlpExtractor, YtDlpDrmError } from './ytDlpExtractor';
@@ -206,8 +206,11 @@ async function extractVideoUncached(
 
   } else {
     // Unknown: generic HTML scraping → yt-dlp → Playwright (last resort, T-S043)
-    result = await genericExtractor(parsedUrl);
-    if (!result) {
+    // JS-injected players (uzmovi etc., PLAYWRIGHT_PLATFORMS): the static HTML only holds promo/
+    // "story" clips, so scraping it returns the wrong video (2026-11-02, uzmovi.net → 5MB story mp4).
+    const needsBrowser = isPlaywrightPlatform(parsedUrl);
+    result = needsBrowser ? null : await genericExtractor(parsedUrl);
+    if (!result && !needsBrowser) {
       try {
         result = await ytDlpExtractor(rawUrl, effectiveCookies);
       } catch (dlpErr) {

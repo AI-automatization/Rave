@@ -263,6 +263,11 @@ export interface VideoCandidate {
    * capture-kind candidate captured while it was playing), not just "network response shaped like
    * media". Owner still confirms manually (picker stays); this only ranks the confirmed one first. */
   confirmed?: boolean;
+  /** VB only — an HLS master playlist (#EXT-X-STREAM-INF): the one candidate that carries video
+   * AND audio together. Sites like arte.tv split tracks into separate video-only / audio-only /
+   * subtitle files, each of which is also caught as its own candidate; picking one of those gave a
+   * silent room (live 2026-10-24). Ranked first in the picker. */
+  complete?: boolean;
 }
 
 // ─────────────────────────────────────────────

@@ -10,6 +10,7 @@ interface AuthenticatedSocket extends Socket {
 }
 
 const VOICE_ROOM_KEY = (roomId: string) => `voice:room:${roomId}`;
+const VOICE_MUTED_KEY = (roomId: string) => `voice:muted:${roomId}`;
 const VOICE_TTL_SEC = 24 * 60 * 60;
 
 export const registerVoiceEvents = (
@@ -31,7 +32,9 @@ export const registerVoiceEvents = (
     // Reply with currently in-voice members (excluding self)
     const members = await redis.smembers(key);
     const existingMembers = members.filter((id) => id !== userId);
-    socket.emit(SERVER_EVENTS.VOICE_JOINED, { members: existingMembers });
+    // Who is currently muted (so a late joiner sees the right mic state)
+    const mutedMembers = (await redis.smembers(VOICE_MUTED_KEY(roomId))).filter((id) => existingMembers.includes(id));
+    socket.emit(SERVER_EVENTS.VOICE_JOINED, { members: existingMembers, muted: mutedMembers });
 
     socket.to(roomId).emit(SERVER_EVENTS.VOICE_USER_JOINED, { userId });
     logger.info('User joined voice chat', { userId, roomId });
@@ -42,6 +45,7 @@ export const registerVoiceEvents = (
     const roomId = authSocket.roomId;
     if (!roomId) return;
     await redis.srem(VOICE_ROOM_KEY(roomId), userId);
+    await redis.srem(VOICE_MUTED_KEY(roomId), userId);
     socket.to(roomId).emit(SERVER_EVENTS.VOICE_USER_LEFT, { userId });
     logger.info('User left voice chat', { userId, roomId });
   });
@@ -67,5 +71,19 @@ export const registerVoiceEvents = (
     const roomId = authSocket.roomId;
     if (!roomId) return;
     socket.to(roomId).emit(SERVER_EVENTS.VOICE_SPEAKING, { userId, speaking: data.speaking });
+  });
+
+  // VOICE MUTE — remember + relay mic mute state to others in room
+  socket.on(CLIENT_EVENTS.VOICE_MUTE, async (data: { muted: boolean }) => {
+    const roomId = authSocket.roomId;
+    if (!roomId || typeof data?.muted !== 'boolean') return;
+    const key = VOICE_MUTED_KEY(roomId);
+    if (data.muted) {
+      await redis.sadd(key, userId);
+      await redis.expire(key, VOICE_TTL_SEC);
+    } else {
+      await redis.srem(key, userId);
+    }
+    socket.to(roomId).emit(SERVER_EVENTS.VOICE_MUTE, { userId, muted: data.muted });
   });
 };

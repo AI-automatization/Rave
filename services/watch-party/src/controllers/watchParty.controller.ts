@@ -10,9 +10,9 @@ import { WatchPartyRoom } from '../models/watchPartyRoom.model';
 import { logger } from '@shared/utils/logger';
 import { getAppSetting } from '@shared/utils/appSettings';
 import { ForbiddenError, NotFoundError } from '@shared/utils/errors';
-import { startVBForRoom, upgradeEmbedToDirect } from '../socket/vbSession.helper';
+import { startVBForRoom, upgradeEmbedToDirect, directMediaProxyUrl } from '../socket/vbSession.helper';
 import { enqueueVBRequest } from '../socket/vbQueue.helper';
-import { isOfficialEmbedHost, isOwnVbUrl } from '../services/extractionClient';
+import { isOfficialEmbedHost, isOwnVbUrl, isDirectMediaUrl } from '../services/extractionClient';
 import { isDomainBlocked } from './domain.admin.controller';
 import { fetchRoomSockets } from '../socket/roomSockets.helper';
 
@@ -67,10 +67,18 @@ export class WatchPartyController {
         videoReferer?: string;
       };
 
-      const room = await this.watchPartyService.createRoom(userId, {
+      let room = await this.watchPartyService.createRoom(userId, {
         name, movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,
         maxMembers, isPrivate, requireApproval, password, startTime, videoReferer,
       });
+      // Already-resolved media file (e.g. mobile's Instagram reel → fbcdn .mp4): no VB, just the
+      // signed proxy URL both clients can play — see directMediaProxyUrl.
+      if (videoUrl && isDirectMediaUrl(videoUrl) && !isOwnVbUrl(videoUrl)) {
+        const roomId = String(room._id);
+        room = await this.watchPartyService.updateRoomMedia(userId, roomId, {
+          videoUrl: directMediaProxyUrl(videoUrl, roomId), videoTitle, videoPlatform,
+        });
+      }
       res.status(201).json(apiResponse.success(room, 'Room created'));
 
       // Real prod bug 2026-08-10 (uzmovi.net): createRoom used to just store videoUrl as-is —
@@ -84,7 +92,7 @@ export class WatchPartyController {
       // already play instantly client-side via their own iframe.
       // 'webview' = the client's embed-check found the page frameable, so every member opens it in
       // its own iframe/WebView — a server-side VB on top of that would only burn a Chromium.
-      if (videoUrl && videoPlatform !== 'webview' && !isOfficialEmbedHost(videoUrl) && !isOwnVbUrl(videoUrl)) {
+      if (videoUrl && videoPlatform !== 'webview' && !isOfficialEmbedHost(videoUrl) && !isOwnVbUrl(videoUrl) && !isDirectMediaUrl(videoUrl)) {
         const roomId = String(room._id);
         void (async () => {
           // #84 follow-up: this VB-start path (room creation) never consulted the admin domain

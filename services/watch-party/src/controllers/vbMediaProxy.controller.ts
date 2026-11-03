@@ -417,17 +417,19 @@ async function attemptFetch(rawUrl: string, req: Request, res: Response, referer
     // reasoning as that constant already uses, covers both without going anywhere near a
     // full-file download either way.
     const MAX_RANGE_CHUNK_BYTES = 24 * 1024 * 1024; // 24MB — see 2026-08-26 comment above
-    // See cappedRange's doc comment — an explicit bounded request (e.g. Safari fetching a
-    // non-faststart file's tail moov atom) needs much more headroom than a progressive-playback
-    // chunk, without going anywhere near a full-file download.
-    const MAX_EXPLICIT_RANGE_BYTES = 24 * 1024 * 1024; // 24MB
     const range = req.headers.range;
     const headers: Record<string, string> = {
       'User-Agent': CHROME_UA,
       'Accept': '*/*',
       'Accept-Encoding': 'identity',
     };
-    if (range) headers['Range'] = cappedRange(range, MAX_RANGE_CHUNK_BYTES, MAX_EXPLICIT_RANGE_BYTES);
+    // 2026-10-25: an explicit bounded range is forwarded as asked. Apple's AVFoundation (iOS app
+    // player, Safari) asks for the whole file as `bytes=0-<size-1>` and rejects any shorter 206 —
+    // CoreMedia -12939 "content range mismatch", reproduced locally with AVURLAsset → "Video
+    // yuklanmadi" on every proxied mp4. The cap only existed to bound the buffered body; the body
+    // is now streamed (see below) and the client cancels whatever it no longer needs. Open-ended
+    // requests keep their cap — those players accept a shorter 206 and come back for more.
+    if (range) headers['Range'] = cappedRange(range, MAX_RANGE_CHUNK_BYTES, Number.POSITIVE_INFINITY);
     if (referer) headers['Referer'] = referer;
     if (cookieHeader) headers['Cookie'] = cookieHeader;
 
@@ -609,22 +611,50 @@ async function attemptFetch(rawUrl: string, req: Request, res: Response, referer
     const reader = upstream.body.getReader();
     res.on('close', () => { void reader.cancel().catch(() => {}); });
 
-    // VB_PROXY_STREAM=1 — no CDN in front of this service (local dev, direct origin): pipe bytes
-    // as they arrive instead of buffering the whole (up to 24MB) chunk first. Buffered mode puts
-    // the full chunk download time in front of the first byte (measured locally: 7-14s TTFB on
-    // archive.org vs ~2s direct), which reads as "video never starts". No Content-Length is sent,
-    // so there is nothing that can disagree with the bytes (the Bunny concern above).
+    // 2026-10-25: buffering the whole chunk first made time-to-first-byte grow with the chunk
+    // cap — at 24MB (see MAX_RANGE_CHUNK_BYTES) that was ~24s on an ordinary archive.org mp4, and
+    // iOS's AVPlayer gave up with "request timed out" ("Video yuklanmadi"). When upstream states
+    // its length, stream bytes as they arrive and declare exactly that length; if upstream then
+    // delivers anything else, the connection is destroyed instead of ending cleanly, so a
+    // mismatched Content-Length (the 2026-08-06 Bunny concern above) can never be served.
+    const declaredLength = upstreamCL !== null && /^\d+$/.test(upstreamCL) ? Number(upstreamCL) : null;
+    if (declaredLength !== null) {
+      res.setHeader('Content-Length', String(declaredLength));
+      let written = 0;
+      try {
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (res.writableEnded || res.destroyed) return true;
+          written += value.byteLength;
+          if (written > declaredLength) break;
+          if (!res.write(Buffer.from(value))) {
+            await new Promise<void>((r) => { res.once('drain', () => r()); res.once('close', () => r()); });
+          }
+        }
+      } catch {
+        // client disconnected or upstream dropped — the length check below handles both
+      }
+      if (res.writableEnded || res.destroyed) return true;
+      if (written === declaredLength) res.end();
+      else res.destroy();
+      return true;
+    }
+
+    // Direct-origin/local mode can stream immediately when the upstream did not provide a
+    // trustworthy length. The length-aware path above remains preferred whenever possible.
     if (STREAM_PASSTHROUGH) {
       try {
         for (;;) {
           const { done, value } = await reader.read();
           if (done) break;
+          if (res.writableEnded || res.destroyed) return true;
           if (!res.write(Buffer.from(value))) await new Promise((r) => res.once('drain', r));
         }
       } catch {
         // client disconnected mid-stream or upstream dropped
       }
-      if (!res.writableEnded) res.end();
+      if (!res.writableEnded && !res.destroyed) res.end();
       return true;
     }
 

@@ -103,6 +103,14 @@ function proxiedMediaUrl(mediaUrl: string, mediaType: MediaType, roomId: string)
        + `?url=${encodedUrl}&exp=${exp}&sig=${sig}&roomId=${encodeURIComponent(roomId)}`;
 }
 
+// Direct media URLs (for example a resolved .mp4/.m3u8/.mpd from mobile) skip Chromium but still
+// use the same signed proxy as a confirmed VB candidate, keeping the media on the service egress.
+export function directMediaProxyUrl(mediaUrl: string, roomId: string): string {
+  const path = new URL(mediaUrl).pathname.toLowerCase();
+  const type: MediaType = path.endsWith('.m3u8') ? 'hls' : path.endsWith('.mpd') ? 'dash' : 'mp4';
+  return proxiedMediaUrl(mediaUrl, type, roomId);
+}
+
 // roomId → source URL last committed by the direct-resolve fast path (see startVBForRoom).
 const directCommitted = new Map<string, string>();
 const directInflight = new Map<string, Promise<Awaited<ReturnType<typeof resolveDirectMedia>>>>();

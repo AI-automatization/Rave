@@ -63,6 +63,21 @@ export function isOfficialEmbedHost(url: string): boolean {
   }
 }
 
+// A URL that already IS a media file/manifest (the client resolved it before creating the room —
+// live 2026-10-25: mobile turned an Instagram reel into its fbcdn .mp4, an ARTE page into its
+// .m3u8). VB navigating to one has nothing left to find: the .mp4 sat in Chromium's built-in player
+// with no candidate ever reported, holding a VB slot and leaving the room on "owner is picking".
+// Clients play these directly (via their own proxy), same as an official embed.
+const DIRECT_MEDIA_PATH = /\.(mp4|m4v|webm|mov|m3u8|mpd)$/i;
+
+export function isDirectMediaUrl(url: string): boolean {
+  try {
+    return DIRECT_MEDIA_PATH.test(new URL(url).pathname);
+  } catch {
+    return false;
+  }
+}
+
 // SSRF guard — same pattern already enforced at room CREATION (watchParty.service.ts) and on
 // PLAYLIST adds (watchPartyPlaylist.service.ts), but CHANGE_MEDIA and the manual VB_START socket
 // event never re-checked it: only the very first videoUrl a room was created with was gated,

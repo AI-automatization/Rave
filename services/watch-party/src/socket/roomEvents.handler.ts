@@ -6,12 +6,12 @@ import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { REDIS_KEYS } from '@shared/constants';
 import { JwtPayload, VideoPlatform } from '@shared/types';
 import { recordWatchHistoryInternal, getUserPlan } from '@shared/utils/serviceClient';
-import { bufferTimeouts, resumeBufferedRoom } from './videoEvents.handler';
+import { bufferTimeouts, resumeBufferedRoom, dropFromSeekGate } from './videoEvents.handler';
 import { stopSession, getSessionSnapshot, getSessionLastFrame, hasSession, markSessionCommitted } from '../services/virtualBrowser.service';
-import { startVBForRoom, upgradeEmbedToDirect, vbWatchKey } from './vbSession.helper';
+import { startVBForRoom, upgradeEmbedToDirect, directMediaProxyUrl, vbWatchKey } from './vbSession.helper';
 import { enqueueVBRequest } from './vbQueue.helper';
 import { cancelVbDisconnectGrace } from './vbEvents.handler';
-import { isOfficialEmbedHost, isOwnVbUrl, isPrivateUrl, isInsecureWebviewUrl } from '../services/extractionClient';
+import { isOfficialEmbedHost, isOwnVbUrl, isPrivateUrl, isInsecureWebviewUrl, isDirectMediaUrl } from '../services/extractionClient';
 import { isDomainBlocked } from '../controllers/domain.admin.controller';
 import { isLikelyFaststart } from '../services/faststartCheck.service';
 import { getFaststartFixedFileName } from '../services/faststartRemux.service';
@@ -270,6 +270,7 @@ export const registerRoomEvents = (
     // room (e.g. the owner) stayed paused indefinitely — nobody left to "catch up to", but
     // nothing ever resumed. Mirrors the disconnect handler's same cleanup in videoEvents.handler.ts.
     try {
+      await dropFromSeekGate(io, watchPartyService, roomId, userId);
       const remaining = await watchPartyService.unmarkBuffering(roomId, userId);
       if (remaining === 0 && bufferTimeouts.has(roomId)) {
         await resumeBufferedRoom(io, watchPartyService, roomId, userId);
@@ -338,6 +339,12 @@ export const registerRoomEvents = (
     void watchPartyService.getRoom(roomId)
       .then(async (r) => { if (r.ownerId === userId) await recordMediaChange(roomId, data.videoUrl, data.videoTitle ?? null, data.videoPlatform ?? null); })
       .catch(() => {});
+    // Already-resolved media file → signed own proxy URL (see directMediaProxyUrl). From here on
+    // it is an own-VB URL: no VB start below, and the confirm path further down stops any VB
+    // session still running — same as confirming a candidate.
+    if (isDirectMediaUrl(data.videoUrl) && !isOwnVbUrl(data.videoUrl)) {
+      data.videoUrl = directMediaProxyUrl(data.videoUrl, roomId);
+    }
 
     // Single extraction mechanism (2026-08-10, Saidazim's call): content-service's pipeline
     // (tryExtract/fetchCandidates, extractionClient.ts) is no longer invoked from here — VB is the
@@ -361,7 +368,18 @@ export const registerRoomEvents = (
     // which starts VB server-side directly), so a URL needing VB just showed "failed to load
     // video" with no fallback ever attempted.
     // 'webview' pages open in each member's own iframe/WebView (embed-check said frameable) — no VB.
-    if (data.videoPlatform !== 'webview' && !isOfficialEmbedHost(data.videoUrl) && !isOwnVbUrl(data.videoUrl)) {
+    // Switching to an official embed while a VB session is still running: stop it. Live 2026-10-25: a room moved from a
+    // stuck Instagram VB to YouTube kept the session alive, so every client stayed on the VB view
+    // (mobile: endless spinner on a 404 vb-stream; web: "owner is picking", no sound).
+    const playsWithoutVb = data.videoPlatform === 'webview' || isOfficialEmbedHost(data.videoUrl) || isDirectMediaUrl(data.videoUrl) || isOwnVbUrl(data.videoUrl);
+    if (playsWithoutVb && hasSession(roomId)) {
+      await stopSession(roomId).catch((e) => {
+        logger.warn('CHANGE_MEDIA: failed to stop VB session on switch to non-VB media', { roomId, error: (e as Error).message });
+      });
+      io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'media_changed' });
+    }
+
+    if (!playsWithoutVb) {
       const tier = await getUserPlan(userId);
       try {
         await startVBForRoom(io, redis, roomId, userId, data.videoUrl, tier);

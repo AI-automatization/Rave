@@ -40,6 +40,11 @@ const VIDEO_TAG_SRC_RE = /<(?:video|source)[^>]+src=(["'])(.*?)\1/gi;
 
 // og:video meta
 const OG_VIDEO_RE = /<meta[^>]+property=["']og:video(?::url)?["'][^>]+content=(["'])(.*?)\1/gi;
+const OG_VIDEO_TYPE_RE = /<meta[^>]+property=["']og:video:type["'][^>]+content=(["'])(.*?)\1/i;
+// Path ends in a real media file/manifest — kept even when the page says og:video is HTML.
+// Site promo widgets ("story" clips, ad videos) sit in the HTML next to the real player.
+const PROMO_URL_RE = /\/\/story\.|\/ads\/videos?\//i;
+const MEDIA_PATH_RE = /\.(mp4|m4v|webm|mov|m3u8|mpd)(\?|#|$)/i;
 const OG_TITLE_RE = /<meta[^>]+property=["']og:title["'][^>]+content=(["'])(.*?)\1/i;
 const OG_IMAGE_RE = /<meta[^>]+property=["']og:image["'][^>]+content=(["'])(.*?)\1/i;
 const TITLE_RE = /<title[^>]*>([^<]+)<\/title>/i;
@@ -119,15 +124,25 @@ async function fetchHtml(url: string, referer?: string): Promise<string | null> 
 
 function extractVideoUrls(html: string, base: URL): string[] {
   const videoTagSrcs = allQuotedAttrs(VIDEO_TAG_SRC_RE, html).map((s) => resolveUrl(s, base));
-  const ogVideos = allQuotedAttrs(OG_VIDEO_RE, html).map((s) => resolveUrl(s, base));
-  const m3u8Urls = allMatches(M3U8_RE, html);
-  const mp4Urls = allMatches(MP4_RE, html);
+  // og:video can be an embeddable PLAYER PAGE, not a media file — the page says so itself via
+  // og:video:type="text/html" (live 2026-10-24, arte.tv: og:video = /embeds/... HTML page, returned
+  // here typed 'mp4' → mobile's ExoPlayer got HTML → "Video yuklanmadi"). Drop those unless the
+  // URL itself is clearly a media file.
+  const ogIsHtml = /^text\/html/i.test(firstQuotedAttr(OG_VIDEO_TYPE_RE, html) ?? '');
+  const ogVideos = allQuotedAttrs(OG_VIDEO_RE, html)
+    .map((s) => resolveUrl(s, base))
+    .filter((u) => !ogIsHtml || MEDIA_PATH_RE.test(u));
+  // URLs inside inline JSON keep its escaping: `\/` separators and a trailing `\` from the `\"`
+  // that closes the string (live 2026-10-24, arte.tv: ".../123333-001-A.m3u8\" → URL ending in "\").
+  const unescapeJsonUrl = (u: string) => u.replace(/\\\//g, '/').replace(/\\+$/, '');
+  const m3u8Urls = [...new Set(allMatches(M3U8_RE, html).map(unescapeJsonUrl))];
+  const mp4Urls = [...new Set(allMatches(MP4_RE, html).map(unescapeJsonUrl))];
   return [
     ...videoTagSrcs,
     ...ogVideos,
     ...m3u8Urls,
     ...mp4Urls,
-  ].filter(Boolean);
+  ].filter(Boolean).filter((u) => !PROMO_URL_RE.test(u));
 }
 
 export async function genericExtractor(

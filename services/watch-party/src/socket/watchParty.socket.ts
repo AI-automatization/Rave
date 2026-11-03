@@ -175,6 +175,7 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
       if (roomId) {
         // Clean up voice room (Redis-backed, shared across instances)
         const voiceRemoved = await redis.srem(`voice:room:${roomId}`, userId);
+        await redis.srem(`voice:muted:${roomId}`, userId);
         if (voiceRemoved > 0) {
           socket.to(roomId).emit(SERVER_EVENTS.VOICE_USER_LEFT, { userId });
         }

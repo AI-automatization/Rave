@@ -17,6 +17,8 @@ import { validate, createRoomSchema, joinRoomSchema } from '../validators/watchP
 import { getHistory, getWeeklyTop } from '../services/watchStats.service';
 import { addAudioListener } from '../services/vbAudio.service';
 import { hasSession } from '../services/virtualBrowser.service';
+import { getAdBlockPref, setAdBlockPref } from '../services/vbAdBlock';
+import type { AuthenticatedRequest } from '@shared/types';
 
 export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router => {
   const router = Router();
@@ -147,6 +149,23 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
     try {
       res.json({ success: true, data: await getWeeklyTop() });
     } catch (err) { next(err); }
+  });
+
+  // GET/PUT /watch-party/vb-settings — virtual brauzer sozlamalari (hozircha: reklama bloklash).
+  // Foydalanuvchi bo'yicha, Redis'da; yangi VB sessiyasi boshlanganda o'qiladi.
+  router.get('/vb-settings', verifyToken, notBlocked, async (req, res) => {
+    const userId = (req as AuthenticatedRequest).user.userId;
+    res.json({ success: true, data: { adBlock: await getAdBlockPref(redis, userId) } });
+  });
+  router.put('/vb-settings', verifyToken, notBlocked, async (req, res) => {
+    const userId = (req as AuthenticatedRequest).user.userId;
+    const adBlock = (req.body as { adBlock?: unknown })?.adBlock;
+    if (typeof adBlock !== 'boolean') {
+      res.status(422).json({ success: false, data: null, message: 'adBlock must be boolean', errors: null });
+      return;
+    }
+    await setAdBlockPref(redis, userId, adBlock);
+    res.json({ success: true, data: { adBlock } });
   });
 
   // GET /watch-party/rooms/my/recent — user's last 10 rooms (T-S061)

@@ -148,6 +148,16 @@ export async function playwrightExtractor(url: string, redis?: Redis): Promise<V
 
     let foundUrl:  string                     | null = null;
     let foundType: 'hls' | 'mp4' | 'dash'            = 'mp4';
+    // Resolves the moment a media URL is intercepted so we stop waiting for the page to finish.
+    let signalFound: () => void = () => {};
+    const foundSignal = new Promise<void>((resolve) => { signalFound = resolve; });
+
+    // Speed: pictures, fonts and stylesheets are never needed to find the stream.
+    await page.route('**/*', (route) => {
+      const t = route.request().resourceType();
+      if (t === 'image' || t === 'font' || t === 'stylesheet') void route.abort().catch(() => {});
+      else void route.continue().catch(() => {});
+    });
 
     const onResponse = (response: Response): void => {
       if (foundUrl) return; // already found — skip subsequent matches
@@ -164,6 +174,7 @@ export async function playwrightExtractor(url: string, redis?: Redis): Promise<V
           url:  respUrl.slice(0, 120),
           type: foundType,
         });
+        signalFound();
         return;
       }
       // No recognizable extension — fall back to Content-Type.
@@ -175,6 +186,7 @@ export async function playwrightExtractor(url: string, redis?: Redis): Promise<V
         logger.info('Playwright: media URL intercepted (by content-type)', {
           url: respUrl.slice(0, 120), contentType, type: foundType,
         });
+        signalFound();
         return;
       }
       // Still nothing — the site may be lying about Content-Type on purpose. Only worth the
@@ -189,6 +201,7 @@ export async function playwrightExtractor(url: string, redis?: Redis): Promise<V
         foundUrl  = respUrl;
         foundType = type;
         logger.info('Playwright: media URL intercepted (by magic bytes)', { url: respUrl.slice(0, 120), type });
+        signalFound();
       }).catch(() => { /* body unavailable (redirected/aborted) — skip */ });
     };
 
@@ -196,10 +209,13 @@ export async function playwrightExtractor(url: string, redis?: Redis): Promise<V
 
     // Navigate — errors (timeout, net::ERR_*) are non-fatal;
     // we may still have intercepted a URL during partial load.
-    await page.goto(url, {
-      waitUntil: 'domcontentloaded',
-      timeout:   NAVIGATE_TIMEOUT_MS,
-    }).catch(() => null);
+    await Promise.race([
+      page.goto(url, {
+        waitUntil: 'domcontentloaded',
+        timeout:   NAVIGATE_TIMEOUT_MS,
+      }).catch(() => null),
+      foundSignal,
+    ]);
 
     // Wait for deferred video requests (lazy-loaded players, Play-button auto-click, etc.)
     if (!foundUrl) {
