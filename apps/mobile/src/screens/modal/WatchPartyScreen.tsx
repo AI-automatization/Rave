@@ -1,6 +1,6 @@
 // WeWatch Mobile — WatchPartyScreen
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, Platform, StyleSheet, useWindowDimensions, Keyboard } from 'react-native';
+import { View, Text, Platform, StyleSheet, useWindowDimensions, Keyboard, PanResponder } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -17,7 +17,7 @@ import { VideoSection } from '@components/watchParty/VideoSection';
 import { VirtualBrowserPlayer } from '@components/watchParty/VirtualBrowserPlayer';
 import { useVirtualBrowser } from '@hooks/useVirtualBrowser';
 import { VB_ENABLED } from '@constants/features';
-import { RoomInfoBar } from '@components/watchParty/RoomInfoBar';
+import { RoomInfoBar, RoomChip } from '@components/watchParty/RoomInfoBar';
 import { InviteCard } from '@components/watchParty/InviteCard';
 import { QualityMenu } from '@components/watchParty/QualityMenu';
 import { EpisodeMenu } from '@components/watchParty/EpisodeMenu';
@@ -126,6 +126,15 @@ export function WatchPartyScreen() {
   // chat uchun klaviatura ustida joy qolmaydi va yozish maydoni klaviatura ostida qoladi.
   const [kbOpen, setKbOpen] = useState(false);
   const [panelTab, setPanelTab] = useState<'chat' | 'voice' | 'members'>('chat');
+  // Chat sheet handle: swipe down = collapse, swipe up = open, tap = toggle.
+  const sheetPan = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onPanResponderRelease: (_e, g) => {
+      if (g.dy > 18) setShowChat(false);
+      else if (g.dy < -18) setShowChat(true);
+      else setShowChat(v => !v);
+    },
+  })).current;
   useEffect(() => {
     const show = Keyboard.addListener('keyboardDidShow', () => setKbOpen(true));
     const hide = Keyboard.addListener('keyboardDidHide', () => setKbOpen(false));
@@ -594,51 +603,47 @@ export function WatchPartyScreen() {
 
       {!isFullscreen && (
         <>
-          {/* Room info bar (klaviatura ochiq paytida yashiriladi) */}
-          {!kbOpen && <RoomInfoBar
-            roomName={room?.videoTitle ?? room?.name ?? 'Watch Party'}
-            memberCount={activeMembers.length}
-            participantsLabel={t('watchParty', 'participantsSuffix')}
-            ownerLabel={t('watchParty', 'ownerBadge')}
-            activeTransport={activeTransport}
-            isOwner={isOwner}
-            hasMessages={messages.length > 0}
-            isVoiceJoined={voice.isJoined}
-            isVoiceMuted={voice.isMuted}
-            onToggleInvite={() => setShowInvite(v => !v)}
-            onToggleChat={() => setShowChat(v => !v)}
-            onToggleMute={voice.toggleMute}
-            onLeave={handleLeave}
-          />}
-
-          {/* Quality / Episode / candidate-picker gear row */}
-          {isOwner && !showPlaylist && !kbOpen && (
-            <View style={s.gearRow}>
-              {extractQualities.length > 0 && (
-                <TrackedTouchable trackId="watchparty:open_quality_menu" style={s.gearChip} onPress={() => setShowQualityMenu(true)} activeOpacity={0.75}>
-                  <Ionicons name="settings-outline" size={13} color="rgba(255,255,255,0.5)" />
-                  <Text style={s.gearChipText}>{t('watchParty', 'quality')}</Text>
-                </TrackedTouchable>
+          {/* Variant B (Stitch, 2026-11-03): sarlavha + bitta gorizontal chip qatori */}
+          {!kbOpen && (
+            <RoomInfoBar
+              roomName={room?.videoTitle ?? room?.name ?? 'Watch Party'}
+              memberCount={activeMembers.length}
+              participantsLabel={t('watchParty', 'participantsSuffix')}
+              ownerLabel={t('watchParty', 'ownerBadge')}
+              activeTransport={activeTransport}
+              isOwner={isOwner}
+            >
+              <RoomChip trackId="roombar:toggle_invite" icon="person-add-outline" label={t('watchParty', 'invite')} tone={showInvite ? 'accent' : 'default'} onPress={() => setShowInvite(v => !v)} />
+              <RoomChip
+                trackId="roombar:toggle_mute"
+                icon={voice.isJoined ? (voice.isMuted ? 'mic-off-outline' : 'mic') : 'mic-outline'}
+                label={voice.isJoined ? (voice.isMuted ? "Ovoz o'chiq" : 'Ovoz yoqilgan') : "Ovozga qo'shilish"}
+                tone={voice.isJoined && !voice.isMuted ? 'live' : 'default'}
+                onPress={voice.isJoined ? voice.toggleMute : () => { setShowChat(true); setPanelTab('voice'); }}
+              />
+              {isOwner && !showPlaylist && (
+                <RoomChip trackId="watchparty:chip_change_media" icon="add-circle-outline" label="Kino" tone="accent" onPress={handleChangeMedia} />
+              )}
+              {!showPlaylist && (
+                <RoomChip trackId="watchparty:chip_playlist" icon="list" label="Navbat" badge={playlist.length} onPress={() => setShowPlaylist(v => !v)} />
+              )}
+              {isOwner && extractQualities.length > 0 && (
+                <RoomChip trackId="watchparty:open_quality_menu" icon="settings-outline" label={t('watchParty', 'quality')} onPress={() => setShowQualityMenu(true)} />
               )}
               {isOwner && extractEpisodes.length > 0 && (
-                <TrackedTouchable trackId="watchparty:open_episode_menu" style={s.gearChip} onPress={() => setShowEpisodeMenu(true)} activeOpacity={0.75}>
-                  <Ionicons name="list-outline" size={13} color="rgba(255,255,255,0.5)" />
-                  <Text style={s.gearChipText}>{t('watchParty', 'episodes')}</Text>
-                </TrackedTouchable>
+                <RoomChip trackId="watchparty:open_episode_menu" icon="list-outline" label={t('watchParty', 'episodes')} onPress={() => setShowEpisodeMenu(true)} />
               )}
-              {/* T-S190: owner-only video-candidate picker — "the extractor might have grabbed
-                  a banner ad next to the real video, here's everything else it found". */}
-              {isOwner && <TrackedTouchable trackId="watchparty:open_candidate_picker" style={s.gearChip} onPress={handleOpenCandidatePicker} activeOpacity={0.75}>
-                <Ionicons name="film-outline" size={13} color="rgba(255,255,255,0.5)" />
-                <Text style={s.gearChipText}>{t('watchParty', 'wrongVideoChip')}</Text>
-              </TrackedTouchable>}
+              {isOwner && (
+                <RoomChip trackId="watchparty:open_candidate_picker" icon="film-outline" label={t('watchParty', 'wrongVideoChip')} onPress={handleOpenCandidatePicker} />
+              )}
               {isOwner && VB_ENABLED && !vb.active && (
-                <TrackedTouchable trackId="watchparty:open_vb" style={s.gearChip} onPress={handleOpenVB} disabled={vbStarting} activeOpacity={0.75}>
-                  <Ionicons name="globe-outline" size={13} color="rgba(255,255,255,0.5)" />
-                  <Text style={s.gearChipText}>{t('watchParty', vbStarting ? 'loadingFallbackVB' : 'vbOpenChip')}</Text>
-                </TrackedTouchable>
+                <RoomChip trackId="watchparty:open_vb" icon="globe-outline" label={t('watchParty', vbStarting ? 'loadingFallbackVB' : 'vbOpenChip')} disabled={vbStarting} onPress={handleOpenVB} />
               )}
-            </View>
+              {!isOwner && (
+                <RoomChip trackId="watchparty:fab_report" icon="flag-outline" label="Shikoyat" onPress={() => setShowReport(true)} />
+              )}
+              <RoomChip trackId="roombar:leave" icon="exit-outline" label={t('watchParty', 'leave')} tone="danger" onPress={handleLeave} />
+            </RoomInfoBar>
           )}
 
           {/* Seek gate — owner waits until every member has the new position loaded */}
@@ -667,6 +672,9 @@ export function WatchPartyScreen() {
           )}
 
           {/* Pastki panel: Chat / Ovoz / A'zolar (tasdiqlangan maket, 2026-11-02) */}
+          <View style={s.sheetHandleWrap} {...sheetPan.panHandlers}>
+            <View style={s.sheetHandle} />
+          </View>
           {showChat && (
             <View style={s.chatPanel}>
               <View style={s.tabRow}>
@@ -747,37 +755,6 @@ export function WatchPartyScreen() {
                 onClose={() => setShowPlaylist(false)}
               />
             </View>
-          )}
-
-          {/* FAB: Change media (owner) */}
-          {isOwner && !showPlaylist && !kbOpen && (
-            <TrackedTouchable trackId="watchparty:fab_change_media" style={s.fabPrimary} onPress={handleChangeMedia} activeOpacity={0.85}>
-              <Ionicons name="add" size={26} color="#fff" />
-            </TrackedTouchable>
-          )}
-
-          {/* FAB: Playlist */}
-          {!showPlaylist && !kbOpen && (
-            <TrackedTouchable
-              trackId="watchparty:fab_playlist_toggle"
-              style={[s.fabSecondary, playlist.length > 0 && s.fabSecondaryActive]}
-              onPress={() => setShowPlaylist(v => !v)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="list" size={19} color="#fff" />
-              {playlist.length > 0 && (
-                <View style={s.fabBadge}>
-                  <Text style={s.fabBadgeText}>{playlist.length}</Text>
-                </View>
-              )}
-            </TrackedTouchable>
-          )}
-
-          {/* FAB: Report (viewer only) */}
-          {!isOwner && !kbOpen && (
-            <TrackedTouchable trackId="watchparty:fab_report" style={s.fabReport} onPress={() => setShowReport(true)} activeOpacity={0.8}>
-              <Ionicons name="flag-outline" size={17} color="rgba(255,255,255,0.45)" />
-            </TrackedTouchable>
           )}
 
           {/* Menus & modals */}
@@ -997,6 +974,8 @@ const s = StyleSheet.create({
 
   // ── Chat / Voice panels ─────────────────────────────────────────
   chatPanel: { flex: 1 },
+  sheetHandleWrap: { height: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0D0D1A', borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.25)' },
   tabRow: {
     flexDirection: 'row', gap: 4, paddingHorizontal: 8, paddingTop: 8,
     backgroundColor: '#0D0D1A',
