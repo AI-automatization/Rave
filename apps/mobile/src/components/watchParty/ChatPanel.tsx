@@ -1,5 +1,5 @@
 // WeWatch Mobile — WatchParty ChatPanel
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, FlatList, TextInput, Image, Animated,
   Keyboard, Dimensions, ListRenderItemInfo,
@@ -190,20 +190,27 @@ export function ChatPanel({ messages, currentUserId, onSend, onOpenProfile, emoj
   // KeyboardAvoidingView o'rniga: edge-to-edge Android'da va ichma-ich layoutda ishonchsiz edi.
   const panelRef = useRef<View>(null);
   const [kbOverlap, setKbOverlap] = useState(0);
+  const kbTopRef = useRef<number | null>(null);
+  // Qoplanishni panelning HOZIRGI joyidan o'lchaymiz. Oldin faqat klaviatura ochilgan zahoti bir marta
+  // o'lchanardi — shu paytda video/sarlavha hali kichrayib ulgurmagan, panel eski (pastroq) joyda
+  // turardi, natijada ortiqcha padding inputni ekran tagida qoldirardi. Endi layout o'zgarganda
+  // (onLayout) qayta o'lchanadi.
+  const remeasure = useCallback(() => {
+    const kbTop = kbTopRef.current;
+    if (kbTop == null) return;
+    panelRef.current?.measureInWindow((_x, y, _w, h) => {
+      setKbOverlap(Math.max(0, Math.round(y + h - kbTop)));
+    });
+  }, []);
   useEffect(() => {
     const show = Keyboard.addListener('keyboardDidShow', e => {
-      const kbTop = e.endCoordinates.screenY;
-      const winH = Math.max(Dimensions.get('window').height, Dimensions.get('screen').height);
-      // Panel ekran tagigacha cho'ziladi (flex:1, root'da pastki padding yo'q): qoplanish = ekran balandligi - klaviatura tepasi.
-      const byScreen = Math.max(0, winH - kbTop);
-      panelRef.current?.measureInWindow((_x, y, _w, h) => {
-        if (__DEV__) console.log('[kb]', JSON.stringify({ kbTop, kbH: e.endCoordinates.height, winH, y, h, byScreen, byMeasure: y + h - kbTop }));
-        setKbOverlap(Math.max(byScreen, Math.max(0, y + h - kbTop)));
-      });
+      kbTopRef.current = e.endCoordinates.screenY;
+      remeasure();
+      setTimeout(remeasure, 250);
     });
-    const hide = Keyboard.addListener('keyboardDidHide', () => setKbOverlap(0));
+    const hide = Keyboard.addListener('keyboardDidHide', () => { kbTopRef.current = null; setKbOverlap(0); });
     return () => { show.remove(); hide.remove(); };
-  }, []);
+  }, [remeasure]);
 
   const handleReply = (msg: ChatMessage) => {
     setReplyTo({ messageId: msg.id, senderName: msg.username, text: msg.text });
@@ -224,7 +231,7 @@ export function ChatPanel({ messages, currentUserId, onSend, onOpenProfile, emoj
   const canSend = input.trim().length > 0;
 
   return (
-    <View ref={panelRef} collapsable={false} style={[s.container, { paddingBottom: kbOverlap }]}>
+    <View ref={panelRef} collapsable={false} onLayout={remeasure} style={[s.container, { paddingBottom: kbOverlap }]}>
       {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>

@@ -1,6 +1,6 @@
 // WeWatch Mobile — WatchPartyScreen
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, Platform, StyleSheet, useWindowDimensions, Keyboard, PanResponder } from 'react-native';
+import { View, Text, Platform, StyleSheet, useWindowDimensions, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -126,15 +126,6 @@ export function WatchPartyScreen() {
   // chat uchun klaviatura ustida joy qolmaydi va yozish maydoni klaviatura ostida qoladi.
   const [kbOpen, setKbOpen] = useState(false);
   const [panelTab, setPanelTab] = useState<'chat' | 'voice' | 'members'>('chat');
-  // Chat sheet handle: swipe down = collapse, swipe up = open, tap = toggle.
-  const sheetPan = useRef(PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onPanResponderRelease: (_e, g) => {
-      if (g.dy > 18) setShowChat(false);
-      else if (g.dy < -18) setShowChat(true);
-      else setShowChat(v => !v);
-    },
-  })).current;
   useEffect(() => {
     const show = Keyboard.addListener('keyboardDidShow', () => setKbOpen(true));
     const hide = Keyboard.addListener('keyboardDidHide', () => setKbOpen(false));
@@ -672,9 +663,6 @@ export function WatchPartyScreen() {
           )}
 
           {/* Pastki panel: Chat / Ovoz / A'zolar (tasdiqlangan maket, 2026-11-02) */}
-          <View style={s.sheetHandleWrap} {...sheetPan.panHandlers}>
-            <View style={s.sheetHandle} />
-          </View>
           {showChat && (
             <View style={s.chatPanel}>
               <View style={s.tabRow}>
@@ -974,8 +962,6 @@ const s = StyleSheet.create({
 
   // ── Chat / Voice panels ─────────────────────────────────────────
   chatPanel: { flex: 1 },
-  sheetHandleWrap: { height: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0D0D1A', borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-  sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.25)' },
   tabRow: {
     flexDirection: 'row', gap: 4, paddingHorizontal: 8, paddingTop: 8,
     backgroundColor: '#0D0D1A',
