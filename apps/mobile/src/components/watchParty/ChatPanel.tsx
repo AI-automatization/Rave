@@ -1,5 +1,5 @@
 // WeWatch Mobile — WatchParty ChatPanel
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, FlatList, TextInput, Image, Animated,
   Keyboard, Dimensions, ListRenderItemInfo,
@@ -188,29 +188,14 @@ export function ChatPanel({ messages, currentUserId, onSend, onOpenProfile, emoj
   // Klaviatura ochilganda input ustida qolishi uchun: panelning ekrandagi pastki chegarasi
   // bilan klaviatura yuqori chegarasi orasidagi qoplanishni o'lchab, shuncha padding beramiz.
   // KeyboardAvoidingView o'rniga: edge-to-edge Android'da va ichma-ich layoutda ishonchsiz edi.
-  const panelRef = useRef<View>(null);
-  const [kbOverlap, setKbOverlap] = useState(0);
-  const kbTopRef = useRef<number | null>(null);
-  // Qoplanishni panelning HOZIRGI joyidan o'lchaymiz. Oldin faqat klaviatura ochilgan zahoti bir marta
-  // o'lchanardi — shu paytda video/sarlavha hali kichrayib ulgurmagan, panel eski (pastroq) joyda
-  // turardi, natijada ortiqcha padding inputni ekran tagida qoldirardi. Endi layout o'zgarganda
-  // (onLayout) qayta o'lchanadi.
-  const remeasure = useCallback(() => {
-    const kbTop = kbTopRef.current;
-    if (kbTop == null) return;
-    panelRef.current?.measureInWindow((_x, y, _w, h) => {
-      setKbOverlap(Math.max(0, Math.round(y + h - kbTop)));
-    });
-  }, []);
+  // Klaviatura bo'sh joyini endi ekran (root) hisoblaydi — WatchPartyScreen; bu yerda faqat
+  // klaviatura ochiq/yopiqligi kerak (pastki xavfsiz padding uchun).
+  const [kbVisible, setKbVisible] = useState(false);
   useEffect(() => {
-    const show = Keyboard.addListener('keyboardDidShow', e => {
-      kbTopRef.current = e.endCoordinates.screenY;
-      remeasure();
-      setTimeout(remeasure, 250);
-    });
-    const hide = Keyboard.addListener('keyboardDidHide', () => { kbTopRef.current = null; setKbOverlap(0); });
+    const show = Keyboard.addListener('keyboardDidShow', () => setKbVisible(true));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKbVisible(false));
     return () => { show.remove(); hide.remove(); };
-  }, [remeasure]);
+  }, []);
 
   const handleReply = (msg: ChatMessage) => {
     setReplyTo({ messageId: msg.id, senderName: msg.username, text: msg.text });
@@ -231,7 +216,7 @@ export function ChatPanel({ messages, currentUserId, onSend, onOpenProfile, emoj
   const canSend = input.trim().length > 0;
 
   return (
-    <View ref={panelRef} collapsable={false} onLayout={remeasure} style={[s.container, { paddingBottom: kbOverlap }]}>
+    <View style={s.container}>
       {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
@@ -282,7 +267,7 @@ export function ChatPanel({ messages, currentUserId, onSend, onOpenProfile, emoj
       {emojiSlot && emojiOpen ? <View style={s.emojiSlot}>{emojiSlot}</View> : null}
 
       {/* Input */}
-      <View style={[s.inputRow, { paddingBottom: kbOverlap > 0 ? 10 : Math.max(insets.bottom, 12) + 10 }]}>
+      <View style={[s.inputRow, { paddingBottom: kbVisible ? 10 : Math.max(insets.bottom, 12) + 10 }]}>
         {emojiSlot ? (
           <TrackedTouchable
             trackId="chat:toggle_emoji"

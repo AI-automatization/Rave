@@ -125,10 +125,28 @@ export function WatchPartyScreen() {
   // Klaviatura ochiq paytida (portret) emoji paneli va ovozli chat bloki yashiriladi: aks holda
   // chat uchun klaviatura ustida joy qolmaydi va yozish maydoni klaviatura ostida qoladi.
   const [kbOpen, setKbOpen] = useState(false);
+  // Adaptive klaviatura: root'ning pastki chegarasi (ekran o'lchamiga/gesture panelga bog'liq emas)
+  // klaviatura tepasidan pastda bo'lsa, farqi = padding. Tizim oynani o'zi kichraytirgan
+  // qurilmalarda root pastki chegarasi allaqachon klaviatura tepasida → padding 0.
+  const rootRef = useRef<View>(null);
+  const kbTopRef = useRef<number | null>(null);
+  const [kbOverlap, setKbOverlap] = useState(0);
+  const remeasureKb = useCallback(() => {
+    const kbTop = kbTopRef.current;
+    if (kbTop == null) return;
+    rootRef.current?.measureInWindow((_x, y, _w, h) => {
+      setKbOverlap(Math.max(0, Math.round(y + h - kbTop)));
+    });
+  }, []);
   const [panelTab, setPanelTab] = useState<'chat' | 'voice' | 'members'>('chat');
   useEffect(() => {
-    const show = Keyboard.addListener('keyboardDidShow', () => setKbOpen(true));
-    const hide = Keyboard.addListener('keyboardDidHide', () => setKbOpen(false));
+    const show = Keyboard.addListener('keyboardDidShow', e => {
+      setKbOpen(true);
+      kbTopRef.current = e.endCoordinates.screenY;
+      remeasureKb();
+      setTimeout(remeasureKb, 250);
+    });
+    const hide = Keyboard.addListener('keyboardDidHide', () => { setKbOpen(false); kbTopRef.current = null; setKbOverlap(0); });
     return () => { show.remove(); hide.remove(); };
   }, []);
 
@@ -399,7 +417,7 @@ export function WatchPartyScreen() {
     // under it, reading as "player pressed to the top, covered by the clock/signal/battery icons"
     // (real report 2026-08-03). Skipped in fullscreen — that mode is meant to be edge-to-edge,
     // landscape, and already locks orientation away from the notch/status-bar area.
-    <View style={[s.root, !isFullscreen && { paddingTop: insets.top }]}>
+    <View ref={rootRef} collapsable={false} onLayout={remeasureKb} style={[s.root, !isFullscreen && { paddingTop: insets.top }, kbOverlap > 0 && { paddingBottom: kbOverlap }]}>
 
       {/* Expired source banner */}
       {extractionError === 'video_source_expired' && (
