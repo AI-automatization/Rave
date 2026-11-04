@@ -16,6 +16,7 @@ import { ApiError } from '@/lib/api-client';
 import { trackClick } from '@/lib/analytics';
 import { trackRoomCreated } from '@/lib/measurement-events';
 import { resolveLinkPlatform, normalizeLinkInput } from '@/lib/link-routing';
+import { useDesktopVbPicker } from '@/hooks/use-desktop-vb-picker';
 
 interface Props {
   open: boolean;
@@ -345,6 +346,35 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
   const titleTimer    = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const prefetchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
+  /* ── Desktop app: a platform opens in the local Virtual Browser; the video the user opens there
+     comes straight back here (no copy-paste). The VB closes right after — it only finds the link. ── */
+  const pickToken = useRef(0);
+  const vbPicker = useDesktopVbPicker((url, pageTitle) => {
+    trackClick('create_room:vb_pick');
+    const token = ++pickToken.current;
+    clearTimeout(titleTimer.current);
+    clearTimeout(prefetchTimer.current);
+    setVideoUrl(url);
+    setClipDetected(false);
+    setActivePlatform(detectPlatform(url));
+    setVideoTitle(pageTitle ?? '');
+    setVideoThumbnail(null);
+    setRoomName((prev) => prev || (pageTitle ?? '').slice(0, 60));
+    prefetchExtraction(url);
+    setStep(2);
+    setTitleLoading(true);
+    void fetchVideoMeta(url).then((meta) => {
+      if (token !== pickToken.current) return; // dialog closed or another pick since
+      if (meta.title) {
+        const title = meta.title;
+        setVideoTitle(title);
+        setRoomName((prev) => prev || title.slice(0, 60));
+      }
+      if (meta.thumbnail) setVideoThumbnail(meta.thumbnail);
+      setTitleLoading(false);
+    });
+  });
+
   /* ── In-app search (YouTube/Rutube/VK) — debounced ─── */
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 400);
@@ -439,6 +469,14 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
   /* ── Platform click → open in popup window ─────────── */
   function handlePlatformClick(platform: Platform) {
     setActivePlatform(platform);
+    // Desktop app: the platform's own site in the VB ('web' starts at a search page).
+    if (vbPicker.canPick()) {
+      trackClick('create_room:platform_vb', { platform: platform.id });
+      void vbPicker.start(platform.base || 'https://www.google.com').then((ok) => {
+        if (!ok) toast.error(t('vbPickFailed'));
+      });
+      return;
+    }
     // Youtube/Rutube/VK have in-app search (below) — no need to send the user to a popup window
     // to find a link and paste it back.
     if (SEARCHABLE_PLATFORM_IDS.has(platform.id)) {
@@ -527,6 +565,8 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
 
   function handleClose() {
     onOpenChange(false);
+    pickToken.current++;
+    vbPicker.cancel();
     clearTimeout(titleTimer.current);
     clearTimeout(prefetchTimer.current);
     setStep(1);
@@ -566,6 +606,44 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
 
         {step === 1 && (
           <div className="flex flex-col gap-4 px-5 pb-5 pt-4">
+
+            {/* Desktop VB picker — the site is open in the VB window; a video page there is taken
+                automatically, any other page (a film site from 'web') with "Watch this page". */}
+            {vbPicker.picking && (
+              <div className="flex flex-col gap-2.5 px-3.5 py-3 rounded-xl bg-violet-500/10 border border-violet-500/25">
+                <div className="flex items-start gap-2.5">
+                  <Globe size={15} className="shrink-0 mt-0.5 text-violet-300" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] text-violet-200">{t('vbPickHint')}</p>
+                    {vbPicker.page?.url && (
+                      <p className="text-[11px] text-slate-500 truncate mt-0.5">{vbPicker.page.title || vbPicker.page.url}</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={vbPicker.cancel}
+                    aria-label={t('vbPickCancel')}
+                    className="shrink-0 opacity-60 hover:opacity-100 transition-opacity cursor-pointer"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={vbPicker.show}
+                    className="flex-1 h-9 rounded-lg text-[12px] font-medium text-slate-200 bg-white/[0.06] hover:bg-white/[0.1] transition-colors cursor-pointer"
+                  >
+                    {t('vbPickShow')}
+                  </button>
+                  <button
+                    onClick={vbPicker.take}
+                    disabled={!vbPicker.canTake}
+                    className="flex-1 h-9 rounded-lg text-[12px] font-semibold text-white bg-violet-600 hover:bg-violet-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {t('vbPickTake')}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Clipboard detected banner */}
             {clipDetected && (

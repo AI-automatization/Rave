@@ -22,7 +22,8 @@ interface DesktopBridge {
     open(url: string): Promise<{ ok: true } | { ok: false; reason: string }>;
     close(): Promise<{ ok: boolean }>;
     focus(): Promise<{ ok: boolean }>;
-    onState(cb: (s: { open: boolean; url?: string; title?: string; crashed?: string }) => void): () => void;
+    /** nav: 'load' = full page load, 'in-page' = SPA route change (desktop ≥ the VB-picker build). */
+    onState(cb: (s: { open: boolean; url?: string; title?: string; crashed?: string; nav?: 'load' | 'in-page' }) => void): () => void;
   };
 }
 

@@ -112,6 +112,17 @@ let mainWin = null;
 let vbWin = null;
 
 const isAppOrigin = (url) => { try { return new URL(url).origin === APP_ORIGIN; } catch { return false; } };
+// Last two host labels (three for co.uk / com.ua-style hosts) — enough to tell youtube.com from an
+// ad network without shipping the public suffix list.
+const SECOND_LEVEL = new Set(['co', 'com', 'net', 'org', 'gov', 'edu', 'ac']);
+const siteOf = (url) => {
+  try {
+    const labels = new URL(url).hostname.toLowerCase().split('.');
+    const n = labels.length >= 3 && SECOND_LEVEL.has(labels[labels.length - 2]) && labels[labels.length - 1].length === 2 ? 3 : 2;
+    return labels.slice(-n).join('.');
+  } catch { return ''; }
+};
+const sameSite = (a, b) => { const s = siteOf(a); return !!s && s === siteOf(b); };
 const sendToApp = (ch, payload) => mainWin?.webContents.send(ch, payload);
 
 // ── Virtual Browser window ─────────────────────────────────────────────────
@@ -139,15 +150,29 @@ function openVb(url) {
     },
   });
   vbWin.setMenuBarVisibility(false);
-  // Popups / target=_blank open in the same VB window — no stray windows or processes.
-  vbWin.webContents.setWindowOpenHandler(({ url: u }) => {
-    if (!checkUrl(u)) vbWin.loadURL(u);
+  const wc = vbWin.webContents;
+  // Popups / target=_blank open in the same VB window — no stray windows or processes. Only within
+  // the same site: free movie sites fire window.open() to an ad domain on the first click
+  // (popunder), and following it threw the user off the film onto the ad.
+  wc.setWindowOpenHandler(({ url: u }) => {
+    if (!checkUrl(u) && sameSite(u, wc.getURL())) wc.loadURL(u);
     return { action: 'deny' };
   });
-  vbWin.webContents.on('did-navigate', (_e, u) => sendToApp('vb:state', { open: true, url: u }));
-  vbWin.webContents.on('page-title-updated', (_e, title) => sendToApp('vb:state', { open: true, url: vbWin.webContents.getURL(), title }));
-  vbWin.webContents.on('render-process-gone', (_e, d) => sendToApp('vb:state', { open: true, crashed: d.reason }));
-  vbWin.on('closed', () => { vbWin = null; sendToApp('vb:state', { open: false }); clearVbCache(); });
+  // nav: 'load' = a real page load, 'in-page' = SPA route change (YouTube/VK switch videos without
+  // reloading, did-navigate never fires there). The app's video picker needs both.
+  wc.on('did-navigate', (_e, u) => sendToApp('vb:state', { open: true, url: u, nav: 'load' }));
+  wc.on('did-navigate-in-page', (_e, u, isMainFrame) => {
+    if (isMainFrame) sendToApp('vb:state', { open: true, url: u, nav: 'in-page' });
+  });
+  wc.on('page-title-updated', (_e, title) => sendToApp('vb:state', { open: true, url: wc.getURL(), title }));
+  wc.on('render-process-gone', (_e, d) => sendToApp('vb:state', { open: true, crashed: d.reason }));
+  vbWin.on('closed', () => {
+    vbWin = null;
+    sendToApp('vb:state', { open: false });
+    clearVbCache();
+    // Picking a video closes the VB — the user lands back in the app, not behind another window.
+    if (mainWin && !mainWin.isDestroyed()) mainWin.focus();
+  });
   vbWin.loadURL(url);
   return { ok: true };
 }
