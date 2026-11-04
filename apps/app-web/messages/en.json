@@ -882,7 +882,7 @@
     "createError": "Failed to create room",
     "alreadyHaveRoom": "You already have an open room — opening it",
     "joinTitle": "Join Room",
-    "joinDesc": "Enter the 6-digit invite code",
+    "joinDesc": "Paste the invite link or enter the 6-character code",
     "joining": "Joining...",
     "joinBtn": "Join",
     "joinError": "Failed to join room",

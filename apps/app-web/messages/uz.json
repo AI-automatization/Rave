@@ -843,7 +843,7 @@
     "createError": "Xona yaratib bo'lmadi",
     "alreadyHaveRoom": "Sizda ochiq xona bor — uni ochyapmiz",
     "joinTitle": "Xonaga qo'shilish",
-    "joinDesc": "6 xonali taklif kodini kiriting",
+    "joinDesc": "Taklif havolasini qo'ying yoki 6 xonali kodni kiriting",
     "joining": "Qo'shilmoqda...",
     "joinBtn": "Qo'shilish",
     "joinError": "Xonaga qo'shilib bo'lmadi",
