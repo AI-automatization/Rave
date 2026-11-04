@@ -103,6 +103,8 @@ export function useDesktopScreenShare(socket: Socket | null, roomJoined: boolean
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
         if (peersRef.current.get(viewerId) === pc) peersRef.current.delete(viewerId);
+        // A failed connection keeps its encoder and ICE alive until closed — one per gone viewer.
+        if (pc.connectionState === 'failed') pc.close();
       }
     };
     const offer = await pc.createOffer();
@@ -119,6 +121,8 @@ export function useDesktopScreenShare(socket: Socket | null, roomJoined: boolean
     if (wasSharing) socket?.emit(CLIENT_EVENTS.SCREEN_STOP);
     void bridge?.vb.close();
   }, [bridge, closeOwnerPeers, socket]);
+  const stopRef = useRef(stop);
+  useEffect(() => { stopRef.current = stop; }, [stop]);
 
   const start = useCallback(async (url: string) => {
     if (!canShare || !bridge || starting) return;
@@ -225,10 +229,10 @@ export function useDesktopScreenShare(socket: Socket | null, roomJoined: boolean
     };
   }, [active, socket, isOwner, offerTo, closeViewer]);
 
-  // Leaving the room ends everything.
+  // Leaving the room ends everything. This used to stop only the tracks: the VB window stayed open
+  // and kept playing the film (backgroundThrottling off) for nobody, and viewers got no SCREEN_STOP.
   useEffect(() => () => {
-    localRef.current?.getTracks().forEach((t) => t.stop());
-    peersRef.current.forEach((pc) => pc.close());
+    stopRef.current();
     viewerPcRef.current?.close();
   }, []);
 
