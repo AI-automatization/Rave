@@ -9,6 +9,8 @@ interface AuthState {
   user: IUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  /** /me could not be reached (network, 5xx) — the session may be fine, so no redirect; UI offers retry. */
+  authError: boolean;
   setUser: (user: IUser | null) => void;
   checkAuth: () => Promise<void>;
   logout: () => Promise<void>;
@@ -18,9 +20,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
   isLoading: true,
+  authError: false,
 
   setUser: (user) =>
-    set({ user, isAuthenticated: !!user, isLoading: false }),
+    set({ user, isAuthenticated: !!user, isLoading: false, authError: false }),
 
   // Opening the app after >15 min idle: the access_token cookie has expired, only refresh_token is
   // left. Middleware lets that through (it has a refresh token), but this used to call /me once,
@@ -29,23 +32,24 @@ export const useAuthStore = create<AuthState>((set) => ({
   // really is dead goes to login (rooms → guest join, as middleware does) instead of a hollow page.
   checkAuth: async () => {
     const me = () => fetch('/api/auth/me', { credentials: 'include' });
+    set({ isLoading: true, authError: false });
     try {
       let res = await me();
       if (res.status === 401 && await tryRefresh()) res = await me();
       if (res.ok) {
         const data = await res.json() as { data: { user: IUser } };
-        set({ user: data.data.user, isAuthenticated: true, isLoading: false });
+        set({ user: data.data.user, isAuthenticated: true, isLoading: false, authError: false });
         return;
       }
-      set({ user: null, isAuthenticated: false, isLoading: false });
+      set({ user: null, isAuthenticated: false, isLoading: false, authError: res.status !== 401 });
       if (res.status === 401) {
         const here = window.location.pathname + window.location.search;
         const entry = /^\/(uz\/)?room\//.test(window.location.pathname) ? '/guest' : '/login';
         window.location.replace(withRedirect(entry, here));
       }
     } catch {
-      // Network/503 — keep the user where they are; the next call retries.
-      set({ user: null, isAuthenticated: false, isLoading: false });
+      // Network/503 — keep the user where they are; the layout shows a retry instead of the app.
+      set({ user: null, isAuthenticated: false, isLoading: false, authError: true });
     }
   },
 
@@ -55,6 +59,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch {
       // ignore
     }
-    set({ user: null, isAuthenticated: false, isLoading: false });
+    set({ user: null, isAuthenticated: false, isLoading: false, authError: false });
+    // Sidebar/dock logout used to stop here — the user stayed on the dashboard with "—" for the
+    // account. A full navigation also drops every cached query of the previous user.
+    window.location.replace('/login');
   },
 }));
