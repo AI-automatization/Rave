@@ -147,13 +147,22 @@ function openVb(url) {
   vbWin.webContents.on('did-navigate', (_e, u) => sendToApp('vb:state', { open: true, url: u }));
   vbWin.webContents.on('page-title-updated', (_e, title) => sendToApp('vb:state', { open: true, url: vbWin.webContents.getURL(), title }));
   vbWin.webContents.on('render-process-gone', (_e, d) => sendToApp('vb:state', { open: true, crashed: d.reason }));
-  vbWin.on('closed', () => { vbWin = null; sendToApp('vb:state', { open: false }); });
+  vbWin.on('closed', () => { vbWin = null; sendToApp('vb:state', { open: false }); clearVbCache(); });
   vbWin.loadURL(url);
   return { ok: true };
 }
 
 function closeVb() {
   if (vbWin && !vbWin.isDestroyed()) vbWin.close();
+}
+
+// The VB is only there to get the video on screen. Players in it fill the HTTP cache (and some the
+// Cache API) with video segments, and persist:vb kept them on the user's disk for good. Dropped when
+// the VB closes and on start (in case the app was killed); cookies/logins on those sites stay.
+function clearVbCache() {
+  const vb = session.fromPartition('persist:vb');
+  vb.clearCache().catch(() => {});
+  vb.clearStorageData({ storages: ['cachestorage', 'shadercache'] }).catch(() => {});
 }
 
 // ── Main window (the web app) ──────────────────────────────────────────────
@@ -225,6 +234,17 @@ app.whenReady().then(() => {
   session.defaultSession.setUserAgent(CHROME_UA(session.defaultSession.getUserAgent()));
   session.fromPartition('persist:vb').setUserAgent(CHROME_UA(session.fromPartition('persist:vb').getUserAgent()));
   protectSession(session.fromPartition('persist:vb'), (url, reason) => sendToApp('vb:blocked', { url, reason }));
+  clearVbCache();
+
+  // Every refresh rotates refresh_token — the old one is deleted on the server. Chromium writes
+  // cookies to disk lazily (~30 s), so a crash, a kill from Task Manager or a power cut right after
+  // a refresh restarted the app with the already-dead token: refresh 401 → logged out. Write the
+  // session cookies through to disk the moment they change.
+  session.defaultSession.cookies.on('changed', (_e, cookie) => {
+    if (cookie.name === 'refresh_token' || cookie.name === 'access_token') {
+      session.defaultSession.cookies.flushStore().catch(() => {});
+    }
+  });
 
   // The web app's getDisplayMedia() gets the VB window + system audio. Nothing else can be shared
   // from inside the app: no VB window → the request is refused.
