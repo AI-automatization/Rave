@@ -23,4 +23,15 @@ contextBridge.exposeInMainWorld('wewatchDesktop', {
     onBlocked: listen('vb:blocked'),
     metrics: () => ipcRenderer.invoke('vb:metrics'),
   },
+  /** The VB as a panel inside this window — for finding a room's video (not for streaming). */
+  picker: {
+    open: (url) => ipcRenderer.invoke('pick:open', url),
+    /** {x,y,width,height} of the app's empty box in CSS px; null hides the panel. */
+    setBounds: (box) => ipcRenderer.invoke('pick:bounds', box),
+    nav: (action) => ipcRenderer.invoke('pick:nav', action),
+    /** → { ok, url, title, player, frame } — the iframe/page where a video actually started. */
+    take: () => ipcRenderer.invoke('pick:take'),
+    close: () => ipcRenderer.invoke('pick:close'),
+    onState: listen('pick:state'),
+  },
 });

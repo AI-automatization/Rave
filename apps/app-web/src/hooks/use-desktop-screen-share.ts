@@ -22,10 +22,22 @@ interface DesktopBridge {
     open(url: string): Promise<{ ok: true } | { ok: false; reason: string }>;
     close(): Promise<{ ok: boolean }>;
     focus(): Promise<{ ok: boolean }>;
-    /** nav: 'load' = full page load, 'in-page' = SPA route change (desktop ≥ the VB-picker build). */
-    onState(cb: (s: { open: boolean; url?: string; title?: string; crashed?: string; nav?: 'load' | 'in-page' }) => void): () => void;
+    onState(cb: (s: DesktopVbState) => void): () => void;
+  };
+  /** The VB as a panel inside the app window — finding a room's video. Absent in older desktop builds. */
+  picker?: {
+    open(url: string): Promise<{ ok: true } | { ok: false; reason: string }>;
+    setBounds(box: { x: number; y: number; width: number; height: number } | null): Promise<{ ok: boolean }>;
+    nav(action: 'back' | 'reload'): Promise<{ ok: boolean }>;
+    /** The iframe (or page) where a video actually started; player=false → nothing was playing. */
+    take(): Promise<{ ok: true; url: string; title: string; player: boolean; frame: boolean } | { ok: false; reason?: string }>;
+    close(): Promise<{ ok: boolean }>;
+    onState(cb: (s: DesktopVbState) => void): () => void;
   };
 }
+
+/** nav: 'load' = full page load, 'in-page' = SPA route change (desktop ≥ the VB-picker build). */
+export interface DesktopVbState { open: boolean; url?: string; title?: string; crashed?: string; nav?: 'load' | 'in-page' }
 
 declare global {
   interface Window { wewatchDesktop?: DesktopBridge }
