@@ -189,7 +189,11 @@ export function useDesktopVbPicker(onPick: (url: string, title?: string, referer
       const stream = !platformUrl && r.stream && parseHttp(r.stream.url) ? r.stream : undefined;
       stop();
       void picker.close();
-      onPickRef.current(url, r.title || page.title || undefined, referer, stream);
+      // The caught film stream itself becomes the room's video, not the site page: a direct .m3u8/.mp4
+      // link goes the server's direct-resolve path (directResolve.helper.ts → signed vb-media-proxy)
+      // and plays in OUR synced player for everyone. Sent as the page instead, the room was a plain
+      // iframe of the site with its ads and no sync (2026-11-05, kinogo) on any server build.
+      onPickRef.current(stream?.url ?? url, r.title || page.title || undefined, referer, stream);
       return true;
     } finally {
       setTaking(false);
