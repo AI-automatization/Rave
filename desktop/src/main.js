@@ -20,7 +20,10 @@ const { configureDns, protectSession, checkUrl } = require('./safety');
 // turning off only ECH/post-quantum TLS did not help). Ignoring those records keeps the DoH filter.
 app.commandLine.appendSwitch('disable-features', 'UseDnsHttpsSvcbAlpn,UseDnsHttpsSvcb');
 
-const APP_URL = process.env.WW_APP_URL || 'https://app.wewatch.uz';
+// WW_APP_URL / WW_AUTH_URL are for `npm run dev` only. The installed app always opens production: a
+// WW_APP_URL left in the Windows user environment sent it to localhost:3000 (2026-11-05).
+const DEV_ENV = (name) => (app.isPackaged ? '' : process.env[name] || '');
+const APP_URL = DEV_ENV('WW_APP_URL') || 'https://app.wewatch.uz';
 const APP_ORIGIN = new URL(APP_URL).origin;
 // Hosts the main window may navigate to without leaving for the system browser.
 const IN_APP_HOSTS = new Set([new URL(APP_URL).hostname, 'wewatch.uz', 'www.wewatch.uz']);
@@ -36,7 +39,7 @@ const IN_APP_HOSTS = new Set([new URL(APP_URL).hostname, 'wewatch.uz', 'www.wewa
 //      then the main window reloads — the web app sees a normal logged-in session.
 // The state never leaves this process + the browser tab, and poll hands the result out only once.
 const GOOGLE_START_PATH = '/api/auth/google/start';
-const AUTH_URL = (process.env.WW_AUTH_URL || 'https://auth-production-47a8.up.railway.app/api/v1/auth').replace(/\/+$/, '');
+const AUTH_URL = (DEV_ENV('WW_AUTH_URL') || 'https://auth-production-47a8.up.railway.app/api/v1/auth').replace(/\/+$/, '');
 const LOGIN_TIMEOUT_MS = 5 * 60 * 1000;
 const POLL_INTERVAL_MS = 2000;
 const ACCESS_TTL_S = 15 * 60;           // same as exchange/route.ts
@@ -299,8 +302,12 @@ function noteStream(d) {
 async function measureStreamInPage(u, type, timeoutMs) {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeoutMs);
+  // First the way players load it (hls.js: no cookies): CDNs answer `Access-Control-Allow-Origin: *`,
+  // and a credentialed fetch is refused under that — every measure failed on test-streams.mux.dev
+  // (live check 2026-11-05). Cookies only as the fallback for a CDN that needs them.
   const get = async (x) => {
-    const r = await fetch(x, { credentials: 'include', signal: ctl.signal });
+    let r = await fetch(x, { signal: ctl.signal }).catch(() => null);
+    if (!r || !r.ok) r = await fetch(x, { credentials: 'include', signal: ctl.signal });
     if (!r.ok) throw new Error(String(r.status));
     return r.text();
   };
