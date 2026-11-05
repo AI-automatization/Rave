@@ -139,9 +139,10 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
   const [showOtherSources, setShowOtherSources] = useState(false);
   const [roomName, setRoomName]               = useState('');
   const [isPrivate, setIsPrivate]             = useState(false);
-  // Site page a "Take video" player iframe sat on, tied to the url it came with — any later edit of
-  // the link drops it (compared at submit). The server opens the player with it as Referer.
-  const [pickedReferer, setPickedReferer]     = useState<{ url: string; referer: string } | null>(null);
+  // What "Take video" brought along with the link, tied to the url it came with — any later edit of
+  // the link drops it (compared at submit). referer = the site page a player iframe sat on (the
+  // server opens the player with it); stream = the film's playlist/file the panel saw on the network.
+  const [picked, setPicked]                   = useState<{ url: string; referer?: string; stream?: { url: string; type: 'hls' | 'dash' | 'mp4' } } | null>(null);
 
   const urlRef        = useRef<HTMLInputElement>(null);
   const searchRef     = useRef<HTMLInputElement>(null);
@@ -152,13 +153,15 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
      window; the video the user opens there comes straight back here (no copy-paste). The panel
      closes right after — it only finds the link. ── */
   const pickToken = useRef(0);
-  const vbPicker = useDesktopVbPicker((url, pageTitle, referer) => {
+  const vbPicker = useDesktopVbPicker((url, pageTitle, referer, stream) => {
     trackClick('create_room:vb_pick');
     const token = ++pickToken.current;
     clearTimeout(titleTimer.current);
     clearTimeout(prefetchTimer.current);
     setVideoUrl(url);
-    setPickedReferer(referer ? { url, referer } : null);
+    setPicked(referer || stream
+      ? { url, referer, stream: stream ? { url: stream.url, type: stream.type } : undefined }
+      : null);
     setClipDetected(false);
     setActivePlatform(detectPlatform(url));
     setVideoTitle(pageTitle ?? '');
@@ -339,7 +342,8 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
         videoTitle:       videoTitle || undefined,
         videoThumbnail:   safeThumbnail || undefined,
         videoPlatform:    platform,
-        videoReferer:     pickedReferer?.url === videoUrl ? pickedReferer.referer : undefined,
+        videoReferer:     picked?.url === videoUrl ? picked.referer : undefined,
+        videoStream:      picked?.url === videoUrl ? picked.stream : undefined,
         isPrivate,
       });
       onOpenChange(false);
@@ -387,7 +391,7 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
     setShowOtherSources(false);
     setRoomName('');
     setIsPrivate(false);
-    setPickedReferer(null);
+    setPicked(null);
   }
 
   const hintText = activePlatform

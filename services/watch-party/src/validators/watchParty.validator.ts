@@ -20,6 +20,12 @@ export const createRoomSchema = Joi.object({
   password: Joi.string().min(1).max(100).optional(),
   startTime: Joi.number().integer().min(0).optional(),
   videoReferer: Joi.string().uri().allow('').max(2048).optional(),
+  // The film's own stream the desktop app's picker caught on the owner's machine (desktop/src/main.js
+  // pickStream) — a hint only: upgradeWebviewToDirect checks it from this server before using it.
+  videoStream: Joi.object({
+    url: Joi.string().uri({ scheme: ['http', 'https'] }).max(4096).required(),
+    type: Joi.string().valid('hls', 'dash', 'mp4').required(),
+  }).optional(),
   // Real prod bug found live 2026-08-26: apps/mobile's watchPartyApi.createRoom() has sent this
   // field since "E67-3" (webview-session mode, shared/src/types/index.ts) — Netscape-format
   // cookies from a WebView, for auth-protected sites the same way services/content's

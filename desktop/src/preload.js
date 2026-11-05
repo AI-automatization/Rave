@@ -29,7 +29,8 @@ contextBridge.exposeInMainWorld('wewatchDesktop', {
     /** {x,y,width,height} of the app's empty box in CSS px; null hides the panel. */
     setBounds: (box) => ipcRenderer.invoke('pick:bounds', box),
     nav: (action) => ipcRenderer.invoke('pick:nav', action),
-    /** → { ok, url, title, player, frame } — the iframe/page where a video actually started. */
+    /** → { ok, url, pageUrl, title, player, frame, stream? } — the iframe/page where a video actually
+     * started; stream = { url, type: 'hls'|'dash'|'mp4', durationSec } of the film seen on the network. */
     take: () => ipcRenderer.invoke('pick:take'),
     close: () => ipcRenderer.invoke('pick:close'),
     onState: listen('pick:state'),

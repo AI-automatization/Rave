@@ -8,7 +8,7 @@
 // anything here; nothing keeps running on the user's machine afterwards.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { DESKTOP_VB_ENABLED } from './use-desktop-screen-share';
+import { DESKTOP_VB_ENABLED, type DesktopStream } from './use-desktop-screen-share';
 
 const YT_ID = /^[A-Za-z0-9_-]{11}$/;
 const bareHost = (u: URL) => u.hostname.toLowerCase().replace(/^(www\.|m\.)/, '');
@@ -124,9 +124,10 @@ export interface VbPickerPage { url: string | null; title: string | null }
  * onPick(url, title, referer) — title only for "Take video" (an auto-pick fires on the SPA route
  * change, before the page retitles, so the VB title would still be the previous page's). referer =
  * the site page a taken player iframe sat on: the server opens the player with it, since some player
- * hosts refuse a request without one (cinemar.cc on kinogo).
+ * hosts refuse a request without one (cinemar.cc on kinogo). stream = the film's own playlist/file
+ * the panel saw on the network — the server checks it and switches the room to the synced player.
  */
-export function useDesktopVbPicker(onPick: (url: string, title?: string, referer?: string) => void) {
+export function useDesktopVbPicker(onPick: (url: string, title?: string, referer?: string, stream?: DesktopStream) => void) {
   // null = not picking; otherwise the page currently open in the panel (null url until it loads).
   const [page, setPage] = useState<VbPickerPage | null>(null);
   const [taking, setTaking] = useState(false);
@@ -184,9 +185,11 @@ export function useDesktopVbPicker(onPick: (url: string, title?: string, referer
       const url = platformUrl ?? r.url;
       if (!canTakePage(url)) return false;
       const referer = !platformUrl && r.frame && r.pageUrl && parseHttp(r.pageUrl) ? r.pageUrl : undefined;
+      // A platform link (YouTube…) already plays in the synced player — the sniffed stream is not needed.
+      const stream = !platformUrl && r.stream && parseHttp(r.stream.url) ? r.stream : undefined;
       stop();
       void picker.close();
-      onPickRef.current(url, r.title || page.title || undefined, referer);
+      onPickRef.current(url, r.title || page.title || undefined, referer, stream);
       return true;
     } finally {
       setTaking(false);

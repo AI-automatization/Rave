@@ -15,6 +15,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Socket } from 'socket.io-client';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 
+/** A stream the desktop picker caught on the network (desktop/src/main.js pickStream). */
+export interface DesktopStream {
+  url: string;
+  type: 'hls' | 'dash' | 'mp4';
+  /** null = live (no end). */
+  durationSec: number | null;
+}
+
 interface DesktopBridge {
   platform: 'windows';
   version: number;
@@ -30,8 +38,9 @@ interface DesktopBridge {
     setBounds(box: { x: number; y: number; width: number; height: number } | null): Promise<{ ok: boolean }>;
     nav(action: 'back' | 'reload'): Promise<{ ok: boolean }>;
     /** The iframe (or page) where a video actually started; player=false → nothing was playing.
-     *  pageUrl = the site page around it (builds before 2026-11-05 don't send it). */
-    take(): Promise<{ ok: true; url: string; pageUrl?: string; title: string; player: boolean; frame: boolean } | { ok: false; reason?: string }>;
+     *  pageUrl = the site page around it (builds before 2026-11-05 don't send it). stream = the film's
+     *  own playlist/file the page loaded, longest first (absent when nothing long enough played). */
+    take(): Promise<{ ok: true; url: string; pageUrl?: string; title: string; player: boolean; frame: boolean; stream?: DesktopStream } | { ok: false; reason?: string }>;
     close(): Promise<{ ok: boolean }>;
     onState(cb: (s: DesktopVbState) => void): () => void;
   };

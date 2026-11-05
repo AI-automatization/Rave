@@ -16,7 +16,7 @@ import { signProxyUrl } from '@shared/utils/proxySignature';
 import { getSessionViewport, startSession, getSessionPageTitle, enableAutoProxy, MediaType, VB_WATCH_IN_BROWSER, getSessionCurrentUrl, hasSession, setOnSessionEnded, getMovieState, probeUrl } from '../services/virtualBrowser.service';
 import { WatchPartyRoom } from '../models/watchPartyRoom.model';
 import { WatchPartyPlaylistService } from '../services/watchPartyPlaylist.service';
-import { resolveDirectMedia } from './directResolve.helper';
+import { resolveDirectMedia, probeStreamHint } from './directResolve.helper';
 import { emitVbFrame } from './vbFrameSender.helper';
 
 // TTL for the candidates Redis entry — matches how long "the current video session" is a
@@ -184,9 +184,18 @@ export async function roomRefererFor(roomId: string, url: string): Promise<strin
 // cinemar.cc, 2026-11-05) the server opens that player itself (with the page as Referer), catches
 // the stream and switches the room to the synced native player. Nothing found = the iframe stays.
 // The stream goes through vb-media-proxy, so its token is minted for this service's own IP.
-export function upgradeWebviewToDirect(io: SocketServer, redis: Redis, roomId: string, ownerId: string, url: string, referer: string): void {
+// hint = the stream the owner's desktop picker already caught on the network. Tried first, from this
+// server with the player as Referer (what vb-media-proxy will send) — no server Chromium needed. A
+// token bound to the owner's IP fails here; then the server sniffs the player itself (needs referer).
+export interface StreamHint { url: string; type: MediaType }
+
+export function upgradeWebviewToDirect(
+  io: SocketServer, redis: Redis, roomId: string, ownerId: string, url: string, referer?: string, hint?: StreamHint,
+): void {
   void (async () => {
-    const found = await probeUrl(url, referer);
+    const hinted = hint && (await probeStreamHint(hint.url, hint.type, url)) ? { mediaUrl: hint.url, type: hint.type } : null;
+    if (hint && !hinted) logger.info('Webview upgrade: desktop stream not reachable from the server', { roomId, type: hint.type });
+    const found = hinted ?? (referer ? await probeUrl(url, referer) : null);
     if (!found) {
       logger.info('Webview upgrade: no stream found, room stays on the iframe', { roomId, url: url.slice(0, 120) });
       return;
@@ -202,7 +211,7 @@ export function upgradeWebviewToDirect(io: SocketServer, redis: Redis, roomId: s
       videoTitle: room.videoTitle,
     });
     io.to(roomId).emit(SERVER_EVENTS.ROOM_UPDATED, updated);
-    logger.info('Webview upgrade: room switched to the synced player', { roomId, type: found.type });
+    logger.info('Webview upgrade: room switched to the synced player', { roomId, type: found.type, source: hinted ? 'desktop' : 'server-vb' });
   })().catch((e) => {
     logger.warn('Webview upgrade failed, room stays on the iframe', { roomId, error: (e as Error).message });
   });

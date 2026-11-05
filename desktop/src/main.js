@@ -192,6 +192,8 @@ function openPick(url) {
     pickView.setVisible(false); // until the app reports where its box is
     mainWin.contentView.addChildView(pickView);
     wireVbContents(pickView.webContents, 'pick:state');
+    // Streams of the previous page are not this page's film.
+    pickView.webContents.on('did-navigate', () => sniffed.clear());
   }
   const wc = pickContents();
   wc.loadURL(url).catch(() => {}); // aborted by a redirect / blocked ad — the page events tell the rest
@@ -234,6 +236,134 @@ const PLAYER_PROBE = `(() => {
 })()`;
 const PROBE_TIMEOUT_MS = 1500;
 
+// ── Stream sniffer: the film itself, not just its player page ─────────────
+// Film players feed <video> through MSE (currentSrc = blob:), so the stream is only visible on the
+// network. Every playlist / video file the picker's page loads is noted with the frame that asked
+// for it; "Take video" measures them (a pre-roll ad lasts seconds, the film an hour) and returns the
+// longest, which the room then plays in our own synced player. onBeforeRequest belongs to safety.js
+// (one listener per event per session) — this one listens on onResponseStarted.
+const STREAM_CONTENT_TYPES = [[/mpegurl/i, 'hls'], [/dash\+xml/i, 'dash'], [/^video\/mp4/i, 'mp4']];
+const STREAM_EXTENSIONS = [[/\.m3u8$/i, 'hls'], [/\.mpd$/i, 'dash'], [/\.(mp4|m4v)$/i, 'mp4']];
+const MAX_STREAMS = 40;
+const MAX_STREAM_URL = 4096;       // the server's limit for the stream link
+const MAX_MEASURED = 12;           // playlists fetched again on "Take" — the newest, player frame first
+const MEASURE_TIMEOUT_MS = 4000;
+const MIN_STREAM_SEC = 120;        // shorter = an ad or a trailer, not what the room came to watch
+// A progressive file is measured by size; 1 Mbit/s is low for a film, so the estimate errs long.
+const MP4_BYTES_PER_SEC = 125_000;
+// fMP4 segments of HLS/DASH are video/mp4 too, loaded by script; a file <video> plays is 'media'.
+const BIG_MP4_BYTES = 100 * 1024 * 1024;
+const sniffed = new Map(); // url → { url, type, frameId, bytes, at }
+
+const headerOf = (headers, name) => {
+  const key = Object.keys(headers || {}).find((k) => k.toLowerCase() === name);
+  return key ? String([].concat(headers[key])[0] ?? '') : '';
+};
+
+function streamTypeOf(url, headers) {
+  const ct = headerOf(headers, 'content-type');
+  if (/text\/html/i.test(ct)) return null; // an error page under a .m3u8 name
+  const byType = STREAM_CONTENT_TYPES.find(([re]) => re.test(ct));
+  if (byType) return byType[1];
+  let pathname;
+  try { pathname = new URL(url).pathname; } catch { return null; }
+  return STREAM_EXTENSIONS.find(([re]) => re.test(pathname))?.[1] ?? null;
+}
+
+/** Full size of the file: "bytes 0-1/123" for a range answer, content-length otherwise. */
+function totalBytes(headers) {
+  const range = headerOf(headers, 'content-range');
+  const total = Number(range ? range.split('/')[1] : headerOf(headers, 'content-length'));
+  return Number.isFinite(total) && total > 0 ? total : 0;
+}
+
+function noteStream(d) {
+  const wc = pickContents();
+  if (!wc || d.webContentsId !== wc.id || (d.statusCode !== 200 && d.statusCode !== 206)) return;
+  if (!/^https?:/i.test(d.url) || d.url.length > MAX_STREAM_URL) return;
+  const type = streamTypeOf(d.url, d.responseHeaders);
+  if (!type) return;
+  const bytes = totalBytes(d.responseHeaders);
+  if (type === 'mp4' && d.resourceType !== 'media' && bytes < BIG_MP4_BYTES) return;
+  let frameId = null;
+  try { frameId = d.frame ? d.frame.frameTreeNodeId : null; } catch { /* the frame is already gone */ }
+  const prev = sniffed.get(d.url);
+  sniffed.delete(d.url); // re-insert = newest
+  sniffed.set(d.url, { url: d.url, type, frameId: frameId ?? prev?.frameId ?? null, bytes: Math.max(bytes, prev?.bytes || 0), at: Date.now() });
+  if (sniffed.size > MAX_STREAMS) sniffed.delete(sniffed.keys().next().value);
+}
+
+// Runs INSIDE the frame that loaded the stream (same origin, cookies and Referer the player had),
+// stringified — so it must stay self-contained. Seconds of video: HLS = sum of #EXTINF (a master
+// playlist by its first variant), DASH = mediaPresentationDuration; -1 = live (no end).
+async function measureStreamInPage(u, type, timeoutMs) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), timeoutMs);
+  const get = async (x) => {
+    const r = await fetch(x, { credentials: 'include', signal: ctl.signal });
+    if (!r.ok) throw new Error(String(r.status));
+    return r.text();
+  };
+  try {
+    let body = await get(u);
+    if (type === 'dash') {
+      if (/type=["']dynamic["']/.test(body)) return { sec: -1, master: true };
+      const m = body.match(/mediaPresentationDuration=["']P(?:([\d.]+)D)?(?:T(?:([\d.]+)H)?(?:([\d.]+)M)?(?:([\d.]+)S)?)?["']/);
+      if (!m) return { sec: 0, master: true };
+      return { sec: (+m[1] || 0) * 86400 + (+m[2] || 0) * 3600 + (+m[3] || 0) * 60 + (+m[4] || 0), master: true };
+    }
+    let master = false;
+    if (body.includes('#EXT-X-STREAM-INF')) {
+      master = true;
+      const lines = body.split(/\r?\n/).map((s) => s.trim());
+      const at = lines.findIndex((s) => s.startsWith('#EXT-X-STREAM-INF'));
+      const variant = lines.slice(at + 1).find((s) => s && !s.startsWith('#'));
+      if (!variant) return { sec: 0, master };
+      body = await get(new URL(variant, u).href);
+    }
+    if (!body.includes('#EXT-X-ENDLIST') && !/#EXT-X-PLAYLIST-TYPE:\s*VOD/i.test(body)) return { sec: -1, master };
+    let sec = 0;
+    for (const m of body.matchAll(/#EXTINF:\s*([\d.]+)/g)) sec += Number(m[1]) || 0;
+    return { sec, master };
+  } catch {
+    return { sec: 0, master: false };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** The longest sniffed stream, the taken player's own first. null = nothing long enough was seen. */
+async function pickStream(wc, playerFrame) {
+  if (!sniffed.size) return null;
+  const idOf = (f) => { try { return f.frameTreeNodeId; } catch { return null; } };
+  const byId = new Map(wc.mainFrame.framesInSubtree.map((f) => [idOf(f), f]));
+  let inPlayer = new Set();
+  try { if (playerFrame) inPlayer = new Set(playerFrame.framesInSubtree.map(idOf)); } catch { /* frame gone */ }
+  const list = [...sniffed.values()].map((s) => ({ ...s, inPlayer: inPlayer.has(s.frameId) ? 1 : 0, sec: 0, master: 0 }));
+  const playlists = list.filter((s) => s.type !== 'mp4')
+    .sort((a, b) => (b.inPlayer - a.inPlayer) || (b.at - a.at))
+    .slice(0, MAX_MEASURED);
+  await Promise.all(playlists.map(async (s) => {
+    const f = byId.get(s.frameId) || playerFrame || wc.mainFrame;
+    const js = `(${measureStreamInPage})(${JSON.stringify(s.url)}, ${JSON.stringify(s.type)}, ${MEASURE_TIMEOUT_MS})`;
+    const r = await Promise.race([
+      Promise.resolve().then(() => f.executeJavaScript(js)).catch(() => null),
+      new Promise((res) => setTimeout(() => res(null), MEASURE_TIMEOUT_MS + 500)),
+    ]);
+    s.sec = Number(r?.sec) || 0;
+    s.master = r?.master ? 1 : 0;
+  }));
+  for (const s of list) if (s.type === 'mp4') s.sec = s.bytes / MP4_BYTES_PER_SEC;
+  const isLive = (s) => s.sec < 0;
+  const long = list.filter((s) => isLive(s) || s.sec >= MIN_STREAM_SEC);
+  if (!long.length) return null;
+  // 10 s buckets: a master and its variants have the same length — the master wins (all qualities).
+  const len = (s) => (isLive(s) ? Infinity : Math.round(s.sec / 10));
+  long.sort((a, b) => (b.inPlayer - a.inPlayer) || (len(b) - len(a)) || (b.master - a.master) || (b.at - a.at));
+  const best = long[0];
+  return { url: best.url, type: best.type, durationSec: isLive(best) ? null : Math.round(best.sec) };
+}
+
 async function takePick() {
   const wc = pickContents();
   if (!wc) return { ok: false };
@@ -252,14 +382,20 @@ async function takePick() {
   const reason = checkUrl(url);
   if (reason) return { ok: false, reason };
   // pageUrl = the site page the player sits on: the server opens the player with it as Referer
-  // (some player hosts 404 without one — cinemar.cc on kinogo).
-  return { ok: true, url, pageUrl: wc.getURL(), title: wc.getTitle(), player: best >= 0, frame: frame !== wc.mainFrame };
+  // (some player hosts 404 without one — cinemar.cc on kinogo). stream = the film's own playlist /
+  // file seen on the network (absent when nothing long enough played).
+  const stream = await pickStream(wc, best >= 0 ? frame : null);
+  return {
+    ok: true, url, pageUrl: wc.getURL(), title: wc.getTitle(), player: best >= 0, frame: frame !== wc.mainFrame,
+    ...(stream ? { stream } : {}),
+  };
 }
 
 function closePick() {
   const v = pickView;
   if (!v) return;
   pickView = null;
+  sniffed.clear();
   if (mainWin && !mainWin.isDestroyed()) mainWin.contentView.removeChildView(v);
   if (!v.webContents.isDestroyed()) v.webContents.close();
   sendToApp('pick:state', { open: false });
@@ -382,6 +518,7 @@ app.whenReady().then(() => {
   session.defaultSession.setUserAgent(CHROME_UA(session.defaultSession.getUserAgent()));
   session.fromPartition('persist:vb').setUserAgent(CHROME_UA(session.fromPartition('persist:vb').getUserAgent()));
   protectSession(session.fromPartition('persist:vb'), (url, reason) => sendToApp('vb:blocked', { url, reason }));
+  session.fromPartition('persist:vb').webRequest.onResponseStarted(noteStream);
   clearVbCache();
 
   // Every refresh rotates refresh_token — the old one is deleted on the server. Chromium writes
