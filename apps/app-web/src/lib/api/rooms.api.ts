@@ -7,6 +7,8 @@ interface CreateRoomPayload {
   videoTitle?: string;
   videoThumbnail?: string;
   videoPlatform?: string;
+  /** Page a taken player iframe sat on (desktop "Take video") — the server opens the player with it. */
+  videoReferer?: string;
   isPrivate?: boolean;
 }
 

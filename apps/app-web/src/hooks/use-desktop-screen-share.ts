@@ -29,8 +29,9 @@ interface DesktopBridge {
     open(url: string): Promise<{ ok: true } | { ok: false; reason: string }>;
     setBounds(box: { x: number; y: number; width: number; height: number } | null): Promise<{ ok: boolean }>;
     nav(action: 'back' | 'reload'): Promise<{ ok: boolean }>;
-    /** The iframe (or page) where a video actually started; player=false → nothing was playing. */
-    take(): Promise<{ ok: true; url: string; title: string; player: boolean; frame: boolean } | { ok: false; reason?: string }>;
+    /** The iframe (or page) where a video actually started; player=false → nothing was playing.
+     *  pageUrl = the site page around it (builds before 2026-11-05 don't send it). */
+    take(): Promise<{ ok: true; url: string; pageUrl?: string; title: string; player: boolean; frame: boolean } | { ok: false; reason?: string }>;
     close(): Promise<{ ok: boolean }>;
     onState(cb: (s: DesktopVbState) => void): () => void;
   };

@@ -121,10 +121,12 @@ function getPicker() {
 export interface VbPickerPage { url: string | null; title: string | null }
 
 /**
- * onPick(url, title) — title only for "Take video" (an auto-pick fires on the SPA route change,
- * before the page retitles, so the VB title would still be the previous page's).
+ * onPick(url, title, referer) — title only for "Take video" (an auto-pick fires on the SPA route
+ * change, before the page retitles, so the VB title would still be the previous page's). referer =
+ * the site page a taken player iframe sat on: the server opens the player with it, since some player
+ * hosts refuse a request without one (cinemar.cc on kinogo).
  */
-export function useDesktopVbPicker(onPick: (url: string, title?: string) => void) {
+export function useDesktopVbPicker(onPick: (url: string, title?: string, referer?: string) => void) {
   // null = not picking; otherwise the page currently open in the panel (null url until it loads).
   const [page, setPage] = useState<VbPickerPage | null>(null);
   const [taking, setTaking] = useState(false);
@@ -178,11 +180,13 @@ export function useDesktopVbPicker(onPick: (url: string, title?: string) => void
     try {
       const r = await picker.take();
       if (!r.ok) return false;
-      const url = videoPageUrl(r.url) ?? r.url;
+      const platformUrl = videoPageUrl(r.url);
+      const url = platformUrl ?? r.url;
       if (!canTakePage(url)) return false;
+      const referer = !platformUrl && r.frame && r.pageUrl && parseHttp(r.pageUrl) ? r.pageUrl : undefined;
       stop();
       void picker.close();
-      onPickRef.current(url, r.title || page.title || undefined);
+      onPickRef.current(url, r.title || page.title || undefined, referer);
       return true;
     } finally {
       setTaking(false);
