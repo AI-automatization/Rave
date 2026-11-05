@@ -5,6 +5,12 @@
 //   3. Forced SafeSearch (Google/Bing/DDG/Yandex) + YouTube Restricted Mode header.
 // No keyword matching on URLs: it false-positives on normal sites (sussex.ac.uk, essex...) and the
 // DNS layer already covers the long tail.
+//
+// OFF for now (2026-11-05, product owner's call): the Family DNS answered 0.0.0.0 for nearly every
+// movie site (kinogo.*, rezka, filmix, kinokrad, asilmedia) — exactly the sites rooms are for.
+// Until a list of what to block is agreed, the VB opens everything; ad blocking, http(s)-only and
+// the no-permissions rule stay on. Flip to true to bring all three 18+ layers back.
+const SITE_FILTER = false;
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -21,11 +27,12 @@ function checkUrl(raw) {
   try { u = new URL(raw); } catch { return 'invalid_url'; }
   if (!/^https?:$/.test(u.protocol)) return 'protocol_not_allowed';
   const host = u.hostname.toLowerCase();
-  if (BLOCKED_DOMAINS.some((d) => host === d || host.endsWith('.' + d))) return 'blocked_domain';
+  if (SITE_FILTER && BLOCKED_DOMAINS.some((d) => host === d || host.endsWith('.' + d))) return 'blocked_domain';
   return null;
 }
 
 function safeSearchRedirect(raw) {
+  if (!SITE_FILTER) return null;
   let u;
   try { u = new URL(raw); } catch { return null; }
   const h = u.hostname;
@@ -67,10 +74,13 @@ function isAdHost(host) {
 // YouTube pages keep their ads: blocking them breaks YouTube's terms, and our search runs on its API.
 const isYouTubeHost = (h) => /(^|\.)(youtube\.com|youtu\.be|youtube-nocookie\.com)$/.test(h);
 
+// Still DNS-over-HTTPS when the filter is off: provider DNS blocks some movie sites, DoH does not.
 function configureDns(app) {
   app.configureHostResolver({
     secureDnsMode: 'secure',
-    secureDnsServers: ['https://family.cloudflare-dns.com/dns-query'],
+    secureDnsServers: [SITE_FILTER
+      ? 'https://family.cloudflare-dns.com/dns-query'
+      : 'https://cloudflare-dns.com/dns-query'],
   });
 }
 
@@ -90,13 +100,15 @@ function protectSession(ses, onBlocked) {
     const safe = safeSearchRedirect(details.url);
     cb(safe ? { redirectURL: safe } : {});
   });
-  ses.webRequest.onBeforeSendHeaders(
-    { urls: ['*://*.youtube.com/*', '*://youtube.com/*', '*://*.youtube-nocookie.com/*'] },
-    (details, cb) => {
-      details.requestHeaders['YouTube-Restrict'] = 'Moderate';
-      cb({ requestHeaders: details.requestHeaders });
-    },
-  );
+  if (SITE_FILTER) {
+    ses.webRequest.onBeforeSendHeaders(
+      { urls: ['*://*.youtube.com/*', '*://youtube.com/*', '*://*.youtube-nocookie.com/*'] },
+      (details, cb) => {
+        details.requestHeaders['YouTube-Restrict'] = 'Moderate';
+        cb({ requestHeaders: details.requestHeaders });
+      },
+    );
+  }
   // The shared page is for watching only — no camera/mic/location/notifications for sites.
   ses.setPermissionRequestHandler((_wc, perm, cb) => cb(perm === 'fullscreen'));
 }
