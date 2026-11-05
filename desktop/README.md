@@ -54,12 +54,13 @@ The owner uploads one copy per viewer — fine for ~4 viewers on a home connecti
 Local test: run `apps/app-web` on :3000 with `.env.local` (`NEXT_PUBLIC_DESKTOP_VB=1` + backend
 URLs), then `npm run dev` here.
 
-## 18+ protection
+## VB session rules (`src/safety.js`)
 
-1. Cloudflare Family DNS-over-HTTPS (adult + malware) for the whole app.
-2. `src/blocklist.txt` — our own domains.
-3. Forced SafeSearch (Google/Bing/DDG/Yandex), YouTube Restricted Mode header.
-4. Sites in the VB get no camera/mic/location/notifications.
+No site filter: the VB opens any http(s) site.
+
+1. Cloudflare DNS-over-HTTPS for the whole app (provider DNS blocks some sites).
+2. Ad networks are cancelled at the network level (YouTube keeps its ads).
+3. Sites in the VB get no camera/mic/location/notifications.
 
 ## Known gaps
 

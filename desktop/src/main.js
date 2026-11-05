@@ -133,8 +133,29 @@ const VB_PREFS = {
   spellcheck: false,
 };
 
+// A failed page load leaves the view black (Electron has no built-in error page), which read as our
+// bug (lv.kinogo.ec reset by the provider, 2026-11-05) — show what failed instead.
+const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+const failPage = (url, code) => {
+  let host = url;
+  try { host = new URL(url).hostname; } catch { /* keep the raw url */ }
+  return 'data:text/html;charset=utf-8,' + encodeURIComponent(
+    '<!doctype html><meta charset="utf-8"><body style="margin:0;height:100vh;display:grid;place-items:center;'
+    + 'background:#0b0b0f;color:#ddd;font:15px system-ui,sans-serif;text-align:center"><div>'
+    + `<div style="font-size:18px;margin-bottom:8px">${escHtml(host)} — сайт не открылся / sayt ochilmadi</div>`
+    + `<div style="opacity:.6">${escHtml(code)}</div></div>`);
+};
+
 // Shared by the VB window and the in-app picker — both browse arbitrary sites in persist:vb.
 function wireVbContents(wc, channel) {
+  // Our own error page is not a page the user picked — keep it out of the app's state.
+  const send = (p) => { if (!/^data:/i.test(p.url || '')) sendToApp(channel, p); };
+  wc.on('did-fail-load', (_e, code, desc, url, isMainFrame) => {
+    // -3 ERR_ABORTED: a redirect, our own cancel, a newer load. data: = the error page itself failed —
+    // loading it again would loop.
+    if (!isMainFrame || code === -3 || /^data:/i.test(url)) return;
+    wc.loadURL(failPage(url, desc)).catch(() => {});
+  });
   // Popups / target=_blank open in the same view — no stray windows or processes. Only within the
   // same site: free movie sites fire window.open() to an ad domain on the first click (popunder),
   // and following it threw the user off the film onto the ad.
@@ -144,12 +165,12 @@ function wireVbContents(wc, channel) {
   });
   // nav: 'load' = a real page load, 'in-page' = SPA route change (YouTube/VK switch videos without
   // reloading, did-navigate never fires there). The app's video picker needs both.
-  wc.on('did-navigate', (_e, u) => sendToApp(channel, { open: true, url: u, nav: 'load' }));
+  wc.on('did-navigate', (_e, u) => send({ open: true, url: u, nav: 'load' }));
   wc.on('did-navigate-in-page', (_e, u, isMainFrame) => {
-    if (isMainFrame) sendToApp(channel, { open: true, url: u, nav: 'in-page' });
+    if (isMainFrame) send({ open: true, url: u, nav: 'in-page' });
   });
-  wc.on('page-title-updated', (_e, title) => sendToApp(channel, { open: true, url: wc.getURL(), title }));
-  wc.on('render-process-gone', (_e, d) => sendToApp(channel, { open: true, crashed: d.reason }));
+  wc.on('page-title-updated', (_e, title) => send({ open: true, url: wc.getURL(), title }));
+  wc.on('render-process-gone', (_e, d) => send({ open: true, crashed: d.reason }));
 }
 
 // ── In-app picker: the VB as a panel inside the main window ───────────────

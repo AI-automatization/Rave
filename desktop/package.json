@@ -1,7 +1,7 @@
 {
   "name": "wewatch-desktop",
   "productName": "WeWatch",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "WeWatch for Windows — the web app plus a Virtual Browser that runs on the owner's own machine",
   "main": "src/main.js",

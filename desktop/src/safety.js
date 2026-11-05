@@ -1,48 +1,5 @@
-// 18+ protection for the Virtual Browser. Three layers:
-//   1. Cloudflare Family DNS-over-HTTPS — adult + malware blocked at name resolution, app-wide,
-//      no list of ours to maintain (works for users worldwide, not just our known domains).
-//   2. Our own domain blocklist (blocklist.txt) — catches what DNS misses, gives a clear reason.
-//   3. Forced SafeSearch (Google/Bing/DDG/Yandex) + YouTube Restricted Mode header.
-// No keyword matching on URLs: it false-positives on normal sites (sussex.ac.uk, essex...) and the
-// DNS layer already covers the long tail.
-//
-// OFF for now (2026-11-05, product owner's call): the Family DNS answered 0.0.0.0 for nearly every
-// movie site (kinogo.*, rezka, filmix, kinokrad, asilmedia) — exactly the sites rooms are for.
-// Until a list of what to block is agreed, the VB opens everything; ad blocking, http(s)-only and
-// the no-permissions rule stay on. Flip to true to bring all three 18+ layers back.
-const SITE_FILTER = false;
-
-const fs = require('node:fs');
-const path = require('node:path');
-
-const BLOCKED_DOMAINS = (() => {
-  try {
-    return fs.readFileSync(path.join(__dirname, 'blocklist.txt'), 'utf8')
-      .split(/\r?\n/).map((s) => s.trim().toLowerCase()).filter((s) => s && !s.startsWith('#'));
-  } catch { return []; }
-})();
-
-function checkUrl(raw) {
-  let u;
-  try { u = new URL(raw); } catch { return 'invalid_url'; }
-  if (!/^https?:$/.test(u.protocol)) return 'protocol_not_allowed';
-  const host = u.hostname.toLowerCase();
-  if (SITE_FILTER && BLOCKED_DOMAINS.some((d) => host === d || host.endsWith('.' + d))) return 'blocked_domain';
-  return null;
-}
-
-function safeSearchRedirect(raw) {
-  if (!SITE_FILTER) return null;
-  let u;
-  try { u = new URL(raw); } catch { return null; }
-  const h = u.hostname;
-  const set = (k, v) => { if (u.searchParams.get(k) === v) return null; u.searchParams.set(k, v); return u.toString(); };
-  if (/(^|\.)google\.[a-z.]+$/.test(h) && u.pathname === '/search') return set('safe', 'active');
-  if (/(^|\.)bing\.com$/.test(h) && u.pathname === '/search') return set('adlt', 'strict');
-  if (/(^|\.)duckduckgo\.com$/.test(h) && u.searchParams.has('q')) return set('kp', '1');
-  if (/(^|\.)yandex\.[a-z.]+$/.test(h) && u.pathname.startsWith('/search')) return set('family', 'yes');
-  return null;
-}
+// Virtual Browser session rules: http(s) only, ad networks cancelled, no site permissions, and
+// DNS-over-HTTPS app-wide. No site filter — the VB opens any site (product owner's call, 2026-11-05).
 
 // Ad networks inside the VB. Free movie sites open popunders on the first click and play pre-rolls
 // (asilmedia.org: storage.dsp-ui.uz MP4s, 2026-10-25) — cancelled at the network level, so they
@@ -57,8 +14,10 @@ const AD_DOMAINS = new Set([
   'rubiconproject.com', 'pubmatic.com', 'openx.net', 'adform.net', 'smartadserver.com', 'admixer.net',
   'adfox.ru', 'adriver.ru', 'an.yandex.ru', 'yabs.yandex.ru', 'betweendigital.com',
 ]);
-// Same markers as the server VB (watch-party virtualBrowser.service.ts AD_DOMAIN_MARKERS).
-const AD_HOST_MARKERS = ['rtbcdn', 'dsp-ui.uz'];
+// Server VB (watch-party virtualBrowser.service.ts AD_DOMAIN_MARKERS) also has 'rtbcdn' — not here:
+// rtbcdn.ru is Rutube's own CDN (static.rtbcdn.ru = its JS/CSS, pic.rtbcdn.ru = covers). Blocking it
+// left Rutube pages without a player (336 requests cancelled on one video page, 2026-11-05).
+const AD_HOST_MARKERS = ['dsp-ui.uz'];
 
 const hostOf = (raw) => { try { return new URL(raw).hostname.toLowerCase(); } catch { return ''; } };
 
@@ -74,17 +33,32 @@ function isAdHost(host) {
 // YouTube pages keep their ads: blocking them breaks YouTube's terms, and our search runs on its API.
 const isYouTubeHost = (h) => /(^|\.)(youtube\.com|youtu\.be|youtube-nocookie\.com)$/.test(h);
 
-// Still DNS-over-HTTPS when the filter is off: provider DNS blocks some movie sites, DoH does not.
+// What a video player may ask for: fullscreen, DRM key systems (EME — denying it fails every
+// encrypted stream), storage access for embedded third-party players, pointer/keyboard lock in
+// fullscreen, copy-link buttons, audio output choice. Never camera/mic, location, notifications or
+// screen capture — the VB is for watching, and its window is streamed to the room.
+const VB_PERMISSIONS = new Set([
+  'fullscreen', 'mediaKeySystem', 'storage-access', 'top-level-storage-access',
+  'pointerLock', 'keyboardLock', 'clipboard-sanitized-write', 'speaker-selection',
+]);
+
+/** null when the VB may open `raw`, otherwise the reason it may not (only http(s) pages open). */
+function checkUrl(raw) {
+  let u;
+  try { u = new URL(raw); } catch { return 'invalid_url'; }
+  if (!/^https?:$/.test(u.protocol)) return 'protocol_not_allowed';
+  return null;
+}
+
+// Provider DNS blocks some sites; DoH resolves them.
 function configureDns(app) {
   app.configureHostResolver({
     secureDnsMode: 'secure',
-    secureDnsServers: [SITE_FILTER
-      ? 'https://family.cloudflare-dns.com/dns-query'
-      : 'https://cloudflare-dns.com/dns-query'],
+    secureDnsServers: ['https://cloudflare-dns.com/dns-query'],
   });
 }
 
-/** Attach filters to the VB session. onBlocked(url, reason) is called for every blocked navigation.
+/** Attach the rules to the VB session. onBlocked(url, reason) is called for every refused navigation.
  * One onBeforeRequest per session (a second call replaces the first) — all URL rules live here. */
 function protectSession(ses, onBlocked) {
   ses.webRequest.onBeforeRequest((details, cb) => {
@@ -93,24 +67,16 @@ function protectSession(ses, onBlocked) {
       cb({ cancel: true });
       return;
     }
-    // 18+ rules: page and frame navigations only — leave images/scripts alone (never breaks a CDN).
+    // Page and frame navigations only — images/scripts are left alone (never breaks a CDN).
     if (details.resourceType !== 'mainFrame' && details.resourceType !== 'subFrame') { cb({}); return; }
+    // Our error page (main.js failPage) is a data: load we start ourselves; cancelling it left the
+    // view black again. Chromium itself refuses data: in the top frame when a page starts it.
+    if (details.resourceType === 'mainFrame' && details.url.startsWith('data:')) { cb({}); return; }
     const reason = checkUrl(details.url);
     if (reason) { onBlocked(details.url, reason); cb({ cancel: true }); return; }
-    const safe = safeSearchRedirect(details.url);
-    cb(safe ? { redirectURL: safe } : {});
+    cb({});
   });
-  if (SITE_FILTER) {
-    ses.webRequest.onBeforeSendHeaders(
-      { urls: ['*://*.youtube.com/*', '*://youtube.com/*', '*://*.youtube-nocookie.com/*'] },
-      (details, cb) => {
-        details.requestHeaders['YouTube-Restrict'] = 'Moderate';
-        cb({ requestHeaders: details.requestHeaders });
-      },
-    );
-  }
-  // The shared page is for watching only — no camera/mic/location/notifications for sites.
-  ses.setPermissionRequestHandler((_wc, perm, cb) => cb(perm === 'fullscreen'));
+  ses.setPermissionRequestHandler((_wc, perm, cb) => cb(VB_PERMISSIONS.has(perm)));
 }
 
 module.exports = { checkUrl, configureDns, protectSession };
