@@ -10,7 +10,7 @@ import { WatchPartyRoom } from '../models/watchPartyRoom.model';
 import { logger } from '@shared/utils/logger';
 import { getAppSetting } from '@shared/utils/appSettings';
 import { ForbiddenError, NotFoundError } from '@shared/utils/errors';
-import { startVBForRoom, upgradeEmbedToDirect } from '../socket/vbSession.helper';
+import { startVBForRoom, upgradeEmbedToDirect, upgradeWebviewToDirect } from '../socket/vbSession.helper';
 import { enqueueVBRequest } from '../socket/vbQueue.helper';
 import { isOfficialEmbedHost, isOwnVbUrl } from '../services/extractionClient';
 import { isDomainBlocked } from './domain.admin.controller';
@@ -109,6 +109,10 @@ export class WatchPartyController {
         })();
       } else if (videoUrl && isOfficialEmbedHost(videoUrl)) {
         upgradeEmbedToDirect(this.io, this.redis, String(room._id), userId, videoUrl);
+      } else if (videoUrl && videoPlatform === 'webview' && videoReferer) {
+        // A player the owner took with the desktop picker: plays in the iframe at once, the server
+        // tries to switch the room to the synced player in the background (vbSession.helper.ts).
+        upgradeWebviewToDirect(this.io, this.redis, String(room._id), userId, videoUrl, videoReferer);
       }
     } catch (error) {
       // Handled here rather than by the shared error middleware because the client needs the

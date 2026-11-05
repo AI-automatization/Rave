@@ -27,6 +27,7 @@ import { signProxyUrl, verifyProxyUrlDetailed } from '@shared/utils/proxySignatu
 import { REDIS_KEYS } from '@shared/constants';
 import { logger } from '@shared/utils/logger';
 import { probeUrl, MediaType } from '../services/virtualBrowser.service';
+import { vbSourceRefererKey } from '../socket/vbSession.helper';
 
 // Production logs (2026-08-04) showed this proxy recursively wrapping its OWN url up to 13
 // levels deep (`?url=<proxy>?url=<proxy>?url=...`) — 133 requests, all 502ing. That's a real
@@ -241,7 +242,8 @@ async function getFreshMediaUrl(roomId: string, redis: Redis): Promise<{ mediaUr
       logger.info('vb-media-proxy: refresh attempted but no stored source page URL for room', { roomId });
       return null;
     }
-    const result = await probeUrl(sourceUrl).catch((e: unknown) => {
+    const sourceReferer = await redis.get(vbSourceRefererKey(roomId)).catch(() => null);
+    const result = await probeUrl(sourceUrl, sourceReferer ?? undefined).catch((e: unknown) => {
       logger.warn('vb-media-proxy: refresh probe threw', { roomId, error: (e as Error).message });
       return null;
     });
