@@ -35,7 +35,6 @@ const PLATFORM_TO_BACKEND: Record<string, string> = {
   twitch:  'twitch',
   vimeo:   'vimeo',
   dailymotion: 'dailymotion',
-  tiktok: 'tiktok',
   peertube: 'peertube',
   trovo: 'trovo',
   live:    'youtube',  // YouTube Live

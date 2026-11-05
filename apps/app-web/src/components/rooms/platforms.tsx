@@ -106,20 +106,6 @@ export const PLATFORMS: Platform[] = [
     urlPattern: /dailymotion\.com|dai\.ly/,
   },
   {
-    id: 'tiktok',
-    name: 'TikTok',
-    base: 'https://tiktok.com',
-    renderIcon: (s) => (
-      <svg width={s} height={s} viewBox="0 0 24 24" fill="currentColor">
-        <path d="M16.6 5.82c-1.01-.98-1.56-2.29-1.56-3.66h-3.13v13.7a2.7 2.7 0 0 1-4.86 1.62 2.7 2.7 0 0 1 2.16-4.32c.29 0 .58.04.85.13V9.99a5.9 5.9 0 0 0-.85-.06 5.83 5.83 0 0 0-5.83 5.83 5.83 5.83 0 0 0 5.83 5.83 5.83 5.83 0 0 0 5.83-5.83V9.03a9.4 9.4 0 0 0 5.5 1.76V7.66a5.7 5.7 0 0 1-3.94-1.84Z"/>
-      </svg>
-    ),
-    color: '#25F4EE',
-    bg: 'rgba(37,244,238,0.13)',
-    border: 'rgba(37,244,238,0.32)',
-    urlPattern: /tiktok\.com/,
-  },
-  {
     id: 'peertube',
     name: 'PeerTube',
     base: 'https://framatube.org',
@@ -197,7 +183,7 @@ export function detectPlatform(url: string): Platform | null {
    are we watching", not "which of these 12 logos is mine" — narrowing the first-glance choice
    to the platforms people actually use most keeps the decision fast without removing anything
    (Rutube/Vimeo/etc. are one click away under the toggle, not deleted). ── */
-export const TOP_PLATFORM_IDS = ['youtube', 'tiktok', 'vk', 'twitch'];
+export const TOP_PLATFORM_IDS = ['youtube', 'vk', 'rutube', 'twitch'];
 
 /** Where the desktop browser panel starts for a platform ('Web' has no site of its own → a search page). */
 export function platformStartUrl(platform: Platform): string {
