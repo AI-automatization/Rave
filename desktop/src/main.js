@@ -230,7 +230,9 @@ async function takePick() {
   const url = /^https?:/i.test(frame.url) ? frame.url : wc.getURL();
   const reason = checkUrl(url);
   if (reason) return { ok: false, reason };
-  return { ok: true, url, title: wc.getTitle(), player: best >= 0, frame: frame !== wc.mainFrame };
+  // pageUrl = the site page the player sits on: the server opens the player with it as Referer
+  // (some player hosts 404 without one — cinemar.cc on kinogo).
+  return { ok: true, url, pageUrl: wc.getURL(), title: wc.getTitle(), player: best >= 0, frame: frame !== wc.mainFrame };
 }
 
 function closePick() {
