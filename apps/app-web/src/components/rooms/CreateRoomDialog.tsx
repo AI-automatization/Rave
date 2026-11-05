@@ -335,7 +335,7 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
           setCheckingLink(false);
         }
       }
-      const res = await createRoom.mutateAsync({
+      const payload = {
         // Backend `name` caps at 80 chars (Joi) — trim here, mirrors mobile's useMediaDetection slice(0, 60)
         name:             roomName ? roomName.slice(0, 60) : undefined,
         videoUrl:         storedUrl || undefined,
@@ -345,7 +345,16 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
         videoReferer:     picked?.url === videoUrl ? picked.referer : undefined,
         videoStream:      picked?.url === videoUrl ? picked.stream : undefined,
         isPrivate,
-      });
+      };
+      let res;
+      try {
+        res = await createRoom.mutateAsync(payload);
+      } catch (e) {
+        // A watch-party build without videoStream in createRoomSchema (Joi rejects unknown keys) answers
+        // 422 to the whole request — the room is fine without the hint, it just stays a page room.
+        if (!(payload.videoStream && e instanceof ApiError && e.status === 422)) throw e;
+        res = await createRoom.mutateAsync({ ...payload, videoStream: undefined });
+      }
       onOpenChange(false);
       trackRoomCreated(locale);
       const id = res.data?._id;

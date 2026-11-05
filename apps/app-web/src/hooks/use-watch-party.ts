@@ -393,8 +393,17 @@ export function useWatchParty(roomId: string) {
 
   // Instant video swap (mirrors mobile's emitMediaChange) — owner-only, enforced server-side.
   // Server broadcasts ROOM_UPDATED with the new videoUrl/videoPlatform to everyone in the room.
-  const sendMediaChange = useCallback((videoUrl: string, videoTitle?: string, videoPlatform?: string) => {
-    socket?.emit(CLIENT_EVENTS.CHANGE_MEDIA, { roomId, videoUrl, videoTitle, videoPlatform });
+  // hints: the desktop picker's page + caught stream (ChangeVideoDialog) — a server without support
+  // ignores the extra fields (socket payloads have no strict schema).
+  const sendMediaChange = useCallback((
+    videoUrl: string, videoTitle?: string, videoPlatform?: string,
+    hints?: { referer?: string; stream?: { url: string; type: string } },
+  ) => {
+    socket?.emit(CLIENT_EVENTS.CHANGE_MEDIA, {
+      roomId, videoUrl, videoTitle, videoPlatform,
+      ...(hints?.referer ? { videoReferer: hints.referer } : {}),
+      ...(hints?.stream ? { videoStream: { url: hints.stream.url, type: hints.stream.type } } : {}),
+    });
   }, [socket, roomId]);
 
   // Owner-only room rename — server broadcasts ROOM_UPDATED (same as sendMediaChange), which

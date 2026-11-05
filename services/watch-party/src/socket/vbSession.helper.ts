@@ -189,6 +189,29 @@ export async function roomRefererFor(roomId: string, url: string): Promise<strin
 // token bound to the owner's IP fails here; then the server sniffs the player itself (needs referer).
 export interface StreamHint { url: string; type: MediaType }
 
+const STREAM_TYPES: ReadonlySet<string> = new Set<MediaType>(['hls', 'dash', 'mp4']);
+const MAX_REFERER_LEN = 2048;
+const MAX_STREAM_URL_LEN = 4096;
+
+function httpUrl(v: unknown, maxLen: number): string | undefined {
+  if (typeof v !== 'string' || !v || v.length > maxLen) return undefined;
+  try {
+    return /^https?:$/.test(new URL(v).protocol) ? v : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Socket payloads (CHANGE_MEDIA) skip Joi — the same limits as createRoomSchema's videoReferer /
+ *  videoStream, checked by hand. Anything off = undefined (the room just stays on the iframe). */
+export function pickerHintsFrom(data: { videoReferer?: unknown; videoStream?: unknown }): { referer?: string; stream?: StreamHint } {
+  const referer = httpUrl(data.videoReferer, MAX_REFERER_LEN);
+  const s = data.videoStream as { url?: unknown; type?: unknown } | null | undefined;
+  const url = httpUrl(s?.url, MAX_STREAM_URL_LEN);
+  const stream = url && typeof s?.type === 'string' && STREAM_TYPES.has(s.type) ? { url, type: s.type as MediaType } : undefined;
+  return { referer, stream };
+}
+
 export function upgradeWebviewToDirect(
   io: SocketServer, redis: Redis, roomId: string, ownerId: string, url: string, referer?: string, hint?: StreamHint,
 ): void {

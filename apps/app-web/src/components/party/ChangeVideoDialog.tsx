@@ -10,6 +10,7 @@ import { normalizeLinkInput } from '@/lib/link-routing';
 import { trackClick } from '@/lib/analytics';
 import { toast } from '@/store/toast.store';
 import { useDesktopVbPicker, opensInPicker } from '@/hooks/use-desktop-vb-picker';
+import type { DesktopStream } from '@/hooks/use-desktop-screen-share';
 import { VbPickerOverlay } from '@/components/desktop/VbPickerOverlay';
 import {
   PLATFORMS, TOP_PLATFORM_IDS, PlatformTile, openPlatformPopup, platformStartUrl,
@@ -19,9 +20,14 @@ import type { Platform } from '@/components/rooms/platforms';
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Switches the room to this link right away (embed-check + CHANGE_MEDIA, see RoomContent). */
-  onSubmit: (url: string) => Promise<void>;
+  /** Switches the room to this link right away (embed-check + CHANGE_MEDIA, see RoomContent).
+   *  hints = what the desktop picker took along with the link (use-desktop-vb-picker take()). */
+  onSubmit: (url: string, hints?: PickerHints) => Promise<void>;
 }
+
+/** The taken player's site page + the film stream the panel caught — the server switches a page room
+ *  to the synced player with them (roomEvents.handler.ts CHANGE_MEDIA). */
+export interface PickerHints { referer?: string; stream?: DesktopStream }
 
 /**
  * Owner switches the room's video after it was created. Used to be reachable only through
@@ -38,10 +44,10 @@ export function ChangeVideoDialog({ open, onOpenChange, onSubmit }: Props) {
   const [showOther, setShowOther] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  async function apply(link: string) {
+  async function apply(link: string, hints?: PickerHints) {
     setBusy(true);
     try {
-      await onSubmit(link);
+      await onSubmit(link, hints);
       setUrl('');
       setShowOther(false);
       onOpenChange(false);
@@ -50,9 +56,11 @@ export function ChangeVideoDialog({ open, onOpenChange, onSubmit }: Props) {
     }
   }
 
-  const picker = useDesktopVbPicker((picked) => {
+  const picker = useDesktopVbPicker((picked, _title, referer, stream) => {
     trackClick('change_video:vb_pick');
-    void apply(picked);
+    // Was apply(picked) alone — the page and the caught stream were dropped, so a film switched to
+    // from inside the room stayed on "page as-is" for good (2026-11-05, kinogo).
+    void apply(picked, referer || stream ? { referer, stream } : undefined);
   });
 
   function openInPicker(link: string) {

@@ -773,9 +773,9 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
         <ChangeVideoDialog
           open={changeVideoOpen}
           onOpenChange={setChangeVideoOpen}
-          onSubmit={async (url) => {
+          onSubmit={async (url, hints) => {
             const r = await resolveLinkPlatform(url, detectVideoPlatform(url));
-            sendMediaChange(r.url, undefined, r.platform);
+            sendMediaChange(r.url, undefined, r.platform, hints);
           }}
         />
       )}
