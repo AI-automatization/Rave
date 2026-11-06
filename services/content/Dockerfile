@@ -53,7 +53,7 @@ ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 # FFmpeg for HLS transcoding (T-S005b)
-RUN apk add --no-cache ffmpeg
+RUN apk add --no-cache ffmpeg tini
 
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S cinesync -u 1001 && \
@@ -68,4 +68,6 @@ EXPOSE 3003
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD wget --quiet --tries=1 --spider http://localhost:3003/health || exit 1
 
+# tini as PID 1 reaps exited Chromium/ffmpeg/yt-dlp children (Node as PID 1 leaves zombies).
+ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["node", "dist/server.js"]
