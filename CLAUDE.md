@@ -370,6 +370,20 @@ Brute force: 5 попыток → 15min блок | Socket.io JWT verify
 
 ---
 
+## RAILWAY — СТОИМОСТЬ И НОВЫЕ СЕРВИСЫ (2026-11-06)
+
+Платим за RAM каждого контейнера 24/7 (~88% счёта). Каждый лишний Node-процесс ≈ 80–100 MB ≈ $1/мес.
+
+```
+❌ Новый Railway-сервис под новую фичу — фича идёт в существующий сервис (core / media / front)
+❌ Новый сервис без явного "ha" от Javodbek (причина + почему существующий не подходит + оценка $/мес)
+❌ MongoDB без --wiredTigerCacheSizeGB (без лимита кэш растёт бесконечно)
+❌ Контейнер, запускающий Chromium/ffmpeg/yt-dlp, без tini как PID 1 (зомби → EAGAIN, PR #266)
+✅ Целевая схема: core (auth+user+notification+admin+payment), media (content+watch-party),
+   front (web+app-web+admin-ui), MongoDB, Redis, wewatch-backup
+✅ Еженедельный отчёт расходов по сервисам → группа WeWatch (рост >20% = разбор)
+```
+
 ## ⛔ ОПАСНЫЕ ЗОНЫ — АБСОЛЮТНЫЕ ЗАПРЕТЫ
 
 ```
