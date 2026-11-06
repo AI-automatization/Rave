@@ -1,4 +1,5 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, Document } from 'mongoose';
+import { dbConnection } from '../db';
 
 export type UserReportReason = 'harassment' | 'spam' | 'inappropriate_content' | 'fake_account' | 'hate_speech' | 'other';
 export type UserReportStatus = 'pending' | 'reviewed' | 'dismissed' | 'actioned';
@@ -36,4 +37,4 @@ const schema = new Schema<IUserReportDocument>(
 schema.index({ reportedUserId: 1, reporterId: 1 }, { unique: true });
 schema.index({ status: 1, createdAt: -1 });
 
-export const UserReport = model<IUserReportDocument>('UserReport', schema);
+export const UserReport = dbConnection.model<IUserReportDocument>('UserReport', schema);

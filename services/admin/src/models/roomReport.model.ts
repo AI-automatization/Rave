@@ -1,4 +1,5 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, Document } from 'mongoose';
+import { dbConnection } from '../db';
 
 export type ReportReason = 'prohibited_content' | 'spam' | 'violence' | 'harassment' | 'copyright' | 'other';
 export type ReportStatus = 'pending' | 'reviewed' | 'dismissed' | 'actioned';
@@ -36,4 +37,4 @@ const schema = new Schema<IRoomReportDocument>(
 schema.index({ roomId: 1, reporterId: 1 }, { unique: true });
 schema.index({ status: 1, createdAt: -1 });
 
-export const RoomReport = model<IRoomReportDocument>('RoomReport', schema);
+export const RoomReport = dbConnection.model<IRoomReportDocument>('RoomReport', schema);

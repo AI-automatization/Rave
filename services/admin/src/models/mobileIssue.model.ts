@@ -1,4 +1,5 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, Document } from 'mongoose';
+import { dbConnection } from '../db';
 
 export type IssueStatus = 'new' | 'in_progress' | 'resolved' | 'ignored';
 
@@ -41,4 +42,4 @@ const schema = new Schema<IMobileIssueDocument>(
 schema.index({ lastSeen: -1 });
 schema.index({ status: 1, lastSeen: -1 });
 
-export const MobileIssue = model<IMobileIssueDocument>('MobileIssue', schema);
+export const MobileIssue = dbConnection.model<IMobileIssueDocument>('MobileIssue', schema);

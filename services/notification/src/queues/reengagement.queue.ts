@@ -14,6 +14,12 @@ const BATCH_SIZE = 50;
 
 let reengagementQueue: Bull.Queue | null = null;
 
+export const stopReengagementQueue = async (): Promise<void> => {
+  if (!reengagementQueue) return;
+  await reengagementQueue.close();
+  reengagementQueue = null;
+};
+
 export const startReengagementQueue = (redisUrl: string): void => {
   if (!redisUrl) {
     logger.warn('Re-engagement queue disabled — REDIS_URL not set');

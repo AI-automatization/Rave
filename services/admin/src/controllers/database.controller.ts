@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
+import { dbConnection } from '../db';
 import { apiResponse } from '@shared/utils/apiResponse';
 
 // This browser reads collections via the raw MongoDB driver (db.collection(name)), not through
@@ -30,7 +31,7 @@ function escapeRegex(input: string): string {
 export class DatabaseController {
   listCollections = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const db = mongoose.connection.db;
+      const db = dbConnection.db;
       if (!db) { res.status(503).json(apiResponse.error('Database not connected')); return; }
 
       const cols = await db.listCollections().toArray();
@@ -54,7 +55,7 @@ export class DatabaseController {
 
   listDocuments = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const db = mongoose.connection.db;
+      const db = dbConnection.db;
       if (!db) { res.status(503).json(apiResponse.error('Database not connected')); return; }
 
       const { name } = req.params;
@@ -97,7 +98,7 @@ export class DatabaseController {
 
   getDocument = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const db = mongoose.connection.db;
+      const db = dbConnection.db;
       if (!db) { res.status(503).json(apiResponse.error('Database not connected')); return; }
 
       const { name, id } = req.params;
@@ -120,7 +121,7 @@ export class DatabaseController {
 
   deleteDocument = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const db = mongoose.connection.db;
+      const db = dbConnection.db;
       if (!db) { res.status(503).json(apiResponse.error('Database not connected')); return; }
 
       const { name, id } = req.params;

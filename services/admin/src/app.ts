@@ -2,7 +2,7 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
-import mongoose from 'mongoose';
+import { dbConnection } from './db';
 import Redis from 'ioredis';
 import swaggerUi from 'swagger-ui-express';
 import { errorHandler, notFoundHandler } from '@shared/middleware/error.middleware';
@@ -47,7 +47,7 @@ export const createApp = (redis: Redis): express.Application => {
   // stay stuck on `true`, and staff can no longer turn it off. So admin is exempt.
 
   app.get('/health', async (_req, res) => {
-    const mongoOk = mongoose.connection.readyState === 1;
+    const mongoOk = dbConnection.readyState === 1;
     let redisOk = false;
     try { await redis.ping(); redisOk = true; } catch { redisOk = false; }
     const healthy = mongoOk && redisOk;
