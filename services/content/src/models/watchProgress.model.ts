@@ -1,4 +1,5 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, Document } from 'mongoose';
+import { getServiceConnection } from '@shared/utils/serviceConnection';
 
 export interface IWatchProgressDocument extends Document {
   userId: string;
@@ -23,4 +24,4 @@ const watchProgressSchema = new Schema<IWatchProgressDocument>(
 watchProgressSchema.index({ userId: 1, videoUrl: 1 }, { unique: true });
 watchProgressSchema.index({ userId: 1, updatedAt: -1 });
 
-export const WatchProgress = model<IWatchProgressDocument>('WatchProgress', watchProgressSchema);
+export const WatchProgress = getServiceConnection('content').model<IWatchProgressDocument>('WatchProgress', watchProgressSchema);
