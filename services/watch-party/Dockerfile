@@ -57,7 +57,7 @@ RUN ln -s /app/shared/dist /app/node_modules/@shared
 # xvfb-run/pulseaudio-utils bring in `pactl`, which the service uses to create/destroy sinks.
 RUN apk add --no-cache chromium ffmpeg \
     nss freetype harfbuzz ca-certificates ttf-freefont \
-    xvfb xvfb-run pulseaudio pulseaudio-utils dbus
+    xvfb xvfb-run pulseaudio pulseaudio-utils dbus tini
 ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
@@ -79,4 +79,7 @@ EXPOSE 3004
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD wget --quiet --tries=1 --spider http://localhost:3004/health || exit 1
 
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+# tini as PID 1 reaps exited Chromium/ffmpeg child processes. Without it Node is PID 1, zombies
+# pile up until the container hits its process limit and every chromium launch fails with EAGAIN
+# (prod 2026-10-27..11-06: 0 VB sessions started after 10-30).
+ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]
