@@ -38,9 +38,11 @@ export function middleware(req: NextRequest) {
     }
   }
 
-  // Auth routes: redirect to /home if already authenticated
+  // Auth routes: redirect to /home if already authenticated. Live access token only: with just a
+  // refresh_token that the auth service already rejected, /home sends the user back to /login
+  // (auth.store checkAuth) and this bounced them to /home again — an endless loop.
   if (AUTH_PATHS.some((p) => routePath.startsWith(p))) {
-    if (isAuthenticated) {
+    if (hasAccessToken) {
       return NextResponse.redirect(new URL(`${localePrefix}/home`, req.url));
     }
   }

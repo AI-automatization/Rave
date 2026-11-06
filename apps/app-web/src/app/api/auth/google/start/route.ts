@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AUTH_SERVICE_URL, ensureSuffix } from '@/lib/service-urls';
+import { safeRedirect } from '@/lib/safe-redirect';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,8 +22,9 @@ export async function GET(req: NextRequest) {
   // query params) — /auth/callback's exchange call reads and clears this. Short TTL: the whole
   // round-trip normally takes seconds: a lingering cookie beyond that is just a stale redirect
   // target, not a security-sensitive value.
-  const redirect = req.nextUrl.searchParams.get('redirect');
-  if (redirect && redirect.startsWith('/')) {
+  // safeRedirect: a bare startsWith('/') let //evil.com through → /auth/callback sent the user there.
+  const redirect = safeRedirect(req.nextUrl.searchParams.get('redirect'), '');
+  if (redirect) {
     response.cookies.set('post_login_redirect', redirect, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

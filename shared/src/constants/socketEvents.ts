@@ -65,6 +65,16 @@ export const SERVER_EVENTS = Object.freeze({
   MESH_PEER_JOINED:  'mesh:peer_joined',
   MESH_PEER_LEFT:    'mesh:peer_left',
 
+  // Desktop screen share (Windows app: the owner's local VB window → viewers over WebRTC). Its own
+  // namespace on purpose — mesh:* already carries mobile's DataChannel clock sync, and mixing a video
+  // offer into it would break that. The server only relays; it never sees the stream.
+  SCREEN_STARTED: 'screen:started',   // { userId } — someone in the room started sharing
+  SCREEN_STOPPED: 'screen:stopped',   // { userId }
+  SCREEN_REQUEST: 'screen:request',   // { userId } — a viewer wants the stream (to the sharer)
+  SCREEN_OFFER:   'screen:offer',     // { fromUserId, sdp }
+  SCREEN_ANSWER:  'screen:answer',    // { fromUserId, sdp }
+  SCREEN_ICE:     'screen:ice',       // { fromUserId, candidate }
+
   ADMIN_MONITORING: 'admin:monitoring',
   ADMIN_LEFT_ROOM:  'admin:left',
 
@@ -161,6 +171,14 @@ export const CLIENT_EVENTS = Object.freeze({
   PEER_ICE:    'mesh:peer_ice',
   MESH_JOIN:   'mesh:join',
   MESH_LEAVE:  'mesh:leave',
+
+  // Desktop screen share — see SERVER_EVENTS.SCREEN_* above.
+  SCREEN_START:   'screen:start',     // owner only
+  SCREEN_STOP:    'screen:stop',
+  SCREEN_REQUEST: 'screen:request',
+  SCREEN_OFFER:   'screen:offer',     // { toUserId, sdp }
+  SCREEN_ANSWER:  'screen:answer',    // { toUserId, sdp }
+  SCREEN_ICE:     'screen:ice',       // { toUserId, candidate }
 
   DM_SEND: 'dm:send',
   DM_READ_UNTIL: 'dm:read_until',

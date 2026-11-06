@@ -17,6 +17,23 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
+// Friends share the invite LINK (InviteDialog copies `${appUrl}/room/<id>?code=<CODE>`), so people
+// paste it here. The field used to uppercase it and cut it at 10 chars → "HTTPS://AP" → "code not
+// found". A pasted link now yields its code, or — with no code in it — the room itself.
+function parseJoinInput(raw: string): { code: string } | { roomId: string } | null {
+  const text = raw.trim();
+  if (!/^https?:\/\/|\/room\//i.test(text)) return text ? { code: text.toUpperCase() } : null;
+  try {
+    const url = new URL(text, 'https://x.invalid');
+    const code = url.searchParams.get('code');
+    if (code) return { code: code.toUpperCase() };
+    const roomId = /\/room\/([A-Za-z0-9_-]+)/.exec(url.pathname)?.[1];
+    return roomId ? { roomId } : null;
+  } catch {
+    return null;
+  }
+}
+
 export function JoinRoomDialog({ open, onOpenChange }: Props) {
   const t = useTranslations('room');
   const parseError = useApiError();
@@ -29,12 +46,21 @@ export function JoinRoomDialog({ open, onOpenChange }: Props) {
   const [error, setError] = useState('');
 
   async function handleJoin() {
-    if (code.length < 4) return;
+    const parsed = parseJoinInput(code);
+    if (!parsed) { setError(t('joinError')); return; }
+    if ('code' in parsed && parsed.code.length < 4) return;
     trackClick('join_room:submit');
     setError('');
 
+    if ('roomId' in parsed) {
+      onOpenChange(false);
+      setCode('');
+      router.push(`/room/${parsed.roomId}`);
+      return;
+    }
+
     try {
-      const res = await joinRoom.mutateAsync(code.trim());
+      const res = await joinRoom.mutateAsync(parsed.code);
       onOpenChange(false);
       setCode('');
       const roomId = res.data?._id;
@@ -65,10 +91,14 @@ export function JoinRoomDialog({ open, onOpenChange }: Props) {
           <input
             type="text"
             value={code}
-            onChange={(e) => { setCode(e.target.value.toUpperCase()); setError(''); }}
+            onChange={(e) => {
+              const v = e.target.value;
+              // Keep a pasted link as typed (paths/ids are case-sensitive); plain codes stay uppercase.
+              setCode(/^https?:\/\/|\/room\//i.test(v) ? v : v.toUpperCase().slice(0, 10));
+              setError('');
+            }}
             onKeyDown={(e) => { if (e.key === 'Enter') void handleJoin(); }}
             placeholder="ABC123"
-            maxLength={10}
             autoFocus
             aria-invalid={!!error}
             className={`w-full h-11 bg-white/[0.06] border rounded-xl px-4 text-center text-lg font-bold tracking-widest text-white placeholder:text-zinc-600 focus:outline-none transition-all ${
@@ -85,7 +115,7 @@ export function JoinRoomDialog({ open, onOpenChange }: Props) {
 
           <button
             onClick={() => { void handleJoin(); }}
-            disabled={joinRoom.isPending || code.length < 4}
+            disabled={joinRoom.isPending || code.trim().length < 4}
             className="w-full h-11 rounded-xl text-sm font-semibold text-white bg-violet-600 hover:bg-violet-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
           >
             {joinRoom.isPending

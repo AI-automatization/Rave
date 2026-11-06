@@ -11,6 +11,7 @@ import { registerVideoEvents } from './videoEvents.handler';
 import { registerChatEvents } from './chatEvents.handler';
 import { registerVoiceEvents } from './voiceEvents.handler';
 import { registerMeshHandlers } from './mesh.handlers';
+import { registerScreenHandlers } from './screen.handlers';
 import { registerReactionEvents } from './reactionEvents.handler';
 import { registerHandEvents } from './handEvents.handler';
 import { registerDMEvents } from './dmEvents.handler';
@@ -161,6 +162,7 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
     registerChatEvents(socket, authSocket, (uid) => checkMsgRateLimit(redis, uid));
     registerVoiceEvents(socket, authSocket, redis);
     registerMeshHandlers(io, socket, authSocket);
+    registerScreenHandlers(io, socket, authSocket, watchPartyService);
     registerReactionEvents(io, socket, authSocket, redis);
     registerHandEvents(io, socket, authSocket, watchPartyService, redis);
     registerDMEvents(io, socket);

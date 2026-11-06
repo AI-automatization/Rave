@@ -13,10 +13,10 @@ import { VideoCandidate } from '@shared/types';
 import { rankCandidates } from './vbCandidateRank.helper';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { signProxyUrl } from '@shared/utils/proxySignature';
-import { getSessionViewport, startSession, getSessionPageTitle, enableAutoProxy, MediaType, VB_WATCH_IN_BROWSER, getSessionCurrentUrl, hasSession, setOnSessionEnded, getMovieState } from '../services/virtualBrowser.service';
+import { getSessionViewport, startSession, getSessionPageTitle, enableAutoProxy, MediaType, VB_WATCH_IN_BROWSER, getSessionCurrentUrl, hasSession, setOnSessionEnded, getMovieState, probeUrl } from '../services/virtualBrowser.service';
 import { WatchPartyRoom } from '../models/watchPartyRoom.model';
 import { WatchPartyPlaylistService } from '../services/watchPartyPlaylist.service';
-import { resolveDirectMedia } from './directResolve.helper';
+import { resolveDirectMedia, probeStreamHint } from './directResolve.helper';
 import { emitVbFrame } from './vbFrameSender.helper';
 
 // TTL for the candidates Redis entry — matches how long "the current video session" is a
@@ -24,6 +24,17 @@ import { emitVbFrame } from './vbFrameSender.helper';
 // here (not in roomEvents.handler.ts, which also uses it) because that file already imports
 // startVBForRoom from this one — importing back would be a circular dependency.
 export const CANDIDATES_TTL_SEC = 6 * 60 * 60; // 6h
+
+// Referer the stored source page must be opened with (room.videoReferer) — read back by
+// vb-media-proxy's refresh probe. Always written together with REDIS_KEYS.vbSourceUrl, so it never
+// outlives the page it belongs to. Local key: only this service reads and writes it.
+export const vbSourceRefererKey = (roomId: string): string => `party:vb_source_referer:${roomId}`;
+
+async function rememberSourcePage(redis: Redis, roomId: string, url: string, referer?: string): Promise<void> {
+  await redis.setex(REDIS_KEYS.vbSourceUrl(roomId), CANDIDATES_TTL_SEC, url);
+  if (referer) await redis.setex(vbSourceRefererKey(roomId), CANDIDATES_TTL_SEC, referer);
+  else await redis.del(vbSourceRefererKey(roomId));
+}
 
 // REVERTED (Saidazim, 2026-08-28, same-day live test): there used to be an auto-commit-on-
 // real-playback path here (commit a candidate ~4.5s after real <video>/<audio> playback was
@@ -140,7 +151,7 @@ async function commitDirectMedia(io: SocketServer, redis: Redis, roomId: string,
       videoUrl: proxiedMediaUrl(direct.mediaUrl, direct.type, roomId),
       videoTitle: direct.title,
     });
-    await redis.setex(REDIS_KEYS.vbSourceUrl(roomId), CANDIDATES_TTL_SEC, url).catch(() => {});
+    await rememberSourcePage(redis, roomId, url).catch(() => {});
     if (directCommitted.size > 5000) directCommitted.clear();
     directCommitted.set(roomId, url);
     io.to(roomId).emit(SERVER_EVENTS.ROOM_UPDATED, updated);
@@ -163,6 +174,78 @@ export function upgradeEmbedToDirect(io: SocketServer, redis: Redis, roomId: str
   try { host = new URL(url).hostname.replace(/^www\./, ''); } catch { return; }
   if (!UPGRADEABLE_EMBED_HOSTS.has(host)) return;
   void commitDirectMedia(io, redis, roomId, ownerId, url).catch(() => {});
+}
+
+/** room.videoReferer, but only while the room is still on `url` — the referer belongs to the link it
+ *  was taken with, not to whatever the owner switched to later. */
+export async function roomRefererFor(roomId: string, url: string): Promise<string | undefined> {
+  try {
+    const room = await WatchPartyRoom.findById(roomId).select('videoUrl videoReferer').lean();
+    return room && room.videoUrl === url && room.videoReferer ? room.videoReferer : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+// 'webview' rooms play the link in an iframe on every member's screen — works at once, but nobody
+// is in sync. When the owner took the player from a page with the desktop app's picker (kinogo →
+// cinemar.cc, 2026-11-05) the server opens that player itself (with the page as Referer), catches
+// the stream and switches the room to the synced native player. Nothing found = the iframe stays.
+// The stream goes through vb-media-proxy, so its token is minted for this service's own IP.
+// hint = the stream the owner's desktop picker already caught on the network. Tried first, from this
+// server with the player as Referer (what vb-media-proxy will send) — no server Chromium needed. A
+// token bound to the owner's IP fails here; then the server sniffs the player itself (needs referer).
+export interface StreamHint { url: string; type: MediaType }
+
+const STREAM_TYPES: ReadonlySet<string> = new Set<MediaType>(['hls', 'dash', 'mp4']);
+const MAX_REFERER_LEN = 2048;
+const MAX_STREAM_URL_LEN = 4096;
+
+function httpUrl(v: unknown, maxLen: number): string | undefined {
+  if (typeof v !== 'string' || !v || v.length > maxLen) return undefined;
+  try {
+    return /^https?:$/.test(new URL(v).protocol) ? v : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Socket payloads (CHANGE_MEDIA) skip Joi — the same limits as createRoomSchema's videoReferer /
+ *  videoStream, checked by hand. Anything off = undefined (the room just stays on the iframe). */
+export function pickerHintsFrom(data: { videoReferer?: unknown; videoStream?: unknown }): { referer?: string; stream?: StreamHint } {
+  const referer = httpUrl(data.videoReferer, MAX_REFERER_LEN);
+  const s = data.videoStream as { url?: unknown; type?: unknown } | null | undefined;
+  const url = httpUrl(s?.url, MAX_STREAM_URL_LEN);
+  const stream = url && typeof s?.type === 'string' && STREAM_TYPES.has(s.type) ? { url, type: s.type as MediaType } : undefined;
+  return { referer, stream };
+}
+
+export function upgradeWebviewToDirect(
+  io: SocketServer, redis: Redis, roomId: string, ownerId: string, url: string, referer?: string, hint?: StreamHint,
+): void {
+  void (async () => {
+    const hinted = hint && (await probeStreamHint(hint.url, hint.type, url)) ? { mediaUrl: hint.url, type: hint.type } : null;
+    if (hint && !hinted) logger.info('Webview upgrade: desktop stream not reachable from the server', { roomId, type: hint.type });
+    const found = hinted ?? (referer ? await probeUrl(url, referer) : null);
+    if (!found) {
+      logger.info('Webview upgrade: no stream found, room stays on the iframe', { roomId, url: url.slice(0, 120) });
+      return;
+    }
+    // The probe takes seconds — the owner may have switched media or closed the room meanwhile.
+    const room = await WatchPartyRoom.findById(roomId).select('videoUrl videoTitle status').lean();
+    if (!room || room.videoUrl !== url || room.status === 'ended') return;
+    // Before the room update: viewers fetch the proxied stream the moment they see it, and
+    // vb-media-proxy sends this page as the Referer.
+    await rememberSourcePage(redis, roomId, url, referer).catch(() => {});
+    const updated = await new WatchPartyPlaylistService(redis).updateRoomMedia(ownerId, roomId, {
+      videoUrl: proxiedMediaUrl(found.mediaUrl, found.type, roomId),
+      videoTitle: room.videoTitle,
+    });
+    io.to(roomId).emit(SERVER_EVENTS.ROOM_UPDATED, updated);
+    logger.info('Webview upgrade: room switched to the synced player', { roomId, type: found.type, source: hinted ? 'desktop' : 'server-vb' });
+  })().catch((e) => {
+    logger.warn('Webview upgrade failed, room stays on the iframe', { roomId, error: (e as Error).message });
+  });
 }
 
 // Server-started VB has no VB_START payload to read `mobile` from; watchParty.socket.ts records
@@ -326,7 +409,8 @@ export async function startVBForRoom(
   // (possibly hours later, if the room sits on the picker or a viewer joins late) if a candidate
   // it minted has gone stale by then. Set-and-forget — never read back in this file, only by
   // vbMediaProxy.controller.ts's refresh path.
-  await redis.setex(REDIS_KEYS.vbSourceUrl(roomId), CANDIDATES_TTL_SEC, url).catch((e) => {
+  const referer = await roomRefererFor(roomId, url);
+  await rememberSourcePage(redis, roomId, url, referer).catch((e) => {
     logger.warn('VB: failed to store source page URL for later refresh', { roomId, error: (e as Error).message });
   });
 
@@ -393,7 +477,7 @@ export async function startVBForRoom(
     // shows a corner badge on the live screencast rather than trying to solve/bypass the challenge.
     io.to(roomId).emit(SERVER_EVENTS.VB_BLOCKED, { reason });
     logger.info('VB: bot challenge detected, notified room', { roomId, reason });
-  }, tier, useMobile);
+  }, tier, useMobile, referer);
 
   if (outcome === 'redirect_blocked') {
     io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'unreachable' });

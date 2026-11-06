@@ -8,7 +8,7 @@ import { JwtPayload, VideoPlatform } from '@shared/types';
 import { recordWatchHistoryInternal, getUserPlan } from '@shared/utils/serviceClient';
 import { bufferTimeouts, resumeBufferedRoom, dropFromSeekGate } from './videoEvents.handler';
 import { stopSession, getSessionSnapshot, getSessionLastFrame, hasSession, markSessionCommitted } from '../services/virtualBrowser.service';
-import { startVBForRoom, upgradeEmbedToDirect, directMediaProxyUrl, vbWatchKey } from './vbSession.helper';
+import { startVBForRoom, upgradeEmbedToDirect, upgradeWebviewToDirect, directMediaProxyUrl, pickerHintsFrom, vbWatchKey } from './vbSession.helper';
 import { enqueueVBRequest } from './vbQueue.helper';
 import { cancelVbDisconnectGrace } from './vbEvents.handler';
 import { isOfficialEmbedHost, isOwnVbUrl, isPrivateUrl, isInsecureWebviewUrl, isDirectMediaUrl } from '../services/extractionClient';
@@ -317,6 +317,10 @@ export const registerRoomEvents = (
     videoUrl: string;
     videoTitle?: string;
     videoPlatform?: string;
+    // A player taken with the desktop picker (ChangeVideoDialog): its site page and the film stream
+    // the picker caught — same meaning as createRoom's videoReferer / videoStream.
+    videoReferer?: string;
+    videoStream?: { url: string; type: string };
   }) => {
     const roomId = authSocket.roomId;
     if (!roomId) {
@@ -475,6 +479,13 @@ export const registerRoomEvents = (
       }
 
       if (isOfficialEmbedHost(data.videoUrl)) upgradeEmbedToDirect(io, redis, roomId, userId, data.videoUrl);
+      // Same as createRoom: the iframe plays at once, the server switches the room to the synced
+      // player in the background once it can reach the film stream (2026-11-05: a room switched to
+      // kinogo from inside stayed on "page as-is" — this path never passed the picker's stream on).
+      if (data.videoPlatform === 'webview') {
+        const { referer, stream } = pickerHintsFrom(data);
+        if (referer || stream) upgradeWebviewToDirect(io, redis, roomId, userId, data.videoUrl, referer, stream);
+      }
 
       logger.info('Room media changed', { roomId, userId, videoUrl: videoUrlToUse });
     } catch (error) {

@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { Loader2, ArrowRight, User } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { trackClick } from '@/lib/analytics';
+import { safeRedirect } from '@/lib/safe-redirect';
 import { Button } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/field';
 import { Notice } from '@/components/ui/notice';
@@ -14,11 +15,6 @@ import { WeWatchLogo } from '@/components/common/WeWatchLogo';
 
 const MAX_NAME_LENGTH = 30;
 
-// Only same-origin relative paths — never bounce a guest to an arbitrary external URL.
-function safeRedirect(raw: string | null): string {
-  if (raw && raw.startsWith('/') && !raw.startsWith('//')) return raw;
-  return '/home';
-}
 
 // A friend opens a shared room link → lands here → types a name → is in the room.
 // No email, password or OTP: POST /api/auth/guest creates a real (guest) account and sets the
