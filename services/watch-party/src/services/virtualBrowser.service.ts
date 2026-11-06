@@ -214,6 +214,17 @@ const ANTI_THROTTLE_LAUNCH_ARGS = [
   '--disable-backgrounding-occluded-windows',
   '--disable-renderer-backgrounding',
 ];
+// Memory/background-work trimming (2026-11-05, VB cost analysis): every room runs its own Chromium,
+// so per-process overhead multiplies. None of these touch rendering, media decode, MSE or the
+// anti-throttle flags above -- they only switch off browser features a headless capture never uses.
+const LOW_MEMORY_LAUNCH_ARGS = [
+  '--disable-extensions',
+  '--disable-sync',
+  '--disable-background-networking',
+  '--disable-component-update',
+  '--disable-default-apps',
+  '--no-first-run',
+];
 // Real desktop Chrome UA string, same major version family as the bundled playwright-chromium —
 // just without the "HeadlessChrome" token that gives the game away.
 const STEALTH_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
@@ -800,7 +811,7 @@ export async function startSession(
       headless: !stream,
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
       // autoplay flag: the audio tap's AudioContext must run without a user gesture in the page.
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--autoplay-policy=no-user-gesture-required', ...STEALTH_LAUNCH_ARGS, ...ANTI_THROTTLE_LAUNCH_ARGS],
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--autoplay-policy=no-user-gesture-required', ...STEALTH_LAUNCH_ARGS, ...ANTI_THROTTLE_LAUNCH_ARGS, ...LOW_MEMORY_LAUNCH_ARGS],
       viewport,
       userAgent: mobile ? MOBILE_USER_AGENT : STEALTH_USER_AGENT,
       ...(mobile ? { isMobile: true, hasTouch: true, deviceScaleFactor: 1 } : {}),
@@ -1263,7 +1274,7 @@ export async function probeUrl(url: string): Promise<{ mediaUrl: string; type: M
     browser = await chromium.launch({
       headless: true,
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', ...STEALTH_LAUNCH_ARGS, ...ANTI_THROTTLE_LAUNCH_ARGS],
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', ...STEALTH_LAUNCH_ARGS, ...ANTI_THROTTLE_LAUNCH_ARGS, ...LOW_MEMORY_LAUNCH_ARGS],
     });
     const context = await browser.newContext({
       viewport: VB_VIEWPORT,
