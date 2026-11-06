@@ -1,4 +1,5 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import { Schema, Document, Types } from 'mongoose';
+import { dbConnection } from '../db';
 
 export type ConversationStatus = 'open' | 'closed';
 
@@ -36,4 +37,4 @@ const schema = new Schema<ISupportConversationDocument>(
 
 schema.index({ status: 1, lastMessageAt: -1 });
 
-export const SupportConversation = model<ISupportConversationDocument>('SupportConversation', schema);
+export const SupportConversation = dbConnection.model<ISupportConversationDocument>('SupportConversation', schema);

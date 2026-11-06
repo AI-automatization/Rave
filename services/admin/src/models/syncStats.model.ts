@@ -1,4 +1,5 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, Document } from 'mongoose';
+import { dbConnection } from '../db';
 
 // Per-room-session sync-quality telemetry — sent once when a member leaves a watch-party room.
 // Separate from AnalyticsSession (general app-usage/engagement) because this is a distinct
@@ -66,4 +67,4 @@ schema.index({ roomId: 1, createdAt: -1 });
 // Keep sync-stats for 30 days — this is a debugging/observability tool, not long-term analytics.
 schema.index({ createdAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
 
-export const SyncStats = model<ISyncStatsDocument>('SyncStats', schema);
+export const SyncStats = dbConnection.model<ISyncStatsDocument>('SyncStats', schema);

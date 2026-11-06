@@ -1,0 +1,23 @@
+# Railway config — core service (auth + user + notification + admin + payment in one process)
+# Root Directory in Railway dashboard: / (repo root)
+# Config File Path in Railway dashboard: services/core/railway.toml
+# Rollback = keep deploying the five original services; nothing here changes them.
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "services/core/Dockerfile"
+watchPatterns = [
+  "services/core/**",
+  "services/auth/**",
+  "services/user/**",
+  "services/notification/**",
+  "services/admin/**",
+  "services/payment/**",
+  "shared/**",
+]
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

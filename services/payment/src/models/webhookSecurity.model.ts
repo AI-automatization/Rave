@@ -1,4 +1,5 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import { Document, Schema } from 'mongoose';
+import { dbConnection } from '../db';
 
 // docs/INTEGRATION.md §Шаг 2, "Дедупликация" — X-Event-Id is stable across retries of the
 // *same* event, so a unique index on it is the dedup mechanism: a duplicate insert throws
@@ -21,7 +22,7 @@ const BillingWebhookEventSchema = new Schema<IBillingWebhookEvent>(
   { timestamps: { createdAt: true, updatedAt: false } },
 );
 
-export const BillingWebhookEvent = mongoose.model<IBillingWebhookEvent>('BillingWebhookEvent', BillingWebhookEventSchema);
+export const BillingWebhookEvent = dbConnection.model<IBillingWebhookEvent>('BillingWebhookEvent', BillingWebhookEventSchema);
 
 // docs/INTEGRATION.md §Шаг 2, "Replay" — X-Nonce is new on every delivery *attempt* (unlike
 // X-Event-Id, which stays put across retries of the same event), so this is a distinct check:
@@ -41,4 +42,4 @@ const BillingWebhookNonceSchema = new Schema<IBillingWebhookNonce>(
 );
 BillingWebhookNonceSchema.index({ createdAt: 1 }, { expireAfterSeconds: 900 });
 
-export const BillingWebhookNonce = mongoose.model<IBillingWebhookNonce>('BillingWebhookNonce', BillingWebhookNonceSchema);
+export const BillingWebhookNonce = dbConnection.model<IBillingWebhookNonce>('BillingWebhookNonce', BillingWebhookNonceSchema);
