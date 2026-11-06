@@ -152,8 +152,10 @@ export const VideoSection = React.memo(function VideoSection({
   // YouTube (reliable IFrame Player API) — other embeds (VK/Rutube/Twitch/Vimeo/Dailymotion)
   // still rely on the owner tapping the embed's own UI directly (T-S125).
   const isOwnerMode = isOwner && (!isWebView || isYouTubeEmbed);
-  const blockEmbedTouch = !isWebView || isYouTubeEmbed;
-  const showProgress = !videoIsLive && duration > 0;
+  // YouTube: its own native controls (seek bar, ±10s double-tap, play/pause, quality gear) are
+  // used directly, like the web player — no overlay on top. Seek is detected in the WebView.
+  const blockEmbedTouch = !isWebView;
+  const showProgress = !videoIsLive && duration > 0 && !isYouTubeEmbed;
   const ctrlPointerEvents = ctrlVisible ? 'box-none' : 'none';
 
   return (
@@ -229,8 +231,8 @@ export const VideoSection = React.memo(function VideoSection({
 
       {/* Top bar: badge + secondary actions */}
       <Animated.View
-        style={[s.topBar, { opacity: ctrlOpacity }]}
-        pointerEvents={ctrlPointerEvents}
+        style={[s.topBar, { opacity: isYouTubeEmbed ? 1 : ctrlOpacity }]}
+        pointerEvents={isYouTubeEmbed ? 'box-none' : ctrlPointerEvents}
       >
         {videoIsLive ? (
           <View style={s.liveBadge}>

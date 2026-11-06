@@ -517,7 +517,6 @@ export function WatchPartyScreen() {
         isOwner={isOwner}
         isPlaying={isPlaying}
         isFullscreen={isFullscreen}
-        compact={kbOpen}
         videoIsLive={videoIsLive}
         floatingEmojis={floatingEmojis}
         onPlay={handleWebViewPlay}

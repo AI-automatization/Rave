@@ -19,6 +19,9 @@ export function buildYouTubeHtml(videoId: string): string {
   <script>
     var ytPlayer = null;
     var progressTimer = null;
+    // Owner scrubs YouTube's own seek bar (native UI is now reachable): a jump bigger than one
+    // poll's worth of playback = seek -> emit SEEK. null = not playing / just (re)started.
+    var lastPolled = null;
     // Command queue: if sync commands arrive before IFrame API is ready
     var pendingSeek = null;
     var pendingPlay = null; // null=no cmd, true=play, false=pause
@@ -41,12 +44,26 @@ export function buildYouTubeHtml(videoId: string): string {
     }
     var apiLoadTimeout = setTimeout(onIframeApiScriptError, 8000);
 
+    // seekTo() on a not-yet-started player (state -1 unstarted / 5 cued) makes the embed drop its
+    // poster + play button and show a black frame nobody can tap. cueVideoById(startSeconds)
+    // moves the start point but keeps YouTube's own poster/play UI.
+    function seekSafe(p, t) {
+      var st = -2;
+      try { st = p.getPlayerState(); } catch (err) {}
+      if (st === -1 || st === 5) {
+        p.cueVideoById({ videoId: '${videoId}', startSeconds: t });
+      } else {
+        p.seekTo(t, true);
+      }
+    }
+
     // Declare _csVideo GLOBALLY so injectWithRetry can find it even before IFrame ready
     window._csVideo = {
       get currentTime() { return ytPlayer ? ytPlayer.getCurrentTime() : (pendingSeek || 0); },
       set currentTime(t) {
         pendingSeek = t;
-        if (ytPlayer) { ytPlayer.seekTo(t, true); }
+        lastPolled = null;
+        if (ytPlayer) { seekSafe(ytPlayer, t); }
         rn({ type: 'SEEK', currentTime: t });
       },
       play: function() {
@@ -71,7 +88,10 @@ export function buildYouTubeHtml(videoId: string): string {
       ytPlayer = new YT.Player('yt', {
         videoId: '${videoId}',
         playerVars: {
-          autoplay: 1,
+          // autoplay:0 — new rooms start paused (server isPlaying=false → pauseVideo() on an
+          // autoplay:1 embed leaves a black frame: no poster, no play button, nothing to tap).
+          // With 0 YouTube shows its own poster + play button; viewers/owner start via play sync.
+          autoplay: 0,
           playsinline: 1,
           controls: 1,
           rel: 0,
@@ -83,7 +103,7 @@ export function buildYouTubeHtml(videoId: string): string {
           onReady: function(e) {
             // Apply queued commands from before player was ready
             if (pendingSeek !== null) {
-              e.target.seekTo(pendingSeek, true);
+              seekSafe(e.target, pendingSeek);
               pendingSeek = null;
             }
             if (pendingPlay === true) {
@@ -102,12 +122,18 @@ export function buildYouTubeHtml(videoId: string): string {
             // Was 2000ms — caused up to 2s position staleness in getPositionMs().
             progressTimer = setInterval(function() {
               if (ytPlayer && ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
+                var nowT = ytPlayer.getCurrentTime();
+                if (lastPolled !== null && Math.abs(nowT - lastPolled) > 2.5) {
+                  rn({ type: 'SEEK', currentTime: nowT });
+                }
+                lastPolled = nowT;
                 rn({ type: 'PROGRESS', currentTime: ytPlayer.getCurrentTime(), duration: ytPlayer.getDuration() || 0 });
               }
             }, 500);
           },
           onStateChange: function(e) {
             var ct = ytPlayer ? ytPlayer.getCurrentTime() : 0;
+            if (e.data !== YT.PlayerState.PLAYING) lastPolled = null;
             if (e.data === YT.PlayerState.PLAYING) {
               // Subtitles are off by default: the captions module loads once playback starts, so unload it here
               // (the CC button in the player controls still lets the viewer turn them on).
