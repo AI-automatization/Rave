@@ -2,7 +2,7 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
-import mongoose from 'mongoose';
+import { dbConnection } from './db';
 import { errorHandler, notFoundHandler } from '@shared/middleware/error.middleware';
 import { setupSentryErrorHandler } from '@shared/utils/sentry';
 import { metricsMiddleware, registerMetricsEndpoint } from '@shared/utils/metrics';
@@ -55,7 +55,7 @@ export const createApp = (): express.Application => {
   app.use(maintenanceGuard);
 
   app.get('/health', (_req, res) => {
-    const mongoOk = mongoose.connection.readyState === 1;
+    const mongoOk = dbConnection.readyState === 1;
     res.status(mongoOk ? 200 : 503).json({
       status: mongoOk ? 'ok' : 'degraded',
       service: 'payment',

@@ -1,4 +1,5 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import { Schema, Document, Types } from 'mongoose';
+import { dbConnection } from '../db';
 
 export interface IMobileEventDocument extends Document {
   issueId: Types.ObjectId;
@@ -42,4 +43,4 @@ schema.index({ eventId: 1 }, { unique: true, sparse: true });
 // Keep events for 90 days
 schema.index({ timestamp: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
 
-export const MobileEvent = model<IMobileEventDocument>('MobileEvent', schema);
+export const MobileEvent = dbConnection.model<IMobileEventDocument>('MobileEvent', schema);

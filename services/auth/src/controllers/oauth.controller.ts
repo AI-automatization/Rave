@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../services/auth.service';
 import { apiResponse } from '@shared/utils/apiResponse';
 import { logger } from '@shared/utils/logger';
+import { scopedEnv } from '@shared/utils/scopedEnv';
 
 export class OAuthController {
   constructor(private authService: AuthService) {}
@@ -210,7 +211,7 @@ export class OAuthController {
 
   telegramWebhook = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+      const expectedSecret = scopedEnv('AUTH', 'TELEGRAM_WEBHOOK_SECRET');
       const receivedSecret = req.headers['x-telegram-bot-api-secret-token'];
       if (!expectedSecret || receivedSecret !== expectedSecret) {
         res.status(403).json(apiResponse.error('Forbidden'));

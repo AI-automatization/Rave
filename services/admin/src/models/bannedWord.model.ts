@@ -1,4 +1,5 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, Document } from 'mongoose';
+import { dbConnection } from '../db';
 
 export type BannedWordCategory = 'room_name' | 'chat';
 
@@ -21,4 +22,4 @@ const schema = new Schema<IBannedWordDocument>(
 
 schema.index({ category: 1 });
 
-export const BannedWord = model<IBannedWordDocument>('BannedWord', schema);
+export const BannedWord = dbConnection.model<IBannedWordDocument>('BannedWord', schema);

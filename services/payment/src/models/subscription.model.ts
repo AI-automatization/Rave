@@ -1,4 +1,5 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import { Document, Schema } from 'mongoose';
+import { dbConnection } from '../db';
 
 // One row per WeWatch user who has ever started a checkout or holds an active/past Pro
 // subscription. `status`/`currentPeriodEnd`/`lastAppliedVersion` are updated only from the
@@ -38,7 +39,7 @@ const SubscriptionSchema = new Schema<ISubscription>(
   { timestamps: true },
 );
 
-export const Subscription = mongoose.model<ISubscription>('Subscription', SubscriptionSchema);
+export const Subscription = dbConnection.model<ISubscription>('Subscription', SubscriptionSchema);
 
 export const isPlanActive = (sub: Pick<ISubscription, 'status' | 'currentPeriodEnd'> | null): boolean => {
   if (!sub) return false;
