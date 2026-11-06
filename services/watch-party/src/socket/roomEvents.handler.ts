@@ -31,6 +31,11 @@ interface AuthenticatedSocket extends Socket {
 // In-memory map of roomId → inactivity close timer
 export const roomCloseTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const ROOM_INACTIVITY_MS = 5 * 60 * 1000; // 5 minutes
+// A VB (Chromium) session keeps an EMPTY room alive past ROOM_INACTIVITY_MS (owner may be mid-search),
+// but not forever: an abandoned room otherwise holds one Chromium indefinitely (RAM = Railway cost).
+// Counted from the moment the room became empty; a rejoin resets it.
+const VB_EMPTY_ROOM_MAX_MS = 10 * 60 * 1000; // 10 minutes
+const roomEmptySince = new Map<string, number>();
 
 // In-memory map of `${roomId}:${userId}` → disconnect grace timer. A raw socket `disconnect`
 // (tab close, back-button navigation, brief network drop, phone screen lock) must not instantly
@@ -46,14 +51,19 @@ const DISCONNECT_GRACE_MS = 20 * 1000;
 // Starts the room-empty inactivity timer if nobody is left connected — shared by the explicit
 // leave path and the disconnect-grace path below, both of which can be the reason a room just
 // became empty.
-function scheduleRoomEmptyCheck(
+export function scheduleRoomEmptyCheck(
   io: SocketServer,
   watchPartyService: WatchPartyService,
   roomId: string,
 ): void {
   void (async () => {
     const sockets = await fetchRoomSockets(io, roomId);
-    if (sockets.length === 0 && !roomCloseTimers.has(roomId)) {
+    if (sockets.length > 0) {
+      roomEmptySince.delete(roomId);
+      return;
+    }
+    if (!roomCloseTimers.has(roomId)) {
+      if (!roomEmptySince.has(roomId)) roomEmptySince.set(roomId, Date.now());
       logger.info('Room empty — starting 5-minute inactivity timer', { roomId });
       const timer = setTimeout(() => {
         roomCloseTimers.delete(roomId);
@@ -61,10 +71,15 @@ function scheduleRoomEmptyCheck(
         // challenge, clicking through player tabs) and killed the session before it could finish
         // — nobody being in the room's Socket.io membership isn't abandonment if VB is actively
         // hunting for a video on the owner's behalf. Don't kill it; just check again next window.
-        if (hasSession(roomId)) {
-          logger.info('Room inactivity timer skipped — VB session still active', { roomId });
+        const emptyForMs = Date.now() - (roomEmptySince.get(roomId) ?? Date.now());
+        if (hasSession(roomId) && emptyForMs < VB_EMPTY_ROOM_MAX_MS) {
+          logger.info('Room inactivity timer skipped — VB session still active', { roomId, emptyForMs });
           scheduleRoomEmptyCheck(io, watchPartyService, roomId);
           return;
+        }
+        roomEmptySince.delete(roomId);
+        if (hasSession(roomId)) {
+          logger.info('Empty room VB session hit idle cap — closing', { roomId, emptyForMs });
         }
         void (async () => {
           try {
@@ -179,6 +194,7 @@ export const registerRoomEvents = (
       }
 
       // Cancel any pending inactivity close timer for this room
+      roomEmptySince.delete(data.roomId);
       const pendingTimer = roomCloseTimers.get(data.roomId);
       if (pendingTimer) {
         clearTimeout(pendingTimer);

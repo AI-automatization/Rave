@@ -6,7 +6,7 @@ import { SERVER_EVENTS } from '@shared/constants/socketEvents';
 import { JwtPayload } from '@shared/types';
 import { config } from '../config/index';
 import { TIMING, LIMITS, REDIS_KEYS } from '@shared/constants';
-import { registerRoomEvents, roomCloseTimers, scheduleDisconnectLeave } from './roomEvents.handler';
+import { registerRoomEvents, scheduleRoomEmptyCheck, scheduleDisconnectLeave } from './roomEvents.handler';
 import { registerVideoEvents } from './videoEvents.handler';
 import { registerChatEvents } from './chatEvents.handler';
 import { registerVoiceEvents } from './voiceEvents.handler';
@@ -15,8 +15,7 @@ import { registerReactionEvents } from './reactionEvents.handler';
 import { registerHandEvents } from './handEvents.handler';
 import { registerDMEvents } from './dmEvents.handler';
 import { registerVBEvents } from './vbEvents.handler';
-import { stopSession, stopAllSessions, hasSession } from '../services/virtualBrowser.service';
-import { fetchRoomSockets } from './roomSockets.helper';
+import { stopSession, stopAllSessions } from '../services/virtualBrowser.service';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -189,33 +188,9 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
         // must not do this immediately.
         scheduleDisconnectLeave(io, watchPartyService, userId, roomId);
 
-        // Start inactivity timer if room is now empty (no sockets connected)
-        const sockets = await fetchRoomSockets(io, roomId);
-        if (sockets.length === 0) {
-          if (!roomCloseTimers.has(roomId)) {
-            logger.info('Room empty after disconnect — starting 5-minute inactivity timer', { roomId });
-            const timer = setTimeout(() => {
-              roomCloseTimers.delete(roomId);
-              // See roomEvents.handler.ts's scheduleRoomEmptyCheck for why — VB actively hunting
-              // for a video (page navigation, a Cloudflare challenge, ...) isn't abandonment even
-              // if nobody's socket is currently in the room.
-              if (hasSession(roomId)) {
-                logger.info('Room inactivity timer skipped — VB session still active', { roomId });
-                return;
-              }
-              void (async () => {
-                try {
-                  await watchPartyService.closeRoomBySystem(roomId);
-                  io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'inactivity' });
-                  logger.info('Room auto-closed after 5 minutes of inactivity', { roomId });
-                } catch (e) {
-                  logger.error('Failed to auto-close room', { roomId, error: e });
-                }
-              })();
-            }, 5 * 60 * 1000);
-            roomCloseTimers.set(roomId, timer);
-          }
-        }
+        // Room may now be empty — shared empty-room timer (5 min, VB sessions capped at 20 min,
+        // see roomEvents.handler.ts scheduleRoomEmptyCheck). It re-checks sockets itself.
+        scheduleRoomEmptyCheck(io, watchPartyService, roomId);
       }
       logger.info('Socket disconnected', { userId, socketId: socket.id });
     });
