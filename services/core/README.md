@@ -61,6 +61,7 @@ Do NOT copy admin's `USER_MONGO_URI` / `CONTENT_MONGO_URI` (unused by code).
 - Background jobs start once: reengagement Bull queue, Telegram `registerWebhook`, payment 24 h reconcile interval.
 
 ## Cut-over (Railway, later step; not done here)
+Shadow mode: set `CORE_BACKGROUND_JOBS=0` while the old services still run (no Telegram setWebhook, no reengagement cron, no billing reconcile). Flip to unset/1 at cut-over.
 Domains are bound per Railway service. Either (a) move the five public domains (`auth-production-47a8`, `user-...`,
 `notification-...`, `admin-...`, `payment-...` and `pay.wewatch.uz`) to the core service, or (b) keep the old
 services as thin proxies for a while. Google OAuth callback and Telegram webhook URLs keep working as long as the

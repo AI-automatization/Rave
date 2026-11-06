@@ -136,22 +136,31 @@ const main = async (): Promise<void> => {
   });
 
   // ── Background jobs: started exactly once ──────────────────────────────────────────────
-  startReengagementQueue(notificationConfig.redisUrl);
+  // CORE_BACKGROUND_JOBS=0 runs core as a pure HTTP shadow next to the old services (cut-over
+  // smoke test): no reengagement queue, no Telegram setWebhook (it would steal the bot's
+  // webhook from the live notification service), no billing reconcile.
+  const backgroundJobs = process.env.CORE_BACKGROUND_JOBS !== '0';
+  let reconcileTimer: NodeJS.Timeout | undefined;
+  if (backgroundJobs) {
+    startReengagementQueue(notificationConfig.redisUrl);
 
-  const tgWebhookUrl = scopedEnv('NOTIFICATION', 'TELEGRAM_WEBHOOK_URL') ?? '';
-  if (tgWebhookUrl && notificationConfig.telegram.botToken) {
-    void registerWebhook(tgWebhookUrl);
-  }
+    const tgWebhookUrl = scopedEnv('NOTIFICATION', 'TELEGRAM_WEBHOOK_URL') ?? '';
+    if (tgWebhookUrl && notificationConfig.telegram.botToken) {
+      void registerWebhook(tgWebhookUrl);
+    }
 
-  if (!paymentConfig.billing.apiKey || !paymentConfig.billing.hmacSecret) {
-    logger.warn('tezcode-billing is not configured (BILLING_API_KEY / BILLING_HMAC_SECRET missing) — /checkout and the webhook will fail');
+    if (!paymentConfig.billing.apiKey || !paymentConfig.billing.hmacSecret) {
+      logger.warn('tezcode-billing is not configured (BILLING_API_KEY / BILLING_HMAC_SECRET missing) — /checkout and the webhook will fail');
+    }
+    const paymentService = new PaymentService();
+    reconcileTimer = setInterval(() => {
+      paymentService.reconcileExpiringSoon().catch((err: unknown) => {
+        logger.error('[reconcile] daily pull-reconciliation failed', { message: (err as Error).message });
+      });
+    }, RECONCILE_INTERVAL_MS);
+  } else {
+    logger.warn('CORE_BACKGROUND_JOBS=0 — background jobs disabled (shadow mode)');
   }
-  const paymentService = new PaymentService();
-  const reconcileTimer = setInterval(() => {
-    paymentService.reconcileExpiringSoon().catch((err: unknown) => {
-      logger.error('[reconcile] daily pull-reconciliation failed', { message: (err as Error).message });
-    });
-  }, RECONCILE_INTERVAL_MS);
 
   // ── One graceful shutdown ──────────────────────────────────────────────────────────────
   let shuttingDown = false;
@@ -165,12 +174,12 @@ const main = async (): Promise<void> => {
     }, SHUTDOWN_TIMEOUT_MS);
     hardExit.unref();
 
-    clearInterval(reconcileTimer);
+    if (reconcileTimer) clearInterval(reconcileTimer);
     const settle = async (label: string, fn: () => Promise<unknown>): Promise<void> => {
       try { await fn(); } catch (err) { logger.error(`Shutdown step failed: ${label}`, { message: (err as Error).message }); }
     };
     await settle('http', () => new Promise<void>((resolve) => { httpServer.close(() => resolve()); }));
-    await settle('reengagement-queue', () => stopReengagementQueue());
+    if (backgroundJobs) await settle('reengagement-queue', () => stopReengagementQueue());
     await settle('mongo-default', () => mongoose.connection.close());
     await settle('mongo-admin', () => adminDb.close());
     await settle('mongo-payment', () => paymentDb.close());
