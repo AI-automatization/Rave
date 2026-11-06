@@ -101,12 +101,14 @@ async function detectBotChallenge(
 // the whole point of paying is never waiting behind Free traffic. Free is capped and queues past
 // this; see vbQueue.helper.ts for the FIFO that handles the overflow instead of just rejecting it
 // like this used to (single MAX_CONCURRENT for everyone, hard reject past it).
-const MAX_CONCURRENT_FREE = 10;
+// Env-tunable only for the merged `media` container (one RAM pool shared with content's
+// Playwright extractor); defaults = the historic values, standalone unchanged.
+const MAX_CONCURRENT_FREE = Math.max(1, Number(process.env.WATCH_PARTY_VB_MAX_CONCURRENT_FREE) || 10);
 // Pro being uncapped is a business decision, not "no limit exists anywhere" — this is the one
 // hard backstop, sized far above any realistic Free+Pro combined load today, that exists purely
 // to stop a genuine bug/runaway (not real usage) from taking the whole container down. Should
 // never fire in practice; if it does, that's a bug to investigate, not a capacity plan to revisit.
-const MAX_TOTAL_SAFETY_CEILING = 60;
+const MAX_TOTAL_SAFETY_CEILING = Math.max(1, Number(process.env.WATCH_PARTY_VB_SAFETY_CEILING) || 60);
 
 // Called after a slot actually frees (stopSession) so the Free queue (vbQueue.helper.ts) can try
 // its next request immediately instead of waiting for the next unrelated VB_START to notice.

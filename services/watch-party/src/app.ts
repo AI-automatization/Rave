@@ -23,12 +23,19 @@ import { registerWatchPartySocket } from './socket/watchParty.socket';
 import { swaggerSpec } from './utils/swagger';
 import { config } from './config/index';
 
-export const createApp = (redis: Redis): { app: express.Application; io: SocketServer; httpServer: ReturnType<typeof createServer> } => {
+export interface CreateAppOptions {
+  /** Attach socket.io to this (not yet listening) server instead of creating one — used by `media`. */
+  httpServer?: ReturnType<typeof createServer>;
+  /** false = no startup room sweep / inactivity interval (media shadow mode). Default true. */
+  backgroundJobs?: boolean;
+}
+
+export const createApp = (redis: Redis, options: CreateAppOptions = {}): { app: express.Application; io: SocketServer; httpServer: ReturnType<typeof createServer> } => {
   const app = express();
 
   // Railway reverse proxy
   app.set('trust proxy', 1);
-  const httpServer = createServer(app);
+  const httpServer = options.httpServer ?? createServer(app);
 
   const allowedOrigins = config.corsOrigins.split(',').map((o) => o.trim()).filter(Boolean);
 
@@ -113,7 +120,7 @@ export const createApp = (redis: Redis): { app: express.Application; io: SocketS
 
   // Register Socket.io handlers
   const watchPartyService = new WatchPartyService(redis);
-  registerWatchPartySocket(io, watchPartyService, redis);
+  registerWatchPartySocket(io, watchPartyService, redis, options.backgroundJobs !== false);
 
   app.use(notFoundHandler);
 

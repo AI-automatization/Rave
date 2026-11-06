@@ -17,7 +17,7 @@ import { playwrightCookiesToHeader, saveCookies } from '../cookieStore';
 // so the extraction-failed → VB-fallback decision lands sooner instead of stalling near 30s.
 const NAVIGATE_TIMEOUT_MS = 12_000;
 const POST_LOAD_WAIT_MS   = 3_000;  // extra wait for deferred video requests
-const MAX_CONCURRENT      = 3;
+const MAX_CONCURRENT      = Math.max(1, Number(process.env.CONTENT_PLAYWRIGHT_MAX_CONCURRENT) || 3);
 
 const USER_AGENTS = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',

@@ -1,4 +1,5 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, Document } from 'mongoose';
+import { getServiceConnection } from '@shared/utils/serviceConnection';
 
 export interface IUrlVisitDocument extends Document {
   domain:   string;
@@ -25,4 +26,4 @@ urlVisitSchema.index({ count: -1 });
 urlVisitSchema.index({ flagged: 1, count: -1 });
 urlVisitSchema.index({ blocked: 1 });
 
-export const UrlVisit = model<IUrlVisitDocument>('UrlVisit', urlVisitSchema);
+export const UrlVisit = getServiceConnection('content').model<IUrlVisitDocument>('UrlVisit', urlVisitSchema);

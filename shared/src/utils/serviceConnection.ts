@@ -10,8 +10,12 @@ import mongoose, { Connection } from 'mongoose';
  * (admin -> cinesync_admin, payment -> cinesync_payment) get a dedicated, initially closed
  * connection that `core` opens with `connection.openUri(...)`. Models registered on it buffer
  * until it is open, so they can be declared at import time.
+ *
+ * `media` (content + watch-party, MEDIA_EMBEDDED=1) works the same way: content's models get a
+ * dedicated connection, watch-party keeps the default one.
  */
-export const isCoreEmbedded = (): boolean => process.env.CORE_EMBEDDED === '1';
+export const isCoreEmbedded = (): boolean =>
+  process.env.CORE_EMBEDDED === '1' || process.env.MEDIA_EMBEDDED === '1';
 
 const dedicated = new Map<string, Connection>();
 
