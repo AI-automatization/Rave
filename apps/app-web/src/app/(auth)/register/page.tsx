@@ -1,15 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { RegisterForm } from './RegisterForm';
 import { VerifyEmail } from './VerifyEmail';
 
+// Suspense: both forms read ?redirect= / ?plan= via useSearchParams (same as /login).
 export default function RegisterPage() {
   const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
 
-  if (verifyEmail) {
-    return <VerifyEmail email={verifyEmail} />;
-  }
-
-  return <RegisterForm onVerify={setVerifyEmail} />;
+  return (
+    <Suspense>
+      {verifyEmail ? <VerifyEmail email={verifyEmail} /> : <RegisterForm onVerify={setVerifyEmail} />}
+    </Suspense>
+  );
 }

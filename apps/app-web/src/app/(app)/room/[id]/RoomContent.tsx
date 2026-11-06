@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { MessageCircle, Users as UsersIcon, ListVideo, X, ChevronRight, Loader2, Play, Plus, Globe, Link2 } from 'lucide-react';
+import { MessageCircle, Users as UsersIcon, ListVideo, X, ChevronRight, Loader2, Play, Plus, Globe, Link2, Monitor } from 'lucide-react';
 import type { IChatReplyTo, VideoCandidate } from '@/types';
 import { useWatchParty } from '@/hooks/use-watch-party';
 import { useVirtualBrowser } from '@/hooks/use-virtual-browser';
@@ -22,6 +22,8 @@ import { VoiceStrip } from '@/components/party/VoiceStrip';
 import { RoomPasswordDialog } from '@/components/party/RoomPasswordDialog';
 import { ChangeVideoDialog } from '@/components/party/ChangeVideoDialog';
 import { useVoiceChat } from '@/hooks/use-voice-chat';
+import { useDesktopScreenShare } from '@/hooks/use-desktop-screen-share';
+import { DesktopScreenView } from '@/components/party/DesktopScreenView';
 import { useSocket } from '@/hooks/use-socket';
 import { roomsApi } from '@/lib/api/rooms.api';
 import { ApiError } from '@/lib/api-client';
@@ -443,6 +445,8 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   const anyoneSpeaking = voice.isSpeaking || voice.participants.some((p) => p.isSpeaking);
   const isConnected = useWatchPartyStore((s) => s.isConnected);
   const isOwner = !!(room && currentUser && room.ownerId === currentUser._id);
+  // Windows app only (NEXT_PUBLIC_DESKTOP_VB=1): owner's local VB window streamed to viewers.
+  const screenShare = useDesktopScreenShare(socket, roomJoined, isOwner);
 
   // ?play=<link> — "watch this" from the home rails or the create dialog when the user already
   // owns this open room (one room per owner): switch the room to that movie once we're in.
@@ -631,7 +635,13 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
               }}
             >
             <ReactionOverlay reactions={reactions} />
-            {showVB ? (
+            {screenShare.stream ? (
+              <DesktopScreenView
+                stream={screenShare.stream}
+                muted={screenShare.isSharing}
+                label={t(screenShare.isSharing ? 'desktopVbYouShare' : 'desktopVbWatching')}
+              />
+            ) : showVB ? (
               <VirtualBrowserPlayer
                 isOwner={isOwner}
                 hasFrame={vbHasFrame}
@@ -689,6 +699,31 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                     {t('virtualBrowser')}
                   </button>
                 )}
+                {screenShare.canShare && (
+                  <button
+                    onClick={() => {
+                      if (screenShare.isSharing) { screenShare.stop(); return; }
+                      trackClick('room:desktop_vb');
+                      void screenShare.start(originalSourceUrlRef.current ?? 'https://www.google.com');
+                    }}
+                    type="button"
+                    disabled={screenShare.starting}
+                    data-testid="room-desktop-vb"
+                    className="ww-btn-subtle flex h-9 cursor-pointer items-center gap-1.5 rounded-[var(--ww-r-sm)] px-3 text-[12.5px] font-medium text-[var(--ww-text-2)] disabled:opacity-60"
+                  >
+                    <Monitor size={14} aria-hidden="true" />
+                    {t(screenShare.isSharing ? 'desktopVbStop' : 'desktopVbStart')}
+                  </button>
+                )}
+                {screenShare.isSharing && (
+                  <button
+                    onClick={screenShare.focusVb}
+                    type="button"
+                    className="ww-btn-subtle flex h-9 cursor-pointer items-center gap-1.5 rounded-[var(--ww-r-sm)] px-3 text-[12.5px] font-medium text-[var(--ww-text-2)]"
+                  >
+                    {t('desktopVbFocus')}
+                  </button>
+                )}
               </div>
             )}
 
@@ -738,9 +773,9 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
         <ChangeVideoDialog
           open={changeVideoOpen}
           onOpenChange={setChangeVideoOpen}
-          onSubmit={async (url) => {
+          onSubmit={async (url, hints) => {
             const r = await resolveLinkPlatform(url, detectVideoPlatform(url));
-            sendMediaChange(r.url, undefined, r.platform);
+            sendMediaChange(r.url, undefined, r.platform, hints);
           }}
         />
       )}
