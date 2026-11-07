@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { UserService } from '../services/user.service';
 import { apiResponse } from '@shared/utils/apiResponse';
 import { AuthenticatedRequest } from '@shared/types';
+import { saveAvatar } from '../utils/avatarStorage';
 
 export class UserController {
   constructor(private userService: UserService) {}
@@ -141,7 +142,7 @@ export class UserController {
         res.status(400).json(apiResponse.error('No file uploaded'));
         return;
       }
-      const avatarPath = `/uploads/avatars/${req.file.filename}`;
+      const avatarPath = await saveAvatar(userId, req.file.buffer, req.file.originalname);
       const user = await this.userService.updateAvatar(userId, avatarPath);
       res.json(apiResponse.success({ avatarUrl: user.avatar }, 'Avatar updated'));
     } catch (error) {
