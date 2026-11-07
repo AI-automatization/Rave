@@ -1,7 +1,7 @@
 {
   "name": "@cinesync/user",
   "version": "1.0.0",
-  "description": "CineSync User Service — port 3002",
+  "description": "CineSync User Service \u2014 port 3002",
   "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/server.ts",
@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@cinesync/shared": "*",
+    "cloudinary": "^2.9.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.1",
     "express": "^4.18.2",
