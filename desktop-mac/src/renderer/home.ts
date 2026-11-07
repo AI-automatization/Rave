@@ -13,6 +13,11 @@ interface RoomCardDto {
   thumbnail: string | null;
   platform: string | null;
 }
+interface WatchCardDto {
+  title: string;
+  thumbnail: string | null;
+  viewers: number | null;
+}
 interface HomeStrings {
   banner: string;
   joinBanner: string;
@@ -32,6 +37,10 @@ interface HomeStrings {
   errorDesc: string;
   retry: string;
   untitled: string;
+  railTrending: string;
+  railHistory: string;
+  weeklyViewers: string;
+  startError: string;
 }
 interface HomeDataDto {
   strings: HomeStrings; // every word on this screen, in the language of the web app (sent by the main process)
@@ -40,11 +49,14 @@ interface HomeDataDto {
   rooms: RoomCardDto[];
   total: number;
   query: string;
+  trending: WatchCardDto[];
+  history: WatchCardDto[];
 }
 interface HomeBridge {
   ready(): Promise<unknown>;
   open(id: string): Promise<unknown>;
   retry(): Promise<unknown>;
+  watch(kind: string, index: number): Promise<{ ok: boolean; reason?: string }>;
   onData(cb: (d: HomeDataDto) => void): () => void;
 }
 
@@ -129,8 +141,80 @@ function banner(room: RoomCardDto, S: HomeStrings): HTMLElement {
   return b;
 }
 
-function message(title: string, desc?: string, action?: { label: string; run: () => void }): HTMLElement {
-  const m = el('section', 'message');
+function playIcon(): SVGSVGElement {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  const tri = document.createElementNS(SVG_NS, 'path');
+  tri.setAttribute('d', 'M8 5.5v13l11-6.5z');
+  svg.appendChild(tri);
+  return svg;
+}
+
+let toastTimer: number | undefined;
+function toast(text: string): void {
+  document.querySelector('.toast')?.remove();
+  const t = el('div', 'toast', text);
+  t.setAttribute('role', 'status');
+  document.body.appendChild(t);
+  window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => t.remove(), 4000);
+}
+
+/** One tap from a video to a room playing it. The main process holds the list; only "rail + position" is sent. */
+function startWatching(kind: 'trending' | 'history', index: number, btn: HTMLButtonElement, S: HomeStrings): void {
+  if (root.classList.contains('busy')) return;
+  root.classList.add('busy');
+  btn.classList.add('starting');
+  void bridge.watch(kind, index).then((r) => {
+    root.classList.remove('busy');
+    btn.classList.remove('starting');
+    if (!r.ok && r.reason !== 'unauthorized') toast(S.startError);
+  });
+}
+
+function watchCard(c: WatchCardDto, kind: 'trending' | 'history', index: number, S: HomeStrings): HTMLElement {
+  const b = el('button', 'watch');
+  b.type = 'button';
+  const poster = el('div', 'wposter');
+  if (c.thumbnail) {
+    const img = el('img');
+    img.src = c.thumbnail; // https only (checked in the main process)
+    img.alt = '';
+    img.referrerPolicy = 'no-referrer';
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.addEventListener('error', () => img.remove());
+    poster.appendChild(img);
+  }
+  if (kind === 'trending') poster.appendChild(el('span', 'rank', `#${index + 1}`));
+  const play = el('span', 'play');
+  play.appendChild(playIcon());
+  poster.appendChild(play);
+  b.appendChild(poster);
+  const info = el('div', 'winfo');
+  info.appendChild(el('span', 'wtitle', c.title));
+  if (kind === 'trending' && c.viewers !== null) {
+    const v = el('span', 'wviews');
+    v.append(peopleIcon(), document.createTextNode(fill(S.weeklyViewers, c.viewers)));
+    info.appendChild(v);
+  }
+  b.appendChild(info);
+  b.addEventListener('click', () => startWatching(kind, index, b, S));
+  return b;
+}
+
+function rail(title: string, cards: WatchCardDto[], kind: 'trending' | 'history', S: HomeStrings): HTMLElement {
+  const sec = el('section', 'rail-section');
+  sec.appendChild(el('h2', undefined, title));
+  const row = el('div', 'rail');
+  cards.forEach((c, i) => row.appendChild(watchCard(c, kind, i, S)));
+  sec.appendChild(row);
+  return sec;
+}
+
+function message(title: string, desc?: string, action?: { label: string; run: () => void }, compact = false): HTMLElement {
+  const m = el('section', compact ? 'message compact' : 'message');
   m.appendChild(el('h2', undefined, title));
   if (desc) m.appendChild(el('p', undefined, desc));
   if (action) {
@@ -153,11 +237,10 @@ function render(d: HomeDataDto): void {
     root.appendChild(message(S.errorTitle, S.errorDesc, { label: S.retry, run: () => void bridge.retry() }));
     return;
   }
+  const hasRails = d.trending.length > 0 || d.history.length > 0;
   if (d.total === 0) {
-    root.appendChild(message(S.emptyTitle, S.emptyDesc));
-    return;
-  }
-  if (!d.spotlight && d.rooms.length === 0) {
+    root.appendChild(message(S.emptyTitle, S.emptyDesc, undefined, hasRails));
+  } else if (!d.spotlight && d.rooms.length === 0) {
     root.appendChild(message(S.noMatch));
     return;
   }
@@ -169,6 +252,8 @@ function render(d: HomeDataDto): void {
     for (const room of d.rooms) grid.appendChild(card(room, S));
     root.append(head, grid);
   }
+  if (d.trending.length > 0) root.appendChild(rail(S.railTrending, d.trending, 'trending', S));
+  if (d.history.length > 0) root.appendChild(rail(S.railHistory, d.history, 'history', S));
 }
 
 bridge.onData(render);

@@ -252,3 +252,134 @@ button {
     animation: none;
   }
 }
+
+/* ---- rails: "Haftaning top kinolari" and "Ko'rganlarim" (poster rows, like the web app's WatchRail) ---- */
+.rail-section {
+  margin-top: 30px;
+}
+.rail-section h2 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-2);
+}
+.rail {
+  display: flex;
+  gap: 12px;
+  margin: 12px -4px 0;
+  padding: 0 4px 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.rail::-webkit-scrollbar {
+  display: none;
+}
+.watch {
+  flex: none;
+  width: 224px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  text-align: left;
+}
+.watch:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+.wposter {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(135deg, #141026, #0b0916);
+}
+.wposter img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.rank {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+.play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0);
+  transition: background 0.15s;
+}
+.play svg {
+  width: 30px;
+  height: 30px;
+  fill: #fff;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.watch:hover .play {
+  background: rgba(0, 0, 0, 0.4);
+}
+.watch:hover .play svg {
+  opacity: 1;
+}
+.watch.starting .play {
+  background: rgba(0, 0, 0, 0.55);
+}
+.watch.starting .play svg {
+  opacity: 0.6;
+}
+.winfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 9px 12px 11px;
+}
+.wtitle {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.wviews {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-3);
+  font-size: 11px;
+}
+.wviews svg {
+  width: 11px;
+  height: 11px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+#root.busy .watch {
+  pointer-events: none;
+}
+.message.compact {
+  margin-top: 4vh;
+  margin-bottom: 8px;
+}
+.toast {
+  position: fixed;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 80%;
+  padding: 9px 16px;
+  border: 1px solid rgba(255, 59, 78, 0.4);
+  border-radius: 9px;
+  background: rgba(24, 8, 12, 0.92);
+  color: var(--text);
+}

@@ -38,6 +38,9 @@ test/        urls.test.ts (vitest)
   Holatlar serverniki: `waiting | playing | paused` (veb'dagi `'active'` serverdan hech qachon kelmaydi). Banner = eng ko'p tomoshabinli `playing` xona.
 - **Renderer faqat chizadi.** U faqat id so'raydi (`wewatchShell.navigate(id)`, `wewatchHome.open(id)`); asosiy jarayon jo'natuvchini (o'z ko'rinishi va sahifasi) va id'ni
   tekshiradi, URL'ni o'zi quradi. Matnlar `textContent` bilan, CSP: faqat o'z skripti/uslubi (+ Home'da `https:` rasmlar).
+- **Poster qatorlari** (Haftaning top kinolari — `/api/rooms/trending`, Ko'rganlarim — `/api/rooms/history`): xonalardan keyin, alohida yuklanadi (xato qatorni bo'sh qiladi, xonalarni emas).
+  Videoga bosish veb'dagidek yopiq xona yaratadi (`POST /api/rooms`), server 409 ("ochiq xonangiz bor") desa o'sha xona `?play=<video>` bilan ochiladi.
+  Renderer faqat "qator + o'rin" yuboradi; havola va so'rov tanasi asosiy jarayondagi o'z ro'yxatidan olinadi (`home:watch`). Qidiruv paytida qatorlar yashiriladi. "Davom ettirish" (Pro) yo'q.
 - **Til** (`src/main/i18n.ts`): veb-ilovaning `wewatch-locale` cookie'si (`uz|ru|en`, yo'q bo'lsa `ru` — veb bilan bir xil); o'zgarganda panel va Bosh sahifa darhol yangilanadi.
   Veb'da tarjimasi bor satrlar aynan o'sha (test `apps/app-web/messages` bilan solishtiradi).
 - **Obuna (Pro/tarif) Mac ilovada yo'q** (Abdulaziz va Bekzod aka qarori): `/api/payment/*` so'rovlari bekor qilinadi, `/pricing` ochilmaydi, Sozlamalardagi "TARIF" paneli

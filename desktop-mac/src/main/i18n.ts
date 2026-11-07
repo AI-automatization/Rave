@@ -51,6 +51,11 @@ export interface Strings {
     readonly errorDesc: string;
     readonly retry: string;
     readonly untitled: string;
+    readonly railTrending: string;
+    readonly railHistory: string;
+    /** `{n}` is replaced by the number of people who watched it this week. */
+    readonly weeklyViewers: string;
+    readonly startError: string;
   };
 }
 
@@ -77,6 +82,10 @@ const UZ: Strings = {
     errorDesc: 'Internetni tekshiring yoki qayta urining',
     retry: 'Qayta urinish',
     untitled: 'Nomsiz xona',
+    railTrending: 'Haftaning top kinolari',
+    railHistory: 'Ko‘rganlarim',
+    weeklyViewers: '{n} kishi ko‘rdi',
+    startError: 'Xona ochilmadi, qayta urinib ko‘ring',
   },
 };
 
@@ -103,6 +112,10 @@ const RU: Strings = {
     errorDesc: 'Проверьте подключение или попробуйте снова',
     retry: 'Повторить',
     untitled: 'Комната без названия',
+    railTrending: 'Топ недели',
+    railHistory: 'История',
+    weeklyViewers: 'Смотрели: {n}',
+    startError: 'Не удалось открыть комнату, попробуйте ещё раз',
   },
 };
 
@@ -129,6 +142,10 @@ const EN: Strings = {
     errorDesc: 'Check your connection or try again',
     retry: 'Retry',
     untitled: 'Untitled room',
+    railTrending: 'Top this week',
+    railHistory: 'Watched',
+    weeklyViewers: '{n} watched',
+    startError: 'Couldn’t open a room, try again',
   },
 };
 

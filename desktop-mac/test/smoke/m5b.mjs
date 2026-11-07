@@ -26,6 +26,14 @@ const ROOMS = [
   room(8, { _id: '../admin', name: 'Bad id' }),
 ];
 
+const TRENDING = [
+  { sourceUrl: 'https://youtu.be/top1', title: 'Top film', thumbnail: 'https://img.example.com/t1.jpg', platform: 'youtube', viewers: 42 },
+  { sourceUrl: 'https://vk.com/video-busy-1', title: null, thumbnail: null, platform: 'vk', viewers: 7 },
+  { sourceUrl: 'javascript:alert(1)', title: 'Evil', thumbnail: null, platform: null, viewers: 1 },
+  { sourceUrl: 'file:///etc/passwd', title: 'Evil 2', thumbnail: null, platform: null, viewers: 1 },
+];
+const HISTORY = [{ sourceUrl: 'https://rutube.ru/video/fail-1', title: 'Watched before', thumbnail: 'http://insecure.example/h.jpg', platform: 'rutube' }];
+let posts = []; // bodies of POST /api/rooms ("start watching")
 let calls = [];
 let down = 0; // number of /api/rooms requests that still answer 500
 const cookieOf = (req, name) => (req.headers.cookie ?? '').split(/;\s*/).find((c) => c.startsWith(`${name}=`))?.slice(name.length + 1);
@@ -34,6 +42,27 @@ const server = createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
   const log = `${req.method} ${url.pathname}`;
   calls.push(log);
+  if ((url.pathname === '/api/rooms/trending' || url.pathname === '/api/rooms/history') && req.method === 'GET') {
+    res.setHeader('content-type', 'application/json');
+    if (cookieOf(req, 'access_token') !== 'good') { res.statusCode = 401; return res.end('{}'); }
+    return res.end(JSON.stringify({ success: true, data: url.pathname.endsWith('trending') ? TRENDING : HISTORY }));
+  }
+  if (url.pathname === '/api/rooms' && req.method === 'POST') {
+    let raw = '';
+    req.on('data', (c) => { raw += c; });
+    req.on('end', () => {
+      res.setHeader('content-type', 'application/json');
+      if (cookieOf(req, 'access_token') !== 'good') { res.statusCode = 401; return res.end('{}'); }
+      let body = {};
+      try { body = JSON.parse(raw); } catch { /* keep {} */ }
+      posts.push({ ...body, __contentType: req.headers['content-type'] });
+      if (String(body.videoUrl).includes('busy')) { res.statusCode = 409; return res.end(JSON.stringify({ success: false, data: { roomId: ID(21) } })); }
+      if (String(body.videoUrl).includes('fail')) { res.statusCode = 500; return res.end('{}'); }
+      res.statusCode = 201;
+      return res.end(JSON.stringify({ success: true, data: { _id: ID(20) } }));
+    });
+    return;
+  }
   if (url.pathname === '/api/rooms') {
     res.setHeader('content-type', 'application/json');
     if (down > 0) { down--; res.statusCode = 500; return res.end('{}'); }
@@ -61,6 +90,7 @@ await new Promise((r) => server.listen(PORT, '127.0.0.1', r));
 
 async function run(name, { cookies = '', action = 'home', startPath = '/home', downFor = 0, ttl = 20, shotDir = '', startWeb = false } = {}) {
   calls = [];
+  posts = [];
   down = downFor;
   const out = path.join(os.tmpdir(), `ww-m5b-${name}-${Date.now()}.jsonl`);
   fs.writeFileSync(out, '');
@@ -74,11 +104,12 @@ async function run(name, { cookies = '', action = 'home', startPath = '/home', d
   const child = spawn(electronBin, [root, `--user-data-dir=${userData}`], { env, stdio: 'ignore' });
   await new Promise((r) => child.on('exit', r));
   const ev = fs.readFileSync(out, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l));
-  return { ev, calls: [...calls], get: (n) => ev.find((x) => x.event === n)?.inspect };
+  return { ev, calls: [...calls], posts: [...posts], get: (n) => ev.find((x) => x.event === n)?.inspect };
 }
 
 const failures = [];
 const check = (cond, msg) => { if (!cond) failures.push(msg); console.log(`${cond ? 'PASS' : 'FAIL'}  ${msg}`); };
+const canon = (o) => JSON.stringify(Object.fromEntries(Object.entries(o).sort(([a], [b]) => a.localeCompare(b))));
 const pathOf = (u) => { try { return new URL(u).pathname; } catch { return ''; } };
 const titles = (home) => (home?.cards ?? []).map((c) => c.title);
 
@@ -95,7 +126,7 @@ console.log('--- A: signed in (access token valid)');
   check(i?.shell.searchHidden === false, 'the search box is visible on Home');
   check(i?.state.canGoBack === false, 'back is disabled on Home');
   const h = i?.home;
-  check(h?.bridgeKeys.sort().join(',') === 'onData,open,ready,retry', 'Home bridge exposes exactly ready/open/retry/onData');
+  check(h?.bridgeKeys.sort().join(',') === 'onData,open,ready,retry,watch', 'Home bridge exposes exactly ready/open/retry/watch/onData');
   check(h?.webBridge === 'undefined', 'Home has NO web-app bridge');
   check(h?.banner?.title === 'Yulduzlar Jangi' && h?.banner?.sub === 'Interstellar', 'banner = the playing room with the most viewers (title + video title)');
   check(h?.banner?.kicker === 'ASOSIY JONLI XONA' && h?.banner?.join === "Xonaga qo'shilish", 'banner copy from the design');
@@ -207,6 +238,41 @@ console.log('--- E: language follows the web app; subscription is gone');
   const hr = r.get('lang-home-ru');
   check(hr?.home.banner?.kicker === 'СЕЙЧАС В ЭФИРЕ' && hr?.home.banner?.viewers === '9 смотрят' && hr?.home.cards[0]?.count === '3 чел.', 'a language change while Home is shown redraws Home and the sidebar at once (Russian)');
   check(labels(hr) === 'Главная|Комнаты|Прямые эфиры|Друзья|История|Избранное|Настройки', 'the sidebar followed too');
+}
+
+// ---------------------------------------------------------------- F: rails (weekly top, history) + start watching
+console.log('--- F: rails and "start watching"');
+{
+  const r = await run('rails', { cookies: 'wewatch-locale=uz;access_token=good;refresh_token=r1', action: 'rails', ttl: 30, shotDir: process.env.WW_SMOKE_SHOT_RAILS ?? '' });
+  const i = r.get('rails-initial');
+  const [top, hist] = i?.home.rails ?? [];
+  check(top?.title === 'Haftaning top kinolari' && hist?.title === 'Ko‘rganlarim', 'both rails are shown under the rooms, with the web app\'s own titles');
+  check(JSON.stringify(top?.cards.map((c) => c.title)) === JSON.stringify(['Top film', 'https://vk.com/video-busy-1']), 'weekly top: the two valid videos (javascript: and file: links were dropped); no title -> the link, like the web app');
+  check(top?.cards.map((c) => c.rank).join('|') === '#1|#2' && top?.cards.map((c) => c.views).join('|') === '42 kishi ko‘rdi|7 kishi ko‘rdi', 'weekly top: rank badges and viewer counts');
+  check(hist?.cards.length === 1 && hist?.cards[0].title === 'Watched before' && hist?.cards[0].rank === null && hist?.cards[0].views === null, 'history: one card, no rank and no viewer count');
+  check((i?.home.imgs ?? []).every((x) => typeof x === 'string' && x.startsWith('https://')) && !(i?.home.imgs ?? []).some((x) => x.includes('insecure')), 'only https posters (the http one was dropped)');
+  check(i?.home.banner?.title === 'Yulduzlar Jangi' && i?.home.cards.length === 4, 'the room list above the rails is unchanged');
+
+  const hs = r.ev.find((x) => x.event === 'rails-hostile')?.replies ?? [];
+  check(hs.length === 8 && hs.every((x) => x && x.ok === false), 'hostile calls (unknown rail, index out of range / negative / string / fractional, null, __proto__) are all refused (8 of 8)');
+  check(r.get('rails-after-hostile')?.mode === 'home', 'hostile calls did not leave Home');
+
+  const rm = r.get('rails-room');
+  check(rm?.mode === 'web' && pathOf(rm?.content?.url) === `/room/${ID(20)}`, 'a click on the 1st weekly-top video opens the room the server created');
+  check(canon(r.posts[0]) === canon({ name: 'Top film', videoUrl: 'https://youtu.be/top1', videoTitle: 'Top film', videoThumbnail: 'https://img.example.com/t1.jpg', isPrivate: true, __contentType: 'application/json' }),
+    'the room request is exactly the web app\'s: private, named after the video, JSON');
+  check(r.get('rails-back')?.mode === 'home' && r.get('rails-back')?.home.rails.length === 2, 'back returns to Home with the rails still there');
+
+  const cf = r.get('rails-conflict');
+  const u = new URL(cf?.content?.url ?? 'http://x/');
+  check(u.pathname === `/room/${ID(21)}` && u.searchParams.get('play') === 'https://vk.com/video-busy-1', '409: the open room is entered with ?play=<the video>, like the web app');
+  check(canon(r.posts[1]) === canon({ videoUrl: 'https://vk.com/video-busy-1', isPrivate: true, __contentType: 'application/json' }), 'a video without a title is sent without name/videoTitle');
+
+  const fl = r.get('rails-fail');
+  check(fl?.mode === 'home' && fl?.content === null, 'a server failure keeps the user on Home (no half-open room)');
+  check(fl?.home.toast === 'Xona ochilmadi, qayta urinib ko‘ring', 'and tells them, in their language');
+  check(r.posts.length === 3, 'three requests in all: hostile calls and invalid items made none');
+  check(r.get('rails-search')?.home.rails.length === 0, 'a room search hides the rails');
 }
 
 server.close();

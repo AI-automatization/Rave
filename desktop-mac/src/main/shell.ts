@@ -11,9 +11,9 @@ import {
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { APP_URL } from './config';
-import { loadRooms } from './home-data';
+import { loadRails, loadRooms, startWatching } from './home-data';
 import { DEFAULT_LOCALE, LOCALE_COOKIE, parseLocale, stringsFor, type Locale } from './i18n';
-import { buildHomeData, failed, LOADING, roomUrl, type HomeData, type RoomCard } from './rooms-model';
+import { buildHomeData, failed, LOADING, NO_RAILS, roomUrl, type HomeData, type Rails, type RoomCard } from './rooms-model';
 import { activeNavId, contentBounds, isHomePath, isNativeItem, NAV_SECTIONS, navUrl, webEmbedCss } from './shell-model';
 
 const RENDERER_DIR = path.join(__dirname, '..', 'renderer');
@@ -42,6 +42,8 @@ let suppressAutoHome = false; // the web login/home page we forced must not boun
 let homeState: HomeData = LOADING;
 let homeCards: readonly RoomCard[] | null = null;
 let homeQuery = '';
+let rails: Rails = NO_RAILS; // weekly top + history; the renderer points at their items by position only
+let watching = false; // one "start watching" at a time
 let homeGen = 0;
 let lastFetch = 0;
 let locale: Locale = DEFAULT_LOCALE; // the web app's language (cookie), so the app shows one language only
@@ -223,9 +225,18 @@ async function refreshHome(opts: { loading?: boolean; background?: boolean } = {
     homeState = failed(homeQuery);
   } else {
     homeCards = r.rooms;
-    homeState = buildHomeData(r.rooms, homeQuery);
+    homeState = buildHomeData(r.rooms, homeQuery, rails);
   }
   pushHome();
+  if (r.kind === 'ok') {
+    // The rails are extra content: they arrive after the rooms and a failure of theirs never touches the room list.
+    void loadRails().then((fresh) => {
+      if (gen !== homeGen || !homeCards) return;
+      rails = fresh;
+      homeState = buildHomeData(homeCards, homeQuery, rails);
+      pushHome();
+    });
+  }
 }
 
 export function showHome(): Promise<void> {
@@ -249,7 +260,7 @@ export function startApp(startWeb: boolean): void {
 // ---------- IPC ----------
 
 const FORBIDDEN = { ok: false, reason: 'forbidden' } as const;
-const CHANNELS = ['shell:model', 'shell:navigate', 'shell:back', 'shell:forward', 'shell:search', 'home:ready', 'home:open', 'home:retry'];
+const CHANNELS = ['shell:model', 'shell:navigate', 'shell:back', 'shell:forward', 'shell:search', 'home:ready', 'home:open', 'home:retry', 'home:watch'];
 
 function registerIpc(): void {
   // The window can be recreated (dock click after closing): replace, never double-register.
@@ -288,7 +299,7 @@ function registerIpc(): void {
   ipcMain.handle('shell:search', (e, q: unknown) => {
     if (!fromShell(e)) return FORBIDDEN;
     homeQuery = typeof q === 'string' ? q.slice(0, MAX_QUERY) : '';
-    if (homeCards) homeState = buildHomeData(homeCards, homeQuery);
+    if (homeCards) homeState = buildHomeData(homeCards, homeQuery, rails);
     pushHome();
     return { ok: true } as const;
   });
@@ -306,6 +317,35 @@ function registerIpc(): void {
     suppressAutoHome = false;
     openWeb(url);
     return { ok: true } as const;
+  });
+  ipcMain.handle('home:watch', async (e, kind: unknown, index: unknown) => {
+    if (!fromHome(e)) return FORBIDDEN;
+    // The renderer names a card by rail and position; the video link and the request body come from our own list.
+    const list = kind === 'trending' ? rails.trending : kind === 'history' ? rails.history : null;
+    const item = list && typeof index === 'number' && Number.isInteger(index) ? list[index] : undefined;
+    if (!item) return { ok: false, reason: 'invalid_item' } as const;
+    if (watching) return { ok: false, reason: 'busy' } as const;
+    watching = true;
+    try {
+      const r = await startWatching(item);
+      if (r.kind === 'room') {
+        suppressAutoHome = false;
+        openWeb(r.url);
+        return { ok: true } as const;
+      }
+      if (r.kind === 'unauthorized') {
+        // The session died: the web login takes over (same as for the room list).
+        homeCards = null;
+        suppressAutoHome = true;
+        cameFromHome = false;
+        setMode('web');
+        void ensureContent().loadURL(APP_URL).catch(() => {});
+        return { ok: false, reason: 'unauthorized' } as const;
+      }
+      return { ok: false, reason: 'error' } as const;
+    } finally {
+      watching = false;
+    }
   });
   ipcMain.handle('home:retry', (e) => {
     if (!fromHome(e)) return FORBIDDEN;
@@ -335,6 +375,8 @@ export function attachShell(window: BrowserWindow, opts: ShellOptions): { shell:
   homeState = LOADING;
   homeCards = null;
   homeQuery = '';
+  rails = NO_RAILS;
+  watching = false;
   locale = DEFAULT_LOCALE;
   localeReady = syncLocale();
   if (!cookieWatch) {
@@ -450,6 +492,14 @@ export async function inspectShell(): Promise<unknown> {
         count: t(c.querySelector('.count')), button: t(c.querySelector('button')),
       })),
       imgs: [...document.querySelectorAll('img')].map((i) => i.getAttribute('src')),
+      rails: [...document.querySelectorAll('.rail-section')].map((sec) => ({
+        title: t(sec.querySelector('h2')),
+        cards: [...sec.querySelectorAll('.watch')].map((c) => ({
+          title: t(c.querySelector('.wtitle')), rank: t(c.querySelector('.rank')), views: t(c.querySelector('.wviews')),
+          img: c.querySelector('img') ? c.querySelector('img').getAttribute('src') : null,
+        })),
+      })),
+      toast: t(document.querySelector('.toast')),
       message: t(document.querySelector('.message h2')),
       skeleton: !!document.querySelector('.skeleton'),
       scripts: document.querySelectorAll('#root script').length,

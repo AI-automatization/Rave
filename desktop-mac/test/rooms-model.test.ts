@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildHomeData, filterRooms, parseRooms, pickSpotlight, refreshApiUrl, roomsApiUrl, roomUrl, type RoomCard,
+  buildHomeData, conflictRoomId, createdRoomId, createRoomApiUrl, filterRooms, parseRooms, parseWatchItems, railApiUrl, roomPlayUrl, watchPayload, pickSpotlight, refreshApiUrl, roomsApiUrl, roomUrl, type RoomCard,
 } from '../src/main/rooms-model';
 
 const APP = 'https://app.wewatch.uz';
@@ -158,6 +158,106 @@ describe('buildHomeData — what the Home screen shows', () => {
     expect(d.query).toBe('kino');
   });
   it('an empty list is ok with total 0 (the screen shows the empty state)', () => {
-    expect(buildHomeData([], '')).toEqual({ status: 'ok', spotlight: null, rooms: [], total: 0, query: '' });
+    expect(buildHomeData([], '')).toEqual({ status: 'ok', spotlight: null, rooms: [], total: 0, query: '', trending: [], history: [] });
+  });
+});
+
+// ---------------------------------------------------------------- rails (M5.3): "Haftaning trendlari" + "Ko'rganlarim"
+const item = (over: Record<string, unknown> = {}) => ({
+  sourceUrl: 'https://youtu.be/abc', title: 'Interstellar', thumbnail: 'https://i.ytimg.com/vi/abc/hq.jpg', platform: 'youtube', viewers: 12, ...over,
+});
+
+describe('parseWatchItems — GET /api/rooms/trending and /api/rooms/history', () => {
+  it('maps an item, keeping the order of the server', () => {
+    expect(parseWatchItems(wrap([item(), item({ sourceUrl: 'https://vk.com/video1_2', title: 'B', viewers: 3 })]))).toEqual([
+      { sourceUrl: 'https://youtu.be/abc', title: 'Interstellar', thumbnail: 'https://i.ytimg.com/vi/abc/hq.jpg', platform: 'youtube', viewers: 12 },
+      { sourceUrl: 'https://vk.com/video1_2', title: 'B', thumbnail: 'https://i.ytimg.com/vi/abc/hq.jpg', platform: 'youtube', viewers: 3 },
+    ]);
+  });
+  it('the source link must be a real http(s) URL; anything else drops that item (it later becomes a room\'s video)', () => {
+    for (const bad of ['javascript:alert(1)', 'file:///etc/passwd', 'ftp://x.example/a', 'data:text/html,x', 'not a url', '', null, 5, undefined, `https://x.example/${'a'.repeat(2100)}`]) {
+      expect(parseWatchItems(wrap([item({ sourceUrl: bad })])), String(bad).slice(0, 30)).toEqual([]);
+    }
+    expect(parseWatchItems(wrap([item({ sourceUrl: 'http://old.example/film.mp4' })]))?.[0]?.sourceUrl).toBe('http://old.example/film.mp4');
+  });
+  it('title: trimmed, capped, empty -> null; thumbnail: https only; viewers: a non-negative whole number or null', () => {
+    const one = (over: Record<string, unknown>) => parseWatchItems(wrap([item(over)]))?.[0];
+    expect(one({ title: '  Film  ' })?.title).toBe('Film');
+    expect(one({ title: '   ' })?.title).toBeNull();
+    expect(one({ title: 'x'.repeat(500) })?.title?.length).toBeLessThanOrEqual(200);
+    expect(one({ thumbnail: 'http://a.example/x.jpg' })?.thumbnail).toBeNull();
+    expect(one({ thumbnail: 'javascript:1' })?.thumbnail).toBeNull();
+    expect(one({ viewers: 7.9 })?.viewers).toBe(7);
+    for (const bad of [-1, Number.NaN, '12', null, undefined]) expect(one({ viewers: bad })?.viewers, String(bad)).toBeNull();
+  });
+  it('at most 30 items; a wrong body is rejected; an empty list is fine', () => {
+    expect(parseWatchItems(wrap(Array.from({ length: 80 }, (_, i) => item({ sourceUrl: `https://youtu.be/v${i}` }))))).toHaveLength(30);
+    for (const body of [null, undefined, 'x', 7, [], {}, { data: 'x' }, { success: true }]) expect(parseWatchItems(body)).toBeNull();
+    expect(parseWatchItems(wrap([]))).toEqual([]);
+  });
+});
+
+describe('watchPayload — exactly what the web app sends when a rail item is clicked (WatchRail.tsx)', () => {
+  const base = { sourceUrl: 'https://youtu.be/abc', title: 'Interstellar', thumbnail: 'https://i.ytimg.com/vi/abc/hq.jpg', platform: 'youtube', viewers: 12 };
+  it('a private room named after the video', () => {
+    expect(watchPayload(base)).toEqual({
+      name: 'Interstellar', videoUrl: 'https://youtu.be/abc', videoTitle: 'Interstellar', videoThumbnail: 'https://i.ytimg.com/vi/abc/hq.jpg', isPrivate: true,
+    });
+  });
+  it('the room name is cut to 60 characters, the video title is not', () => {
+    const p = watchPayload({ ...base, title: 'x'.repeat(150) });
+    expect(p.name).toHaveLength(60);
+    expect(p.videoTitle).toHaveLength(150);
+  });
+  it('without a title or thumbnail those fields are simply absent', () => {
+    const p = watchPayload({ ...base, title: null, thumbnail: null });
+    expect(p).toEqual({ videoUrl: 'https://youtu.be/abc', isPrivate: true });
+    expect('name' in p || 'videoTitle' in p || 'videoThumbnail' in p).toBe(false);
+  });
+});
+
+describe('urls and replies of the "start watching" flow', () => {
+  it('rail and create endpoints are on the app origin', () => {
+    expect(railApiUrl(APP, 'trending')).toBe('https://app.wewatch.uz/api/rooms/trending');
+    expect(railApiUrl('http://localhost:3000/home', 'history')).toBe('http://localhost:3000/api/rooms/history');
+    expect(createRoomApiUrl(APP)).toBe('https://app.wewatch.uz/api/rooms');
+  });
+  it('the room created by the server: only a safe id is accepted', () => {
+    expect(createdRoomId({ success: true, data: { _id: ID } })).toBe(ID);
+    for (const bad of [null, {}, { data: null }, { data: { _id: '../x' } }, { data: { _id: 5 } }, { data: [] }, 'x']) expect(createdRoomId(bad)).toBeNull();
+  });
+  it('409 (the owner already has an open room): the server names it in data.roomId', () => {
+    expect(conflictRoomId({ data: { roomId: ID } })).toBe(ID);
+    for (const bad of [null, {}, { data: {} }, { data: { roomId: '../x' } }, { data: { roomId: 5 } }, 'x']) expect(conflictRoomId(bad)).toBeNull();
+  });
+  it('the existing room is opened with ?play=<the video>, exactly as the web app does', () => {
+    expect(roomPlayUrl(ID, 'https://youtu.be/abc?t=5', APP)).toBe(`https://app.wewatch.uz/room/${ID}?play=${encodeURIComponent('https://youtu.be/abc?t=5')}`);
+    expect(roomPlayUrl('../x', 'https://youtu.be/abc', APP)).toBeNull();
+    expect(roomPlayUrl(ID, 'javascript:alert(1)', APP)).toBeNull();
+    expect(roomPlayUrl(ID, 'not a url', APP)).toBeNull();
+  });
+});
+
+describe('buildHomeData with rails', () => {
+  const c = (id: string): RoomCard => ({ id, title: id, subtitle: null, badge: 'live', members: 1, thumbnail: null, platform: null });
+  const w = (u: string, over: Record<string, unknown> = {}) => ({ sourceUrl: u, title: 'T', thumbnail: null, platform: null, viewers: null, ...over });
+  const rails = { trending: [w('https://a.example/1', { viewers: 5, title: 'Top' })], history: [w('https://a.example/2', { title: null })] };
+
+  it('adds the rails as plain cards (title falls back to the link, like the web app)', () => {
+    const d = buildHomeData([c('aaaaaa')], '', rails);
+    expect(d.trending).toEqual([{ title: 'Top', thumbnail: null, viewers: 5 }]);
+    expect(d.history).toEqual([{ title: 'https://a.example/2', thumbnail: null, viewers: null }]);
+  });
+  it('the rails also show when there are no rooms (that is the page that needs them most)', () => {
+    const d = buildHomeData([], '', rails);
+    expect(d.total).toBe(0);
+    expect(d.trending).toHaveLength(1);
+  });
+  it('a search hides the rails (it searches rooms); no rails by default', () => {
+    expect(buildHomeData([c('aaaaaa')], 'aaa', rails).trending).toEqual([]);
+    expect(buildHomeData([c('aaaaaa')], 'aaa', rails).history).toEqual([]);
+    const d = buildHomeData([c('aaaaaa')], '');
+    expect(d.trending).toEqual([]);
+    expect(d.history).toEqual([]);
   });
 });

@@ -144,6 +144,43 @@ export function runSmokeAction(action: string, smoke: Smoke): void {
       await until('home', "document.querySelector('.kicker')?.textContent === 'СЕЙЧАС В ЭФИРЕ'");
       await look('lang-home-ru');
     })();
+  } else if (action === 'rails') {
+    // M5.3: the weekly-top and history rails; a click creates a room (201), reuses the open one (409) or fails (500).
+    void (async () => {
+      const clickWatch = (rail: number, i: number): Promise<unknown> =>
+        smokeEval('home', `document.querySelectorAll('.rail')[${rail}].querySelectorAll('.watch')[${i}].click()`);
+      const search = (q: string): Promise<unknown> =>
+        smokeEval('shell', `(() => { const s = document.getElementById('search'); s.value = ${JSON.stringify(q)}; s.dispatchEvent(new Event('input')); })()`);
+      await wait(2500);
+      await until('home', "document.querySelectorAll('.watch').length >= 3");
+      await look('rails-initial');
+      await shot();
+      // Hostile calls through the real Home bridge: only an existing card of an existing rail may start anything.
+      const replies: unknown[] = [];
+      for (const [k, i] of [['evil', 0], ['trending', 99], ['trending', -1], ['trending', '0'], ['trending', 1.5], [null, null], [{}, {}], ['__proto__', 0]]) {
+        replies.push(await smokeEval('home', `window.wewatchHome.watch(${JSON.stringify(k)}, ${JSON.stringify(i)})`));
+      }
+      await wait(600);
+      smoke('rails-hostile', { replies });
+      await look('rails-after-hostile');
+      await clickWatch(0, 0); // 1st trending card -> a new private room (201)
+      await wait(1500);
+      await look('rails-room');
+      await click('shell', '#back');
+      await until('home', "document.querySelectorAll('.watch').length >= 3");
+      await look('rails-back');
+      await clickWatch(0, 1); // 2nd trending card -> the server says 409: open that room with ?play=
+      await wait(1500);
+      await look('rails-conflict');
+      await click('shell', '#back');
+      await until('home', "document.querySelectorAll('.watch').length >= 3");
+      await clickWatch(1, 0); // history card -> the server fails (500): stay on Home and say so
+      await until('home', "!!document.querySelector('.toast')");
+      await look('rails-fail');
+      await search('zzzzz-no-such-room'); // the search is about rooms: the rails step aside
+      await until('home', "document.querySelectorAll('.watch').length === 0");
+      await look('rails-search');
+    })();
   } else if (action === 'home-retry') {
     // The first load fails (server down); the user presses "Qayta urinish" and it works.
     void (async () => {

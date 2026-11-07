@@ -41,6 +41,7 @@ describe('strings', () => {
     for (const l of LOCALES) {
       expect(all[l]['home.viewers'], l).toContain('{n}');
       expect(all[l]['home.people'], l).toContain('{n}');
+      expect(all[l]['home.weeklyViewers'], l).toContain('{n}');
     }
   });
   it('has one title per sidebar section and one label per sidebar item', () => {
@@ -56,7 +57,7 @@ describe('strings', () => {
     for (const item of NAV_SECTIONS.flatMap((sec) => sec.items)) expect(s.nav[item.id]).toBe(item.label);
   });
   it('the three languages really differ (nothing was left in Uzbek)', () => {
-    for (const key of ['nav.home', 'nav.friends', 'nav.settings', 'home.join', 'home.retry', 'home.errorTitle', 'home.sectionTitle']) {
+    for (const key of ['nav.home', 'nav.friends', 'nav.settings', 'home.join', 'home.retry', 'home.errorTitle', 'home.sectionTitle', 'home.railTrending', 'home.railHistory', 'home.startError']) {
       expect(new Set(LOCALES.map((l) => all[l][key])).size, key).toBe(3);
     }
   });
@@ -81,5 +82,11 @@ describe.skipIf(!fs.existsSync(path.join(MESSAGES, 'uz.json')))('strings that th
     expect(s.home.errorTitle).toBe(w.home.errorTitle);
     expect(s.home.errorDesc).toBe(w.home.errorDesc);
     expect(s.home.untitled).toBe(w.home.untitledRoom);
+    // the web titles start with an emoji; the native rails do not
+    const bare = (v: string): string => v.replace(/^\p{Extended_Pictographic}\s*/u, '');
+    expect(s.home.railTrending).toBe(bare(w.home.weeklyTop));
+    expect(s.home.railHistory).toBe(bare(w.home.watchHistory));
+    expect(s.home.weeklyViewers).toBe(w.home.weeklyViewers.replace('{count}', '{n}'));
+    expect(s.home.startError).toBe(w.home.watchStartError);
   });
 });
