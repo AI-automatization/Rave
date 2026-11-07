@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  chromeUserAgent, classifyPoll, isAppOrigin, isGoogleStartUrl, isSafeExternalUrl, isTokenLike, keepInApp,
-  parseDeepLink, safeRedirect,
+  checkVbUrl, chromeUserAgent, classifyPoll, failPageUrl, isAppOrigin, isGoogleStartUrl, isSafeExternalUrl, isTokenLike, keepInApp,
+  parseDeepLink, safeRedirect, sameSite, siteOf,
 } from '../src/main/urls';
 
 const APP = 'https://app.wewatch.uz';
@@ -129,4 +129,39 @@ describe('classifyPoll', () => {
     [500, null], [401, { data: null }], [200, null], [200, {}], [200, { data: {} }],
     [200, { data: { accessToken: 'bad token;' } }], [200, { data: 'str' }],
   ])('error for %s %j', (status, body) => { expect(classifyPoll(status as number, body)).toEqual({ kind: 'error' }); });
+});
+
+describe('checkVbUrl', () => {
+  it('allows http(s) only', () => {
+    expect(checkVbUrl('https://example.com/a')).toBeNull();
+    expect(checkVbUrl('http://127.0.0.1:8127/film.html')).toBeNull();
+  });
+  it.each([['file:///etc/passwd', 'protocol_not_allowed'], ['javascript:alert(1)', 'protocol_not_allowed'],
+    ['data:text/html,x', 'protocol_not_allowed'], ['wewatch://room/a', 'protocol_not_allowed'], ['ftp://h/x', 'protocol_not_allowed'],
+    ['not a url', 'invalid_url'], ['', 'invalid_url']])('rejects %s → %s', (u, why) => {
+    expect(checkVbUrl(u)).toBe(why);
+  });
+});
+
+describe('siteOf / sameSite', () => {
+  it('reduces hosts to their site', () => {
+    expect(siteOf('https://www.youtube.com/watch?v=1')).toBe('youtube.com');
+    expect(siteOf('https://lv.kinogo.ec/x')).toBe('kinogo.ec');
+    expect(siteOf('https://foo.bar.co.uk/x')).toBe('bar.co.uk');
+    expect(siteOf('garbage')).toBe('');
+  });
+  it('same site only', () => {
+    expect(sameSite('https://a.example.com/x', 'https://b.example.com/y')).toBe(true);
+    expect(sameSite('https://example.com', 'https://ads.evil.example')).toBe(false);
+    expect(sameSite('garbage', 'garbage')).toBe(false);
+  });
+});
+
+describe('failPageUrl', () => {
+  it('escapes the host and the code', () => {
+    const u = decodeURIComponent(failPageUrl('https://x"><script>alert(1)</script>.example/', '<b>ERR</b>'));
+    expect(u.startsWith('data:text/html')).toBe(true);
+    expect(u).not.toContain('<script>');
+    expect(u).not.toContain('<b>ERR</b>');
+  });
 });

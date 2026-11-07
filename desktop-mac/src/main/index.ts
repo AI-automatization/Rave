@@ -1,12 +1,15 @@
 // WeWatch for macOS — main process entry (M2 skeleton: window, menu, deep links, single instance).
 import { app, BrowserWindow, session } from 'electron';
 import fs from 'node:fs';
+import { installCapture } from './capture';
 import { APP_URL, devEnv, PROTOCOL } from './config';
 import { flushPendingDeepLink, handleDeepLink, queueDeepLink } from './deeplink';
 import { registerIpc } from './ipc';
 import { buildMenu } from './menu';
+import { installPermissionPolicy } from './permissions';
 import { chromeUserAgent } from './urls';
-import { createMainWindow, focusMainWindow, getMainWindow } from './window';
+import { clearVbCache, closeVb, protectVbSession } from './vb';
+import { createMainWindow, focusMainWindow, getMainWindow, sendToMain } from './window';
 
 // Smoke/debug log for automated checks. Development only: devEnv() is '' in the packaged app.
 const SMOKE_OUT = devEnv('WW_SMOKE_OUT');
@@ -60,9 +63,18 @@ if (!app.requestSingleInstanceLock()) {
       }
     });
 
+    installPermissionPolicy();
+    installCapture();
+    protectVbSession((url, reason) => {
+      smoke('vb-blocked', { url, reason });
+      sendToMain('vb:blocked', { url, reason });
+    });
+    clearVbCache(); // in case the app was killed with the VB open
+
     buildMenu();
     registerIpc();
     const win = createMainWindow(smoke);
+    win.on('closed', () => closeVb()); // the VB belongs to the room window
 
     let smokeActionDone = false;
     win.webContents.on('did-finish-load', () => {

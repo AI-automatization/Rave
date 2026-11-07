@@ -65,6 +65,12 @@ export function createMainWindow(log: Log = () => {}): BrowserWindow {
   return win;
 }
 
+/** Push an event to the web app (the preload turns channels into the wewatchDesktop callbacks). */
+export function sendToMain(channel: string, payload: unknown): void {
+  const win = getMainWindow();
+  if (win && !win.webContents.isDestroyed()) win.webContents.send(channel, payload);
+}
+
 /** Bring the main window to the front (restoring it if minimised). */
 export function focusMainWindow(): void {
   const win = getMainWindow();

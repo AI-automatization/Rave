@@ -105,3 +105,56 @@ export function classifyPoll(status: number, body: unknown): PollOutcome {
 export function chromeUserAgent(ua: string): string {
   return ua.replace(/\s(Electron|wewatch-desktop-mac|wewatch-desktop|WeWatch)\/\S+/gi, '');
 }
+
+// ── Virtual Browser (VB) helpers ─────────────────────────────────────────
+
+/** null when the VB may open `raw`, otherwise the reason it may not (only http(s) pages open). */
+export function checkVbUrl(raw: string): 'invalid_url' | 'protocol_not_allowed' | null {
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    return 'invalid_url';
+  }
+  return u.protocol === 'http:' || u.protocol === 'https:' ? null : 'protocol_not_allowed';
+}
+
+// Last two host labels (three for co.uk / com.ua-style hosts) — enough to tell youtube.com from an ad
+// network without shipping the public suffix list.
+const SECOND_LEVEL = new Set(['co', 'com', 'net', 'org', 'gov', 'edu', 'ac']);
+export function siteOf(raw: string): string {
+  try {
+    const labels = new URL(raw).hostname.toLowerCase().split('.');
+    const last = labels[labels.length - 1] ?? '';
+    const prev = labels[labels.length - 2] ?? '';
+    const n = labels.length >= 3 && SECOND_LEVEL.has(prev) && last.length === 2 ? 3 : 2;
+    return labels.slice(-n).join('.');
+  } catch {
+    return '';
+  }
+}
+export const sameSite = (a: string, b: string): boolean => {
+  const s = siteOf(a);
+  return s !== '' && s === siteOf(b);
+};
+
+const escHtml = (s: string): string => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
+/** A failed page load leaves an Electron view black (no built-in error page) — show what failed instead. */
+export function failPageUrl(url: string, code: string): string {
+  let host = url;
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    /* keep the raw url */
+  }
+  return (
+    'data:text/html;charset=utf-8,' +
+    encodeURIComponent(
+      '<!doctype html><meta charset="utf-8"><body style="margin:0;height:100vh;display:grid;place-items:center;' +
+        'background:#0b0b0f;color:#ddd;font:15px system-ui,sans-serif;text-align:center"><div>' +
+        `<div style="font-size:18px;margin-bottom:8px">${escHtml(host)} — sayt ochilmadi / сайт не открылся</div>` +
+        `<div style="opacity:.6">${escHtml(code)}</div></div>`,
+    )
+  );
+}
