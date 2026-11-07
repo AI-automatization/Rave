@@ -1,7 +1,7 @@
 import { Platform, Dimensions, PixelRatio, Appearance, AppState } from 'react-native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 
-const INGEST_URL = `${process.env.EXPO_PUBLIC_ADMIN_URL ?? 'https://admin-production-8d2a.up.railway.app/api/v1'}/errors/ingest`;
+const INGEST_URL = `${process.env.EXPO_PUBLIC_ADMIN_URL ?? 'https://core-production-dbd0.up.railway.app/api/v1'}/errors/ingest`;
 const API_KEY = process.env.EXPO_PUBLIC_ERROR_KEY ?? 'rave-mobile-errors';
 
 interface StackFrame {
