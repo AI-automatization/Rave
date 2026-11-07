@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { authApi } from '@/lib/api/auth.api';
 import { ApiError } from '@/lib/api-client';
 import { Notice } from '@/components/ui/notice';
+import { safeRedirect } from '@/lib/safe-redirect';
 
 interface Props {
   email: string;
@@ -75,7 +76,9 @@ export function VerifyEmail({ email }: Props) {
           // time (RegisterPage just swaps components, no navigation). Land straight on the real
           // upgrade flow (Settings) instead of /home, which had no reference to "plan" at all —
           // the funnel used to just drop the visitor's intent on the floor.
-          router.push(searchParams.get('plan') === 'pro' ? '/settings' : '/home');
+          // ?redirect= = the room link a friend came from (login → register keeps it); without it
+          // a new user who registered from an invite landed on /home and lost the room.
+          router.push(searchParams.get('plan') === 'pro' ? '/settings' : safeRedirect(searchParams.get('redirect')));
         } catch (err) {
           if (err instanceof ApiError) {
             const data = err.data as { message?: string };

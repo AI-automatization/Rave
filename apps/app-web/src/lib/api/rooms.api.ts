@@ -7,6 +7,10 @@ interface CreateRoomPayload {
   videoTitle?: string;
   videoThumbnail?: string;
   videoPlatform?: string;
+  /** Page a taken player iframe sat on (desktop "Take video") — the server opens the player with it. */
+  videoReferer?: string;
+  /** The film's own stream the desktop panel caught — the server checks it and plays it in the synced player. */
+  videoStream?: { url: string; type: 'hls' | 'dash' | 'mp4' };
   isPrivate?: boolean;
 }
 

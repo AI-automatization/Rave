@@ -5,7 +5,6 @@ import morgan from 'morgan';
 import mongoose from 'mongoose';
 import path from 'path';
 import Redis from 'ioredis';
-import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
 import swaggerUi from 'swagger-ui-express';
 import { errorHandler, notFoundHandler } from '@shared/middleware/error.middleware';
 import { setupSentryErrorHandler } from '@shared/utils/sentry';
@@ -28,7 +27,7 @@ import { createVideoProxyRouter } from './routes/videoProxy.routes';
 import { swaggerSpec } from './utils/swagger';
 import { config } from './config/index';
 
-export const createApp = (redis: Redis, elastic: ElasticsearchClient): express.Application => {
+export const createApp = (redis: Redis): express.Application => {
   const app = express();
 
   // Railway reverse proxy
@@ -64,26 +63,12 @@ export const createApp = (redis: Redis, elastic: ElasticsearchClient): express.A
   app.get('/health', async (_req, res) => {
     const mongoOk = mongoose.connection.readyState === 1;
     let redisOk = false;
-    let esOk = false;
     try { await redis.ping(); redisOk = true; } catch { redisOk = false; }
-    // Real prod finding 2026-08-26 (canary-watch's first run): this ping had no timeout of its
-    // own, so a slow/unreachable Elasticsearch made the whole /health response take 7-9s instead
-    // of failing fast — Elasticsearch is already "optional" for the `healthy` verdict below, but
-    // a slow "optional" check still blocks every caller of this endpoint (deploy health checks,
-    // canary-watch, load balancers) for as long as it takes to time out. Same bug class as the
-    // vb-media-proxy fix (PR #191): bound every external-dependency call, don't just mark it optional.
-    //
-    // Follow-up finding, same day (live curl after deploy still showed 7.7s): requestTimeout only
-    // bounds ONE attempt — the @elastic/elasticsearch client's own default maxRetries (3) was
-    // silently retrying the ping against a dead ES host underneath, so a fully unreachable ES
-    // still took ~3s × several attempts. maxRetries: 0 here means "one try, then give up" — ES is
-    // already advisory for `healthy`, so a retry buys nothing but latency on every /health call.
-    try { await elastic.ping({}, { requestTimeout: 3000, maxRetries: 0 }); esOk = true; } catch { esOk = false; }
-    const healthy = mongoOk && redisOk; // Elasticsearch is optional (not available in all envs)
+    const healthy = mongoOk && redisOk;
     res.status(healthy ? 200 : 503).json({
       status: healthy ? 'ok' : 'degraded',
       service: 'content',
-      checks: { mongo: mongoOk ? 'ok' : 'down', redis: redisOk ? 'ok' : 'down', elasticsearch: esOk ? 'ok' : 'down' },
+      checks: { mongo: mongoOk ? 'ok' : 'down', redis: redisOk ? 'ok' : 'down' },
     });
   });
 
@@ -94,7 +79,7 @@ export const createApp = (redis: Redis, elastic: ElasticsearchClient): express.A
   const hlsDir = process.env.HLS_OUTPUT_DIR ?? path.join('/tmp', 'cinesync-hls');
   app.use('/api/v1/content/hls-files', verifyToken, express.static(hlsDir, { maxAge: 0 }));
 
-  app.use('/api/v1/content', createContentRouter(redis, elastic));
+  app.use('/api/v1/content', createContentRouter(redis));
   app.use('/api/v1/content/external-videos', createExternalVideoRouter());
   app.use('/api/v1/content/watch-progress', createWatchProgressRouter());
   app.use('/api/v1/content/youtube', createYtdlRouter());

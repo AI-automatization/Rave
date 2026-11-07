@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { User, Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
@@ -12,6 +13,7 @@ import { trackRegistrationStart, trackRegistrationComplete } from '@/lib/measure
 import { Button } from '@/components/ui/button';
 import { Field, Input, PasswordInput } from '@/components/ui/field';
 import { Notice } from '@/components/ui/notice';
+import { withRedirect } from '@/lib/safe-redirect';
 
 interface Props {
   onVerify: (email: string) => void;
@@ -46,6 +48,7 @@ const STRENGTH_STYLE: Record<Strength, { bars: number; color: string; label: str
 export function RegisterForm({ onVerify }: Props) {
   const t = useTranslations('auth');
   const locale = useLocale();
+  const searchParams = useSearchParams();
 
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -195,7 +198,7 @@ export function RegisterForm({ onVerify }: Props) {
       <p className="text-center text-[13.5px] text-[var(--ww-text-3)]">
         {t('hasAccount')}{' '}
         <Link
-          href="/login"
+          href={withRedirect('/login', searchParams.get('redirect'))}
           onClick={() => trackClick('register:go_to_login')}
           className="-my-1.5 inline-block py-1.5 font-medium text-[var(--ww-accent-hi)] transition-colors hover:text-white"
         >

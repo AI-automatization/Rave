@@ -20,7 +20,13 @@ export function normalizeLinkInput(raw: string): string {
   const found = text.match(/https?:\/\/[^\s<>"']+/i)?.[0] ?? text.split(/\s+/)[0];
   const withScheme = /^https?:\/\//i.test(found) ? found : `https://${found}`;
   try {
-    return new URL(withScheme).href;
+    const url = new URL(withScheme);
+    // A bare word ("google", "фильм") has no dot in the host — it's a search, not a site.
+    // As a link it became https://google/, a dead page the room (and the VB) then opened.
+    if (!/^https?:\/\//i.test(found) && !url.hostname.includes('.') && url.hostname !== 'localhost') {
+      return `https://www.google.com/search?q=${encodeURIComponent(text)}`;
+    }
+    return url.href;
   } catch {
     return withScheme;
   }
