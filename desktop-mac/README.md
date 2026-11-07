@@ -3,13 +3,14 @@
 Mac uchun WeWatch klient: veb-ilova (`app.wewatch.uz`) oynada, plus Virtual Browser (VB) egasining kompyuterida,
 VB oynasi **faqat o'z ovozi bilan** WebRTC orqali xonaga uzatiladi (server faqat signalling).
 
-Holat: **M2 skelet** (oyna, menyu, deep link, single-instance, `window.wewatchDesktop` kontrakti). VB hali yo'q (M3).
+Holat: **M2 + M2b** (oyna, menyu, deep link, single-instance, `window.wewatchDesktop` kontrakti, Google login). VB hali yo'q (M3).
 
 ```bash
 cd desktop-mac
 npm install
 node node_modules/electron/install.js   # electron binarini yuklaydi (npm postinstall ba'zan o'tkazib yuboradi)
 npm run typecheck && npm test && npm run build
+npm run smoke:m2b          # haqiqiy Electron + soxta auth server: Google login oqimi (internet/Google kerak emas)
 npm start                  # app.wewatch.uz
 npm run dev                # lokal app-web :3000 ga qarshi
 ```
@@ -34,6 +35,13 @@ test/        urls.test.ts (vitest)
 `getDisplayMedia` uchun `setDisplayMediaRequestHandler` → `{ video: vbWin.webContents.mainFrame, audio: vbWin.webContents.mainFrame }`
 (usul E): faqat VB ovozi, oyna minimallashtirilgan bo'lsa ham, **hech qanday macOS ruxsatisiz**. M3'da qo'llanadi.
 
+## Google login (M2b)
+Veb-ilovaning "Google bilan kirish" tugmasi `<app>/api/auth/google/start` ga o'tadi; ilova buni ushlab, tizim brauzerida
+auth-servisning mavjud mobil oqimini (`POST /google/init` → `GET /google/mobile` → `GET /google/poll`) ishlatadi, tokenlarni
+veb bilan bir xil httpOnly cookie'larga (`access_token` 15 daq, `refresh_token` 30 kun) yozadi va `redirect` sahifasiga o'tadi.
+Serverda o'zgarish kerak emas. Auth manzili `src/main/config.ts` (`DEFAULT_AUTH_URL`, `api.wewatch.uz` ishlaganda almashtiriladi).
+`redirect` faqat `/` bilan boshlanadigan yo'l (`//evil.com` rad etiladi) — Polatning Windows kodidagi bo'shliq yopilgan.
+
 ## Hozircha YO'Q (reja bo'yicha)
-Google login (system-browser oqimi, M2b), VB oynasi + capture (M3), reklama bloki/DoH (M4), UX ekranlari (M5), DMG (M6), picker (M9).
+VB oynasi + capture (M3), reklama bloki/DoH (M4), UX ekranlari (M5), DMG (M6), picker (M9).
 macOS'da `open-url` deep linki paketlangan ilovada sinaladi (M6); dev'da `second-instance` argv orqali sinalgan.

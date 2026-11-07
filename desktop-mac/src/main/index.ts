@@ -52,15 +52,42 @@ if (!app.requestSingleInstanceLock()) {
     // Registers the wewatch:// scheme for the packaged app (dev builds are not registered with the OS).
     if (app.isPackaged) app.setAsDefaultProtocolClient(PROTOCOL);
 
+    // Refresh tokens rotate: write session cookies through to disk the moment they change, so a crash
+    // right after a refresh cannot restart the app with an already-dead token (Windows build had this bug).
+    session.defaultSession.cookies.on('changed', (_e, cookie) => {
+      if (cookie.name === 'refresh_token' || cookie.name === 'access_token') {
+        void session.defaultSession.cookies.flushStore().catch(() => {});
+      }
+    });
+
     buildMenu();
     registerIpc();
-    const win = createMainWindow();
+    const win = createMainWindow(smoke);
 
+    let smokeActionDone = false;
     win.webContents.on('did-finish-load', () => {
+      const url = win.webContents.getURL();
       void win.webContents
         .executeJavaScript('JSON.stringify({title: document.title, bridge: window.wewatchDesktop ?? null, ua: navigator.userAgent})')
-        .then((r: string) => smoke('loaded', { url: win.webContents.getURL(), page: JSON.parse(r) as unknown }))
+        .then((r: string) => smoke('loaded', { url, page: JSON.parse(r) as unknown }))
         .catch((e: unknown) => smoke('loaded-error', { error: String(e) }));
+      if (SMOKE_OUT) {
+        // Cookie attributes only — never values.
+        void session.defaultSession.cookies.get({ url: APP_URL }).then((cs) =>
+          smoke('cookies', {
+            url,
+            cookies: cs.map((c) => ({
+              name: c.name, httpOnly: c.httpOnly, secure: c.secure, sameSite: c.sameSite,
+              ttlSec: c.expirationDate ? Math.round(c.expirationDate - Date.now() / 1000) : null,
+            })),
+          }),
+        );
+        // Smoke action: act like the web app's "Sign in with Google" button (renderer-initiated navigation).
+        if (devEnv('WW_SMOKE_ACTION') === 'google-login' && !smokeActionDone) {
+          smokeActionDone = true;
+          void win.webContents.executeJavaScript("location.href = '/api/auth/google/start?redirect=%2Froom%2Fxyz789'");
+        }
+      }
     });
     win.webContents.on('did-fail-load', (_e, code, desc, url, isMainFrame) => {
       if (isMainFrame) smoke('load-failed', { code, desc, url });

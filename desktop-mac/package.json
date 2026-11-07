@@ -10,6 +10,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
+    "smoke:m2b": "npm run build && node test/smoke/m2b.mjs",
     "start": "npm run build && electron .",
     "dev": "npm run build && WW_APP_URL=http://localhost:3000 electron ."
   },

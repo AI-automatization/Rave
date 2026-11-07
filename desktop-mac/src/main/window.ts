@@ -1,7 +1,8 @@
 import { BrowserWindow, shell } from 'electron';
 import path from 'node:path';
-import { APP_URL, IN_APP_HOSTS } from './config';
-import { isSafeExternalUrl, keepInApp } from './urls';
+import { startBrowserLogin, type Log } from './auth';
+import { APP_ORIGIN, APP_URL, IN_APP_HOSTS } from './config';
+import { isGoogleStartUrl, isSafeExternalUrl, keepInApp } from './urls';
 
 let mainWin: BrowserWindow | null = null;
 
@@ -11,7 +12,7 @@ function openExternal(url: string): void {
   if (isSafeExternalUrl(url)) void shell.openExternal(url);
 }
 
-export function createMainWindow(): BrowserWindow {
+export function createMainWindow(log: Log = () => {}): BrowserWindow {
   const win = new BrowserWindow({
     width: 1366,
     height: 860,
@@ -32,12 +33,23 @@ export function createMainWindow(): BrowserWindow {
 
   // The app window only ever shows our own site; everything else opens in the system browser,
   // and only http(s)/mailto may be handed to the OS.
+  // Google sign-in never runs inside the app: the login button goes to <app>/api/auth/google/start,
+  // which we take over and run through the system browser (see auth.ts).
+  const googleLogin = (url: string): void => {
+    void startBrowserLogin(new URL(url).searchParams.get('redirect'), win, log);
+  };
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (!keepInApp(url, IN_APP_HOSTS)) openExternal(url);
+    if (isGoogleStartUrl(url, APP_ORIGIN)) googleLogin(url);
+    else if (!keepInApp(url, IN_APP_HOSTS)) openExternal(url);
     return { action: 'deny' };
   });
   const leaveApp = (e: { preventDefault(): void }, url: string, isMainFrame = true): void => {
     if (!isMainFrame) return;
+    if (isGoogleStartUrl(url, APP_ORIGIN)) {
+      e.preventDefault();
+      googleLogin(url);
+      return;
+    }
     if (!keepInApp(url, IN_APP_HOSTS)) {
       e.preventDefault();
       openExternal(url);

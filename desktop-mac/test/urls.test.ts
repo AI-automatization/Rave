@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { chromeUserAgent, isAppOrigin, isSafeExternalUrl, keepInApp, parseDeepLink } from '../src/main/urls';
+import {
+  chromeUserAgent, classifyPoll, isAppOrigin, isGoogleStartUrl, isSafeExternalUrl, isTokenLike, keepInApp,
+  parseDeepLink, safeRedirect,
+} from '../src/main/urls';
 
 const APP = 'https://app.wewatch.uz';
 
@@ -74,4 +77,56 @@ describe('chromeUserAgent', () => {
     const ua = 'Mozilla/5.0 (Macintosh) AppleWebKit/537.36 Chrome/140.0.0.0 Electron/45.2.1 Safari/537.36 WeWatch/0.1.0';
     expect(chromeUserAgent(ua)).toBe('Mozilla/5.0 (Macintosh) AppleWebKit/537.36 Chrome/140.0.0.0 Safari/537.36');
   });
+});
+
+describe('isGoogleStartUrl', () => {
+  it('matches only <app origin>/api/auth/google/start', () => {
+    expect(isGoogleStartUrl(`${APP}/api/auth/google/start?redirect=%2Fhome`, APP)).toBe(true);
+    expect(isGoogleStartUrl(`${APP}/api/auth/google/start`, APP)).toBe(true);
+    expect(isGoogleStartUrl(`${APP}/api/auth/google/start/x`, APP)).toBe(false);
+    expect(isGoogleStartUrl('https://evil.example/api/auth/google/start', APP)).toBe(false);
+    expect(isGoogleStartUrl('http://app.wewatch.uz/api/auth/google/start', APP)).toBe(false);
+    expect(isGoogleStartUrl('garbage', APP)).toBe(false);
+  });
+});
+
+describe('safeRedirect', () => {
+  it('keeps plain same-origin paths', () => {
+    expect(safeRedirect('/room/abc?x=1', '/home')).toBe('/room/abc?x=1');
+    expect(safeRedirect('/', '/home')).toBe('/');
+  });
+  it.each([null, undefined, 42, '', 'room/abc', 'https://evil.example', '//evil.example', '/\\evil.example',
+    '/a\\b', '/a\nb', '/a\u0000b', `/${'a'.repeat(600)}`])('falls back for %s', (v) => {
+    expect(safeRedirect(v, '/home')).toBe('/home');
+  });
+});
+
+describe('isTokenLike', () => {
+  it('accepts JWT-shaped values only', () => {
+    expect(isTokenLike('eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.abcdefghijklmnopqrstuv')).toBe(true);
+    expect(isTokenLike('short')).toBe(false);
+    expect(isTokenLike('has space inside value xxxxxxxx')).toBe(false);
+    expect(isTokenLike('semi;colon;injection=1xxxxxxxxx')).toBe(false);
+    expect(isTokenLike(undefined)).toBe(false);
+    expect(isTokenLike('a'.repeat(5000))).toBe(false);
+  });
+});
+
+describe('classifyPoll', () => {
+  const tok = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.abcdefghijklmnopqrstuv';
+  it('202 = pending', () => { expect(classifyPoll(202, null)).toEqual({ kind: 'pending' }); });
+  it('200 with tokens = success', () => {
+    expect(classifyPoll(200, { data: { accessToken: tok, refreshToken: tok, user: {} } }))
+      .toEqual({ kind: 'success', accessToken: tok, refreshToken: tok });
+    expect(classifyPoll(200, { data: { accessToken: tok } })).toEqual({ kind: 'success', accessToken: tok });
+  });
+  it('ACCOUNT_BLOCKED = blocked (reason capped)', () => {
+    expect(classifyPoll(200, { data: { error: 'ACCOUNT_BLOCKED', reason: 'spam' } })).toEqual({ kind: 'blocked', reason: 'spam' });
+    const r = classifyPoll(200, { data: { error: 'ACCOUNT_BLOCKED', reason: 'x'.repeat(999) } });
+    expect(r.kind === 'blocked' && r.reason.length).toBe(200);
+  });
+  it.each([
+    [500, null], [401, { data: null }], [200, null], [200, {}], [200, { data: {} }],
+    [200, { data: { accessToken: 'bad token;' } }], [200, { data: 'str' }],
+  ])('error for %s %j', (status, body) => { expect(classifyPoll(status as number, body)).toEqual({ kind: 'error' }); });
 });
