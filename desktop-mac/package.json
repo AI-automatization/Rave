@@ -1,0 +1,22 @@
+{
+  "name": "wewatch-desktop-mac",
+  "productName": "WeWatch",
+  "version": "0.1.0",
+  "private": true,
+  "description": "WeWatch for macOS — the web app plus a Virtual Browser that runs on the owner's own machine",
+  "main": "dist/main/index.js",
+  "author": "WeWatch",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "start": "npm run build && electron .",
+    "dev": "npm run build && WW_APP_URL=http://localhost:3000 electron ."
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "electron": "45.2.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}
