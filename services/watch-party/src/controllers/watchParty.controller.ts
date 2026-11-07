@@ -10,7 +10,7 @@ import { WatchPartyRoom } from '../models/watchPartyRoom.model';
 import { logger } from '@shared/utils/logger';
 import { getAppSetting } from '@shared/utils/appSettings';
 import { ForbiddenError, NotFoundError } from '@shared/utils/errors';
-import { startVBForRoom, upgradeEmbedToDirect } from '../socket/vbSession.helper';
+import { startVBForRoom, upgradeEmbedToDirect, upgradeWebviewToDirect, type StreamHint } from '../socket/vbSession.helper';
 import { enqueueVBRequest } from '../socket/vbQueue.helper';
 import { isOfficialEmbedHost, isOwnVbUrl } from '../services/extractionClient';
 import { isDomainBlocked } from './domain.admin.controller';
@@ -51,7 +51,7 @@ export class WatchPartyController {
 
       const {
         name, movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,
-        maxMembers, isPrivate, requireApproval, password, startTime, videoReferer,
+        maxMembers, isPrivate, requireApproval, password, startTime, videoReferer, videoStream,
       } = req.body as {
         name?: string;
         movieId?: string;
@@ -65,6 +65,7 @@ export class WatchPartyController {
         password?: string;
         startTime?: number;
         videoReferer?: string;
+        videoStream?: StreamHint;
       };
 
       const room = await this.watchPartyService.createRoom(userId, {
@@ -109,6 +110,11 @@ export class WatchPartyController {
         })();
       } else if (videoUrl && isOfficialEmbedHost(videoUrl)) {
         upgradeEmbedToDirect(this.io, this.redis, String(room._id), userId, videoUrl);
+      } else if (videoUrl && videoPlatform === 'webview' && (videoReferer || videoStream)) {
+        // A player the owner took with the desktop picker: plays in the iframe at once, the server
+        // tries to switch the room to the synced player in the background (vbSession.helper.ts) —
+        // with the stream the picker caught (videoStream) first, its own sniff of the player second.
+        upgradeWebviewToDirect(this.io, this.redis, String(room._id), userId, videoUrl, videoReferer || undefined, videoStream);
       }
     } catch (error) {
       // Handled here rather than by the shared error middleware because the client needs the
