@@ -742,6 +742,9 @@ export async function startSession(
   tier: 'free' | 'pro' = 'free',
   // VB_START { mobile: true } — phone viewport/UA/touch (see VB_VIEWPORT_MOBILE). Desktop default.
   mobile = false,
+  // Page the link was taken from (room.videoReferer). Some player hosts answer 404 to a request
+  // without a Referer — cinemar.cc, the kinogo player, 2026-11-05.
+  referer?: string,
 ): Promise<'unreachable' | 'redirect_blocked' | void> {
   if (startingRooms.has(roomId)) {
     throw new Error('virtual_browser_starting');
@@ -1173,7 +1176,7 @@ export async function startSession(
     sessions.set(roomId, { context, page, cdp, ownerId, url, paused: false, tier, mobile });
 
     try {
-      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 });
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000, referer });
       // SSRF guard, redirect case (2026-08-11 security review): the caller only checked the
       // pre-navigation `url` — page.goto() follows redirects transparently, so a URL that looked
       // fine at CHANGE_MEDIA/VB_START time could still 30x to a private/internal address (or,
@@ -1251,7 +1254,7 @@ export async function startSession(
  * Returns the media URL if the page revealed one, otherwise null. Never throws: a probe failing
  * only means "we don't know yet", which the caller records as needing the interactive fallback.
  */
-export async function probeUrl(url: string): Promise<{ mediaUrl: string; type: MediaType } | null> {
+export async function probeUrl(url: string, referer?: string): Promise<{ mediaUrl: string; type: MediaType } | null> {
   if (activeProbes >= MAX_BACKGROUND_PROBES || sessions.size + activeProbes >= MAX_TOTAL_SAFETY_CEILING) {
     logger.info('VB probe: skipped, no spare capacity', { url, sessions: sessions.size, activeProbes });
     return null;
@@ -1283,7 +1286,7 @@ export async function probeUrl(url: string): Promise<{ mediaUrl: string; type: M
       });
       // Not awaited on purpose — many players only start fetching media well after load, so the
       // timeout above (not navigation completion) is what bounds the probe.
-      page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 }).catch(() => { /* sniffer may still fire */ });
+      page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000, referer }).catch(() => { /* sniffer may still fire */ });
     });
 
     logger.info('VB probe finished', { url: url.slice(0, 120), found: !!result });

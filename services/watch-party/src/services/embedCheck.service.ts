@@ -39,6 +39,11 @@ const APP_ORIGINS: string[] = config.corsOrigins
     try { return /^https?:$/.test(new URL(o).protocol); } catch { return false; }
   });
 
+// The Referer our iframe will really send (GenericIframePlayer: strict-origin-when-cross-origin →
+// just the origin). Some player hosts 404 a request without one (cinemar.cc, 2026-11-05) — without
+// it here a page that frames fine read as 'unreachable'.
+const APP_REFERER = `${APP_ORIGINS.find((o) => o.startsWith('https://')) ?? APP_ORIGINS[0] ?? ''}/`;
+
 /** One CSP frame-ancestors source expression vs one of our origins. */
 function sourceAllows(source: string, origin: string): boolean {
   const src = source.toLowerCase();
@@ -128,7 +133,11 @@ function requestPinned(url: string, ip: string, signal: AbortSignal): Promise<He
     const req = lib.request(u, {
       method: 'GET',
       signal,
-      headers: { 'User-Agent': BROWSER_UA, Accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.5' },
+      headers: {
+        'User-Agent': BROWSER_UA,
+        Accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.5',
+        ...(APP_REFERER !== '/' && { Referer: APP_REFERER }),
+      },
       lookup: (_host, options, cb) => {
         const family = net.isIP(ip);
         if (options && (options as { all?: boolean }).all) {

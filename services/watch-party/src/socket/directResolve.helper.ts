@@ -12,6 +12,7 @@
 // as before — this only ever removes waiting, never a capability.
 import { axios, contentServiceUrl, internalHeaders } from '@shared/utils/serviceConfig';
 import { logger } from '@shared/utils/logger';
+import { validateProxyUrl, resolveSafeUpstream } from '@shared/utils/ssrfGuard';
 import type { MediaType } from '../services/virtualBrowser.service';
 
 const EXTRACT_TIMEOUT_MS = 25_000;
@@ -40,14 +41,25 @@ function typeFromExtension(url: string): MediaType | null {
   }
 }
 
-// Cheap reachability check from THIS server's IP (the same IP vb-media-proxy fetches from).
-async function probe(url: string, type: MediaType): Promise<boolean> {
+// Cheap reachability check from THIS server's IP (the same IP vb-media-proxy fetches from). referer =
+// what vb-media-proxy will send for this room (its source page) — checked the way it will be fetched.
+async function probe(url: string, type: MediaType, referer?: string): Promise<boolean> {
   try {
     const res = await axios.get(url, {
-      headers: { Range: 'bytes=0-2047', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36' },
+      headers: {
+        Range: 'bytes=0-2047',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+        ...(referer ? { Referer: referer } : {}),
+      },
       responseType: 'arraybuffer',
       timeout: PROBE_TIMEOUT_MS,
       maxRedirects: 5,
+      // Never follow a redirect into a private / internal address (the request fails → false).
+      beforeRedirect: (options) => {
+        const next = String(options.href ?? '');
+        const blocked = validateProxyUrl(next);
+        if (blocked) throw new Error(`redirect blocked: ${blocked}`);
+      },
       validateStatus: () => true,
     });
     if (res.status !== 200 && res.status !== 206) return false;
@@ -116,6 +128,22 @@ async function extractTelegramPost(url: string): Promise<DirectMedia | null> {
     logger.info('directResolve: telegram post fetch failed', { url, error: (err as Error).message });
     return null;
   }
+}
+
+/** A stream the owner's desktop app caught on its own machine (createRoom videoStream). The URL comes
+ *  from a client, so it gets vb-media-proxy's SSRF checks (no private/internal target, no wrapping of
+ *  our own proxy) before this server touches it. false = unusable from here — e.g. a CDN token bound
+ *  to the owner's IP; the caller falls back to sniffing the player itself. */
+export async function probeStreamHint(url: string, type: MediaType, referer: string): Promise<boolean> {
+  if (validateProxyUrl(url)) return false;
+  try {
+    if (new URL(url).pathname.includes('/vb-media-proxy/')) return false;
+  } catch {
+    return false;
+  }
+  const resolved = await resolveSafeUpstream(url);
+  if ('error' in resolved) return false;
+  return probe(url, type, referer);
 }
 
 export async function resolveDirectMedia(url: string): Promise<DirectMedia | null> {
