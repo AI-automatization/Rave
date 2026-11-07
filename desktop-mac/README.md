@@ -29,7 +29,7 @@ test/        urls.test.ts (vitest)
 - `shell.openExternal` faqat `http(s)`/`mailto` (kamida `file:`/maxsus schemalar OS'ga berilmaydi).
 - IPC faqat ilova origin'idan (`scheme+host+port`) qabul qilinadi.
 - `WW_*` muhit o'zgaruvchilari faqat dev (paketlangan ilova ularni e'tiborsiz qoldiradi).
-- Hardcode qilingan Railway URL yo'q.
+- Auth manzili bitta konstantada (`config.ts`), faqat dev'da `WW_AUTH_URL` bilan almashtiriladi; ilova URL'i hardcode emas (dev'da `WW_APP_URL`).
 
 ## Ovoz usuli (M1 spike natijasi)
 `getDisplayMedia` uchun `setDisplayMediaRequestHandler` → `{ video: vbWin.webContents.mainFrame, audio: vbWin.webContents.mainFrame }`
