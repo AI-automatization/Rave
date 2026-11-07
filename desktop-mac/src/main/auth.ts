@@ -42,7 +42,16 @@ async function setSessionTokens(accessToken: string, refreshToken?: string): Pro
   }
 }
 
-export async function startBrowserLogin(rawRedirect: unknown, win: BrowserWindow, log: Log = () => {}): Promise<void> {
+/**
+ * `load` opens the post-login page where the web app lives (the content view); `win` is only used for dialogs and focus.
+ * Defaults to the window's own page for callers without a separate content view.
+ */
+export async function startBrowserLogin(
+  rawRedirect: unknown,
+  win: BrowserWindow,
+  log: Log = () => {},
+  load: (url: string) => Promise<void> = (u) => win.loadURL(u),
+): Promise<void> {
   const gen = ++loginGen;
   const redirect = safeRedirect(rawRedirect, '/home');
 
@@ -93,7 +102,7 @@ export async function startBrowserLogin(rawRedirect: unknown, win: BrowserWindow
     await setSessionTokens(outcome.accessToken, outcome.refreshToken);
     log('login-success', { redirect, hasRefresh: !!outcome.refreshToken }); // never log tokens
     const dest = new URL(redirect, APP_URL);
-    win.loadURL(dest.origin === APP_ORIGIN ? dest.toString() : new URL('/home', APP_URL).toString()).catch(() => {});
+    load(dest.origin === APP_ORIGIN ? dest.toString() : new URL('/home', APP_URL).toString()).catch(() => {});
     if (win.isMinimized()) win.restore();
     win.show();
     win.focus();

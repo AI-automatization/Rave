@@ -7,12 +7,13 @@
   "main": "dist/main/index.js",
   "author": "WeWatch",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.renderer.json && node scripts/copy-renderer.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.renderer.json",
     "test": "vitest run",
     "smoke:m2b": "npm run build && node test/smoke/m2b.mjs",
     "smoke:m3": "npm run build && node test/smoke/m3.mjs",
     "smoke:m4": "npm run build && node test/smoke/m4.mjs",
+    "smoke:m5": "npm run build && node test/smoke/m5.mjs",
     "start": "npm run build && electron .",
     "dev": "npm run build && WW_APP_URL=http://localhost:3000 electron ."
   },

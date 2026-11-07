@@ -1,0 +1,154 @@
+/* Native Mac shell (M5.1) — Stitch "Variant 1: Apple Music Style (Dark)".
+   Palette = the web app's own tokens (apps/app-web globals.css), so the shell and the page look like one app. */
+:root {
+  color-scheme: dark;
+  --accent: #7c3aed;
+  --text: #efedf7;
+  --text-2: rgba(239, 237, 247, 0.66);
+  --text-3: rgba(239, 237, 247, 0.42);
+  --line: rgba(255, 255, 255, 0.07);
+  --hover: rgba(255, 255, 255, 0.07);
+  --bg: #05050a;
+  --sidebar: 240px;
+  --toolbar: 52px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  /* transparent: the window's vibrancy material shows through the sidebar */
+  background: transparent;
+  color: var(--text);
+  font: 13px/1.3 -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  cursor: default;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: default;
+}
+
+/* ---- sidebar ---- */
+#sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: var(--sidebar);
+  background: rgba(8, 8, 14, 0.42);
+  border-right: 1px solid var(--line);
+}
+#sidebar-drag {
+  height: var(--toolbar); /* room for the traffic lights, draggable like a title bar */
+  -webkit-app-region: drag;
+}
+#nav {
+  padding: 0 10px 12px;
+}
+.section-title {
+  margin: 16px 8px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+}
+.section-title:first-child {
+  margin-top: 4px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 6px;
+  color: var(--text-2);
+  text-align: left;
+}
+.nav-item svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.nav-item:not([disabled]):hover {
+  background: var(--hover);
+}
+.nav-item.active {
+  background: var(--accent);
+  color: #fff;
+}
+.nav-item[disabled] {
+  color: var(--text-3);
+  opacity: 0.7;
+}
+
+/* ---- toolbar (above the web content) ---- */
+#toolbar {
+  position: fixed;
+  inset: 0 0 auto var(--sidebar);
+  height: var(--toolbar);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  -webkit-app-region: drag;
+}
+.history {
+  position: absolute;
+  left: 12px;
+  display: flex;
+  gap: 2px;
+  -webkit-app-region: no-drag;
+}
+.tool {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: var(--text-2);
+}
+.tool svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tool:not([disabled]):hover {
+  background: var(--hover);
+}
+.tool[disabled] {
+  opacity: 0.35;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--text);
+}
+.brand .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}

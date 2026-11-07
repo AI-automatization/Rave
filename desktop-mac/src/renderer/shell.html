@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="uz">
+  <head>
+    <meta charset="utf-8" />
+    <!-- The shell only ever runs its own script and stylesheet: no network, no inline script, no images. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; script-src 'self'" />
+    <title>WeWatch</title>
+    <link rel="stylesheet" href="shell.css" />
+  </head>
+  <body>
+    <aside id="sidebar" aria-label="Asosiy navigatsiya">
+      <div id="sidebar-drag"></div>
+      <nav id="nav"></nav>
+    </aside>
+    <header id="toolbar">
+      <div class="history">
+        <button id="back" class="tool" type="button" aria-label="Orqaga" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+        </button>
+        <button id="forward" class="tool" type="button" aria-label="Oldinga" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+        </button>
+      </div>
+      <div class="brand"><span class="dot" aria-hidden="true"></span>WeWatch</div>
+    </header>
+    <script src="shell.js"></script>
+  </body>
+</html>
