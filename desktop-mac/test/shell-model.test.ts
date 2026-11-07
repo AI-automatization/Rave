@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  activeNavId, contentBounds, findNavItem, isHomePath, isNativeItem, MIN_WINDOW_WIDTH, NAV_SECTIONS, navUrl, shellWindowOptions, SIDEBAR_WIDTH,
+  activeNavId, contentBounds, findNavItem, isHomePath, isNativeItem, isSubscriptionUrl, paymentRequestFilter, MIN_WINDOW_WIDTH, NAV_SECTIONS, navUrl, shellWindowOptions, SIDEBAR_WIDTH,
   TOOLBAR_HEIGHT, webEmbedCss,
 } from '../src/main/shell-model';
 
@@ -120,6 +120,9 @@ describe('webEmbedCss — hides the web app\'s own navigation inside the content
     expect(css).toContain('--ww-sidebar: 0px !important');
     expect(css).toMatch(/aside\.fixed[^{]*\{[^}]*display:\s*none\s*!important/);
   });
+  it('hides the subscription ("TARIF" / Pro) panel of the web Settings page — the panel that holds the crown icon', () => {
+    expect(css).toMatch(/section\.ww-panel:has\(svg\.lucide-crown\)[^{]*\{[^}]*display:\s*none\s*!important/);
+  });
   it('is plain CSS — no scripts, no urls, no imports', () => {
     expect(css).not.toMatch(/<|@import|url\(|javascript:/i);
   });
@@ -134,5 +137,38 @@ describe('isHomePath — the web content navigated to its own home page', () => 
     'https://app.wewatch.uz/home/x', 'https://evil.example/home', 'https://app.wewatch.uz.evil.example/home', 'about:blank', 'nope', '',
   ])('%s -> false', (u) => {
     expect(isHomePath(u, APP)).toBe(false);
+  });
+});
+
+describe('subscription is removed from the Mac app (Abdulaziz, with Bekzod aka: not needed)', () => {
+  const HOSTS = new Set(['app.wewatch.uz', 'wewatch.uz', 'www.wewatch.uz']);
+  it.each([
+    'https://app.wewatch.uz/api/payment/plan',
+    'https://app.wewatch.uz/api/payment/checkout',
+    'https://app.wewatch.uz/api/payment',
+    'https://app.wewatch.uz/api/payment/',
+    'https://app.wewatch.uz/pricing',
+    'https://wewatch.uz/pricing/',
+    'https://www.wewatch.uz/pricing?plan=pro#x',
+  ])('%s is blocked', (u) => {
+    expect(isSubscriptionUrl(u, HOSTS)).toBe(true);
+  });
+  it.each([
+    'https://app.wewatch.uz/home',
+    'https://app.wewatch.uz/settings',
+    'https://app.wewatch.uz/api/payments',
+    'https://app.wewatch.uz/api/paymentx',
+    'https://app.wewatch.uz/pricing-info',
+    'https://app.wewatch.uz/room/pricing',
+    'https://evil.example/pricing',
+    'https://evil.example/api/payment/plan',
+    'not a url',
+    '',
+  ])('%s is not', (u) => {
+    expect(isSubscriptionUrl(u, HOSTS)).toBe(false);
+  });
+  it('network filter: both forms of the payment API path on the app origin only', () => {
+    expect(paymentRequestFilter('https://app.wewatch.uz/home')).toEqual(['https://app.wewatch.uz/api/payment', 'https://app.wewatch.uz/api/payment/*']);
+    expect(paymentRequestFilter('http://localhost:3000/')).toEqual(['http://localhost:3000/api/payment', 'http://localhost:3000/api/payment/*']);
   });
 });

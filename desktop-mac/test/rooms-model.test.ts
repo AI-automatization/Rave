@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildHomeData, filterRooms, parseRooms, pickSpotlight, refreshApiUrl, roomsApiUrl, roomUrl, UNTITLED_ROOM, type RoomCard,
+  buildHomeData, filterRooms, parseRooms, pickSpotlight, refreshApiUrl, roomsApiUrl, roomUrl, type RoomCard,
 } from '../src/main/rooms-model';
 
 const APP = 'https://app.wewatch.uz';
@@ -28,11 +28,11 @@ describe('parseRooms — the response of the server, which this app does not con
   it('does NOT treat the web-app-only value "active" as a status (the server never sends it)', () => {
     expect(parseRooms(wrap([room({ status: 'active' })]))).toEqual([]);
   });
-  it('title falls back: name -> video title -> "Nomsiz xona"; subtitle only when it adds something', () => {
+  it('title falls back: name -> video title -> empty (the screen then shows "untitled" in the user\'s language); subtitle only when it adds something', () => {
     expect(parseRooms(wrap([room({ name: null })]))?.[0]).toMatchObject({ title: 'Interstellar', subtitle: null });
-    expect(parseRooms(wrap([room({ name: null, videoTitle: null })]))?.[0]).toMatchObject({ title: UNTITLED_ROOM, subtitle: null });
+    expect(parseRooms(wrap([room({ name: null, videoTitle: null })]))?.[0]).toMatchObject({ title: '', subtitle: null });
     expect(parseRooms(wrap([room({ name: 'Same', videoTitle: 'Same' })]))?.[0]).toMatchObject({ title: 'Same', subtitle: null });
-    expect(parseRooms(wrap([room({ name: '   ', videoTitle: ' ' })]))?.[0]?.title).toBe(UNTITLED_ROOM);
+    expect(parseRooms(wrap([room({ name: '   ', videoTitle: ' ' })]))?.[0]?.title).toBe('');
   });
   it('member count: memberCount, else members.length, else 0; never negative or fractional', () => {
     expect(parseRooms(wrap([room({ memberCount: 7, members: [] })]))?.[0]?.members).toBe(7);

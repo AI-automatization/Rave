@@ -13,7 +13,28 @@ interface RoomCardDto {
   thumbnail: string | null;
   platform: string | null;
 }
+interface HomeStrings {
+  banner: string;
+  joinBanner: string;
+  join: string;
+  waitingRoom: string;
+  sectionTitle: string;
+  sectionSub: string;
+  viewers: string;
+  people: string;
+  badgeLive: string;
+  badgeStarting: string;
+  badgePaused: string;
+  emptyTitle: string;
+  emptyDesc: string;
+  noMatch: string;
+  errorTitle: string;
+  errorDesc: string;
+  retry: string;
+  untitled: string;
+}
 interface HomeDataDto {
+  strings: HomeStrings; // every word on this screen, in the language of the web app (sent by the main process)
   status: 'loading' | 'ok' | 'error';
   spotlight: RoomCardDto | null;
   rooms: RoomCardDto[];
@@ -26,25 +47,6 @@ interface HomeBridge {
   retry(): Promise<unknown>;
   onData(cb: (d: HomeDataDto) => void): () => void;
 }
-
-// Wording: the design's own copy (Stitch Variant 1) and the web app's existing Uzbek strings (messages/uz.json).
-const T = {
-  banner: 'ASOSIY JONLI XONA',
-  joinBanner: "Xonaga qo'shilish",
-  join: "Qo'shilish",
-  waitingRoom: 'Kutish xonasi',
-  sectionTitle: 'Faol xonalar',
-  sectionSub: "Do'stlaringiz va jamoat xonalari ro'yxati",
-  viewers: (n: number) => `${n} nafar tomoshabin onlayn`,
-  people: (n: number) => `${n} kishi`,
-  badge: { live: 'JONLI', starting: 'BOSHLANMOQDA', paused: 'PAUZADA' },
-  emptyTitle: "Hali xonalar yo'q",
-  emptyDesc: "Xona yarating va do'stlaringizni birga tomosha qilishga taklif qiling",
-  noMatch: 'Hech narsa topilmadi',
-  errorTitle: "Xonalarni yuklab bo'lmadi",
-  errorDesc: 'Internetni tekshiring yoki qayta urining',
-  retry: 'Qayta urinish',
-} as const;
 
 const bridge = (window as unknown as { wewatchHome: HomeBridge }).wewatchHome;
 const root = document.getElementById('root') as HTMLElement;
@@ -72,8 +74,9 @@ function peopleIcon(): SVGSVGElement {
 }
 
 const openRoom = (id: string): void => void bridge.open(id);
+const fill = (template: string, n: number): string => template.replace('{n}', String(n));
 
-function poster(room: RoomCardDto): HTMLElement {
+function poster(room: RoomCardDto, S: HomeStrings): HTMLElement {
   const p = el('div', 'poster');
   if (room.thumbnail) {
     const img = el('img');
@@ -85,21 +88,22 @@ function poster(room: RoomCardDto): HTMLElement {
     img.addEventListener('error', () => img.remove()); // keep the gradient placeholder
     p.appendChild(img);
   }
-  p.appendChild(el('span', `badge ${room.badge}`, T.badge[room.badge]));
+  const badge = { live: S.badgeLive, starting: S.badgeStarting, paused: S.badgePaused }[room.badge];
+  p.appendChild(el('span', `badge ${room.badge}`, badge));
   const count = el('span', 'count');
-  count.append(peopleIcon(), document.createTextNode(T.people(room.members)));
+  count.append(peopleIcon(), document.createTextNode(fill(S.people, room.members)));
   p.appendChild(count);
   return p;
 }
 
-function card(room: RoomCardDto): HTMLElement {
+function card(room: RoomCardDto, S: HomeStrings): HTMLElement {
   const c = el('article', 'card');
-  c.appendChild(poster(room));
+  c.appendChild(poster(room, S));
   const body = el('div', 'body');
-  body.appendChild(el('div', 'title', room.title));
+  body.appendChild(el('div', 'title', room.title || S.untitled));
   if (room.subtitle) body.appendChild(el('div', 'subtitle', room.subtitle));
   body.appendChild(el('div', 'spacer'));
-  const btn = el('button', room.badge === 'starting' ? 'btn quiet full' : 'btn full', room.badge === 'starting' ? T.waitingRoom : T.join);
+  const btn = el('button', room.badge === 'starting' ? 'btn quiet full' : 'btn full', room.badge === 'starting' ? S.waitingRoom : S.join);
   btn.type = 'button';
   btn.addEventListener('click', () => openRoom(room.id));
   body.appendChild(btn);
@@ -107,19 +111,19 @@ function card(room: RoomCardDto): HTMLElement {
   return c;
 }
 
-function banner(room: RoomCardDto): HTMLElement {
+function banner(room: RoomCardDto, S: HomeStrings): HTMLElement {
   const b = el('section', 'banner');
   const kicker = el('span', 'kicker');
-  kicker.append(el('span', 'dot'), document.createTextNode(T.banner));
+  kicker.append(el('span', 'dot'), document.createTextNode(S.banner));
   b.appendChild(kicker);
-  b.appendChild(el('h1', undefined, room.title));
+  b.appendChild(el('h1', undefined, room.title || S.untitled));
   if (room.subtitle) b.appendChild(el('p', 'sub', room.subtitle));
   const actions = el('div', 'actions');
-  const join = el('button', 'btn', T.joinBanner);
+  const join = el('button', 'btn', S.joinBanner);
   join.type = 'button';
   join.addEventListener('click', () => openRoom(room.id));
   const viewers = el('span', 'viewers');
-  viewers.append(peopleIcon(), document.createTextNode(T.viewers(room.members)));
+  viewers.append(peopleIcon(), document.createTextNode(fill(S.viewers, room.members)));
   actions.append(join, viewers);
   b.appendChild(actions);
   return b;
@@ -139,29 +143,30 @@ function message(title: string, desc?: string, action?: { label: string; run: ()
 }
 
 function render(d: HomeDataDto): void {
+  const S = d.strings;
   root.replaceChildren();
   if (d.status === 'loading') {
     root.appendChild(el('div', 'skeleton'));
     return;
   }
   if (d.status === 'error') {
-    root.appendChild(message(T.errorTitle, T.errorDesc, { label: T.retry, run: () => void bridge.retry() }));
+    root.appendChild(message(S.errorTitle, S.errorDesc, { label: S.retry, run: () => void bridge.retry() }));
     return;
   }
   if (d.total === 0) {
-    root.appendChild(message(T.emptyTitle, T.emptyDesc));
+    root.appendChild(message(S.emptyTitle, S.emptyDesc));
     return;
   }
   if (!d.spotlight && d.rooms.length === 0) {
-    root.appendChild(message(T.noMatch));
+    root.appendChild(message(S.noMatch));
     return;
   }
-  if (d.spotlight) root.appendChild(banner(d.spotlight));
+  if (d.spotlight) root.appendChild(banner(d.spotlight, S));
   if (d.rooms.length > 0) {
     const head = el('div', 'section-head');
-    head.append(el('h2', undefined, T.sectionTitle), el('p', undefined, T.sectionSub));
+    head.append(el('h2', undefined, S.sectionTitle), el('p', undefined, S.sectionSub));
     const grid = el('div', 'grid');
-    for (const room of d.rooms) grid.appendChild(card(room));
+    for (const room of d.rooms) grid.appendChild(card(room, S));
     root.append(head, grid);
   }
 }

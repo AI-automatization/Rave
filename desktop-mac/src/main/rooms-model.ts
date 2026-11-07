@@ -7,12 +7,11 @@
 //    The web app compares with 'active', a value the server never sends, so its LIVE badge never shows — not copied here.
 //  - a room carries ownerId only (no owner name, no avatars, no category), so none of those are shown.
 
-export const UNTITLED_ROOM = 'Nomsiz xona'; // same wording as the web app (messages/uz.json home.untitledRoom)
-
 export type RoomBadge = 'live' | 'starting' | 'paused';
 
 export interface RoomCard {
   readonly id: string;
+  /** Empty when the room has neither a name nor a video title: the screen then shows "untitled" in the user's language. */
   readonly title: string;
   readonly subtitle: string | null;
   readonly badge: RoomBadge;
@@ -56,7 +55,7 @@ function toCard(o: Record<string, unknown>): RoomCard | null {
   const platform = typeof o['videoPlatform'] === 'string' ? o['videoPlatform'].trim() : '';
   return {
     id,
-    title: name || video || UNTITLED_ROOM,
+    title: name || video,
     subtitle: name && video && video !== name ? video : null,
     badge,
     members: memberCount(o),

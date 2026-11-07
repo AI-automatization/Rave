@@ -23,6 +23,9 @@ async function until(target: 'shell' | 'home' | 'content', expr: string, ms = 50
   }
   return false;
 }
+const labelIs = (id: string, text: string): string => `document.querySelector('[data-id="${id}"] span')?.textContent === ${JSON.stringify(text)}`;
+const setLocaleCookie = (value: string): Promise<void> =>
+  session.defaultSession.cookies.set({ url: APP_URL, name: 'wewatch-locale', value, path: '/', expirationDate: Math.floor(Date.now() / 1000) + 3600 });
 const bannerIs = (title: string): string => `document.querySelector('.banner h1')?.textContent === ${JSON.stringify(title)}`;
 const click = (target: 'shell' | 'home', selector: string): Promise<unknown> =>
   smokeEval(target, `document.querySelector(${JSON.stringify(selector)}).click()`);
@@ -36,7 +39,9 @@ export async function presetSmokeCookies(): Promise<void> {
   for (const pair of raw.split(';')) {
     const i = pair.indexOf('=');
     if (i > 0) {
-      await session.defaultSession.cookies.set({ url: APP_URL, name: pair.slice(0, i), value: pair.slice(i + 1), path: '/', httpOnly: true, expirationDate: exp });
+      const name = pair.slice(0, i);
+      // like the real web app: the language cookie is written by the page (document.cookie), so it is not HttpOnly
+      await session.defaultSession.cookies.set({ url: APP_URL, name, value: pair.slice(i + 1), path: '/', httpOnly: name !== 'wewatch-locale', expirationDate: exp });
     }
   }
 }
@@ -116,6 +121,28 @@ export function runSmokeAction(action: string, smoke: Smoke): void {
       await clickItem('home');
       await wait(1500);
       await look('home-via-sidebar');
+    })();
+  } else if (action === 'lang') {
+    // Language follows the web app's cookie, live; the subscription panel and /pricing are gone. Starts on the web
+    // /settings page, signed in, with NO language cookie (so the default, Russian, applies).
+    void (async () => {
+      await wait(2500);
+      await look('lang-ru');
+      await smokeEval('content', "location.href = '/pricing'"); // must be refused
+      await wait(1200);
+      await look('lang-pricing');
+      await smokeEval('content', "document.cookie = 'wewatch-locale=uz; path=/'"); // what the web Settings language switch does
+      await until('shell', labelIs('home', 'Bosh sahifa'));
+      await look('lang-uz');
+      await smokeEval('content', "document.cookie = 'wewatch-locale=en; path=/'");
+      await until('shell', labelIs('home', 'Home'));
+      await look('lang-en');
+      await clickItem('home'); // the native Home, in English
+      await until('home', "document.querySelector('.kicker')?.textContent === 'LIVE RIGHT NOW'");
+      await look('lang-home-en');
+      await setLocaleCookie('ru'); // changed while Home is shown: both native screens follow at once
+      await until('home', "document.querySelector('.kicker')?.textContent === 'СЕЙЧАС В ЭФИРЕ'");
+      await look('lang-home-ru');
     })();
   } else if (action === 'home-retry') {
     // The first load fails (server down); the user presses "Qayta urinish" and it works.

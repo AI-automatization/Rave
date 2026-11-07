@@ -3,7 +3,7 @@
 Mac uchun WeWatch klient: veb-ilova (`app.wewatch.uz`) oynada, plus Virtual Browser (VB) egasining kompyuterida,
 VB oynasi **faqat o'z ovozi bilan** WebRTC orqali xonaga uzatiladi (server faqat signalling).
 
-Holat: **M2 + M2b + M3 + M4** (oyna, menyu, deep link, Google login, Virtual Browser, ovoz bilan ulashish, reklama bloki, DoH). UX ekranlari (M5) va DMG (M6) hali yo'q.
+Holat: **M2 + M2b + M3 + M4 + M5.1 + M5.2** (oyna, menyu, deep link, Google login, Virtual Browser, ovoz bilan ulashish, reklama bloki, DoH, native Mac qobig'i va Bosh sahifa). DMG (M6) hali yo'q.
 
 ```bash
 cd desktop-mac
@@ -12,6 +12,8 @@ node node_modules/electron/install.js   # electron binarini yuklaydi (npm postin
 npm run typecheck && npm test && npm run build
 npm run smoke:m2b          # haqiqiy Electron + soxta auth server: Google login oqimi (internet/Google kerak emas)
 npm run smoke:m4           # reklama bloki, YouTube istisnosi, VB ruxsatlari/UA, DNS-over-HTTPS (DoH qismi internet talab qiladi)
+npm run smoke:m5           # native qobiq: sidebar, toolbar, navigatsiya (soxta veb-ilova)
+npm run smoke:m5b          # native Bosh sahifa: xonalar, qidiruv, token yangilash, til, obuna bloki (4+1 ishga tushirish)
 npm run smoke:m3           # haqiqiy Electron + soxta veb-ilova: VB ochish + WebRTC orqali ulashish, ovoz/video o'lchovi (~1.5 daq, ovoz eshitiladi)
 npm start                  # app.wewatch.uz
 npm run dev                # lokal app-web :3000 ga qarshi
@@ -27,6 +29,20 @@ src/main/    index.ts (kirish) window.ts deeplink.ts menu.ts ipc.ts config.ts au
 src/preload/ index.ts  → window.wewatchDesktop { platform:'macos', version:1, vb:{open,close,focus,onState,onBlocked,metrics} }
 test/        urls.test.ts (vitest)
 ```
+
+## Native Mac qobig'i (M5, Stitch "WeWatch macOS" — Variant 1, qorong'i)
+- **Uch ko'rinish** (`src/main/shell.ts`): `shell` (chap panel + toolbar, oynaning shaffof/vibrancy materiali ustida), `home` (ilovaning o'z Bosh sahifasi) va
+  `content` (veb-ilova). Veb ko'rinishi faqat kerak bo'lganda yaratiladi (xona, Do'stlar, Sozlamalar, login) va Bosh sahifaga qaytilganda **yo'q qilinadi**:
+  kirish tokenlari aylanadi, shuning uchun ularni bir vaqtda faqat bitta narsa yangilashi kerak.
+- **Bosh sahifa** xonalarni `<app>/api/rooms` dan oladi (asosiy jarayon, sessiya cookie'lari bilan; 401 bo'lsa bir marta `/api/auth/refresh`, keyin veb login).
+  Holatlar serverniki: `waiting | playing | paused` (veb'dagi `'active'` serverdan hech qachon kelmaydi). Banner = eng ko'p tomoshabinli `playing` xona.
+- **Renderer faqat chizadi.** U faqat id so'raydi (`wewatchShell.navigate(id)`, `wewatchHome.open(id)`); asosiy jarayon jo'natuvchini (o'z ko'rinishi va sahifasi) va id'ni
+  tekshiradi, URL'ni o'zi quradi. Matnlar `textContent` bilan, CSP: faqat o'z skripti/uslubi (+ Home'da `https:` rasmlar).
+- **Til** (`src/main/i18n.ts`): veb-ilovaning `wewatch-locale` cookie'si (`uz|ru|en`, yo'q bo'lsa `ru` — veb bilan bir xil); o'zgarganda panel va Bosh sahifa darhol yangilanadi.
+  Veb'da tarjimasi bor satrlar aynan o'sha (test `apps/app-web/messages` bilan solishtiradi).
+- **Obuna (Pro/tarif) Mac ilovada yo'q** (Abdulaziz va Bekzod aka qarori): `/api/payment/*` so'rovlari bekor qilinadi, `/pricing` ochilmaydi, Sozlamalardagi "TARIF" paneli
+  yashiriladi (`section.ww-panel:has(svg.lucide-crown)` — veb o'zgarsa buzilishi mumkin, `smoke:m5b` E senariysi qo'riqlaydi).
+- Veb-ilovaning o'z chap paneli content ichida yashiriladi (`--ww-sidebar: 0`, `aside.fixed`) — vaqtincha, hamma ekran native bo'lguncha.
 
 ## Xavfsizlik qarorlari (Polat kodidan farqi)
 - `shell.openExternal` faqat `http(s)`/`mailto` (kamida `file:`/maxsus schemalar OS'ga berilmaydi).

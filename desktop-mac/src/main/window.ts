@@ -3,7 +3,7 @@ import path from 'node:path';
 import { startBrowserLogin, type Log } from './auth';
 import { APP_ORIGIN, devEnv, IN_APP_HOSTS } from './config';
 import { attachShell, getContentWebContents, openInApp, startApp } from './shell';
-import { shellWindowOptions } from './shell-model';
+import { isSubscriptionUrl, shellWindowOptions } from './shell-model';
 import { isGoogleStartUrl, isSafeExternalUrl, keepInApp } from './urls';
 
 let mainWin: BrowserWindow | null = null;
@@ -41,12 +41,17 @@ export function createMainWindow(log: Log = () => {}): BrowserWindow {
   // and only http(s)/mailto may be handed to the OS. Runs for every content view, as it is created on demand.
   const guardContent = (wc: Electron.WebContents): void => {
     wc.setWindowOpenHandler(({ url }) => {
+      if (isSubscriptionUrl(url, IN_APP_HOSTS)) return { action: 'deny' }; // no pricing / payment pages in the Mac app
       if (isGoogleStartUrl(url, APP_ORIGIN)) googleLogin(url);
       else if (!keepInApp(url, IN_APP_HOSTS)) openExternal(url);
       return { action: 'deny' };
     });
     const leaveApp = (e: { preventDefault(): void }, url: string, isMainFrame = true): void => {
       if (!isMainFrame) return;
+      if (isSubscriptionUrl(url, IN_APP_HOSTS)) {
+        e.preventDefault();
+        return;
+      }
       if (isGoogleStartUrl(url, APP_ORIGIN)) {
         e.preventDefault();
         googleLogin(url);

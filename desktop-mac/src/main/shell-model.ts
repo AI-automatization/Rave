@@ -97,6 +97,28 @@ export function isHomePath(url: string, appUrl: string): boolean {
   }
 }
 
+/**
+ * Subscription ("obuna" / Pro / tarif) is not part of the Mac app. Abdulaziz, 07.11: "olib tashlash kerak, Bekzod aka ham
+ * kerak emas dedi". The web app reaches it through /api/payment/* (plan + checkout) and the public /pricing page.
+ * True for those URLs on the app's own hosts, so the window can refuse to open them.
+ */
+export function isSubscriptionUrl(url: string, appHosts: ReadonlySet<string>): boolean {
+  try {
+    const u = new URL(url);
+    if (!appHosts.has(u.hostname)) return false;
+    const p = u.pathname.replace(/\/+$/, '');
+    return p === '/api/payment' || p.startsWith('/api/payment/') || p === '/pricing';
+  } catch {
+    return false;
+  }
+}
+
+/** Patterns for session.webRequest: every request to the payment API on the app origin is cancelled. */
+export function paymentRequestFilter(appUrl: string): string[] {
+  const origin = new URL(appUrl).origin;
+  return [`${origin}/api/payment`, `${origin}/api/payment/*`];
+}
+
 export interface Bounds {
   x: number;
   y: number;
@@ -152,5 +174,8 @@ export function webEmbedCss(): string {
   return [
     ':root { --ww-sidebar: 0px !important; }',
     'aside.fixed { display: none !important; }',
+    // Settings page: the subscription panel ("TARIF", Pro, Payme/Click buttons). It is the only settings panel that holds
+    // the crown icon; scoped to `section.ww-panel` so the owner crown in a room's member list is never touched.
+    'section.ww-panel:has(svg.lucide-crown) { display: none !important; }',
   ].join('\n');
 }

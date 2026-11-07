@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="uz">
+<html lang="ru">
   <head>
     <meta charset="utf-8" />
     <!-- The shell only ever runs its own script and stylesheet: no network, no inline script, no images. -->
@@ -8,23 +8,23 @@
     <link rel="stylesheet" href="shell.css" />
   </head>
   <body>
-    <aside id="sidebar" aria-label="Asosiy navigatsiya">
+    <aside id="sidebar">
       <div id="sidebar-drag"></div>
       <nav id="nav"></nav>
     </aside>
     <header id="toolbar">
       <div class="history">
-        <button id="back" class="tool" type="button" aria-label="Orqaga" disabled>
+        <button id="back" class="tool" type="button" disabled>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
         </button>
-        <button id="forward" class="tool" type="button" aria-label="Oldinga" disabled>
+        <button id="forward" class="tool" type="button" disabled>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
         </button>
       </div>
       <div class="brand"><span class="dot" aria-hidden="true"></span>WeWatch</div>
       <div class="search-wrap" id="search-wrap">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4.5 4.5" /></svg>
-        <input id="search" type="search" placeholder="Qidirish" aria-label="Xonalarni qidirish" autocomplete="off" spellcheck="false" maxlength="100" hidden />
+        <input id="search" type="search" autocomplete="off" spellcheck="false" maxlength="100" hidden />
       </div>
     </header>
     <script src="shell.js"></script>

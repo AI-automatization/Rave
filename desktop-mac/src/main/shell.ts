@@ -6,12 +6,13 @@
 //             refreshers would invalidate each other).
 // Renderers ask for things by id only; this file validates every call and builds every URL itself.
 import {
-  ipcMain, nativeTheme, WebContentsView, type BrowserWindow, type IpcMainInvokeEvent, type WebContents, type WebPreferences,
+  ipcMain, nativeTheme, session, WebContentsView, type BrowserWindow, type IpcMainInvokeEvent, type WebContents, type WebPreferences,
 } from 'electron';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { APP_URL } from './config';
 import { loadRooms } from './home-data';
+import { DEFAULT_LOCALE, LOCALE_COOKIE, parseLocale, stringsFor, type Locale } from './i18n';
 import { buildHomeData, failed, LOADING, roomUrl, type HomeData, type RoomCard } from './rooms-model';
 import { activeNavId, contentBounds, isHomePath, isNativeItem, NAV_SECTIONS, navUrl, webEmbedCss } from './shell-model';
 
@@ -43,9 +44,18 @@ let homeCards: readonly RoomCard[] | null = null;
 let homeQuery = '';
 let homeGen = 0;
 let lastFetch = 0;
+let locale: Locale = DEFAULT_LOCALE; // the web app's language (cookie), so the app shows one language only
+let localeReady: Promise<void> = Promise.resolve();
+let cookieWatch = false;
 
 const alive = (v: WebContentsView | null): WebContents | null => (v && !v.webContents.isDestroyed() ? v.webContents : null);
 export const getContentWebContents = (): WebContents | null => alive(contentView);
+
+/** Everything the shell renderer writes as text, in the current language. */
+function shellUi(l: Locale): Record<string, unknown> {
+  const s = stringsFor(l);
+  return { locale: l, nav: s.nav, sections: s.sections, ...s.ui };
+}
 
 interface ShellState {
   activeId: string | null;
@@ -53,12 +63,16 @@ interface ShellState {
   canGoForward: boolean;
   searchVisible: boolean;
   query: string;
+  ui: Record<string, unknown>;
 }
 
 function state(): ShellState {
   const wc = getContentWebContents();
   if (mode === 'home' || !wc) {
-    return { activeId: mode === 'home' ? 'home' : null, canGoBack: false, canGoForward: false, searchVisible: mode === 'home', query: homeQuery };
+    return {
+      activeId: mode === 'home' ? 'home' : null, canGoBack: false, canGoForward: false, searchVisible: mode === 'home',
+      query: homeQuery, ui: shellUi(locale),
+    };
   }
   return {
     activeId: activeNavId(wc.getURL(), APP_URL),
@@ -66,11 +80,33 @@ function state(): ShellState {
     canGoForward: wc.navigationHistory.canGoForward(),
     searchVisible: false,
     query: homeQuery,
+    ui: shellUi(locale),
   };
 }
 
 const pushState = (): void => alive(shellView)?.send('shell:state', state());
-const pushHome = (): void => alive(homeView)?.send('home:data', homeState);
+const homePayload = (): Record<string, unknown> => ({ ...homeState, strings: stringsFor(locale).home });
+const pushHome = (): void => alive(homeView)?.send('home:data', homePayload());
+
+// ---------- language ----------
+
+async function readLocale(): Promise<Locale> {
+  try {
+    const cs = await session.defaultSession.cookies.get({ url: APP_URL, name: LOCALE_COOKIE });
+    return parseLocale(cs[0]?.value);
+  } catch {
+    return DEFAULT_LOCALE;
+  }
+}
+
+/** Follow the web app's language setting: re-read the cookie and, if it changed, redraw both native screens. */
+async function syncLocale(): Promise<void> {
+  const next = await readLocale();
+  if (next === locale) return;
+  locale = next;
+  pushState();
+  pushHome();
+}
 
 /** Only our own page, in our own view, may call an IPC channel (a page in the content view cannot). */
 function fromView(e: IpcMainInvokeEvent, view: WebContentsView | null, url: string): boolean {
@@ -219,7 +255,11 @@ function registerIpc(): void {
   // The window can be recreated (dock click after closing): replace, never double-register.
   for (const ch of CHANNELS) ipcMain.removeHandler(ch);
 
-  ipcMain.handle('shell:model', (e) => (fromShell(e) ? { sections: NAV_SECTIONS, state: state() } : null));
+  ipcMain.handle('shell:model', async (e) => {
+    if (!fromShell(e)) return null;
+    await localeReady; // never flash the wrong language on the first paint
+    return { sections: NAV_SECTIONS, state: state() };
+  });
   ipcMain.handle('shell:navigate', (e, id: unknown) => {
     if (!fromShell(e)) return FORBIDDEN;
     if (isNativeItem(id)) {
@@ -253,8 +293,9 @@ function registerIpc(): void {
     return { ok: true } as const;
   });
 
-  ipcMain.handle('home:ready', (e) => {
+  ipcMain.handle('home:ready', async (e) => {
     if (!fromHome(e)) return FORBIDDEN;
+    await localeReady;
     pushHome();
     return { ok: true } as const;
   });
@@ -294,6 +335,14 @@ export function attachShell(window: BrowserWindow, opts: ShellOptions): { shell:
   homeState = LOADING;
   homeCards = null;
   homeQuery = '';
+  locale = DEFAULT_LOCALE;
+  localeReady = syncLocale();
+  if (!cookieWatch) {
+    cookieWatch = true; // the web app writes the cookie when the user changes the language in its Settings
+    session.defaultSession.cookies.on('changed', (_e, cookie) => {
+      if (cookie.name === LOCALE_COOKIE) void syncLocale();
+    });
+  }
 
   const localPrefs = (preload: string): WebPreferences => ({
     preload: path.join(PRELOAD_DIR, preload),
@@ -371,12 +420,15 @@ export async function inspectShell(): Promise<unknown> {
     const items = [...document.querySelectorAll('.nav-item')];
     const search = document.getElementById('search');
     return {
-      items: items.map((b) => ({ id: b.dataset.id, label: b.textContent, disabled: b.disabled, active: b.classList.contains('active') })),
+      items: items.map((b) => ({ id: b.dataset.id, label: b.textContent, disabled: b.disabled, active: b.classList.contains('active'), title: b.title })),
       titles: [...document.querySelectorAll('.section-title')].map((t) => t.textContent),
       backDisabled: document.getElementById('back').disabled,
       forwardDisabled: document.getElementById('forward').disabled,
       searchHidden: search ? search.hidden : null,
       searchValue: search ? search.value : null,
+      searchPlaceholder: search ? search.placeholder : null,
+      htmlLang: document.documentElement.lang,
+      backLabel: document.getElementById('back').getAttribute('aria-label'),
       bridgeKeys: Object.keys(window.wewatchShell || {}),
       webBridge: typeof window.wewatchDesktop,
     };
@@ -413,6 +465,10 @@ export async function inspectShell(): Promise<unknown> {
           sidebarVar: getComputedStyle(document.documentElement).getPropertyValue('--ww-sidebar').trim(),
           shellBridge: typeof window.wewatchShell, homeBridge: typeof window.wewatchHome,
           desktopBridge: typeof window.wewatchDesktop,
+          // Settings page: the subscription panel (the one holding the crown icon) must be hidden, the others visible.
+          planSection: (() => { const x = [...document.querySelectorAll('section.ww-panel')].find((e) => e.querySelector('svg.lucide-crown')); return x ? getComputedStyle(x).display : null; })(),
+          otherSection: (() => { const x = [...document.querySelectorAll('section.ww-panel')].find((e) => !e.querySelector('svg.lucide-crown')); return x ? getComputedStyle(x).display : null; })(),
+          planFetch: window.__planFetch ?? null,
         };
       })()`)
     : null;

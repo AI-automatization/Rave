@@ -13,12 +13,24 @@ interface SectionDto {
   title: string;
   items: NavItemDto[];
 }
+interface UiDto {
+  locale: string;
+  nav: Record<string, string>;
+  sections: string[];
+  comingSoon: string;
+  back: string;
+  forward: string;
+  search: string;
+  searchLabel: string;
+  navLabel: string;
+}
 interface ShellState {
   activeId: string | null;
   canGoBack: boolean;
   canGoForward: boolean;
   searchVisible: boolean;
   query: string;
+  ui: UiDto;
 }
 interface ShellBridge {
   model(): Promise<{ sections: SectionDto[]; state: ShellState }>;
@@ -75,13 +87,15 @@ const backBtn = document.getElementById('back') as HTMLButtonElement;
 const forwardBtn = document.getElementById('forward') as HTMLButtonElement;
 const searchBox = document.getElementById('search') as HTMLInputElement;
 const buttons = new Map<string, HTMLButtonElement>();
+const labels = new Map<string, HTMLSpanElement>();
+const titles: HTMLElement[] = [];
 
 function render(sections: SectionDto[]): void {
   for (const section of sections) {
     const title = document.createElement('div');
     title.className = 'section-title';
-    title.textContent = section.title;
     nav.appendChild(title);
+    titles.push(title);
     for (const item of section.items) {
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -89,11 +103,10 @@ function render(sections: SectionDto[]): void {
       btn.dataset['id'] = item.id;
       btn.appendChild(icon(item.id));
       const label = document.createElement('span');
-      label.textContent = item.label;
       btn.appendChild(label);
+      labels.set(item.id, label); // the words come from applyUi, in the user's language
       if (item.route === null) {
         btn.disabled = true; // the web app has no such page yet
-        btn.title = 'Tez orada';
       } else {
         btn.addEventListener('click', () => void bridge.navigate(item.id));
       }
@@ -103,7 +116,23 @@ function render(sections: SectionDto[]): void {
   }
 }
 
+/** All the words of the shell, in the language of the web app (the main process sends them with every state). */
+function applyUi(ui: UiDto): void {
+  document.documentElement.lang = ui.locale;
+  for (const [id, el] of labels) el.textContent = ui.nav[id] ?? '';
+  titles.forEach((t, i) => {
+    t.textContent = ui.sections[i] ?? '';
+  });
+  for (const [id, btn] of buttons) if (btn.disabled) btn.title = ui.nav[id] ? ui.comingSoon : '';
+  backBtn.setAttribute('aria-label', ui.back);
+  forwardBtn.setAttribute('aria-label', ui.forward);
+  searchBox.placeholder = ui.search;
+  searchBox.setAttribute('aria-label', ui.searchLabel);
+  (document.getElementById('sidebar') as HTMLElement).setAttribute('aria-label', ui.navLabel);
+}
+
 function applyState(s: ShellState): void {
+  applyUi(s.ui);
   for (const [id, btn] of buttons) {
     const active = id === s.activeId;
     btn.classList.toggle('active', active);

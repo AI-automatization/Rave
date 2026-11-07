@@ -47,14 +47,19 @@ const server = createServer((req, res) => {
     return res.end('{"success":true}');
   }
   res.setHeader('content-type', 'text/html');
+  const settings = url.pathname === '/settings'
+    ? `<section class="ww-panel"><h2>PASSWORD</h2><button>Save</button></section>
+<section class="ww-panel"><h2>TARIF</h2><svg class="lucide lucide-crown" width="16" height="16"></svg><button>Pro'ga o'tish — Payme</button></section>
+<script>fetch('/api/payment/plan').then(() => { window.__planFetch = 'ok'; }, () => { window.__planFetch = 'blocked'; });</script>`
+    : '';
   res.end(`<!doctype html><title>WW ${url.pathname}</title>
 <style>:root{--ww-sidebar:248px} body{margin:0;padding-left:var(--ww-sidebar);background:#05050a;color:#fff}
 aside{position:fixed;left:0;top:0;bottom:0;width:var(--ww-sidebar);background:#900;display:flex}</style>
-<aside class="fixed inset-y-0 left-0 z-40 hidden lg:flex">WEB-SIDEBAR</aside><main>page ${url.pathname}</main>`);
+<aside class="fixed inset-y-0 left-0 z-40 hidden lg:flex">WEB-SIDEBAR</aside><main>page ${url.pathname}${settings}</main>`);
 });
 await new Promise((r) => server.listen(PORT, '127.0.0.1', r));
 
-async function run(name, { cookies = '', action = 'home', startPath = '/home', downFor = 0, ttl = 20, shotDir = '' } = {}) {
+async function run(name, { cookies = '', action = 'home', startPath = '/home', downFor = 0, ttl = 20, shotDir = '', startWeb = false } = {}) {
   calls = [];
   down = downFor;
   const out = path.join(os.tmpdir(), `ww-m5b-${name}-${Date.now()}.jsonl`);
@@ -65,6 +70,7 @@ async function run(name, { cookies = '', action = 'home', startPath = '/home', d
     WW_SMOKE_ACTION: action, WW_SMOKE_COOKIES: cookies,
   };
   if (shotDir) env.WW_SMOKE_SHOT = shotDir;
+  if (startWeb) env.WW_START_WEB = '1';
   const child = spawn(electronBin, [root, `--user-data-dir=${userData}`], { env, stdio: 'ignore' });
   await new Promise((r) => child.on('exit', r));
   const ev = fs.readFileSync(out, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l));
@@ -79,7 +85,7 @@ const titles = (home) => (home?.cards ?? []).map((c) => c.title);
 // ---------------------------------------------------------------- A: signed in
 console.log('--- A: signed in (access token valid)');
 {
-  const r = await run('signed-in', { cookies: 'access_token=good;refresh_token=r1', shotDir: process.env.WW_SMOKE_SHOT ?? '' });
+  const r = await run('signed-in', { cookies: 'wewatch-locale=uz;access_token=good;refresh_token=r1', shotDir: process.env.WW_SMOKE_SHOT ?? '' });
   const i = r.get('home-initial');
   check(i?.mode === 'home' && i?.homeVisible === true, 'starts on the native Home');
   check(i?.content === null, 'no web page is loaded while Home is shown (nothing else refreshes the tokens)');
@@ -138,7 +144,7 @@ console.log('--- A: signed in (access token valid)');
 // ---------------------------------------------------------------- B: access token expired -> refresh
 console.log('--- B: access token expired, refresh token valid');
 {
-  const r = await run('refresh', { cookies: 'access_token=old;refresh_token=r1', action: 'home-look' });
+  const r = await run('refresh', { cookies: 'wewatch-locale=uz;access_token=old;refresh_token=r1', action: 'home-look' });
   const i = r.get('look-initial');
   const refreshes = r.calls.filter((c) => c === 'POST /api/auth/refresh').length;
   check(refreshes === 1, `exactly one refresh request (got ${refreshes})`);
@@ -149,7 +155,7 @@ console.log('--- B: access token expired, refresh token valid');
 // ---------------------------------------------------------------- C: signed out
 console.log('--- C: signed out');
 {
-  const r = await run('signed-out', { cookies: '', action: 'home-look', startPath: '/login' });
+  const r = await run('signed-out', { cookies: 'wewatch-locale=uz', action: 'home-look', startPath: '/login' });
   const i = r.get('look-initial');
   check(i?.mode === 'web' && i?.homeVisible === false, 'signed out: the web view takes over');
   check(pathOf(i?.content?.url) === '/login', 'the web login page is shown');
@@ -162,12 +168,45 @@ console.log('--- C: signed out');
 // ---------------------------------------------------------------- D: server down, then retry
 console.log('--- D: server down, then "Qayta urinish"');
 {
-  const r = await run('retry', { cookies: 'access_token=good;refresh_token=r1', action: 'home-retry', downFor: 1 });
+  const r = await run('retry', { cookies: 'wewatch-locale=uz;access_token=good;refresh_token=r1', action: 'home-retry', downFor: 1 });
   const a = r.get('retry-initial');
   check(a?.mode === 'home' && a?.home.message === "Xonalarni yuklab bo'lmadi", 'server error: Home shows "Xonalarni yuklab bo\'lmadi" (no crash, no fall-back to login)');
   check(a?.content === null, 'a server error does not load the web page');
   const b = r.get('retry-after');
   check(b?.home.banner?.title === 'Yulduzlar Jangi', 'after "Qayta urinish" the rooms are shown');
+}
+
+// ---------------------------------------------------------------- E: language + subscription
+console.log('--- E: language follows the web app; subscription is gone');
+{
+  const r = await run('lang', { cookies: 'access_token=good;refresh_token=r1', action: 'lang', startPath: '/settings', startWeb: true, ttl: 25 });
+  const labels = (x) => (x?.shell.items ?? []).map((i) => i.label).join('|');
+  const ru = r.get('lang-ru');
+  check(labels(ru) === 'Главная|Комнаты|Прямые эфиры|Друзья|История|Избранное|Настройки', 'no language cookie -> the web default (Russian): sidebar items');
+  check(ru?.shell.titles.join('|') === 'ОСНОВНОЕ|ДРУЗЬЯ И СООБЩЕСТВО|БИБЛИОТЕКА', 'Russian section titles');
+  check(ru?.shell.items.filter((i) => i.disabled).every((i) => i.title === 'Скоро') && ru?.shell.backLabel === 'Назад' && ru?.shell.htmlLang === 'ru', 'Russian tooltip, button label and page language');
+  check(ru?.content?.planSection === 'none', 'the subscription panel (TARIF / Pro / Payme / Click) is hidden on Settings');
+  check(ru?.content?.otherSection !== 'none' && ru?.content?.otherSection !== null, 'the other Settings panels are still visible');
+  check(ru?.content?.planFetch === 'blocked', "the page's request to the payment API was cancelled");
+  check(!r.calls.some((c) => c.includes('/api/payment')), 'the payment API never reached the server');
+  check(r.ev.some((x) => x.event === 'payment-blocked'), 'the app logged the blocked payment request');
+  const pr = r.get('lang-pricing');
+  check(pathOf(pr?.content?.url) === '/settings' && !r.calls.includes('GET /pricing'), '/pricing cannot be opened (stayed on Settings, server never asked)');
+  const uz = r.get('lang-uz');
+  check(labels(uz) === "Bosh sahifa|Xonalar|Jonli efirlar|Do'stlar|Tarix|Sevimlilar|Sozlamalar", 'switching the web language to Uzbek changes the sidebar at once');
+  check(uz?.shell.titles.join('|') === "ASOSIY|DO'STLAR & HAMJAMIYAT|KUTUBXONA" && uz?.shell.htmlLang === 'uz', 'Uzbek section titles (the approved design)');
+  const en = r.get('lang-en');
+  check(labels(en) === 'Home|Rooms|Live streams|Friends|History|Favorites|Settings', 'switching to English changes the sidebar at once');
+  check(en?.shell.titles.join('|') === 'MAIN|FRIENDS & COMMUNITY|LIBRARY' && en?.shell.items.filter((i) => i.disabled).every((i) => i.title === 'Coming soon'), 'English section titles and tooltip');
+  const he = r.get('lang-home-en');
+  check(he?.mode === 'home', 'the sidebar Home opens the native Home');
+  check(he?.home.banner?.kicker === 'LIVE RIGHT NOW' && he?.home.banner?.join === 'Join' && he?.home.banner?.viewers === '9 watching', 'Home banner in English');
+  check(he?.home.section === 'Active rooms' && he?.home.cards[0]?.button === 'Join' && he?.home.cards[1]?.button === 'Waiting room', 'Home section and buttons in English');
+  check(he?.home.cards.map((c) => c.badge).slice(0, 3).join('|') === 'LIVE|STARTING|PAUSED' && he?.home.cards[0]?.count === '3', 'Home badges and counters in English');
+  check(he?.shell.searchPlaceholder === 'Search', 'search box in English');
+  const hr = r.get('lang-home-ru');
+  check(hr?.home.banner?.kicker === 'СЕЙЧАС В ЭФИРЕ' && hr?.home.banner?.viewers === '9 смотрят' && hr?.home.cards[0]?.count === '3 чел.', 'a language change while Home is shown redraws Home and the sidebar at once (Russian)');
+  check(labels(hr) === 'Главная|Комнаты|Прямые эфиры|Друзья|История|Избранное|Настройки', 'the sidebar followed too');
 }
 
 server.close();
