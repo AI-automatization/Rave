@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@shared/*": ["../../shared/dist/*"],
+      "@shared/types": ["../../shared/dist/types/index"],
+      "@shared/utils/*": ["../../shared/dist/utils/*"],
+      "@shared/middleware/*": ["../../shared/dist/middleware/*"],
+      "@shared/constants": ["../../shared/dist/constants/index"],
+      "@shared/constants/*": ["../../shared/dist/constants/*"]
+    }
+  }
+}

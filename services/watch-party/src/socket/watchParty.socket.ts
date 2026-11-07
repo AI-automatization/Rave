@@ -64,9 +64,11 @@ const checkMsgRateLimit = async (redis: import('ioredis').default, userId: strin
 const INACTIVE_CHECK_INTERVAL_MS = 60 * 1000; // check every 1 minute
 const INACTIVE_THRESHOLD_MINUTES = 5;
 
-export const registerWatchPartySocket = (io: SocketServer, watchPartyService: WatchPartyService, redis: import('ioredis').default): void => {
+export const registerWatchPartySocket = (io: SocketServer, watchPartyService: WatchPartyService, redis: import('ioredis').default, backgroundJobs = true): void => {
   // On startup: close rooms that have been inactive for more than 30 minutes (not ALL rooms)
-  void watchPartyService.closeInactiveRooms(30).then((ids) => {
+  // (skipped when backgroundJobs=false: `media` shadow mode next to the live watch-party service
+  // must not close rooms whose sockets live on the other process.)
+  if (backgroundJobs) void watchPartyService.closeInactiveRooms(30).then((ids) => {
     for (const roomId of ids) {
       void stopSession(roomId);
       io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'inactivity' });
@@ -76,6 +78,7 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
 
   // Auto-close inactive rooms every minute, purge old ended rooms every hour
   const cleanupInterval = setInterval(async () => {
+    if (!backgroundJobs) return;
     try {
       // Single replica (server.ts), so this node's adapter knows every connected socket.
       const isOccupied = (roomId: string) => (io.of('/').adapter.rooms.get(roomId)?.size ?? 0) > 0;
