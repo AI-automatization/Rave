@@ -2,6 +2,8 @@
 // All text is set with textContent / attributes — never innerHTML. Navigation is requested by item id only;
 // the main process decides which URL that means (see src/main/shell.ts).
 
+// Wrapped in a function so this script's names do not collide with the other renderer script (both are plain scripts).
+(() => {
 interface NavItemDto {
   id: string;
   label: string;
@@ -15,12 +17,15 @@ interface ShellState {
   activeId: string | null;
   canGoBack: boolean;
   canGoForward: boolean;
+  searchVisible: boolean;
+  query: string;
 }
 interface ShellBridge {
   model(): Promise<{ sections: SectionDto[]; state: ShellState }>;
   navigate(id: string): Promise<unknown>;
   back(): Promise<unknown>;
   forward(): Promise<unknown>;
+  search(q: string): Promise<unknown>;
   onState(cb: (s: ShellState) => void): () => void;
 }
 
@@ -68,6 +73,7 @@ const bridge = (window as unknown as { wewatchShell: ShellBridge }).wewatchShell
 const nav = document.getElementById('nav') as HTMLElement;
 const backBtn = document.getElementById('back') as HTMLButtonElement;
 const forwardBtn = document.getElementById('forward') as HTMLButtonElement;
+const searchBox = document.getElementById('search') as HTMLInputElement;
 const buttons = new Map<string, HTMLButtonElement>();
 
 function render(sections: SectionDto[]): void {
@@ -106,8 +112,17 @@ function applyState(s: ShellState): void {
   }
   backBtn.disabled = !s.canGoBack;
   forwardBtn.disabled = !s.canGoForward;
+  // The search only exists while the room list is shown. The box belongs to the user: its text is restored from the
+  // main process only when the box comes back into view (e.g. returning from a room), never overwritten while typing.
+  if (s.searchVisible && searchBox.hidden) searchBox.value = s.query;
+  searchBox.hidden = !s.searchVisible;
 }
 
+let searchTimer: number | undefined;
+searchBox.addEventListener('input', () => {
+  window.clearTimeout(searchTimer);
+  searchTimer = window.setTimeout(() => void bridge.search(searchBox.value), 120);
+});
 backBtn.addEventListener('click', () => void bridge.back());
 forwardBtn.addEventListener('click', () => void bridge.forward());
 bridge.onState(applyState);
@@ -115,3 +130,4 @@ void bridge.model().then(({ sections, state }) => {
   render(sections);
   applyState(state);
 });
+})();

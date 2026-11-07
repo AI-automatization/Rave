@@ -56,6 +56,7 @@ async function run(name) {
     env: {
       ...process.env,
       WW_APP_URL: `http://127.0.0.1:${SITE_PORT}/`,
+      WW_START_WEB: '1', // these smokes test the web page's features, not the native Home
       WW_AUTH_URL: `http://127.0.0.1:${AUTH_PORT}/api/v1/auth`,
       WW_AUTH_NO_BROWSER: '1',
       WW_AUTH_POLL_MS: '300',

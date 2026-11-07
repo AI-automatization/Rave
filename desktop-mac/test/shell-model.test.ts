@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  activeNavId, contentBounds, findNavItem, MIN_WINDOW_WIDTH, NAV_SECTIONS, navUrl, shellWindowOptions, SIDEBAR_WIDTH,
+  activeNavId, contentBounds, findNavItem, isHomePath, isNativeItem, MIN_WINDOW_WIDTH, NAV_SECTIONS, navUrl, shellWindowOptions, SIDEBAR_WIDTH,
   TOOLBAR_HEIGHT, webEmbedCss,
 } from '../src/main/shell-model';
 
@@ -19,6 +19,12 @@ describe('NAV_SECTIONS (Stitch Variant 1)', () => {
     expect(routes).toEqual({
       home: '/home', rooms: null, live: null, friends: '/friends', history: null, favorites: null, settings: '/settings',
     });
+  });
+  it('only Bosh sahifa is a native screen (M5.2); the other routed items still open the web page', () => {
+    const native = NAV_SECTIONS.flatMap((s) => s.items).filter((i) => i.native === true).map((i) => i.id);
+    expect(native).toEqual(['home']);
+    expect(isNativeItem('home')).toBe(true);
+    for (const id of ['friends', 'settings', 'rooms', 'evil', undefined, null, 7]) expect(isNativeItem(id)).toBe(false);
   });
   it('has unique ids', () => {
     const ids = NAV_SECTIONS.flatMap((s) => s.items.map((i) => i.id));
@@ -116,5 +122,17 @@ describe('webEmbedCss — hides the web app\'s own navigation inside the content
   });
   it('is plain CSS — no scripts, no urls, no imports', () => {
     expect(css).not.toMatch(/<|@import|url\(|javascript:/i);
+  });
+});
+
+describe('isHomePath — the web content navigated to its own home page', () => {
+  it.each(['https://app.wewatch.uz/home', 'https://app.wewatch.uz/home/', 'https://app.wewatch.uz/home?tab=x#y'])('%s -> true', (u) => {
+    expect(isHomePath(u, APP)).toBe(true);
+  });
+  it.each([
+    'https://app.wewatch.uz/homework', 'https://app.wewatch.uz/', 'https://app.wewatch.uz/friends', 'https://app.wewatch.uz/room/home',
+    'https://app.wewatch.uz/home/x', 'https://evil.example/home', 'https://app.wewatch.uz.evil.example/home', 'about:blank', 'nope', '',
+  ])('%s -> false', (u) => {
+    expect(isHomePath(u, APP)).toBe(false);
   });
 });

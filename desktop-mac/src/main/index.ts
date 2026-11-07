@@ -10,8 +10,8 @@ import { buildMenu } from './menu';
 import { installPermissionPolicy } from './permissions';
 import { chromeUserAgent } from './urls';
 import { clearVbCache, closeVb, protectVbSession } from './vb';
-import { getContentWebContents, inspectShell, smokeShellClick, smokeShellRaw, smokeShots } from './shell';
-import { createMainWindow, focusMainWindow, getMainWindow, sendToMain } from './window';
+import { presetSmokeCookies, runSmokeAction } from './smoke';
+import { createMainWindow, focusMainWindow, getMainWindow, observeContent, sendToMain } from './window';
 
 // Smoke/debug log for automated checks. Development only: devEnv() is '' in the packaged app.
 const SMOKE_OUT = devEnv('WW_SMOKE_OUT');
@@ -20,6 +20,43 @@ const smoke = (event: string, data: Record<string, unknown> = {}): void => {
 };
 
 addDnsSwitches(); // must run before the app is ready
+
+// Smoke/debug observers: the web view is created on demand, so listeners attach whenever one appears.
+let smokeActionDone = false;
+observeContent((content) => {
+  content.on('did-finish-load', () => {
+    const url = content.getURL();
+    void content
+      .executeJavaScript('JSON.stringify({title: document.title, bridge: window.wewatchDesktop ?? null, ua: navigator.userAgent})')
+      .then((r: string) => smoke('loaded', { url, page: JSON.parse(r) as unknown }))
+      .catch((e: unknown) => smoke('loaded-error', { error: String(e) }));
+    if (SMOKE_OUT) {
+      // Cookie attributes only — never values.
+      void session.defaultSession.cookies.get({ url: APP_URL }).then((cs) =>
+        smoke('cookies', {
+          url,
+          cookies: cs.map((c) => ({
+            name: c.name, httpOnly: c.httpOnly, secure: c.secure, sameSite: c.sameSite,
+            ttlSec: c.expirationDate ? Math.round(c.expirationDate - Date.now() / 1000) : null,
+          })),
+        }),
+      );
+      // Smoke action: act like the web app's "Sign in with Google" button (renderer-initiated navigation).
+      if (devEnv('WW_SMOKE_ACTION') === 'google-login' && !smokeActionDone) {
+        smokeActionDone = true;
+        void content.executeJavaScript("location.href = '/api/auth/google/start?redirect=%2Froom%2Fxyz789'");
+      }
+    }
+  });
+  content.on('did-fail-load', (_e, code, desc, url, isMainFrame) => {
+    if (isMainFrame) smoke('load-failed', { code, desc, url });
+  });
+});
+const smokeStarted = (_win: BrowserWindow): void => {
+  const action = devEnv('WW_SMOKE_ACTION');
+  if (SMOKE_OUT && action) runSmokeAction(action, smoke);
+};
+
 
 // No <webview> is ever used — refuse to attach one (a compromised page could otherwise embed one).
 app.on('web-contents-created', (_e, wc) => {
@@ -90,73 +127,12 @@ if (!app.requestSingleInstanceLock()) {
 
     buildMenu();
     registerIpc();
-    const win = createMainWindow(smoke);
-    win.on('closed', () => closeVb()); // the VB belongs to the room window
-    const content = getContentWebContents(); // the web app lives in the content view (next to the native shell)
-    if (!content) throw new Error('content view missing');
-
-    let smokeActionDone = false;
-    content.on('did-finish-load', () => {
-      const url = content.getURL();
-      void content
-        .executeJavaScript('JSON.stringify({title: document.title, bridge: window.wewatchDesktop ?? null, ua: navigator.userAgent})')
-        .then((r: string) => smoke('loaded', { url, page: JSON.parse(r) as unknown }))
-        .catch((e: unknown) => smoke('loaded-error', { error: String(e) }));
-      if (SMOKE_OUT) {
-        // Cookie attributes only — never values.
-        void session.defaultSession.cookies.get({ url: APP_URL }).then((cs) =>
-          smoke('cookies', {
-            url,
-            cookies: cs.map((c) => ({
-              name: c.name, httpOnly: c.httpOnly, secure: c.secure, sameSite: c.sameSite,
-              ttlSec: c.expirationDate ? Math.round(c.expirationDate - Date.now() / 1000) : null,
-            })),
-          }),
-        );
-        // Smoke action: act like the web app's "Sign in with Google" button (renderer-initiated navigation).
-        if (devEnv('WW_SMOKE_ACTION') === 'google-login' && !smokeActionDone) {
-          smokeActionDone = true;
-          void content.executeJavaScript("location.href = '/api/auth/google/start?redirect=%2Froom%2Fxyz789'");
-        }
-      }
-    });
-    content.on('did-fail-load', (_e, code, desc, url, isMainFrame) => {
-      if (isMainFrame) smoke('load-failed', { code, desc, url });
-    });
-
-    if (SMOKE_OUT && devEnv('WW_SMOKE_ACTION') === 'shell') {
-      // Drive the native shell like a user would, and record what is on screen after each step.
-      const look = (event: string): Promise<void> =>
-        inspectShell().then((r) => smoke(event, { inspect: r }), (e: unknown) => smoke(`${event}-error`, { error: String(e) }));
-      const wait = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
-      void (async () => {
-        await wait(2500);
-        await look('shell-initial');
-        const shotDir = devEnv('WW_SMOKE_SHOT');
-        if (shotDir) await smokeShots(shotDir);
-        await smokeShellClick('[data-id="friends"]');
-        await wait(1200);
-        await look('shell-friends');
-        await smokeShellClick('[data-id="settings"]');
-        await wait(1200);
-        await look('shell-settings');
-        await smokeShellClick('[data-id="rooms"]'); // disabled item: must do nothing
-        await wait(600);
-        await look('shell-rooms-click');
-        // Hostile ids through the real bridge: only known sidebar ids may navigate.
-        const replies: unknown[] = [];
-        for (const bad of ['evil', 'https://evil.example/', '__proto__', 'rooms', 42, null]) replies.push(await smokeShellRaw(bad));
-        await wait(600);
-        smoke('shell-hostile-ids', { replies });
-        await look('shell-after-hostile');
-        await smokeShellClick('#back');
-        await wait(1200);
-        await look('shell-back');
-        await smokeShellClick('#forward');
-        await wait(1200);
-        await look('shell-forward');
-      })();
-    }
+    void (async () => {
+      if (SMOKE_OUT) await presetSmokeCookies(); // fake session cookies for smoke runs (dev only)
+      const win = createMainWindow(smoke);
+      win.on('closed', () => closeVb()); // the VB belongs to the room window
+      smokeStarted(win);
+    })();
 
     flushPendingDeepLink();
     handleDeepLink(process.argv.find((a) => a.toLowerCase().startsWith(`${PROTOCOL}://`)));

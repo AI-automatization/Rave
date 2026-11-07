@@ -27,7 +27,7 @@ const out = path.join(os.tmpdir(), `ww-m5-${Date.now()}.jsonl`);
 fs.writeFileSync(out, '');
 const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'ww-m5-ud-'));
 const child = spawn(electronBin, [root, `--user-data-dir=${userData}`], {
-  env: { ...process.env, WW_APP_URL: `http://127.0.0.1:${SITE_PORT}/home`, WW_SMOKE_OUT: out, WW_SMOKE_TTL: '16', WW_SMOKE_ACTION: 'shell' },
+  env: { ...process.env, WW_APP_URL: `http://127.0.0.1:${SITE_PORT}/home`, WW_START_WEB: '1', WW_SMOKE_OUT: out, WW_SMOKE_TTL: '16', WW_SMOKE_ACTION: 'shell' },
   stdio: 'ignore',
 });
 await new Promise((r) => child.on('exit', r));
@@ -47,7 +47,7 @@ check(init?.shell.titles.join('|') === "ASOSIY|DO'STLAR & HAMJAMIYAT|KUTUBXONA",
 check(items.filter((i) => i.disabled).map((i) => i.id).join(',') === 'rooms,live,history,favorites', 'items without a web page are disabled');
 check(items.find((i) => i.active)?.id === 'home', 'Bosh sahifa is active on /home');
 check(init?.shell.backDisabled === true && init?.shell.forwardDisabled === true, 'back/forward disabled at start');
-check(init?.shell.bridgeKeys.sort().join(',') === 'back,forward,model,navigate,onState', 'shell bridge exposes exactly model/navigate/back/forward/onState');
+check(init?.shell.bridgeKeys.sort().join(',') === 'back,forward,model,navigate,onState,search', 'shell bridge exposes exactly model/navigate/back/forward/search/onState');
 check(init?.shell.webBridge === 'undefined', 'shell has NO web-app bridge (wewatchDesktop)');
 check(init?.content.shellBridge === 'undefined', 'web content has NO shell bridge (wewatchShell)');
 check(init?.content.desktopBridge === 'object', 'web content still has the wewatchDesktop bridge');

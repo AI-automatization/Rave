@@ -15,6 +15,8 @@ export interface NavItem {
   readonly label: string;
   /** Existing web page this item opens, or null when the web app has no such page yet (item is shown but not clickable). */
   readonly route: string | null;
+  /** True when the app draws this screen itself (M5.2). `route` then stays as the web fallback (e.g. when signed out). */
+  readonly native?: true;
 }
 export interface NavSection {
   readonly title: string;
@@ -27,7 +29,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
   {
     title: 'ASOSIY',
     items: [
-      { id: 'home', label: 'Bosh sahifa', route: '/home' },
+      { id: 'home', label: 'Bosh sahifa', route: '/home', native: true },
       { id: 'rooms', label: 'Xonalar', route: null },
       { id: 'live', label: 'Jonli efirlar', route: null },
     ],
@@ -55,6 +57,11 @@ export function findNavItem(id: unknown): NavItem | null {
   return typeof id === 'string' ? BY_ID.get(id) ?? null : null;
 }
 
+/** Does this sidebar item open one of the app's own (native) screens instead of a web page? */
+export function isNativeItem(id: unknown): boolean {
+  return findNavItem(id)?.native === true;
+}
+
 /** Absolute URL (always on the app origin) for a sidebar item, or null if it has no page / the id is unknown. */
 export function navUrl(id: unknown, appUrl: string): string | null {
   const item = findNavItem(id);
@@ -78,6 +85,16 @@ export function activeNavId(url: string, appUrl: string): NavItemId | null {
     if (item.route && (path === item.route || path.startsWith(`${item.route}/`))) return item.id;
   }
   return null;
+}
+
+/** Is this exactly the web app's own home page (/home, optional trailing slash, query ok — not /home/x or /homework)? */
+export function isHomePath(url: string, appUrl: string): boolean {
+  try {
+    const u = new URL(url);
+    return u.origin === new URL(appUrl).origin && u.pathname.replace(/\/+$/, '') === '/home';
+  } catch {
+    return false;
+  }
 }
 
 export interface Bounds {

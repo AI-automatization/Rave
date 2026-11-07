@@ -139,6 +139,50 @@ button {
 .tool[disabled] {
   opacity: 0.35;
 }
+.search-wrap {
+  position: absolute;
+  right: 14px;
+  display: flex;
+  align-items: center;
+  -webkit-app-region: no-drag;
+}
+.search-wrap svg {
+  position: absolute;
+  left: 8px;
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: var(--text-3);
+  stroke-width: 2;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.search-wrap:has(#search[hidden]) svg {
+  display: none;
+}
+#search {
+  width: 200px;
+  height: 26px;
+  padding: 0 8px 0 28px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font: inherit;
+  -webkit-user-select: text;
+  user-select: text;
+}
+#search::placeholder {
+  color: var(--text-3);
+}
+#search:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.35);
+}
+#search::-webkit-search-cancel-button {
+  display: none;
+}
 .brand {
   display: flex;
   align-items: center;

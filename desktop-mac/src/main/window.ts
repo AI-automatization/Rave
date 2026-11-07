@@ -1,12 +1,21 @@
 import { BrowserWindow, shell } from 'electron';
 import path from 'node:path';
 import { startBrowserLogin, type Log } from './auth';
-import { APP_ORIGIN, APP_URL, IN_APP_HOSTS } from './config';
-import { attachShell, getContentWebContents } from './shell';
+import { APP_ORIGIN, devEnv, IN_APP_HOSTS } from './config';
+import { attachShell, getContentWebContents, openInApp, startApp } from './shell';
 import { shellWindowOptions } from './shell-model';
 import { isGoogleStartUrl, isSafeExternalUrl, keepInApp } from './urls';
 
 let mainWin: BrowserWindow | null = null;
+
+// Observers (smoke/debug) that want to see every content view when it is created.
+const contentObservers: Array<(wc: Electron.WebContents) => void> = [];
+export const observeContent = (cb: (wc: Electron.WebContents) => void): void => {
+  contentObservers.push(cb);
+};
+const onContentCreated = (wc: Electron.WebContents): void => {
+  for (const cb of contentObservers) cb(wc);
+};
 
 export const getMainWindow = (): BrowserWindow | null => (mainWin && !mainWin.isDestroyed() ? mainWin : null);
 
@@ -22,13 +31,46 @@ export function createMainWindow(log: Log = () => {}): BrowserWindow {
   });
   mainWin = win;
 
-  const { shell: shellView, content } = attachShell(win, {
-    preload: path.join(__dirname, '..', 'preload', 'index.js'),
-    sandbox: true,
-    contextIsolation: true,
-    nodeIntegration: false,
+  // Google sign-in never runs inside the app: the login button goes to <app>/api/auth/google/start,
+  // which we take over and run through the system browser (see auth.ts). After sign-in the post-login page is
+  // opened through openInApp: /home -> the native Home, anything else -> the web view.
+  const googleLogin = (url: string): void => {
+    void startBrowserLogin(new URL(url).searchParams.get('redirect'), win, log, openInApp);
+  };
+  // The content (web) view only ever shows our own site; everything else opens in the system browser,
+  // and only http(s)/mailto may be handed to the OS. Runs for every content view, as it is created on demand.
+  const guardContent = (wc: Electron.WebContents): void => {
+    wc.setWindowOpenHandler(({ url }) => {
+      if (isGoogleStartUrl(url, APP_ORIGIN)) googleLogin(url);
+      else if (!keepInApp(url, IN_APP_HOSTS)) openExternal(url);
+      return { action: 'deny' };
+    });
+    const leaveApp = (e: { preventDefault(): void }, url: string, isMainFrame = true): void => {
+      if (!isMainFrame) return;
+      if (isGoogleStartUrl(url, APP_ORIGIN)) {
+        e.preventDefault();
+        googleLogin(url);
+        return;
+      }
+      if (!keepInApp(url, IN_APP_HOSTS)) {
+        e.preventDefault();
+        openExternal(url);
+      }
+    };
+    wc.on('will-navigate', (e, url) => leaveApp(e, url));
+    wc.on('will-redirect', (e, url, _inPlace, isMainFrame) => leaveApp(e, url, isMainFrame));
+    onContentCreated(wc);
+  };
+
+  const { shell: shellView } = attachShell(win, {
+    contentPrefs: {
+      preload: path.join(__dirname, '..', 'preload', 'index.js'),
+      sandbox: true,
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+    onContent: guardContent,
   });
-  const wc = content.webContents;
 
   // Show once the shell has painted (the window's own empty page may never fire ready-to-show); fallback timer
   // so a broken shell can never leave the app invisible.
@@ -41,37 +83,11 @@ export function createMainWindow(log: Log = () => {}): BrowserWindow {
   shellView.webContents.once('did-finish-load', showWindow);
   setTimeout(showWindow, 3000);
 
-  // The content view only ever shows our own site; everything else opens in the system browser,
-  // and only http(s)/mailto may be handed to the OS.
-  // Google sign-in never runs inside the app: the login button goes to <app>/api/auth/google/start,
-  // which we take over and run through the system browser (see auth.ts).
-  const googleLogin = (url: string): void => {
-    void startBrowserLogin(new URL(url).searchParams.get('redirect'), win, log, (u) => wc.loadURL(u));
-  };
-  wc.setWindowOpenHandler(({ url }) => {
-    if (isGoogleStartUrl(url, APP_ORIGIN)) googleLogin(url);
-    else if (!keepInApp(url, IN_APP_HOSTS)) openExternal(url);
-    return { action: 'deny' };
-  });
-  const leaveApp = (e: { preventDefault(): void }, url: string, isMainFrame = true): void => {
-    if (!isMainFrame) return;
-    if (isGoogleStartUrl(url, APP_ORIGIN)) {
-      e.preventDefault();
-      googleLogin(url);
-      return;
-    }
-    if (!keepInApp(url, IN_APP_HOSTS)) {
-      e.preventDefault();
-      openExternal(url);
-    }
-  };
-  wc.on('will-navigate', (e, url) => leaveApp(e, url));
-  wc.on('will-redirect', (e, url, _inPlace, isMainFrame) => leaveApp(e, url, isMainFrame));
-
   win.on('closed', () => {
     if (mainWin === win) mainWin = null;
   });
-  void wc.loadURL(APP_URL);
+  // First screen: the native Home (dev/smoke can start on the web page: WW_START_WEB=1, ignored when packaged).
+  startApp(devEnv('WW_START_WEB') === '1');
   return win;
 }
 
