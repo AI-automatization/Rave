@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { installCapture } from './capture';
 import { APP_URL, devEnv, PROTOCOL } from './config';
 import { flushPendingDeepLink, handleDeepLink, queueDeepLink } from './deeplink';
+import { addDnsSwitches, configureDns } from './dns';
 import { registerIpc } from './ipc';
 import { buildMenu } from './menu';
 import { installPermissionPolicy } from './permissions';
@@ -16,6 +17,13 @@ const SMOKE_OUT = devEnv('WW_SMOKE_OUT');
 const smoke = (event: string, data: Record<string, unknown> = {}): void => {
   if (SMOKE_OUT) fs.appendFileSync(SMOKE_OUT, JSON.stringify({ t: new Date().toISOString(), event, ...data }) + '\n');
 };
+
+addDnsSwitches(); // must run before the app is ready
+
+// No <webview> is ever used — refuse to attach one (a compromised page could otherwise embed one).
+app.on('web-contents-created', (_e, wc) => {
+  wc.on('will-attach-webview', (e) => e.preventDefault());
+});
 
 // macOS delivers wewatch:// links through `open-url`, possibly before `ready`.
 app.on('open-url', (event, url) => {
@@ -63,6 +71,14 @@ if (!app.requestSingleInstanceLock()) {
       }
     });
 
+    configureDns();
+    if (SMOKE_OUT) {
+      const t0 = Date.now();
+      void session.defaultSession.resolveHost('example.com').then(
+        (r) => smoke('resolve', { ok: true, endpoints: r.endpoints.length, ms: Date.now() - t0 }),
+        (e: unknown) => smoke('resolve', { ok: false, error: String(e), ms: Date.now() - t0 }),
+      );
+    }
     installPermissionPolicy();
     installCapture();
     protectVbSession((url, reason) => {

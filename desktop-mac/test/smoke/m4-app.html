@@ -1,0 +1,23 @@
+<!doctype html><meta charset="utf-8"><title>FAKE-WEB-APP-M4</title>
+<body style="font:13px monospace;background:#111;color:#ccc;padding:8px">fake WeWatch web app (M4 smoke)
+<script>
+const report = (step, data) => fetch('/report', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ step, data }) }).catch(() => {});
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+(async () => {
+  const b = window.wewatchDesktop;
+  // 1) a film site: ads must be cancelled, normal resources must load
+  report('open-film', await b.vb.open('http://127.0.0.1:8127/film.html'));
+  await sleep(4500);
+  report('metrics-film', await b.vb.metrics());
+  // 2) YouTube: its ads are kept (product decision, YouTube terms)
+  report('open-yt', await b.vb.open('http://youtu.be:8129/watch'));
+  await sleep(3500);
+  report('metrics-yt', await b.vb.metrics());
+  // 3) a webview must never attach
+  const wv = document.createElement('webview'); wv.src = 'http://127.0.0.1:8127/film.html'; document.body.appendChild(wv);
+  await sleep(500);
+  report('webview', { attached: !!(wv.getWebContentsId && (() => { try { return wv.getWebContentsId(); } catch { return 0; } })()) });
+  await b.vb.close();
+  report('done', {});
+})().catch((e) => { report('fatal', String(e)); report('done', {}); });
+</script>

@@ -1,7 +1,7 @@
 import { app, ipcMain, type IpcMainInvokeEvent } from 'electron';
 import { APP_ORIGIN } from './config';
 import { isAppOrigin } from './urls';
-import { closeVb, focusVb, openVb, type VbResult } from './vb';
+import { closeVb, focusVb, getAdsBlocked, openVb, type VbResult } from './vb';
 
 type Result = VbResult | ({ ok: true } & Record<string, unknown>);
 
@@ -26,6 +26,7 @@ export function registerIpc(): void {
         ramMb: Math.round(m.reduce((s, p) => s + (p.memory.workingSetSize || 0), 0) / 1024),
         cpu: Math.round(m.reduce((s, p) => s + (p.cpu.percentCPUUsage || 0), 0)),
         processes: m.length,
+        adsBlocked: getAdsBlocked(),
       };
     }),
   );

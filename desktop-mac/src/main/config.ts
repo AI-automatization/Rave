@@ -16,6 +16,10 @@ export const PROTOCOL = 'wewatch';
 // the old domains are kept alive by the core merge (#268), so this one keeps working meanwhile.
 const DEFAULT_AUTH_URL = 'https://auth-production-47a8.up.railway.app/api/v1/auth';
 export const AUTH_URL = (devEnv('WW_AUTH_URL') || DEFAULT_AUTH_URL).replace(/\/+$/, '');
+// DNS-over-HTTPS (dns.ts). The env overrides exist so the smoke test can prove the DoH path is really used.
+export const DOH_URL = devEnv('WW_DOH_URL') || 'https://cloudflare-dns.com/dns-query';
+export const DOH_MODE: 'automatic' | 'secure' = devEnv('WW_DOH_MODE') === 'secure' ? 'secure' : 'automatic';
+
 /** Dev/smoke only: do not open the system browser (the smoke test has no human to click Google). */
 export const AUTH_NO_BROWSER = devEnv('WW_AUTH_NO_BROWSER') === '1';
 export const AUTH_POLL_MS = Number(devEnv('WW_AUTH_POLL_MS')) || 2000;

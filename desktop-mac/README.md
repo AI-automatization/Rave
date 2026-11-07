@@ -3,7 +3,7 @@
 Mac uchun WeWatch klient: veb-ilova (`app.wewatch.uz`) oynada, plus Virtual Browser (VB) egasining kompyuterida,
 VB oynasi **faqat o'z ovozi bilan** WebRTC orqali xonaga uzatiladi (server faqat signalling).
 
-Holat: **M2 + M2b + M3** (oyna, menyu, deep link, Google login, Virtual Browser oynasi, VB ni ovozi bilan ulashish). Reklama bloki/DoH (M4) va UX ekranlari (M5) hali yo'q.
+Holat: **M2 + M2b + M3 + M4** (oyna, menyu, deep link, Google login, Virtual Browser, ovoz bilan ulashish, reklama bloki, DoH). UX ekranlari (M5) va DMG (M6) hali yo'q.
 
 ```bash
 cd desktop-mac
@@ -11,6 +11,7 @@ npm install
 node node_modules/electron/install.js   # electron binarini yuklaydi (npm postinstall ba'zan o'tkazib yuboradi)
 npm run typecheck && npm test && npm run build
 npm run smoke:m2b          # haqiqiy Electron + soxta auth server: Google login oqimi (internet/Google kerak emas)
+npm run smoke:m4           # reklama bloki, YouTube istisnosi, VB ruxsatlari/UA, DNS-over-HTTPS (DoH qismi internet talab qiladi)
 npm run smoke:m3           # haqiqiy Electron + soxta veb-ilova: VB ochish + WebRTC orqali ulashish, ovoz/video o'lchovi (~1.5 daq, ovoz eshitiladi)
 npm start                  # app.wewatch.uz
 npm run dev                # lokal app-web :3000 ga qarshi
@@ -21,7 +22,8 @@ npm run dev                # lokal app-web :3000 ga qarshi
 
 ## Tuzilma
 ```
-src/main/    index.ts (kirish) window.ts deeplink.ts menu.ts ipc.ts config.ts auth.ts vb.ts capture.ts permissions.ts urls.ts (sof mantiq, test qilinadi)
+src/main/    index.ts (kirish) window.ts deeplink.ts menu.ts ipc.ts config.ts auth.ts vb.ts capture.ts permissions.ts dns.ts
+             urls.ts adblock.ts (sof mantiq, unit test qilinadi)
 src/preload/ index.ts  → window.wewatchDesktop { platform:'macos', version:1, vb:{open,close,focus,onState,onBlocked,metrics} }
 test/        urls.test.ts (vitest)
 ```
@@ -47,6 +49,18 @@ veb bilan bir xil httpOnly cookie'larga (`access_token` 15 daq, `refresh_token` 
 Serverda o'zgarish kerak emas. Auth manzili `src/main/config.ts` (`DEFAULT_AUTH_URL`, `api.wewatch.uz` ishlaganda almashtiriladi).
 `redirect` faqat `/` bilan boshlanadigan yo'l (`//evil.com` rad etiladi) — Polatning Windows kodidagi bo'shliq yopilgan.
 
+## Xavfsizlik va tarmoq (M4)
+- **Reklama bloki** (`adblock.ts`, `vb.ts`): reklama tarmoqlari VB'da tarmoq darajasida bekor qilinadi (har qanday resurs turi; popunder, pre-roll,
+  tracker). Ro'yxat — Windows versiya bilan bir xil (faqat reklama domenlari; CDN/pleyer SDK yo'q, `rtbcdn.ru` Rutube'ning o'z CDN'i — bloklanmaydi).
+  **YouTube sahifalarida reklama saqlanadi** (mahsulot qarori, YouTube shartlari). Bloklangan soni `vb.metrics().adsBlocked` da.
+- **VB profili:** UA'da "Electron/WeWatch" yo'q; kamera/mik/lokatsiya/bildirishnoma rad etiladi.
+- **DNS-over-HTTPS** (`dns.ts`): butun ilova uchun Cloudflare DoH. Windows'dan FARQI: rejim `automatic` (DoH birinchi, tizim DNS zaxira),
+  `secure` emas — DoH serveri bloklangan tarmoqda ilova butunlay ishlamay qolmasligi uchun. `UseDnsHttpsSvcb*` o'chirilgan (Windows'da websocket
+  reset bo'lgan; macOS'da tasdiqlanmagan, zararsiz).
+- Sinalgan: smoke:m4 — reklama so'rovlari serverga yetmaydi, oddiy CDN yuklanadi, YouTube reklamasi saqlanadi, `secure` rejim + o'lik DoH → DNS yiqiladi
+  (DoH yo'lda ekanini isbotlaydi), `automatic` → zaxiraga o'tadi.
+- Sinalmagan: haqiqiy reklama tarmoqlari/kino saytlari; `will-attach-webview` handleri (`webviewTag` sukut bo'yicha o'chiq — ikkinchi qulf).
+
 ## Hozircha YO'Q (reja bo'yicha)
-Reklama bloki/DoH (M4), UX ekranlari (M5), DMG (M6), picker (M9).
+UX ekranlari (M5), DMG (M6), picker (M9).
 macOS'da `open-url` deep linki paketlangan ilovada sinaladi (M6); dev'da `second-instance` argv orqali sinalgan.

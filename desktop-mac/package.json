@@ -12,6 +12,7 @@
     "test": "vitest run",
     "smoke:m2b": "npm run build && node test/smoke/m2b.mjs",
     "smoke:m3": "npm run build && node test/smoke/m3.mjs",
+    "smoke:m4": "npm run build && node test/smoke/m4.mjs",
     "start": "npm run build && electron .",
     "dev": "npm run build && WW_APP_URL=http://localhost:3000 electron ."
   },

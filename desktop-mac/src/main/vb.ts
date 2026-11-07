@@ -3,7 +3,8 @@
 // no server-side Chromium. The app window only ever talks to it through the origin-guarded IPC.
 import { BrowserWindow, session, type WebContents } from 'electron';
 import { devEnv } from './config';
-import { checkVbUrl, failPageUrl, sameSite } from './urls';
+import { shouldBlockAd } from './adblock';
+import { checkVbUrl, chromeUserAgent, failPageUrl, sameSite } from './urls';
 import { focusMainWindow, sendToMain } from './window';
 
 export const VB_PARTITION = 'persist:vb'; // own cookies/cache — never touches the app session
@@ -20,15 +21,25 @@ const VB_PERMISSIONS: ReadonlySet<string> = new Set([
 export type VbResult = { ok: true } | { ok: false; reason: string };
 
 let vbWin: BrowserWindow | null = null;
+let adsBlocked = 0;
+/** Ad requests cancelled since the app started (shown in vb.metrics). */
+export const getAdsBlocked = (): number => adsBlocked;
 export const getVbWindow = (): BrowserWindow | null => (vbWin && !vbWin.isDestroyed() ? vbWin : null);
 
-/** Session rules for the VB profile. M4 adds the ad-network list and DoH on top of this. */
+/** Session rules for the VB profile: no "Electron" in the UA, ad networks cancelled, http(s)-only navigations, no sensitive permissions. */
 export function protectVbSession(onBlocked: (url: string, reason: string) => void): void {
   const ses = session.fromPartition(VB_PARTITION);
+  // Sites inside the VB must not see "Electron" either (some refuse to play for unknown browsers).
+  ses.setUserAgent(chromeUserAgent(ses.getUserAgent()));
   ses.setPermissionRequestHandler((_wc, perm, cb) => cb(VB_PERMISSIONS.has(perm)));
   ses.setPermissionCheckHandler((_wc, perm) => VB_PERMISSIONS.has(perm));
   // One onBeforeRequest per session (a second call replaces the first) — all URL rules live here.
   ses.webRequest.onBeforeRequest((details, cb) => {
+    // Ad networks: any resource type, so popunder pages, pre-roll videos and trackers never load.
+    if (shouldBlockAd(details.url, details.webContents?.getURL() || details.referrer || '')) {
+      adsBlocked++;
+      return cb({ cancel: true });
+    }
     // Page and frame navigations only — images/scripts are left alone (never breaks a CDN).
     if (details.resourceType !== 'mainFrame' && details.resourceType !== 'subFrame') return cb({});
     // Our own error page is a data: load we start ourselves; cancelling it would leave the view black.
