@@ -16,6 +16,7 @@ import { useTranslations } from 'next-intl';
 import { Play, Users } from 'lucide-react';
 import { avatarColor } from '@/lib/utils';
 import type { IWatchPartyRoom } from '@/types';
+import { AvatarImg } from '@/components/ui/AvatarImg';
 
 const MAX_AVATARS = 4;
 
@@ -92,7 +93,7 @@ export function LiveSpotlight({ room }: { room: IWatchPartyRoom }) {
                       style={{ background: `${color}45`, color: '#fff' }}
                     >
                       {avatar ? (
-                        <img src={avatar} alt="" className="h-full w-full object-cover" />
+                        <AvatarImg src={avatar} alt="" className="h-full w-full object-cover" />
                       ) : (
                         (name?.[0]?.toUpperCase() ?? '·')
                       )}
