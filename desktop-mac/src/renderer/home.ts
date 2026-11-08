@@ -46,6 +46,22 @@ interface HomeStrings {
   sortViewers: string;
   sortNewest: string;
   owner: string;
+  greetingMorning: string;
+  greetingDay: string;
+  greetingEvening: string;
+  greetingGuest: string;
+  friendsOnline: string;
+  noFriendsOnline: string;
+  create: string;
+  step1: string;
+  step2: string;
+  step3: string;
+  startTitle: string;
+  startSub: string;
+  quickCreate: string;
+  quickJoin: string;
+  startSources: string;
+  startDirect: string;
 }
 interface HomeDataDto {
   strings: HomeStrings; // every word on this screen, in the language of the web app (sent by the main process)
@@ -59,6 +75,7 @@ interface HomeDataDto {
   query: string;
   trending: WatchCardDto[];
   history: WatchCardDto[];
+  head: { greeting: 'morning' | 'day' | 'evening' | 'guest'; name: string | null; online: number };
 }
 interface HomeBridge {
   ready(): Promise<unknown>;
@@ -66,6 +83,8 @@ interface HomeBridge {
   retry(): Promise<unknown>;
   watch(kind: string, index: number): Promise<{ ok: boolean; reason?: string }>;
   sort(key: string): Promise<unknown>;
+  newRoom(): Promise<unknown>;
+  join(): Promise<unknown>;
   onData(cb: (d: HomeDataDto) => void): () => void;
 }
 
@@ -300,6 +319,102 @@ function sectionHead(title: string, sub: string, d: HomeDataDto | null, S: HomeS
   return head;
 }
 
+// ---- Bosh sahifa: the web Home's header and "start" block (components/home/StartHero.tsx) ----
+
+function icon(paths: string[], circle?: [number, number, number]): SVGSVGElement {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('class', 'ico');
+  if (circle) {
+    const c = document.createElementNS(SVG_NS, 'circle');
+    c.setAttribute('cx', String(circle[0]));
+    c.setAttribute('cy', String(circle[1]));
+    c.setAttribute('r', String(circle[2]));
+    svg.appendChild(c);
+  }
+  for (const d of paths) {
+    const p = document.createElementNS(SVG_NS, 'path');
+    p.setAttribute('d', d);
+    svg.appendChild(p);
+  }
+  return svg;
+}
+const plusIcon = (): SVGSVGElement => icon(['M12 5v14', 'M5 12h14']);
+const joinIcon = (): SVGSVGElement => icon(['M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4', 'M10 17l5-5-5-5', 'M15 12H3']);
+const linkIcon = (): SVGSVGElement => icon(['M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7', 'M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7']);
+
+function actionButton(cls: string, ic: SVGSVGElement, label: string, run: () => void): HTMLButtonElement {
+  const b = el('button', cls);
+  b.append(ic, el('span', undefined, label));
+  b.addEventListener('click', run);
+  return b;
+}
+
+function homeHeader(d: HomeDataDto, S: HomeStrings): HTMLElement {
+  const h = el('header', 'home-head');
+  const text = el('div', 'home-head-text');
+  const g = d.head.greeting;
+  const line = g === 'guest' || !d.head.name ? S.greetingGuest : (g === 'morning' ? S.greetingMorning : g === 'day' ? S.greetingDay : S.greetingEvening).replace('{n}', d.head.name);
+  text.appendChild(el('h1', undefined, line));
+  const sub = el('p', 'home-head-sub');
+  if (d.head.online > 0) {
+    sub.appendChild(el('span', 'online-dot'));
+    sub.appendChild(document.createTextNode(fill(S.friendsOnline, d.head.online)));
+  } else {
+    sub.textContent = S.noFriendsOnline;
+  }
+  text.appendChild(sub);
+  const actions = el('div', 'home-head-actions');
+  actions.append(
+    actionButton('btn ghost', joinIcon(), S.join, () => void bridge.join()),
+    actionButton('btn primary', plusIcon(), S.create, () => void bridge.newRoom()),
+  );
+  h.append(text, actions);
+  return h;
+}
+
+const SOURCES: ReadonlyArray<[string, string]> = [['YouTube', '#ff0000'], ['VK Video', '#0077ff'], ['Rutube', '#ff6600']];
+
+/** Shown instead of the live banner when no room is playing: the three steps, two actions, the supported sources. */
+function startHero(S: HomeStrings): HTMLElement {
+  const sec = el('section', 'hero');
+  const steps = el('ol', 'hero-steps');
+  [S.step1, S.step2, S.step3].forEach((label, i) => {
+    const li = el('li');
+    if (i > 0) li.appendChild(el('span', 'arrow', '→'));
+    li.append(el('span', 'num', String(i + 1)), document.createTextNode(label));
+    steps.appendChild(li);
+  });
+  sec.appendChild(steps);
+  const body = el('div', 'hero-body');
+  body.appendChild(el('h2', undefined, S.startTitle));
+  body.appendChild(el('p', 'hero-sub', S.startSub));
+  const actions = el('div', 'hero-actions');
+  actions.append(
+    actionButton('btn primary big', plusIcon(), S.quickCreate, () => void bridge.newRoom()),
+    actionButton('btn ghost big', joinIcon(), S.quickJoin, () => void bridge.join()),
+  );
+  body.appendChild(actions);
+  const sources = el('div', 'hero-sources');
+  sources.appendChild(el('span', 'hero-sources-label', S.startSources));
+  const chips = el('div', 'chips');
+  for (const [label, color] of SOURCES) {
+    const chip = el('span', 'chip');
+    const dot = el('span', 'chip-dot');
+    dot.style.setProperty('background', color); // CSSOM, not a style attribute (CSP)
+    chip.append(dot, document.createTextNode(label));
+    chips.appendChild(chip);
+  }
+  const direct = el('span', 'chip');
+  direct.append(linkIcon(), document.createTextNode(S.startDirect));
+  chips.appendChild(direct);
+  sources.appendChild(chips);
+  body.appendChild(sources);
+  sec.appendChild(body);
+  return sec;
+}
+
 function render(d: HomeDataDto): void {
   const S = d.strings;
   const scroll = window.scrollY;
@@ -320,18 +435,17 @@ function render(d: HomeDataDto): void {
     return;
   }
   const hasRails = d.trending.length > 0 || d.history.length > 0;
-  if (d.total === 0) {
+  const homeIdle = d.screen === 'home' && d.query.trim() === ''; // Bosh sahifa, no search: header + banner-or-start-block + rails
+  if (homeIdle) {
+    root.appendChild(homeHeader(d, S));
+    root.appendChild(d.spotlight ? banner(d.spotlight, S) : startHero(S));
+  } else if (d.total === 0) {
     root.appendChild(message(S.emptyTitle, S.emptyDesc, undefined, hasRails));
   } else if (!d.spotlight && d.rooms.length === 0) {
-    // Bosh sahifa without a playing room has no banner but still has its rails; only a search / room list can be "empty".
-    if (d.screen === 'home' && d.query.trim() === '' && hasRails) {
-      /* fall through: show the rails */
-    } else {
-      root.appendChild(message(S.noMatch));
-      return;
-    }
+    root.appendChild(message(S.noMatch));
+    return;
   }
-  if (d.spotlight) root.appendChild(banner(d.spotlight, S));
+  if (!homeIdle && d.spotlight) root.appendChild(banner(d.spotlight, S));
   if (d.rooms.length > 0) {
     root.appendChild(sectionHead(S.sectionTitle, S.sectionSub, d, S));
     const grid = el('div', 'grid');

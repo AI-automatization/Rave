@@ -5,7 +5,7 @@
 import { session } from 'electron';
 import { APP_URL } from './config';
 import {
-  conflictRoomId, createdRoomId, createRoomApiUrl, friendsApiUrl, meApiUrl, parseFriendsCount, parseRooms, parseUsername, parseWatchItems, railApiUrl,
+  conflictRoomId, createdRoomId, createRoomApiUrl, friendsApiUrl, meApiUrl, parseFriendsCount, parseOnlineFriends, parseRooms, parseUsername, parseWatchItems, railApiUrl,
   refreshApiUrl, roomPlayUrl, roomsApiUrl, roomUrl, userApiUrl, watchPayload, type Rails, type RoomCard, type WatchItem,
 } from './rooms-model';
 
@@ -96,9 +96,11 @@ export async function loadMeName(): Promise<string | null> {
   return parseUsername(await getJson(meApiUrl(APP_URL)));
 }
 
-/** How many friends the user has (count next to "Do'stlar"). */
-export async function loadFriendsCount(): Promise<number | null> {
-  return parseFriendsCount(await getJson(friendsApiUrl(APP_URL)));
+/** How many friends the user has (count next to "Do'stlar") and how many of them are online (Bosh sahifa header). */
+export async function loadFriends(): Promise<{ count: number; online: number } | null> {
+  const body = await getJson(friendsApiUrl(APP_URL));
+  const count = parseFriendsCount(body);
+  return count === null ? null : { count, online: parseOnlineFriends(body) ?? 0 };
 }
 
 /** A room owner's name ("Xona egasi: ..."). Only the user name is read from the profile. */

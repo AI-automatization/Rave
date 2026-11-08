@@ -437,3 +437,178 @@ button {
 .grid .watch {
   width: auto;
 }
+
+/* ---- Bosh sahifa: header ("Salom, <name>") and the start block (web: components/home/StartHero.tsx) ---- */
+.home-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 26px;
+}
+.home-head h1 {
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+.home-head-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  color: var(--text-3);
+  font-size: 13px;
+}
+.online-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+}
+.home-head-actions,
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.home-head .btn,
+.hero .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+.btn.ghost {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+.btn.ghost:hover {
+  background: rgba(255, 255, 255, 0.1);
+  filter: none;
+}
+.btn.big {
+  height: 46px;
+  padding: 0 22px;
+  font-size: 15px;
+}
+.ico {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 32px;
+  min-height: 340px;
+  margin-bottom: 30px;
+  padding: 26px 30px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background:
+    radial-gradient(ellipse 70% 60% at 15% 10%, rgba(124, 58, 237, 0.22) 0%, transparent 62%),
+    radial-gradient(ellipse 50% 60% at 90% 100%, rgba(34, 211, 238, 0.1) 0%, transparent 58%),
+    linear-gradient(160deg, #120e22 0%, #0a0813 100%);
+}
+.hero-steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 8px;
+  list-style: none;
+  padding: 0;
+  color: var(--text-3);
+  font-size: 12px;
+}
+.hero-steps li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hero-steps .arrow {
+  color: rgba(239, 237, 247, 0.28);
+}
+.hero-steps .num {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 2px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-2);
+  font-size: 10px;
+  font-weight: 700;
+}
+.hero-body {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.hero h2 {
+  max-width: 30rem;
+  font-size: 38px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.hero-sub {
+  max-width: 34rem;
+  margin-top: 12px;
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.hero-sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.hero-sources-label {
+  color: rgba(239, 237, 247, 0.34);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-2);
+  font-size: 11.5px;
+}
+.chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.chip .ico {
+  width: 11px;
+  height: 11px;
+  color: rgba(239, 237, 247, 0.4);
+}

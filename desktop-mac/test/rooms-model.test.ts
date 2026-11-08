@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildHomeData, NO_RAILS, friendsApiUrl, meApiUrl, parseFriendsCount, parseUsername, userApiUrl, conflictRoomId, createdRoomId, createRoomApiUrl, filterRooms, parseRooms, parseWatchItems, railApiUrl, roomPlayUrl, watchPayload, pickSpotlight, refreshApiUrl, roomsApiUrl, roomUrl, type RoomCard,
+  buildHomeData, greetingKind, parseOnlineFriends, NO_RAILS, friendsApiUrl, meApiUrl, parseFriendsCount, parseUsername, userApiUrl, conflictRoomId, createdRoomId, createRoomApiUrl, filterRooms, parseRooms, parseWatchItems, railApiUrl, roomPlayUrl, watchPayload, pickSpotlight, refreshApiUrl, roomsApiUrl, roomUrl, type RoomCard,
 } from '../src/main/rooms-model';
 
 const APP = 'https://app.wewatch.uz';
@@ -158,7 +158,7 @@ describe('buildHomeData — what the Home screen shows', () => {
     expect(d.query).toBe('kino');
   });
   it('an empty list is ok with total 0 (the screen shows the empty state)', () => {
-    expect(buildHomeData([], '')).toEqual({ status: 'ok', screen: 'rooms', sort: 'viewers', spotlight: null, rooms: [], total: 0, query: '', trending: [], history: [], owners: {} });
+    expect(buildHomeData([], '')).toEqual({ status: 'ok', screen: 'rooms', sort: 'viewers', spotlight: null, rooms: [], total: 0, query: '', trending: [], history: [], owners: {}, head: { greeting: 'guest', name: null, online: 0 } });
   });
 });
 
@@ -346,5 +346,27 @@ describe('profile, friends and owner lookups', () => {
     expect(parseFriendsCount({ data: [{}, {}, {}] })).toBe(3);
     expect(parseFriendsCount({ data: [] })).toBe(0);
     for (const bad of [null, {}, { data: 'x' }, { data: {} }, 'x']) expect(parseFriendsCount(bad)).toBeNull();
+  });
+});
+
+describe('Bosh sahifa header — greeting and friends online (as in the web app)', () => {
+  it('greetingKind follows the hour: morning < 12, day < 18, evening after', () => {
+    expect([0, 5, 11].map(greetingKind)).toEqual(['morning', 'morning', 'morning']);
+    expect([12, 15, 17].map(greetingKind)).toEqual(['day', 'day', 'day']);
+    expect([18, 21, 23].map(greetingKind)).toEqual(['evening', 'evening', 'evening']);
+  });
+  it('parseOnlineFriends counts the friends that are online; a wrong shape gives null', () => {
+    expect(parseOnlineFriends(wrap([{ isOnline: true }, { isOnline: false }, {}, { isOnline: true }]))).toBe(2);
+    expect(parseOnlineFriends(wrap([]))).toBe(0);
+    expect(parseOnlineFriends(null)).toBeNull();
+    expect(parseOnlineFriends({ data: 'x' })).toBeNull();
+  });
+  it('buildHomeData carries the header: greeting kind, name, friends online', () => {
+    const d = buildHomeData([], '', NO_RAILS, { screen: 'home', name: 'Aziz', hour: 9, online: 2 });
+    expect(d.head).toEqual({ greeting: 'morning', name: 'Aziz', online: 2 });
+  });
+  it('without a name the greeting is the guest one; online defaults to 0', () => {
+    const d = buildHomeData([], '', NO_RAILS, { screen: 'home', hour: 20 });
+    expect(d.head).toEqual({ greeting: 'guest', name: null, online: 0 });
   });
 });

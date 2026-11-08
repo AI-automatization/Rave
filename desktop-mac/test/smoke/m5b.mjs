@@ -94,7 +94,7 @@ const server = createServer((req, res) => {
   res.end(`<!doctype html><title>WW ${url.pathname}</title>
 <style>:root{--ww-sidebar:248px} body{margin:0;padding-left:var(--ww-sidebar);background:#05050a;color:#fff}
 aside{position:fixed;left:0;top:0;bottom:0;width:var(--ww-sidebar);background:#900;display:flex}</style>
-<aside class="fixed inset-y-0 left-0 z-40 hidden lg:flex">WEB-SIDEBAR<button class="ww-btn-accent" onclick="document.body.insertAdjacentHTML('beforeend','<div role=dialog>NEW-ROOM-DIALOG</div>')">+</button></aside><main>page ${url.pathname}${settings}</main>`);
+<aside class="fixed inset-y-0 left-0 z-40 hidden lg:flex">WEB-SIDEBAR<button class="ww-btn-accent" onclick="document.body.insertAdjacentHTML('beforeend','<div role=dialog>NEW-ROOM-DIALOG</div>')">+</button></aside><main><header><button class="ww-btn-subtle" onclick="document.body.insertAdjacentHTML('beforeend','<div role=dialog>JOIN-DIALOG</div>')">join</button><button class="ww-btn-accent">create</button></header>page ${url.pathname}${settings}</main>`);
 });
 await new Promise((r) => server.listen(PORT, '127.0.0.1', r));
 
@@ -136,7 +136,7 @@ console.log('--- A: signed in (access token valid)');
   check(i?.shell.searchHidden === false, 'the search box is visible on Home');
   check(i?.state.canGoBack === false, 'back is disabled on Home');
   const h = i?.home;
-  check(h?.bridgeKeys.sort().join(',') === 'onData,open,ready,retry,sort,watch', 'Home bridge exposes exactly ready/open/retry/watch/sort/onData');
+  check(h?.bridgeKeys.sort().join(',') === 'join,newRoom,onData,open,ready,retry,sort,watch', 'Home bridge exposes exactly ready/open/retry/watch/sort/newRoom/join/onData');
   check(h?.webBridge === 'undefined', 'Home has NO web-app bridge');
   check(h?.banner?.title === 'Yulduzlar Jangi (Interstellar)' && h?.banner?.sub === null, 'banner = the playing room with the most viewers, "name (video title)", no description line (the design has none)');
   check(h?.banner?.kicker === 'ASOSIY JONLI XONA' && h?.banner?.join === "Xonaga qo'shilish", 'banner copy from the design');
@@ -326,6 +326,12 @@ console.log('--- H: rooms exist, none playing');
   const n = r.get('nolive-home');
   check(n?.shell.items.find((x) => x.active)?.id === 'home' && n?.home.banner === null, 'Bosh sahifa without a playing room has no banner');
   check(n?.home.rails.length === 2 && n?.home.message !== 'Hech narsa topilmadi', 'but the weekly top and history rails are still shown (no "Hech narsa topilmadi")');
+  check(n?.home.head?.title === 'Salom, azizbek' || n?.home.head?.title === 'Xayrli tong, azizbek' || n?.home.head?.title === 'Xayrli kech, azizbek', 'the header greets the user by name (web wording)');
+  check(n?.home.head?.sub === 'Hozir hech kim onlayn emas' && JSON.stringify(n?.home.head?.buttons) === JSON.stringify(["Qo'shilish", 'Xona yaratish']), 'header: nobody online, and the two actions Qo\'shilish / Xona yaratish');
+  check(n?.home.hero?.title === 'Xona oching va birga tomosha qiling' && n?.home.hero?.steps.length === 3 && n?.home.hero?.chips.join('|') === 'YouTube|VK Video|Rutube|To‘g‘ridan havola', 'the start block: title, 3 steps, supported sources (as on the web)');
+  check(JSON.stringify(n?.home.hero?.buttons) === JSON.stringify(['Xona yaratish', 'Kod bilan kirish']), 'start block buttons: Xona yaratish / Kod bilan kirish');
+  check(r.get('nolive-create')?.content?.dialog === 'NEW-ROOM-DIALOG', '"Xona yaratish" in the start block opens the web create-room dialog');
+  check(r.get('nolive-join')?.content?.dialog === 'JOIN-DIALOG', '"Kod bilan kirish" opens the web join dialog'); 
 }
 
 server.close();

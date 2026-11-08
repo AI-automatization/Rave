@@ -63,6 +63,23 @@ export interface Strings {
     readonly sortViewers: string;
     readonly sortNewest: string;
     readonly owner: string;
+    /** Bosh sahifa header + start block: the web app's own words. `{n}` = the user's name / a count. */
+    readonly greetingMorning: string;
+    readonly greetingDay: string;
+    readonly greetingEvening: string;
+    readonly greetingGuest: string;
+    readonly friendsOnline: string;
+    readonly noFriendsOnline: string;
+    readonly create: string;
+    readonly step1: string;
+    readonly step2: string;
+    readonly step3: string;
+    readonly startTitle: string;
+    readonly startSub: string;
+    readonly quickCreate: string;
+    readonly quickJoin: string;
+    readonly startSources: string;
+    readonly startDirect: string;
   };
 }
 
@@ -98,6 +115,22 @@ const UZ: Strings = {
     sortViewers: "Ko'ruvchilar soni bo'yicha",
     sortNewest: 'Yangi xonalar',
     owner: 'Xona egasi',
+    greetingMorning: "Xayrli tong, {n}",
+    greetingDay: "Salom, {n}",
+    greetingEvening: "Xayrli kech, {n}",
+    greetingGuest: "Xush kelibsiz",
+    friendsOnline: "{n} do‘st onlayn",
+    noFriendsOnline: "Hozir hech kim onlayn emas",
+    create: "Xona yaratish",
+    step1: "Xona yarating",
+    step2: "Do‘stlaringizga kod yuboring",
+    step3: "Birga tomosha qiling",
+    startTitle: "Xona oching va birga tomosha qiling",
+    startSub: "Video havolasini joylashtiring, do‘stlaringizga kod yuboring — hammangiz bir vaqtda, bir xil daqiqada ko‘rasiz.",
+    quickCreate: "Xona yaratish",
+    quickJoin: "Kod bilan kirish",
+    startSources: "Qo‘llab-quvvatlanadi",
+    startDirect: "To‘g‘ridan havola",
   },
 };
 
@@ -133,6 +166,22 @@ const RU: Strings = {
     sortViewers: 'По числу зрителей',
     sortNewest: 'Новые комнаты',
     owner: 'Владелец комнаты',
+    greetingMorning: "Доброе утро, {n}",
+    greetingDay: "Привет, {n}",
+    greetingEvening: "Добрый вечер, {n}",
+    greetingGuest: "Добро пожаловать",
+    friendsOnline: "{n} друзей онлайн",
+    noFriendsOnline: "Сейчас никого нет онлайн",
+    create: "Создать комнату",
+    step1: "Создать комнату",
+    step2: "Отправить код друзьям",
+    step3: "Смотреть вместе",
+    startTitle: "Откройте комнату и смотрите вместе",
+    startSub: "Вставьте ссылку на видео, отправьте друзьям код — и вы смотрите синхронно, кадр в кадр.",
+    quickCreate: "Создать комнату",
+    quickJoin: "Войти по коду",
+    startSources: "Поддерживается",
+    startDirect: "Прямая ссылка",
   },
 };
 
@@ -168,6 +217,22 @@ const EN: Strings = {
     sortViewers: 'By viewers',
     sortNewest: 'Newest rooms',
     owner: 'Room owner',
+    greetingMorning: "Good morning, {n}",
+    greetingDay: "Hi, {n}",
+    greetingEvening: "Good evening, {n}",
+    greetingGuest: "Welcome",
+    friendsOnline: "{n} friends online",
+    noFriendsOnline: "Nobody online right now",
+    create: "Create a room",
+    step1: "Create a room",
+    step2: "Send friends the code",
+    step3: "Watch together",
+    startTitle: "Open a room and watch together",
+    startSub: "Paste a video link, send your friends the code — everyone watches in sync, frame for frame.",
+    quickCreate: "Create room",
+    quickJoin: "Join with code",
+    startSources: "Supported",
+    startDirect: "Direct link",
   },
 };
 

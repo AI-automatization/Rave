@@ -13,9 +13,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { APP_URL, devEnv } from './config';
-import { loadFriendsCount, loadMeName, loadOwnerName, loadRails, loadRooms, startWatching } from './home-data';
+import { loadFriends, loadMeName, loadOwnerName, loadRails, loadRooms, startWatching } from './home-data';
 import { DEFAULT_LOCALE, LOCALE_COOKIE, parseLocale, stringsFor, type Locale } from './i18n';
-import { buildHomeData, failed, LOADING, NO_RAILS, roomUrl, type HomeData, type Rails, type RoomCard, type SortKey } from './rooms-model';
+import { buildHomeData, failed, LOADING, NO_RAILS, roomUrl, type HomeData, type HomeView, type Rails, type RoomCard, type SortKey } from './rooms-model';
 import { activeNavId, contentBounds, isHomePath, nativeScreen, NAV_SECTIONS, navUrl, SIDEBAR_WIDTH, webEmbedCss, brokenAvatarScript, type NavItemId, type Screen } from './shell-model';
 
 const RENDERER_DIR = path.join(__dirname, '..', 'renderer');
@@ -51,6 +51,7 @@ let sidebarOpen = true;
 const owners = new Map<string, string>(); // owner id -> name (looked up once)
 const ownerTried = new Set<string>();
 let friendsCount: number | null = null;
+let friendsOnline = 0;
 let meName: string | null = null;
 let deviceName = os.hostname();
 let rails: Rails = NO_RAILS; // weekly top + history; the renderer points at their items by position only
@@ -267,7 +268,7 @@ async function refreshHome(opts: { loading?: boolean; background?: boolean } = {
   if (r.kind === 'ok') void loadExtras(gen);
 }
 
-const view = (): { screen: Screen; sort: SortKey; owners: Record<string, string> } => ({ screen, sort: homeSort, owners: Object.fromEntries(owners) });
+const view = (): HomeView => ({ screen, sort: homeSort, owners: Object.fromEntries(owners), name: meName, hour: new Date().getHours(), online: friendsOnline });
 function rebuild(): void {
   if (homeCards) homeState = buildHomeData(homeCards, homeQuery, rails, view());
 }
@@ -282,13 +283,16 @@ async function loadExtras(gen: number): Promise<void> {
   for (const id of ids) ownerTried.add(id);
   const [fresh, friends, me, names] = await Promise.all([
     loadRails(),
-    loadFriendsCount(),
+    loadFriends(),
     meName === null ? loadMeName() : Promise.resolve(meName),
     Promise.all(ids.map(async (id) => [id, await loadOwnerName(id)] as const)),
   ]);
   if (gen !== homeGen || !homeCards) return;
   rails = fresh;
-  if (friends !== null) friendsCount = friends;
+  if (friends) {
+    friendsCount = friends.count;
+    friendsOnline = friends.online;
+  }
   if (me) meName = me;
   for (const [id, name] of names) if (name) owners.set(id, name);
   rebuild();
@@ -330,7 +334,7 @@ const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms
  * "create" button — a button our content view hides together with that sidebar. So: open the web app's page, press that
  * button for the user, and let the web dialog do the rest (source, privacy, ...). Gives up quietly after ~10 s (e.g. signed out).
  */
-async function openNewRoom(): Promise<void> {
+async function openWebDialog(button: string): Promise<void> {
   suppressAutoHome = true; // the web /home must not bounce straight back to the native screen
   openWeb(new URL('/home', APP_URL).toString());
   const first = getContentWebContents();
@@ -340,7 +344,7 @@ async function openNewRoom(): Promise<void> {
     if (wc !== first || wc.isDestroyed()) return;
     try {
       const r = (await wc.executeJavaScript(
-        `(() => { if (document.querySelector('[role="dialog"]')) return 'open'; const b = document.querySelector('aside.fixed button.ww-btn-accent'); if (b instanceof HTMLElement) { b.click(); return 'clicked'; } return 'wait'; })()`,
+        `(() => { if (document.querySelector('[role="dialog"]')) return 'open'; const b = document.querySelector(${JSON.stringify(button)}); if (b instanceof HTMLElement) { b.click(); return 'clicked'; } return 'wait'; })()`,
       )) as string;
       if (r === 'open') return;
     } catch {
@@ -349,10 +353,14 @@ async function openNewRoom(): Promise<void> {
   }
 }
 
+const NEW_ROOM_BUTTON = 'aside.fixed button.ww-btn-accent';
+const JOIN_BUTTON = 'main header button.ww-btn-subtle'; // the web Home's "Qo'shilish" (next to its "Xona yaratish")
+const openNewRoom = (): Promise<void> => openWebDialog(NEW_ROOM_BUTTON);
+
 // ---------- IPC ----------
 
 const FORBIDDEN = { ok: false, reason: 'forbidden' } as const;
-const CHANNELS = ['shell:model', 'shell:navigate', 'shell:back', 'shell:forward', 'shell:search', 'shell:toggleSidebar', 'shell:newRoom', 'home:ready', 'home:open', 'home:retry', 'home:watch', 'home:sort'];
+const CHANNELS = ['shell:model', 'shell:navigate', 'shell:back', 'shell:forward', 'shell:search', 'shell:toggleSidebar', 'shell:newRoom', 'home:newRoom', 'home:join', 'home:ready', 'home:open', 'home:retry', 'home:watch', 'home:sort'];
 
 function registerIpc(): void {
   // The window can be recreated (dock click after closing): replace, never double-register.
@@ -407,6 +415,17 @@ function registerIpc(): void {
   ipcMain.handle('shell:newRoom', (e) => {
     if (!fromShell(e)) return FORBIDDEN;
     void openNewRoom();
+    return { ok: true } as const;
+  });
+  // The Home's own "Xona yaratish" / "Qo'shilish" buttons: the same web dialogs, opened for the user.
+  ipcMain.handle('home:newRoom', (e) => {
+    if (!fromHome(e)) return FORBIDDEN;
+    void openNewRoom();
+    return { ok: true } as const;
+  });
+  ipcMain.handle('home:join', (e) => {
+    if (!fromHome(e)) return FORBIDDEN;
+    void openWebDialog(JOIN_BUTTON);
     return { ok: true } as const;
   });
 
@@ -495,6 +514,7 @@ export function attachShell(window: BrowserWindow, opts: ShellOptions): { shell:
   owners.clear();
   ownerTried.clear();
   friendsCount = null;
+  friendsOnline = 0;
   meName = null;
   rails = NO_RAILS;
   watching = false;
@@ -615,6 +635,16 @@ export async function inspectShell(): Promise<unknown> {
         kicker: t(document.querySelector('.kicker')), title: t(document.querySelector('.banner h1')),
         sub: t(document.querySelector('.banner .sub')), join: t(document.querySelector('.banner .btn')),
         viewers: t(document.querySelector('.viewers')),
+      } : null,
+      head: document.querySelector('.home-head') ? {
+        title: t(document.querySelector('.home-head h1')), sub: t(document.querySelector('.home-head-sub')),
+        buttons: [...document.querySelectorAll('.home-head .btn')].map((b) => t(b)),
+      } : null,
+      hero: document.querySelector('.hero') ? {
+        steps: [...document.querySelectorAll('.hero-steps li')].map((l) => t(l)),
+        title: t(document.querySelector('.hero h2')), sub: t(document.querySelector('.hero-sub')),
+        buttons: [...document.querySelectorAll('.hero .btn')].map((b) => t(b)),
+        sources: t(document.querySelector('.hero-sources-label')), chips: [...document.querySelectorAll('.chip')].map((c) => t(c)),
       } : null,
       section: t(document.querySelector('.section-head h2')),
       sort: document.querySelector('.sort select') ? { label: t(document.querySelector('.sort span')), value: document.querySelector('.sort select').value, options: [...document.querySelectorAll('.sort option')].map((o) => o.textContent) } : null,

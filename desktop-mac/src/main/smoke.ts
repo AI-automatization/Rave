@@ -235,6 +235,15 @@ export function runSmokeAction(action: string, smoke: Smoke): void {
       await clickItem('home');
       await until('home', "document.querySelectorAll('.watch').length >= 3");
       await look('nolive-home');
+      // The start block's two buttons open the web app's own dialogs (create / join), like the sidebar's "+ Yangi xona".
+      await smokeEval('home', "document.querySelectorAll('.hero .btn.big')[0].click()");
+      await until('content', "!!document.querySelector('[role=\"dialog\"]')");
+      await look('nolive-create');
+      await clickItem('home');
+      await until('home', "document.querySelectorAll('.hero .btn.big').length === 2");
+      await smokeEval('home', "document.querySelectorAll('.hero .btn.big')[1].click()");
+      await until('content', "!!document.querySelector('[role=\"dialog\"]')");
+      await look('nolive-join');
     })();
   } else if (action === 'home-look') {
     // Just look at where the app ended up (signed out -> web login, refresh path, ...).

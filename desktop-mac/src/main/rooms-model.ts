@@ -143,9 +143,26 @@ export interface HomeData {
   readonly history: readonly WatchCard[];
   /** Owner id -> user name, for the owners that have been looked up so far. */
   readonly owners: Readonly<Record<string, string>>;
+  /** Bosh sahifa header: the web app's "Salom, <name>" line and how many friends are online. */
+  readonly head: HomeHead;
 }
 
-export const LOADING: HomeData = { status: 'loading', screen: 'rooms', sort: 'viewers', spotlight: null, rooms: [], total: 0, query: '', trending: [], history: [], owners: {} };
+export interface HomeHead {
+  readonly greeting: 'morning' | 'day' | 'evening' | 'guest';
+  readonly name: string | null;
+  readonly online: number;
+}
+
+/** Morning before 12:00, day before 18:00, evening after (same split as the web app's Home). */
+export const greetingKind = (hour: number): 'morning' | 'day' | 'evening' => (hour < 12 ? 'morning' : hour < 18 ? 'day' : 'evening');
+
+/** How many friends are online, from GET /api/user/me/friends. null when the answer has the wrong shape. */
+export function parseOnlineFriends(body: unknown): number | null {
+  if (!isObject(body) || !Array.isArray(body['data'])) return null;
+  return body['data'].filter((f) => isObject(f) && f['isOnline'] === true).length;
+}
+
+export const LOADING: HomeData = { status: 'loading', screen: 'rooms', sort: 'viewers', spotlight: null, rooms: [], total: 0, query: '', trending: [], history: [], owners: {}, head: { greeting: 'guest', name: null, online: 0 } };
 export const failed = (query = '', screen: Screen = 'rooms', sort: SortKey = 'viewers'): HomeData => ({ ...LOADING, status: 'error', query, screen, sort });
 
 const toWatchCard = (i: WatchItem): WatchCard => ({ title: i.title ?? i.sourceUrl, thumbnail: i.thumbnail, viewers: i.viewers });
@@ -154,6 +171,9 @@ export interface HomeView {
   readonly screen?: Screen;
   readonly sort?: SortKey;
   readonly owners?: Readonly<Record<string, string>>;
+  readonly name?: string | null;
+  readonly hour?: number;
+  readonly online?: number;
 }
 
 const sortCards = (cards: readonly RoomCard[], sort: SortKey): RoomCard[] =>
@@ -182,6 +202,7 @@ export function buildHomeData(cards: readonly RoomCard[], query: string, rails: 
     trending: screen === 'home' && !searching ? rails.trending.map(toWatchCard) : [],
     history: screen === 'history' || (screen === 'home' && !searching) ? rails.history.map(toWatchCard) : [],
     owners,
+    head: { greeting: view.name ? greetingKind(view.hour ?? 12) : 'guest', name: view.name || null, online: view.online ?? 0 },
   };
 }
 

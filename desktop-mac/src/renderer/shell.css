@@ -189,6 +189,9 @@ body.collapsed #sidebar {
   align-items: center;
   height: var(--toolbar);
   gap: 2px;
+  /* These sit on top of the draggable title-bar strip (#sidebar-drag / #toolbar). A drag region swallows every click
+     inside it unless the element is explicitly no-drag, so without this the three buttons look alive but do nothing. */
+  -webkit-app-region: no-drag;
 }
 .tool {
   display: grid;

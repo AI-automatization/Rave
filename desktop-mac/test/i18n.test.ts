@@ -89,5 +89,14 @@ describe.skipIf(!fs.existsSync(path.join(MESSAGES, 'uz.json')))('strings that th
     expect(s.home.weeklyViewers).toBe(w.home.weeklyViewers.replace('{count}', '{n}'));
     expect(s.home.startError).toBe(w.home.watchStartError);
     expect(s.home.owner).toBe(w.party.memberOwner);
+    // Bosh sahifa header + start block: the web app's own words
+    expect(s.home.greetingMorning).toBe(w.home.greetingMorning.replace('{name}', '{n}'));
+    expect(s.home.greetingDay).toBe(w.home.greetingDay.replace('{name}', '{n}'));
+    expect(s.home.greetingEvening).toBe(w.home.greetingEvening.replace('{name}', '{n}'));
+    expect(s.home.greetingGuest).toBe(w.home.greetingGuest);
+    expect(s.home.friendsOnline).toBe(w.home.friendsOnline.replace('{count}', '{n}'));
+    expect(s.home.noFriendsOnline).toBe(w.home.noFriendsOnline);
+    expect(s.home.create).toBe(w.home.create);
+    for (const k of ['step1', 'step2', 'step3', 'startTitle', 'startSub', 'quickCreate', 'quickJoin', 'startSources', 'startDirect'] as const) expect(s.home[k], k).toBe(w.home[k]);
   });
 });

@@ -9,6 +9,8 @@ contextBridge.exposeInMainWorld('wewatchHome', {
   retry: () => ipcRenderer.invoke('home:retry'),
   watch: (kind: string, index: number) => ipcRenderer.invoke('home:watch', kind, index),
   sort: (key: string) => ipcRenderer.invoke('home:sort', key),
+  newRoom: () => ipcRenderer.invoke('home:newRoom'),
+  join: () => ipcRenderer.invoke('home:join'),
   onData: (cb: (data: unknown) => void): (() => void) => {
     const fn = (_e: unknown, data: unknown): void => cb(data);
     ipcRenderer.on('home:data', fn);
