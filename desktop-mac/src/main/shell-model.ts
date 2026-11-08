@@ -9,7 +9,7 @@ const WEB_DESKTOP_MIN_WIDTH = 1024;
 export const MIN_WINDOW_WIDTH = SIDEBAR_WIDTH + WEB_DESKTOP_MIN_WIDTH;
 
 /** The app's own (native) screens. 'rooms' is the screen of the Stitch design (banner + "Faol xonalar"). */
-export type Screen = 'home' | 'rooms' | 'live' | 'history';
+export type Screen = 'home' | 'rooms' | 'live' | 'history' | 'settings';
 
 export type NavItemId = 'home' | 'rooms' | 'live' | 'friends' | 'history' | 'settings';
 
@@ -49,7 +49,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
   {
     title: 'KUTUBXONA',
     items: [
-      { id: 'settings', label: 'Sozlamalar', route: '/settings' },
+      { id: 'settings', label: 'Sozlamalar', route: '/settings', native: true, screen: 'settings' },
     ],
   },
 ];

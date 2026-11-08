@@ -71,22 +71,21 @@ check(fr?.shell.items.find((i) => i.active)?.id === 'friends', 'sidebar highligh
 check(fr?.shell.backDisabled === false, 'back becomes enabled');
 check(fr?.content.asideDisplay === 'none', "web sidebar still hidden after navigation (CSS re-applied)");
 
-const st = get('shell-settings');
-check(pathOf(st?.content.url) === '/settings', 'click Sozlamalar -> /settings');
-check(st?.shell.items.find((i) => i.active)?.id === 'settings', 'sidebar highlights Sozlamalar');
+const st = get('shell-page2');
+check(pathOf(st?.content.url) === '/profile', 'the web app moving to another page: the content follows');
 
 
 const hostile = ev.find((x) => x.event === 'shell-hostile-ids')?.replies ?? [];
 check(hostile.length === 6 && hostile.every((r) => r && r.ok === false), 'hostile / unknown / removed ids are all refused (6 of 6)');
 const ah = get('shell-after-hostile');
-check(pathOf(ah?.content.url) === '/settings', 'hostile ids did not navigate anywhere');
+check(pathOf(ah?.content.url) === '/profile', 'hostile ids did not navigate anywhere');
 
 const bk = get('shell-back');
 check(pathOf(bk?.content.url) === '/friends', 'back -> /friends');
 check(bk?.shell.items.find((i) => i.active)?.id === 'friends', 'highlight follows back');
 check(bk?.shell.forwardDisabled === false, 'forward becomes enabled');
 const fw = get('shell-forward');
-check(pathOf(fw?.content.url) === '/settings', 'forward -> /settings');
+check(pathOf(fw?.content.url) === '/profile', 'forward -> /profile');
 check(fw?.shell.forwardDisabled === true, 'forward disabled again at the end of history');
 
 console.log(failures.length ? `\n${failures.length} FAILED` : '\nALL PASSED');

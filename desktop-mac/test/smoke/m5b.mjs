@@ -36,6 +36,7 @@ const HISTORY = [{ sourceUrl: 'https://rutube.ru/video/fail-1', title: 'Watched 
 let posts = []; // bodies of POST /api/rooms ("start watching")
 let calls = [];
 let down = 0; // number of /api/rooms requests that still answer 500
+let bodies = []; // bodies of the settings requests, in order
 let noLive = false; // answer /api/rooms with rooms that are all waiting/paused (nothing playing)
 const cookieOf = (req, name) => (req.headers.cookie ?? '').split(/;\s*/).find((c) => c.startsWith(`${name}=`))?.slice(name.length + 1);
 
@@ -47,6 +48,30 @@ const server = createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
     if (cookieOf(req, 'access_token') !== 'good') { res.statusCode = 401; return res.end('{}'); }
     return res.end(JSON.stringify({ success: true, data: url.pathname.endsWith('trending') ? TRENDING : HISTORY }));
+  }
+  if (url.pathname === '/api/user/me' || url.pathname === '/api/user/me/avatar' || url.pathname === '/api/auth/change-password' || url.pathname === '/api/auth/logout-all' || url.pathname === '/api/auth/logout') {
+    let raw = Buffer.alloc(0);
+    req.on('data', (c) => { raw = Buffer.concat([raw, c]); });
+    req.on('end', () => {
+      res.setHeader('content-type', 'application/json');
+      if (cookieOf(req, 'access_token') !== 'good') { res.statusCode = 401; return res.end('{"message":"Not authenticated"}'); }
+      const text = raw.toString('latin1');
+      let json = null;
+      try { json = JSON.parse(raw.toString('utf8')); } catch { /* multipart or empty */ }
+      bodies.push({ route: `${req.method} ${url.pathname}`, json, ctype: req.headers['content-type'] ?? '', multipart: text.includes('name="avatar"') ? { filename: /filename="([^"]+)"/.exec(text)?.[1], mime: /Content-Type: (image\/[a-z]+)/.exec(text)?.[1], size: raw.length } : null });
+      if (url.pathname === '/api/user/me' && req.method === 'GET') return res.end(JSON.stringify({ success: true, data: { username: 'azizbek', bio: 'Salom', avatar: '/uploads/avatars/a.png' } }));
+      if (url.pathname === '/api/user/me' && req.method === 'PUT') {
+        if (json?.username === 'taken_name') { res.statusCode = 400; return res.end('{"message":"Username already taken"}'); }
+        return res.end(JSON.stringify({ success: true, data: { username: json?.username, bio: json?.bio }, message: 'Profile updated' }));
+      }
+      if (url.pathname === '/api/auth/change-password') {
+        if (json?.oldPassword === 'bad') { res.statusCode = 401; return res.end('{"message":"Current password is incorrect"}'); }
+        if (typeof json?.oldPassword !== 'string' || typeof json?.newPassword !== 'string') { res.statusCode = 400; return res.end('{"message":"Validation error"}'); }
+      }
+      if (url.pathname === '/api/user/me/avatar') return res.end(JSON.stringify({ success: true, data: { avatarUrl: '/uploads/avatars/new.png' } }));
+      return res.end('{"success":true}');
+    });
+    return;
   }
   if (url.pathname === '/api/auth/me' || url.pathname === '/api/user/me/friends' || url.pathname.startsWith('/api/user/')) {
     res.setHeader('content-type', 'application/json');
@@ -98,10 +123,11 @@ aside{position:fixed;left:0;top:0;bottom:0;width:var(--ww-sidebar);background:#9
 });
 await new Promise((r) => server.listen(PORT, '127.0.0.1', r));
 
-async function run(name, { cookies = '', action = 'home', startPath = '/home', downFor = 0, ttl = 20, shotDir = '', startWeb = false } = {}) {
+async function run(name, { cookies = '', action = 'home', startPath = '/home', downFor = 0, ttl = 20, shotDir = '', startWeb = false, avatarFile = '' } = {}) {
   calls = [];
   posts = [];
   down = downFor;
+  bodies = [];
   const out = path.join(os.tmpdir(), `ww-m5b-${name}-${Date.now()}.jsonl`);
   fs.writeFileSync(out, '');
   const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'ww-m5b-ud-'));
@@ -111,10 +137,11 @@ async function run(name, { cookies = '', action = 'home', startPath = '/home', d
   };
   if (shotDir) env.WW_SMOKE_SHOT = shotDir;
   if (startWeb) env.WW_START_WEB = '1';
+  if (avatarFile) env.WW_SMOKE_AVATAR = avatarFile;
   const child = spawn(electronBin, [root, `--user-data-dir=${userData}`], { env, stdio: 'ignore' });
   await new Promise((r) => child.on('exit', r));
   const ev = fs.readFileSync(out, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l));
-  return { ev, calls: [...calls], posts: [...posts], get: (n) => ev.find((x) => x.event === n)?.inspect };
+  return { ev, calls: [...calls], posts: [...posts], bodies: [...bodies], get: (n) => ev.find((x) => x.event === n)?.inspect };
 }
 
 const failures = [];
@@ -136,7 +163,7 @@ console.log('--- A: signed in (access token valid)');
   check(i?.shell.searchHidden === false, 'the search box is visible on Home');
   check(i?.state.canGoBack === false, 'back is disabled on Home');
   const h = i?.home;
-  check(h?.bridgeKeys.sort().join(',') === 'join,newRoom,onData,open,ready,retry,sort,watch', 'Home bridge exposes exactly ready/open/retry/watch/sort/newRoom/join/onData');
+  check(h?.bridgeKeys.sort().join(',') === 'join,newRoom,onData,open,ready,retry,settings,sort,watch', 'Home bridge exposes exactly ready/open/retry/watch/sort/newRoom/join/settings/onData');
   check(h?.webBridge === 'undefined', 'Home has NO web-app bridge');
   check(h?.banner?.title === 'Yulduzlar Jangi (Interstellar)' && h?.banner?.sub === null, 'banner = the playing room with the most viewers, "name (video title)", no description line (the design has none)');
   check(h?.banner?.kicker === 'ASOSIY JONLI XONA' && h?.banner?.join === "Xonaga qo'shilish", 'banner copy from the design');
@@ -332,6 +359,55 @@ console.log('--- H: rooms exist, none playing');
   check(JSON.stringify(n?.home.hero?.buttons) === JSON.stringify(['Xona yaratish', 'Kod bilan kirish']), 'start block buttons: Xona yaratish / Kod bilan kirish');
   check(r.get('nolive-create')?.content?.dialog === 'NEW-ROOM-DIALOG', '"Xona yaratish" in the start block opens the web create-room dialog');
   check(r.get('nolive-join')?.content?.dialog === 'JOIN-DIALOG', '"Kod bilan kirish" opens the web join dialog'); 
+}
+
+// ---------------------------------------------------------------- I: Sozlamalar (the app's own settings screen)
+console.log('--- I: Sozlamalar');
+{
+  const cookies = 'wewatch-locale=uz;access_token=good;refresh_token=r1';
+  const r = await run('settings', { cookies, action: 'settings', ttl: 40, shotDir: process.env.WW_SMOKE_SHOT_SETTINGS ?? '' });
+  const a = r.get('settings-initial');
+  check(a?.shell.items.find((x) => x.active)?.id === 'settings' && a?.mode === 'home' && a?.content === null, 'Sozlamalar is a native screen (no web page loaded)');
+  check(a?.home.settings?.title === 'Sozlamalar' && a?.home.settings?.panels.length === 5, 'five sections: profile, language, password, sessions, danger zone');
+  check(a?.home.settings?.username === 'azizbek' && a?.home.settings?.bio === 'Salom' && a?.home.settings?.initial === 'A', 'the profile is loaded from the server (name, bio, initial)');
+  check(a?.shell.searchHidden === true, 'no search box on Sozlamalar');
+  check(a?.home.settings?.avatarImg === null && a?.home.settings?.initial === 'A', 'a picture that cannot load (here: plain http is blocked by the page policy) falls back to the initial');
+  const s = r.get('settings-saved');
+  const put = r.bodies.find((b) => b.route === 'PUT /api/user/me');
+  check(JSON.stringify(put?.json) === JSON.stringify({ username: 'yangi_ism', bio: 'Yangi bio' }), 'Saqlash sends { username, bio } to PUT /api/user/me');
+  check(s?.shell.profile?.name === 'yangi_ism', 'the sidebar profile block follows the new name');
+  const bad = r.ev.find((x) => x.event === 'settings-bad-profile')?.replies ?? [];
+  check(JSON.stringify(bad.map((x) => x.kind)) === JSON.stringify(['username', 'username', 'taken', 'bio', 'invalid', 'invalid']), 'bad profiles: wrong names / bio / non-strings refused, a taken name reported');
+  check(r.bodies.filter((b) => b.route === 'PUT /api/user/me').length === 2, 'only the valid save and the "taken" one reached the server (the 4 invalid ones were stopped locally)');
+  const ru = r.get('settings-ru');
+  check(ru?.home.settings?.title === 'Настройки' && ru?.home.settings?.langs.find((x) => x.active)?.t === 'Русский' && ru?.shell.items.find((x) => x.id === 'settings')?.label === 'Настройки', 'the language buttons switch the whole app (cookie wewatch-locale)');
+  const pw = r.ev.find((x) => x.event === 'settings-bad-password')?.replies ?? [];
+  check(JSON.stringify(pw.map((x) => x.kind)) === JSON.stringify(['wrongPassword', 'mismatch', 'min', 'required']), 'bad password changes: wrong current (server), mismatch / too short / empty (stopped locally)');
+  check(r.ev.find((x) => x.event === 'settings-bad-language')?.reply?.ok === false, 'an unknown language is refused');
+  const ok = r.bodies.filter((b) => b.route === 'POST /api/auth/change-password');
+  check(ok.length === 2 && JSON.stringify(ok[1].json) === JSON.stringify({ oldPassword: 'old', newPassword: 'newpass1' }), 'the password goes out as { oldPassword, newPassword } (what the server expects)');
+  const after = r.get('settings-after-password');
+  check(after?.mode === 'web' && r.calls.includes('POST /api/auth/logout'), 'after a password change the app signs out and shows the login');
+}
+{
+  const png = path.join(os.tmpdir(), `ww-avatar-${Date.now()}.png`);
+  fs.writeFileSync(png, Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(300, 7)]));
+  const r = await run('settings-b', { cookies: 'wewatch-locale=uz;access_token=good;refresh_token=r1', action: 'settings-b', ttl: 30, avatarFile: png });
+  const up = r.bodies.find((b) => b.route === 'PATCH /api/user/me/avatar');
+  check(r.ev.find((x) => x.event === 'settings-avatar')?.reply?.ok === true && up?.ctype.startsWith('multipart/form-data') && up?.multipart?.mime === 'image/png' && up?.multipart?.filename === 'avatar.png', 'avatar: sent as multipart field "avatar" with its real type');
+  check(r.ev.find((x) => x.event === 'settings-signout-all')?.reply?.ok === true && r.calls.includes('POST /api/auth/logout-all'), 'sign out of all devices calls /api/auth/logout-all');
+  check(r.get('settings-after-signout')?.mode === 'web', 'and the login page is shown');
+  const txt = path.join(os.tmpdir(), `ww-avatar-${Date.now()}.txt`);
+  fs.writeFileSync(txt, 'not a picture');
+  const r2 = await run('settings-b2', { cookies: 'wewatch-locale=uz;access_token=good;refresh_token=r1', action: 'settings-b', ttl: 30, avatarFile: txt });
+  check(r2.ev.find((x) => x.event === 'settings-avatar')?.reply?.kind === 'type' && !r2.bodies.some((b) => b.route.startsWith('PATCH')), 'a file that is not JPEG/PNG/WebP is refused before anything is sent');
+}
+{
+  const r = await run('settings-c', { cookies: 'wewatch-locale=uz;access_token=good;refresh_token=r1', action: 'settings-c', ttl: 30 });
+  check(r.ev.find((x) => x.event === 'settings-delete-empty')?.reply?.kind === 'required', 'delete account: an empty password is refused locally');
+  const del = r.bodies.find((b) => b.route === 'DELETE /api/user/me');
+  check(r.ev.find((x) => x.event === 'settings-delete')?.reply?.ok === true && JSON.stringify(del?.json) === JSON.stringify({ password: 'secret1' }), 'delete account: DELETE /api/user/me with the password');
+  check(r.calls.includes('POST /api/auth/logout') && r.get('settings-after-delete')?.mode === 'web', 'afterwards the app signs out and shows the login');
 }
 
 server.close();

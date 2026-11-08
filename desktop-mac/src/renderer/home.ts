@@ -63,10 +63,28 @@ interface HomeStrings {
   startSources: string;
   startDirect: string;
 }
+interface SettingsStrings {
+  title: string; profileTitle: string; photoHint: string; photoButton: string; avatarUpdated: string; avatarTooLarge: string; avatarError: string;
+  usernameLabel: string; bioLabel: string; save: string; saving: string; saved: string; saveError: string; language: string;
+  changePassword: string; currentPassword: string; newPassword: string; confirmNewPassword: string; pwMinLength: string; pwMismatch: string;
+  pwRequired: string; pwChanged: string; pwChangedDesc: string; sessions: string; signOutAll: string; signOutConfirm: string; confirm: string;
+  cancel: string; dangerZone: string; deleteAccount: string; deleteMyAccount: string; deleteConfirm: string; deleteHint: string; yourPassword: string;
+  deleteFailed: string; logout: string; logoutInfo: string; logoutError: string; loadError: string;
+  usernameRule: string; usernameTaken: string; usernameBanned: string; bioRule: string; wrongPassword: string; pwMaxLength: string;
+  reloginNote: string; photoTypeError: string; retry: string; languageNames: Record<'uz' | 'ru' | 'en', string>; chooseFile: string;
+  sessionExpired: string; deleteTypeName: string;
+}
+interface SettingsDto {
+  status: 'loading' | 'ok' | 'error';
+  profile: { username: string; bio: string; initial: string; avatarUrl: string | null } | null;
+  locale: 'uz' | 'ru' | 'en';
+  s: SettingsStrings;
+}
 interface HomeDataDto {
+  settings?: SettingsDto;
   strings: HomeStrings; // every word on this screen, in the language of the web app (sent by the main process)
   status: 'loading' | 'ok' | 'error';
-  screen: 'home' | 'rooms' | 'live' | 'history';
+  screen: 'home' | 'rooms' | 'live' | 'history' | 'settings';
   sort: 'viewers' | 'newest';
   owners: Record<string, string>;
   spotlight: RoomCardDto | null;
@@ -77,6 +95,7 @@ interface HomeDataDto {
   history: WatchCardDto[];
   head: { greeting: 'morning' | 'day' | 'evening' | 'guest'; name: string | null; online: number };
 }
+type Outcome = { ok: true } | { ok: false; kind?: string; reason?: string };
 interface HomeBridge {
   ready(): Promise<unknown>;
   open(id: string): Promise<unknown>;
@@ -85,6 +104,16 @@ interface HomeBridge {
   sort(key: string): Promise<unknown>;
   newRoom(): Promise<unknown>;
   join(): Promise<unknown>;
+  settings: {
+    reload(): Promise<unknown>;
+    saveProfile(username: string, bio: string): Promise<Outcome>;
+    pickAvatar(): Promise<Outcome>;
+    setLanguage(l: string): Promise<Outcome>;
+    changePassword(current: string, next: string, confirm: string): Promise<Outcome>;
+    signOutAll(): Promise<Outcome>;
+    deleteAccount(password: string): Promise<Outcome>;
+    logout(): Promise<Outcome>;
+  };
   onData(cb: (d: HomeDataDto) => void): () => void;
 }
 
@@ -415,7 +444,226 @@ function startHero(S: HomeStrings): HTMLElement {
   return sec;
 }
 
+// ---- Sozlamalar ----
+
+let settingsSignature = ''; // the screen is rebuilt only when its data changes: a re-draw must not wipe what the user is typing
+
+function errorText(S: SettingsStrings, kind: string | undefined): string {
+  switch (kind) {
+    case 'username': return S.usernameRule;
+    case 'bio': return S.bioRule;
+    case 'taken': return S.usernameTaken;
+    case 'banned': return S.usernameBanned;
+    case 'wrongPassword': return S.wrongPassword;
+    case 'required': return S.pwRequired;
+    case 'min': return S.pwMinLength;
+    case 'max': return S.pwMaxLength;
+    case 'mismatch': return S.pwMismatch;
+    case 'type': return S.photoTypeError;
+    case 'size': return S.avatarTooLarge;
+    case 'unauthorized': return S.sessionExpired;
+    default: return S.saveError;
+  }
+}
+
+function field(label: string, input: HTMLInputElement | HTMLTextAreaElement, hint?: string): HTMLElement {
+  const wrap = el('label', 'field');
+  wrap.appendChild(el('span', 'field-label', label));
+  wrap.appendChild(input);
+  if (hint) wrap.appendChild(el('span', 'field-hint', hint));
+  return wrap;
+}
+
+function textInput(type: string, value = '', max?: number): HTMLInputElement {
+  const i = el('input', 'input');
+  i.type = type;
+  i.value = value;
+  i.autocomplete = 'off';
+  i.spellcheck = false;
+  if (max) i.maxLength = max;
+  return i;
+}
+
+function card2(title: string, danger = false): { box: HTMLElement; body: HTMLElement } {
+  const box = el('section', danger ? 'panel danger' : 'panel');
+  box.appendChild(el('h2', undefined, title));
+  const body = el('div', 'panel-body');
+  box.appendChild(body);
+  return { box, body };
+}
+
+/** Run an action on a button: disable it while it works; show the result as a toast (errors in the user's language). */
+function act(btn: HTMLButtonElement, S: SettingsStrings, run: () => Promise<Outcome>, okText?: string, after?: () => void): void {
+  btn.addEventListener('click', () => {
+    btn.disabled = true;
+    void run().then((r) => {
+      btn.disabled = false;
+      if (r.ok) {
+        if (okText) toast(okText);
+        after?.();
+      } else if (r.kind !== 'cancelled') {
+        toast(errorText(S, r.kind));
+      }
+    });
+  });
+}
+
+function profilePanel(d: SettingsDto): HTMLElement {
+  const S = d.s;
+  const p = d.profile as NonNullable<SettingsDto['profile']>;
+  const { box, body } = card2(S.profileTitle);
+  const top = el('div', 'avatar-row');
+  const av = el('div', 'avatar-big');
+  av.appendChild(el('span', undefined, p.initial));
+  if (p.avatarUrl) {
+    const img = el('img');
+    img.alt = '';
+    img.addEventListener('error', () => img.remove()); // the picture file may be gone: the initial stays
+    img.src = p.avatarUrl;
+    av.appendChild(img);
+  }
+  const side = el('div', 'avatar-side');
+  const pick = el('button', 'btn ghost', S.photoButton);
+  act(pick, S, () => bridge.settings.pickAvatar(), S.avatarUpdated);
+  side.append(pick, el('span', 'field-hint pre', S.photoHint));
+  top.append(av, side);
+  body.appendChild(top);
+
+  const name = textInput('text', p.username, 20);
+  const bio = el('textarea', 'input');
+  bio.value = p.bio;
+  bio.maxLength = 200;
+  bio.rows = 3;
+  body.append(field(S.usernameLabel, name, S.usernameRule), field(S.bioLabel, bio, S.bioRule));
+  const save = el('button', 'btn primary', S.save);
+  act(save, S, () => bridge.settings.saveProfile(name.value.trim(), bio.value), S.saved);
+  body.appendChild(save);
+  return box;
+}
+
+function languagePanel(d: SettingsDto): HTMLElement {
+  const S = d.s;
+  const { box, body } = card2(S.language);
+  const row = el('div', 'seg');
+  for (const l of ['uz', 'ru', 'en'] as const) {
+    const b = el('button', l === d.locale ? 'seg-item active' : 'seg-item', S.languageNames[l]);
+    b.addEventListener('click', () => void bridge.settings.setLanguage(l));
+    row.appendChild(b);
+  }
+  body.appendChild(row);
+  return box;
+}
+
+function passwordPanel(S: SettingsStrings): HTMLElement {
+  const { box, body } = card2(S.changePassword);
+  const cur = textInput('password', '', 128);
+  const next = textInput('password', '', 128);
+  const again = textInput('password', '', 128);
+  body.append(field(S.currentPassword, cur), field(S.newPassword, next, S.pwMinLength), field(S.confirmNewPassword, again));
+  const btn = el('button', 'btn primary', S.save);
+  act(btn, S, () => bridge.settings.changePassword(cur.value, next.value, again.value), `${S.pwChanged}. ${S.reloginNote}`, () => {
+    cur.value = '';
+    next.value = '';
+    again.value = '';
+  });
+  body.appendChild(btn);
+  return box;
+}
+
+/** A button that asks "are you sure?" first (inline, no dialog): [text] [Tasdiqlash] [Bekor qilish]. */
+function confirmable(label: string, question: string, S: SettingsStrings, run: () => Promise<Outcome>, danger = false): HTMLElement {
+  const wrap = el('div', 'confirmable');
+  const first = el('button', danger ? 'btn danger' : 'btn ghost', label);
+  const ask = el('div', 'confirm-row');
+  ask.hidden = true;
+  ask.appendChild(el('span', 'field-hint', question));
+  const yes = el('button', danger ? 'btn danger' : 'btn primary', S.confirm);
+  const no = el('button', 'btn ghost', S.cancel);
+  ask.append(yes, no);
+  first.addEventListener('click', () => {
+    first.hidden = true;
+    ask.hidden = false;
+  });
+  no.addEventListener('click', () => {
+    ask.hidden = true;
+    first.hidden = false;
+  });
+  act(yes, S, run);
+  wrap.append(first, ask);
+  return wrap;
+}
+
+function sessionPanel(S: SettingsStrings): HTMLElement {
+  const { box, body } = card2(S.sessions);
+  body.appendChild(confirmable(S.signOutAll, S.signOutConfirm, S, () => bridge.settings.signOutAll()));
+  const out = el('button', 'btn ghost', S.logout);
+  act(out, S, () => bridge.settings.logout());
+  body.append(out, el('p', 'field-hint', S.logoutInfo));
+  return box;
+}
+
+function dangerPanel(d: SettingsDto): HTMLElement {
+  const S = d.s;
+  const p = d.profile as NonNullable<SettingsDto['profile']>;
+  const { box, body } = card2(S.dangerZone, true);
+  body.appendChild(el('p', 'field-hint', S.deleteHint));
+  const open = el('button', 'btn danger', S.deleteAccount);
+  const form = el('div', 'delete-form');
+  form.hidden = true;
+  const typed = textInput('text', '', 40);
+  const pw = textInput('password', '', 128);
+  form.append(field(S.deleteTypeName.replace('{n}', p.username), typed), field(`${S.yourPassword} — ${S.deleteConfirm}`, pw));
+  const go = el('button', 'btn danger', S.deleteMyAccount);
+  go.disabled = true;
+  const sync = (): void => {
+    go.disabled = typed.value.trim() !== p.username || pw.value === '';
+  };
+  typed.addEventListener('input', sync);
+  pw.addEventListener('input', sync);
+  act(go, S, () => bridge.settings.deleteAccount(pw.value));
+  const cancel = el('button', 'btn ghost', S.cancel);
+  cancel.addEventListener('click', () => {
+    form.hidden = true;
+    open.hidden = false;
+    typed.value = '';
+    pw.value = '';
+    sync();
+  });
+  form.append(go, cancel);
+  open.addEventListener('click', () => {
+    open.hidden = true;
+    form.hidden = false;
+  });
+  body.append(open, form);
+  return box;
+}
+
+function renderSettings(d: HomeDataDto): void {
+  const s = d.settings;
+  if (!s) return;
+  const sig = JSON.stringify([s.status, s.profile, s.locale]);
+  if (sig === settingsSignature && root.firstElementChild?.classList.contains('settings')) return;
+  settingsSignature = sig;
+  root.replaceChildren();
+  const page = el('div', 'settings');
+  page.appendChild(el('h1', 'settings-title', s.s.title));
+  if (s.status === 'loading' && !s.profile) {
+    page.appendChild(el('div', 'skeleton'));
+  } else if (s.status === 'error' || !s.profile) {
+    const m = message(s.s.loadError, undefined, { label: s.s.retry, run: () => void bridge.settings.reload() });
+    page.appendChild(m);
+  } else {
+    page.append(profilePanel(s), languagePanel(s), passwordPanel(s.s), sessionPanel(s.s), dangerPanel(s));
+  }
+  root.appendChild(page);
+}
+
 function render(d: HomeDataDto): void {
+  if (d.screen === 'settings') {
+    renderSettings(d);
+    return;
+  }
+  settingsSignature = '';
   const S = d.strings;
   const scroll = window.scrollY;
   root.replaceChildren();

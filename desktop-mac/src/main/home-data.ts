@@ -14,7 +14,7 @@ export type StartResult = { kind: 'room'; url: string } | { kind: 'unauthorized'
 
 const TIMEOUT_MS = 15_000;
 
-const call = (url: string, init: { method?: string; headers?: Record<string, string>; body?: string } = {}): Promise<Response> =>
+export const call = (url: string, init: { method?: string; headers?: Record<string, string>; body?: string | FormData } = {}): Promise<Response> =>
   session.defaultSession.fetch(url, { ...init, credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(TIMEOUT_MS) });
 
 /**
@@ -22,7 +22,7 @@ const call = (url: string, init: { method?: string; headers?: Record<string, str
  * native Home is shown, so a 401 triggers one refresh (cookie-based, same endpoint the web app uses) and one retry.
  * The retry only happens after a 401, i.e. after the server refused the first request — safe for a POST too.
  */
-async function withRefresh(run: () => Promise<Response>): Promise<Response> {
+export async function withRefresh(run: () => Promise<Response>): Promise<Response> {
   let res = await run();
   if (res.status === 401) {
     const refreshed = await call(refreshApiUrl(APP_URL), { method: 'POST' });

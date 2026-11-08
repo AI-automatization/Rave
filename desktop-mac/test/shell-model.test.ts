@@ -32,11 +32,11 @@ describe('NAV_SECTIONS (Stitch Variant 1)', () => {
       home: '/home', rooms: null, live: null, friends: '/friends', history: null, settings: '/settings',
     });
   });
-  it('Bosh sahifa, Xonalar, Jonli efirlar and Tarix are the app\'s own screens; Do\'stlar and Sozlamalar still open the web page', () => {
+  it('Bosh sahifa, Xonalar, Jonli efirlar, Tarix and Sozlamalar are the app\'s own screens; Do\'stlar still opens the web page', () => {
     const native = NAV_SECTIONS.flatMap((s) => s.items).filter((i) => i.native === true).map((i) => [i.id, i.screen]);
-    expect(native).toEqual([['home', 'home'], ['rooms', 'rooms'], ['live', 'live'], ['history', 'history']]);
-    for (const id of ['home', 'rooms', 'live', 'history']) expect(isNativeItem(id), id).toBe(true);
-    for (const id of ['friends', 'settings', 'favorites', 'evil', undefined, null, 7]) expect(isNativeItem(id), String(id)).toBe(false);
+    expect(native).toEqual([['home', 'home'], ['rooms', 'rooms'], ['live', 'live'], ['history', 'history'], ['settings', 'settings']]);
+    for (const id of ['home', 'rooms', 'live', 'history', 'settings']) expect(isNativeItem(id), id).toBe(true);
+    for (const id of ['friends', 'favorites', 'evil', undefined, null, 7]) expect(isNativeItem(id), String(id)).toBe(false);
     expect(nativeScreen('rooms')).toBe('rooms');
     expect(nativeScreen('friends')).toBeNull();
     expect(nativeScreen('__proto__')).toBeNull();

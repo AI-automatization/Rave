@@ -6,15 +6,19 @@
 //             refreshers would invalidate each other).
 // Renderers ask for things by id only; this file validates every call and builds every URL itself.
 import {
-  ipcMain, nativeTheme, session, WebContentsView, type BrowserWindow, type IpcMainInvokeEvent, type WebContents, type WebPreferences,
+  dialog, ipcMain, nativeTheme, session, WebContentsView, type BrowserWindow, type IpcMainInvokeEvent, type WebContents, type WebPreferences,
 } from 'electron';
 import { execFile } from 'node:child_process';
+import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { APP_URL, devEnv } from './config';
+import { changePassword, deleteAccount, loadProfile, logout, saveProfile, signOutAll, uploadAvatar, type Outcome } from './settings';
+import { avatarImageUrl, AVATAR_MAX_BYTES, type Profile } from './settings-model';
+import { settingsStringsFor } from './settings-strings';
 import { loadFriends, loadMeName, loadOwnerName, loadRails, loadRooms, startWatching } from './home-data';
-import { DEFAULT_LOCALE, LOCALE_COOKIE, parseLocale, stringsFor, type Locale } from './i18n';
+import { DEFAULT_LOCALE, LOCALE_COOKIE, LOCALES, parseLocale, stringsFor, type Locale } from './i18n';
 import { buildHomeData, failed, LOADING, NO_RAILS, roomUrl, type HomeData, type HomeView, type Rails, type RoomCard, type SortKey } from './rooms-model';
 import { activeNavId, contentBounds, isHomePath, nativeScreen, NAV_SECTIONS, navUrl, SIDEBAR_WIDTH, webEmbedCss, brokenAvatarScript, type NavItemId, type Screen } from './shell-model';
 
@@ -96,7 +100,7 @@ function side(): ShellState['side'] {
 
 function state(): ShellState {
   const wc = getContentWebContents();
-  const list = mode === 'home' && screen !== 'history';
+  const list = mode === 'home' && screen !== 'history' && screen !== 'settings';
   const base = { query: homeQuery, ui: shellUi(locale), side: side(), sidebarOpen, searchVisible: list };
   if (mode === 'home' || !wc) {
     return { ...base, activeId: mode === 'home' ? (screen satisfies NavItemId) : null, canGoBack: false, canGoForward: false };
@@ -110,7 +114,10 @@ function state(): ShellState {
 }
 
 const pushState = (): void => alive(shellView)?.send('shell:state', state());
-const homePayload = (): Record<string, unknown> => ({ ...homeState, strings: stringsFor(locale).home });
+const homePayload = (): Record<string, unknown> =>
+  screen === 'settings' && mode === 'home'
+    ? { ...homeState, status: 'ok', screen: 'settings', strings: stringsFor(locale).home, settings: settingsPayload() }
+    : { ...homeState, strings: stringsFor(locale).home };
 const pushHome = (): void => alive(homeView)?.send('home:data', homePayload());
 
 // ---------- this computer's name ("Onlayn · MacBook Air" under the user's name) ----------
@@ -306,12 +313,72 @@ export function showScreen(next: Screen): Promise<void> {
   cameFromHome = false;
   suppressAutoHome = false;
   setMode('home');
+  if (next === 'settings') return loadSettings(); // Sozlamalar has its own data (the profile), not the room list
   if (homeCards && Date.now() - lastFetch < STALE_MS) {
     rebuild();
     pushHome();
     return Promise.resolve();
   }
   return refreshHome({ loading: homeCards === null });
+}
+
+// ---------- Sozlamalar (the app's own settings screen) ----------
+
+interface SettingsView {
+  status: 'loading' | 'ok' | 'error';
+  profile: Profile | null;
+}
+let settingsView: SettingsView = { status: 'loading', profile: null };
+let settingsGen = 0;
+
+function settingsPayload(): Record<string, unknown> {
+  const p = settingsView.profile;
+  return {
+    status: settingsView.status,
+    profile: p ? { username: p.username, bio: p.bio, initial: [...p.username][0]?.toUpperCase() ?? '?', avatarUrl: avatarImageUrl(p.avatar, APP_URL) } : null,
+    locale,
+    s: settingsStringsFor(locale),
+  };
+}
+
+async function loadSettings(): Promise<void> {
+  const gen = ++settingsGen;
+  settingsView = { status: 'loading', profile: settingsView.profile };
+  pushHome();
+  const r = await loadProfile();
+  if (gen !== settingsGen) return;
+  if (r.kind === 'unauthorized') return backToLogin();
+  if (r.kind === 'ok') {
+    settingsView = { status: 'ok', profile: r.profile };
+    meName = r.profile.username; // the sidebar's profile block follows
+  } else {
+    settingsView = { status: 'error', profile: null };
+  }
+  pushHome();
+  pushState();
+}
+
+/** Signed out (own request, or the server ended the session): forget the user and show the web login. */
+function backToLogin(): void {
+  settingsGen++;
+  settingsView = { status: 'loading', profile: null };
+  homeCards = null;
+  meName = null;
+  friendsCount = null;
+  friendsOnline = 0;
+  owners.clear();
+  ownerTried.clear();
+  rails = NO_RAILS;
+  suppressAutoHome = true;
+  cameFromHome = false;
+  setMode('web');
+  void ensureContent().loadURL(APP_URL).catch(() => {});
+}
+
+/** After a settings call: a dead session goes to the login, anything else is handed back to the screen. */
+function settled(r: Outcome): Outcome {
+  if (!r.ok && r.kind === 'unauthorized') backToLogin();
+  return r;
 }
 
 /** First screen: the native Home (dev/smoke can start on the web page instead). */
@@ -360,7 +427,7 @@ const openNewRoom = (): Promise<void> => openWebDialog(NEW_ROOM_BUTTON);
 // ---------- IPC ----------
 
 const FORBIDDEN = { ok: false, reason: 'forbidden' } as const;
-const CHANNELS = ['shell:model', 'shell:navigate', 'shell:back', 'shell:forward', 'shell:search', 'shell:toggleSidebar', 'shell:newRoom', 'home:newRoom', 'home:join', 'home:ready', 'home:open', 'home:retry', 'home:watch', 'home:sort'];
+const CHANNELS = ['shell:model', 'shell:navigate', 'shell:back', 'shell:forward', 'shell:search', 'shell:toggleSidebar', 'shell:newRoom', 'home:newRoom', 'home:join', 'settings:reload', 'settings:saveProfile', 'settings:pickAvatar', 'settings:language', 'settings:password', 'settings:signOutAll', 'settings:delete', 'settings:logout', 'home:ready', 'home:open', 'home:retry', 'home:watch', 'home:sort'];
 
 function registerIpc(): void {
   // The window can be recreated (dock click after closing): replace, never double-register.
@@ -422,6 +489,74 @@ function registerIpc(): void {
     if (!fromHome(e)) return FORBIDDEN;
     void openNewRoom();
     return { ok: true } as const;
+  });
+  // ---- Sozlamalar ----
+  ipcMain.handle('settings:reload', (e) => {
+    if (!fromHome(e)) return FORBIDDEN;
+    void loadSettings();
+    return { ok: true } as const;
+  });
+  ipcMain.handle('settings:saveProfile', async (e, username: unknown, bio: unknown) => {
+    if (!fromHome(e)) return FORBIDDEN;
+    const r = settled(await saveProfile(username, bio));
+    if (r.ok && typeof username === 'string' && typeof bio === 'string' && settingsView.profile) {
+      settingsView = { status: 'ok', profile: { ...settingsView.profile, username, bio } };
+      meName = username;
+      pushHome();
+      pushState();
+    }
+    return r;
+  });
+  ipcMain.handle('settings:pickAvatar', async (e): Promise<Outcome | { ok: false; kind: 'cancelled' } | typeof FORBIDDEN> => {
+    if (!fromHome(e)) return FORBIDDEN;
+    if (!win) return { ok: false, kind: 'generic' };
+    const smokeFile = devEnv('WW_SMOKE_AVATAR'); // smoke runs only (devEnv is '' in the packaged app): no system dialog to click
+    const pick = smokeFile ? { canceled: false, filePaths: [smokeFile] } : await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: 'JPEG, PNG, WebP', extensions: ['jpg', 'jpeg', 'png', 'webp'] }] });
+    const file = pick.filePaths[0];
+    if (pick.canceled || !file) return { ok: false, kind: 'cancelled' };
+    try {
+      if ((await fs.stat(file)).size > AVATAR_MAX_BYTES) return { ok: false, kind: 'size' }; // do not even read a huge file
+      const r = settled(await uploadAvatar(new Uint8Array(await fs.readFile(file))));
+      if (r.ok) void loadSettings(); // the new picture address
+      return r;
+    } catch {
+      return { ok: false, kind: 'generic' };
+    }
+  });
+  ipcMain.handle('settings:language', async (e, l: unknown) => {
+    if (!fromHome(e)) return FORBIDDEN;
+    if (typeof l !== 'string' || !(LOCALES as readonly string[]).includes(l)) return { ok: false, kind: 'invalid' } as const;
+    // The same cookie the web app writes; the cookie watcher redraws both native screens.
+    await session.defaultSession.cookies.set({ url: APP_URL, name: LOCALE_COOKIE, value: l, path: '/', expirationDate: Math.floor(Date.now() / 1000) + 365 * 24 * 3600 });
+    return { ok: true } as const;
+  });
+  ipcMain.handle('settings:password', async (e, current: unknown, next: unknown, confirm: unknown) => {
+    if (!fromHome(e)) return FORBIDDEN;
+    const r = settled(await changePassword(current, next, confirm));
+    // The server ends every session when the password changes: show the message for a moment, then sign out here too.
+    if (r.ok) setTimeout(() => void logout().then(() => backToLogin()), 2500);
+    return r;
+  });
+  ipcMain.handle('settings:signOutAll', async (e) => {
+    if (!fromHome(e)) return FORBIDDEN;
+    const r = settled(await signOutAll());
+    if (r.ok) backToLogin();
+    return r;
+  });
+  ipcMain.handle('settings:delete', async (e, password: unknown) => {
+    if (!fromHome(e)) return FORBIDDEN;
+    const r = settled(await deleteAccount(password));
+    if (r.ok) {
+      await logout(); // as the web page does after deleting
+      backToLogin();
+    }
+    return r;
+  });
+  ipcMain.handle('settings:logout', async (e) => {
+    if (!fromHome(e)) return FORBIDDEN;
+    const r = settled(await logout());
+    if (r.ok) backToLogin();
+    return r;
   });
   ipcMain.handle('home:join', (e) => {
     if (!fromHome(e)) return FORBIDDEN;
@@ -517,6 +652,8 @@ export function attachShell(window: BrowserWindow, opts: ShellOptions): { shell:
   friendsOnline = 0;
   meName = null;
   rails = NO_RAILS;
+  settingsView = { status: 'loading', profile: null };
+  settingsGen = 0;
   watching = false;
   void readDeviceName().then((n) => {
     deviceName = n;
@@ -590,7 +727,8 @@ export function attachShell(window: BrowserWindow, opts: ShellOptions): { shell:
 /** Dev/smoke only: run a snippet inside one of the views. */
 export async function smokeEval(target: 'shell' | 'home' | 'content', js: string): Promise<unknown> {
   const wc = target === 'shell' ? alive(shellView) : target === 'home' ? alive(homeView) : getContentWebContents();
-  return wc ? wc.executeJavaScript(js) : null;
+  // userGesture: a page that moves itself without any user activation is skipped by the Back button (Chromium's history intervention) — real users have clicked.
+  return wc ? wc.executeJavaScript(js, true) : null;
 }
 
 /** Dev/smoke only: PNGs of the views (capturePage does not include the window's vibrancy material). */
@@ -635,6 +773,13 @@ export async function inspectShell(): Promise<unknown> {
         kicker: t(document.querySelector('.kicker')), title: t(document.querySelector('.banner h1')),
         sub: t(document.querySelector('.banner .sub')), join: t(document.querySelector('.banner .btn')),
         viewers: t(document.querySelector('.viewers')),
+      } : null,
+      settings: document.querySelector('.settings') ? {
+        title: t(document.querySelector('.settings-title')), panels: [...document.querySelectorAll('.panel h2')].map((h) => t(h)),
+        username: document.querySelector('.settings input.input').value, bio: document.querySelector('.settings textarea').value,
+        initial: t(document.querySelector('.avatar-big span')), avatarImg: document.querySelector('.avatar-big img') ? document.querySelector('.avatar-big img').getAttribute('src') : null,
+        langs: [...document.querySelectorAll('.seg-item')].map((b) => ({ t: t(b), active: b.classList.contains('active') })),
+        labels: [...document.querySelectorAll('.field-label')].map((l) => t(l)),
       } : null,
       head: document.querySelector('.home-head') ? {
         title: t(document.querySelector('.home-head h1')), sub: t(document.querySelector('.home-head-sub')),

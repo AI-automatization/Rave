@@ -64,9 +64,9 @@ export function runSmokeAction(action: string, smoke: Smoke): void {
       await clickItem('friends');
       await wait(1200);
       await look('shell-friends');
-      await clickItem('settings');
+      await smokeEval('content', "location.href = '/profile'"); // the web app moving to another of its pages by itself
       await wait(1200);
-      await look('shell-settings');
+      await look('shell-page2');
       // Hostile ids through the real bridge: only known sidebar ids may navigate.
       const replies: unknown[] = [];
       for (const bad of ['evil', 'https://evil.example/', '__proto__', 'favorites', 42, null]) {
@@ -226,6 +226,65 @@ export function runSmokeAction(action: string, smoke: Smoke): void {
       await click('home', '.message .btn');
       await wait(1500);
       await look('retry-after');
+    })();
+  } else if (action === 'settings') {
+    // Sozlamalar: profile save, language, password change (-> signed out).
+    void (async () => {
+      await wait(2500);
+      await until('home', "document.querySelectorAll('.card').length > 0");
+      await clickItem('settings');
+      await until('home', "!!document.querySelector('.settings input.input')");
+      await look('settings-initial');
+      await wait(800); // let the page paint before the picture is taken
+      await shot();
+      await smokeEval('home', "(() => { const i = document.querySelector('.settings input.input'); i.value = 'yangi_ism'; i.dispatchEvent(new Event('input')); document.querySelector('.settings textarea').value = 'Yangi bio'; })()");
+      await click('home', '.panel .btn.primary');
+      await until('shell', "document.querySelector('#who-name').textContent === 'yangi_ism'");
+      await look('settings-saved');
+      const bad: unknown[] = [];
+      for (const [u, b] of [['a b', ''], ['ab', ''], ['taken_name', ''], ['okname', 'x'.repeat(201)], [5, 'x'], ['okname', null]]) {
+        bad.push(await smokeEval('home', `window.wewatchHome.settings.saveProfile(${JSON.stringify(u)}, ${JSON.stringify(b)})`));
+      }
+      smoke('settings-bad-profile', { replies: bad });
+      await smokeEval('home', "document.querySelectorAll('.seg-item')[1].click()"); // Русский
+      await until('home', "document.querySelector('.settings-title')?.textContent === 'Настройки'");
+      await look('settings-ru');
+      const pw: unknown[] = [];
+      for (const [c, n, k] of [['bad', 'newpass1', 'newpass1'], ['old', 'newpass1', 'x'], ['old', '12345', '12345'], ['', 'newpass1', 'newpass1']]) {
+        pw.push(await smokeEval('home', `window.wewatchHome.settings.changePassword(${JSON.stringify(c)}, ${JSON.stringify(n)}, ${JSON.stringify(k)})`));
+      }
+      smoke('settings-bad-password', { replies: pw });
+      const hostile = await smokeEval('home', "window.wewatchHome.settings.setLanguage('xx')");
+      smoke('settings-bad-language', { reply: hostile });
+      smoke('settings-password-ok', { reply: await smokeEval('home', "window.wewatchHome.settings.changePassword('old', 'newpass1', 'newpass1')") });
+      await wait(4000); // the screen shows the message for a moment, then the app signs out
+      await look('settings-after-password');
+    })();
+  } else if (action === 'settings-b') {
+    // Avatar upload (the picked file comes from WW_SMOKE_AVATAR), sign out of all devices.
+    void (async () => {
+      await wait(2500);
+      await until('home', "document.querySelectorAll('.card').length > 0");
+      await clickItem('settings');
+      await until('home', "!!document.querySelector('.settings input.input')");
+      smoke('settings-avatar', { reply: await smokeEval('home', 'window.wewatchHome.settings.pickAvatar()') });
+      await wait(800);
+      await look('settings-avatar-after');
+      smoke('settings-signout-all', { reply: await smokeEval('home', 'window.wewatchHome.settings.signOutAll()') });
+      await wait(1500);
+      await look('settings-after-signout');
+    })();
+  } else if (action === 'settings-c') {
+    // Delete the account, and plain sign-out.
+    void (async () => {
+      await wait(2500);
+      await until('home', "document.querySelectorAll('.card').length > 0");
+      await clickItem('settings');
+      await until('home', "!!document.querySelector('.settings input.input')");
+      smoke('settings-delete-empty', { reply: await smokeEval('home', "window.wewatchHome.settings.deleteAccount('')") });
+      smoke('settings-delete', { reply: await smokeEval('home', "window.wewatchHome.settings.deleteAccount('secret1')") });
+      await wait(1500);
+      await look('settings-after-delete');
     })();
   } else if (action === 'home-nolive') {
     // Rooms exist but none is playing: Bosh sahifa has no banner, yet the rails must still show (not "Hech narsa topilmadi").

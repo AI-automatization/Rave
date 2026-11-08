@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { settingsStringsFor } from '../src/main/settings-strings';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_LOCALE, LOCALE_COOKIE, LOCALES, parseLocale, stringsFor, type Locale } from '../src/main/i18n';
 import { NAV_SECTIONS } from '../src/main/shell-model';
@@ -98,5 +99,23 @@ describe.skipIf(!fs.existsSync(path.join(MESSAGES, 'uz.json')))('strings that th
     expect(s.home.noFriendsOnline).toBe(w.home.noFriendsOnline);
     expect(s.home.create).toBe(w.home.create);
     for (const k of ['step1', 'step2', 'step3', 'startTitle', 'startSub', 'quickCreate', 'quickJoin', 'startSources', 'startDirect'] as const) expect(s.home[k], k).toBe(w.home[k]);
+  });
+});
+
+describe.skipIf(!fs.existsSync(path.join(MESSAGES, 'uz.json')))('Sozlamalar strings: the web app\'s own words, plus complete own lines', () => {
+  const web = (l: Locale) => JSON.parse(fs.readFileSync(path.join(MESSAGES, `${l}.json`), 'utf8')) as { settings: Record<string, string>; profile: Record<string, string> };
+  it.each(LOCALES)('%s matches apps/app-web/messages', (l) => {
+    const w = web(l);
+    const s = settingsStringsFor(l);
+    for (const k of ['changePassword', 'currentPassword', 'newPassword', 'confirmNewPassword', 'pwMinLength', 'pwMismatch', 'signOutAll', 'dangerZone', 'deleteAccount', 'logout', 'language', 'photoHint'] as const) expect(s[k], k).toBe(w.settings[k]);
+    for (const k of ['usernameLabel', 'bioLabel', 'save', 'saved', 'avatarUpdated', 'avatarTooLarge'] as const) expect(s[k], k).toBe(w.profile[k]);
+    expect(s.photoButton).toBe(w.profile.avatarChange);
+    expect(s.profileTitle).toBe(w.profile.title);
+  });
+  it('no string is empty in any language, and the languages are not copies of each other', () => {
+    for (const l of LOCALES) for (const [k, v] of Object.entries(settingsStringsFor(l))) {
+      if (typeof v === 'string') expect(v.trim(), `${l}.${k}`).not.toBe('');
+    }
+    for (const k of ['usernameRule', 'wrongPassword', 'reloginNote', 'retry'] as const) expect(new Set(LOCALES.map((l) => settingsStringsFor(l)[k])).size, k).toBe(3);
   });
 });

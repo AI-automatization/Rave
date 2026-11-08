@@ -10,6 +10,17 @@ contextBridge.exposeInMainWorld('wewatchHome', {
   watch: (kind: string, index: number) => ipcRenderer.invoke('home:watch', kind, index),
   sort: (key: string) => ipcRenderer.invoke('home:sort', key),
   newRoom: () => ipcRenderer.invoke('home:newRoom'),
+  // Sozlamalar: the renderer says what the user did; the main process validates, asks the server and answers { ok } / { ok: false, kind }.
+  settings: {
+    reload: () => ipcRenderer.invoke('settings:reload'),
+    saveProfile: (username: string, bio: string) => ipcRenderer.invoke('settings:saveProfile', username, bio),
+    pickAvatar: () => ipcRenderer.invoke('settings:pickAvatar'),
+    setLanguage: (l: string) => ipcRenderer.invoke('settings:language', l),
+    changePassword: (current: string, next: string, confirm: string) => ipcRenderer.invoke('settings:password', current, next, confirm),
+    signOutAll: () => ipcRenderer.invoke('settings:signOutAll'),
+    deleteAccount: (password: string) => ipcRenderer.invoke('settings:delete', password),
+    logout: () => ipcRenderer.invoke('settings:logout'),
+  },
   join: () => ipcRenderer.invoke('home:join'),
   onData: (cb: (data: unknown) => void): (() => void) => {
     const fn = (_e: unknown, data: unknown): void => cb(data);
