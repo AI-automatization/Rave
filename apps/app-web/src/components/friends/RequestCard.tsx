@@ -8,6 +8,7 @@ import { useApiError } from '@/hooks/use-api-error';
 import type { IFriendship } from '@/types';
 import { avatarColor } from '@/lib/utils';
 import { trackClick } from '@/lib/analytics';
+import { AvatarImg } from '@/components/ui/AvatarImg';
 
 interface Props {
   request: IFriendship;
@@ -52,7 +53,7 @@ export function RequestCard({ request, currentUserId }: Props) {
         style={{ background: `${color}2E`, border: `1px solid ${color}59`, color }}
       >
         {sender.avatar ? (
-          <img src={sender.avatar} alt="" className="h-full w-full object-cover" />
+          <AvatarImg src={sender.avatar} alt="" className="h-full w-full object-cover" />
         ) : (
           (sender.username?.[0]?.toUpperCase() ?? '?')
         )}

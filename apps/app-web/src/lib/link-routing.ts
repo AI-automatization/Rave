@@ -18,11 +18,22 @@ export function normalizeLinkInput(raw: string): string {
   const text = raw.trim();
   if (!text) return '';
   const found = text.match(/https?:\/\/[^\s<>"']+/i)?.[0] ?? text.split(/\s+/)[0];
-  const withScheme = /^https?:\/\//i.test(found) ? found : `https://${found}`;
+  // Sentence punctuation glued to a pasted link ("…/watch/nolc6qdD." — real prod log 2026-11-08,
+  // the site answered 404). A closing bracket stays when the link has the matching opening one.
+  let link = found.replace(/[.,;:!?…»"'”’]+$/, '');
+  if (link.endsWith(')') && !link.includes('(')) link = link.replace(/\)+$/, '');
+  const hasScheme = /^https?:\/\//i.test(link);
+  const withScheme = hasScheme ? link : `https://${link}`;
   try {
-    return new URL(withScheme).href;
+    const url = new URL(withScheme);
+    // A bare word ("google", "kino") is a search, not a host — it used to open https://google
+    // and fail with ERR_NAME_NOT_RESOLVED (prod log 2026-11-08). Search the whole typed text.
+    if (!hasScheme && !url.hostname.includes('.') && url.hostname !== 'localhost') {
+      return `https://www.google.com/search?q=${encodeURIComponent(text)}`;
+    }
+    return url.href;
   } catch {
-    return withScheme;
+    return hasScheme ? withScheme : `https://www.google.com/search?q=${encodeURIComponent(text)}`;
   }
 }
 

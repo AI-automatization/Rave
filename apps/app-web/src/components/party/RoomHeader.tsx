@@ -11,6 +11,7 @@ import { LeaveRoomDialog } from '@/components/party/LeaveRoomDialog';
 import { toast } from '@/store/toast.store';
 import { trackClick } from '@/lib/analytics';
 import { avatarColor } from '@/lib/utils';
+import { AvatarImg } from '@/components/ui/AvatarImg';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
@@ -181,8 +182,7 @@ export function RoomHeader({ renameRoom, onPickDifferentVideo, onChangeSource }:
                   className="h-5 w-5 shrink-0 overflow-hidden rounded-full border-2 border-[var(--ww-bg)]"
                 >
                   {m.avatar ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- user-uploaded avatar URL
-                    <img src={m.avatar} alt="" className="h-full w-full object-cover" />
+                    <AvatarImg src={m.avatar} alt="" className="h-full w-full object-cover" />
                   ) : (
                     <span
                       className="flex h-full w-full items-center justify-center text-[8px] font-bold text-white"

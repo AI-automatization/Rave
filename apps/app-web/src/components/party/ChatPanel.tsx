@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { ReplyPreviewBar } from '@/components/messages/dm/ReplyPreviewBar';
 import { avatarColor } from '@/lib/utils';
 import type { IChatReplyTo } from '@/types';
+import { AvatarImg } from '@/components/ui/AvatarImg';
 
 interface Props {
   onSend: (text: string, replyTo?: IChatReplyTo) => void;
@@ -95,8 +96,7 @@ export function ChatPanel({ onSend, onOpenProfile }: Props) {
                 className={`shrink-0 rounded-full ${clickable ? 'cursor-pointer hover:opacity-80 transition-opacity' : 'cursor-default'}`}
               >
                 {avatar ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- user-uploaded avatar URL, not worth a next/image domain allowlist entry
-                  <img src={avatar} alt="" className="w-8 h-8 rounded-full object-cover" />
+                  <AvatarImg src={avatar} alt="" className="w-8 h-8 rounded-full object-cover" />
                 ) : (
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold text-white"

@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { avatarColor } from '@/lib/utils';
 import { trackClick } from '@/lib/analytics';
 import type { VoiceParticipant } from '@/hooks/use-voice-chat';
+import { AvatarImg } from '@/components/ui/AvatarImg';
 
 interface Props {
   isJoined: boolean;
@@ -189,8 +190,7 @@ export function VoiceStrip({
                     }`}
                   >
                     {p.avatar ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- user-uploaded avatar URL, not worth a next/image domain allowlist entry
-                      <img src={p.avatar} alt="" className="w-9 h-9 rounded-full object-cover" />
+                      <AvatarImg src={p.avatar} alt="" className="w-9 h-9 rounded-full object-cover" />
                     ) : (
                       <div
                         className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold text-white"

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useFriends } from '@/hooks/use-friends';
 import { trackClick } from '@/lib/analytics';
+import { AvatarImg } from '@/components/ui/AvatarImg';
 
 const PALETTE = ['#7C3AED', '#2563EB', '#059669', '#D97706', '#DC2626', '#DB2777', '#0891B2'];
 function avatarColor(id: string): string {
@@ -93,7 +94,7 @@ export function FriendsPanel() {
                       style={{ background: f.avatar ? undefined : color }}
                     >
                       {f.avatar
-                        ? <img src={f.avatar} alt="" className="w-full h-full object-cover" />
+                        ? <AvatarImg src={f.avatar} alt="" className="w-full h-full object-cover" />
                         : (f.username?.[0]?.toUpperCase() ?? '?')}
                     </div>
                     {f.isOnline && (
