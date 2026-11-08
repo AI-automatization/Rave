@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('wewatchHome', {
   open: (id: string) => ipcRenderer.invoke('home:open', id),
   retry: () => ipcRenderer.invoke('home:retry'),
   watch: (kind: string, index: number) => ipcRenderer.invoke('home:watch', kind, index),
+  sort: (key: string) => ipcRenderer.invoke('home:sort', key),
   onData: (cb: (data: unknown) => void): (() => void) => {
     const fn = (_e: unknown, data: unknown): void => cb(data);
     ipcRenderer.on('home:data', fn);

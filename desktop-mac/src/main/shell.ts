@@ -8,13 +8,15 @@
 import {
   ipcMain, nativeTheme, session, WebContentsView, type BrowserWindow, type IpcMainInvokeEvent, type WebContents, type WebPreferences,
 } from 'electron';
+import { execFile } from 'node:child_process';
+import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { APP_URL } from './config';
-import { loadRails, loadRooms, startWatching } from './home-data';
+import { APP_URL, devEnv } from './config';
+import { loadFriendsCount, loadMeName, loadOwnerName, loadRails, loadRooms, startWatching } from './home-data';
 import { DEFAULT_LOCALE, LOCALE_COOKIE, parseLocale, stringsFor, type Locale } from './i18n';
-import { buildHomeData, failed, LOADING, NO_RAILS, roomUrl, type HomeData, type Rails, type RoomCard } from './rooms-model';
-import { activeNavId, contentBounds, isHomePath, isNativeItem, NAV_SECTIONS, navUrl, webEmbedCss } from './shell-model';
+import { buildHomeData, failed, LOADING, NO_RAILS, roomUrl, type HomeData, type Rails, type RoomCard, type SortKey } from './rooms-model';
+import { activeNavId, contentBounds, isHomePath, nativeScreen, NAV_SECTIONS, navUrl, SIDEBAR_WIDTH, webEmbedCss, brokenAvatarScript, type NavItemId, type Screen } from './shell-model';
 
 const RENDERER_DIR = path.join(__dirname, '..', 'renderer');
 const PRELOAD_DIR = path.join(__dirname, '..', 'preload');
@@ -26,6 +28,7 @@ const HOME_URL = pathToFileURL(HOME_HTML).href;
 const REFRESH_CHECK_MS = 30_000;
 const STALE_MS = 45_000;
 const MAX_QUERY = 100;
+const MAX_OWNER_LOOKUPS = 24;
 
 type Mode = 'home' | 'web';
 
@@ -42,6 +45,14 @@ let suppressAutoHome = false; // the web login/home page we forced must not boun
 let homeState: HomeData = LOADING;
 let homeCards: readonly RoomCard[] | null = null;
 let homeQuery = '';
+let screen: Screen = 'rooms'; // which native screen is shown (the design's main window is "Xonalar")
+let homeSort: SortKey = 'viewers';
+let sidebarOpen = true;
+const owners = new Map<string, string>(); // owner id -> name (looked up once)
+const ownerTried = new Set<string>();
+let friendsCount: number | null = null;
+let meName: string | null = null;
+let deviceName = os.hostname();
 let rails: Rails = NO_RAILS; // weekly top + history; the renderer points at their items by position only
 let watching = false; // one "start watching" at a time
 let homeGen = 0;
@@ -63,32 +74,53 @@ interface ShellState {
   activeId: string | null;
   canGoBack: boolean;
   canGoForward: boolean;
+  /** The search box exists only on the room screens. */
   searchVisible: boolean;
+  sidebarOpen: boolean;
   query: string;
   ui: Record<string, unknown>;
+  /** Sidebar extras of the design: room count badge, friends count, live dot, profile block. */
+  side: { rooms: number | null; friends: number | null; live: boolean; profile: { name: string; initial: string; status: string } | null };
+}
+
+function side(): ShellState['side'] {
+  const name = meName;
+  return {
+    rooms: homeCards ? homeCards.length : null,
+    friends: friendsCount,
+    live: homeCards?.some((c) => c.badge === 'live') ?? false,
+    profile: name ? { name, initial: [...name][0]?.toUpperCase() ?? '?', status: `${stringsFor(locale).ui.online} · ${deviceName}` } : null,
+  };
 }
 
 function state(): ShellState {
   const wc = getContentWebContents();
+  const list = mode === 'home' && screen !== 'history';
+  const base = { query: homeQuery, ui: shellUi(locale), side: side(), sidebarOpen, searchVisible: list };
   if (mode === 'home' || !wc) {
-    return {
-      activeId: mode === 'home' ? 'home' : null, canGoBack: false, canGoForward: false, searchVisible: mode === 'home',
-      query: homeQuery, ui: shellUi(locale),
-    };
+    return { ...base, activeId: mode === 'home' ? (screen satisfies NavItemId) : null, canGoBack: false, canGoForward: false };
   }
   return {
+    ...base,
     activeId: activeNavId(wc.getURL(), APP_URL),
     canGoBack: wc.navigationHistory.canGoBack() || cameFromHome,
     canGoForward: wc.navigationHistory.canGoForward(),
-    searchVisible: false,
-    query: homeQuery,
-    ui: shellUi(locale),
   };
 }
 
 const pushState = (): void => alive(shellView)?.send('shell:state', state());
 const homePayload = (): Record<string, unknown> => ({ ...homeState, strings: stringsFor(locale).home });
 const pushHome = (): void => alive(homeView)?.send('home:data', homePayload());
+
+// ---------- this computer's name ("Onlayn · MacBook Air" under the user's name) ----------
+
+function readDeviceName(): Promise<string> {
+  const override = devEnv('WW_SMOKE_DEVICE');
+  if (override) return Promise.resolve(override);
+  return new Promise((resolve) => {
+    execFile('scutil', ['--get', 'ComputerName'], { timeout: 2000 }, (err, out) => resolve(!err && out.trim() !== '' ? out.trim() : os.hostname()));
+  });
+}
 
 // ---------- language ----------
 
@@ -127,7 +159,7 @@ function layout(): void {
   if (!win || win.isDestroyed()) return;
   const [w, h] = win.getContentSize();
   if (w === undefined || h === undefined) return;
-  const b = contentBounds(w, h);
+  const b = contentBounds(w, h, sidebarOpen ? SIDEBAR_WIDTH : 0);
   if (shellView && alive(shellView)) shellView.setBounds({ x: 0, y: 0, width: w, height: h });
   if (homeView && alive(homeView)) homeView.setBounds(b);
   if (contentView && alive(contentView)) contentView.setBounds(b);
@@ -146,7 +178,10 @@ function ensureContent(): WebContents {
   layout();
   const wc = cv.webContents;
   // The web app draws its own left sidebar; the native one replaces it (interim, until every screen is native).
-  wc.on('dom-ready', () => void wc.insertCSS(webEmbedCss()).catch(() => {}));
+  wc.on('dom-ready', () => {
+    void wc.insertCSS(webEmbedCss()).catch(() => {});
+    void wc.executeJavaScript(brokenAvatarScript()).catch(() => {});
+  });
   wc.on('did-navigate', (_e, url) => {
     onContentNavigated(url);
     pushState();
@@ -172,7 +207,7 @@ function onContentNavigated(url: string): void {
     suppressAutoHome = false;
     return;
   }
-  if (!suppressAutoHome) void showHome();
+  if (!suppressAutoHome) void showScreen('rooms');
 }
 
 function setMode(next: Mode): void {
@@ -191,7 +226,7 @@ function openWeb(url: string): void {
 /** Single entry for "show this app URL" (used after Google login and for wewatch:// links). */
 export function openInApp(url: string): Promise<void> {
   if (isHomePath(url, APP_URL)) {
-    void showHome();
+    void showScreen('rooms'); // the post-login page: the app's main window
   } else {
     suppressAutoHome = false;
     openWeb(url);
@@ -222,27 +257,56 @@ async function refreshHome(opts: { loading?: boolean; background?: boolean } = {
   if (r.kind === 'unavailable') {
     if (opts.background && homeCards) return; // a failed background refresh keeps what is on screen
     homeCards = null;
-    homeState = failed(homeQuery);
+    homeState = failed(homeQuery, screen, homeSort);
   } else {
     homeCards = r.rooms;
-    homeState = buildHomeData(r.rooms, homeQuery, rails);
+    rebuild();
   }
   pushHome();
-  if (r.kind === 'ok') {
-    // The rails are extra content: they arrive after the rooms and a failure of theirs never touches the room list.
-    void loadRails().then((fresh) => {
-      if (gen !== homeGen || !homeCards) return;
-      rails = fresh;
-      homeState = buildHomeData(homeCards, homeQuery, rails);
-      pushHome();
-    });
-  }
+  pushState(); // the room count / live dot of the sidebar
+  if (r.kind === 'ok') void loadExtras(gen);
 }
 
-export function showHome(): Promise<void> {
+const view = (): { screen: Screen; sort: SortKey; owners: Record<string, string> } => ({ screen, sort: homeSort, owners: Object.fromEntries(owners) });
+function rebuild(): void {
+  if (homeCards) homeState = buildHomeData(homeCards, homeQuery, rails, view());
+}
+
+/**
+ * Extras that arrive after the rooms and never delay or break them: the two rails, the owners' names ("Xona egasi: ..."),
+ * the friends count and the user's name for the sidebar. A failure of any of them just leaves that bit out.
+ */
+async function loadExtras(gen: number): Promise<void> {
+  if (!homeCards) return;
+  const ids = [...new Set(homeCards.map((c) => c.ownerId).filter((id): id is string => id !== null && !owners.has(id) && !ownerTried.has(id)))].slice(0, MAX_OWNER_LOOKUPS);
+  for (const id of ids) ownerTried.add(id);
+  const [fresh, friends, me, names] = await Promise.all([
+    loadRails(),
+    loadFriendsCount(),
+    meName === null ? loadMeName() : Promise.resolve(meName),
+    Promise.all(ids.map(async (id) => [id, await loadOwnerName(id)] as const)),
+  ]);
+  if (gen !== homeGen || !homeCards) return;
+  rails = fresh;
+  if (friends !== null) friendsCount = friends;
+  if (me) meName = me;
+  for (const [id, name] of names) if (name) owners.set(id, name);
+  rebuild();
+  pushHome();
+  pushState();
+}
+
+/** Show one of the app's own screens. Switching between them needs no new request unless the data is stale. */
+export function showScreen(next: Screen): Promise<void> {
+  screen = next;
   cameFromHome = false;
   suppressAutoHome = false;
   setMode('home');
+  if (homeCards && Date.now() - lastFetch < STALE_MS) {
+    rebuild();
+    pushHome();
+    return Promise.resolve();
+  }
   return refreshHome({ loading: homeCards === null });
 }
 
@@ -253,14 +317,42 @@ export function startApp(startWeb: boolean): void {
     openWeb(APP_URL);
     cameFromHome = false; // started on the web page: there is no Home to go back to
   } else {
-    void showHome();
+    void showScreen('rooms');
+  }
+}
+
+// ---------- "+ Yangi xona" ----------
+
+const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Creating a room is the web app's own dialog (CreateRoomDialog), which lives in its layout and is opened by its sidebar's
+ * "create" button — a button our content view hides together with that sidebar. So: open the web app's page, press that
+ * button for the user, and let the web dialog do the rest (source, privacy, ...). Gives up quietly after ~10 s (e.g. signed out).
+ */
+async function openNewRoom(): Promise<void> {
+  suppressAutoHome = true; // the web /home must not bounce straight back to the native screen
+  openWeb(new URL('/home', APP_URL).toString());
+  const first = getContentWebContents();
+  for (let i = 0; first && i < 25; i++) {
+    await sleep(400);
+    const wc = getContentWebContents();
+    if (wc !== first || wc.isDestroyed()) return;
+    try {
+      const r = (await wc.executeJavaScript(
+        `(() => { if (document.querySelector('[role="dialog"]')) return 'open'; const b = document.querySelector('aside.fixed button.ww-btn-accent'); if (b instanceof HTMLElement) { b.click(); return 'clicked'; } return 'wait'; })()`,
+      )) as string;
+      if (r === 'open') return;
+    } catch {
+      /* page still loading */
+    }
   }
 }
 
 // ---------- IPC ----------
 
 const FORBIDDEN = { ok: false, reason: 'forbidden' } as const;
-const CHANNELS = ['shell:model', 'shell:navigate', 'shell:back', 'shell:forward', 'shell:search', 'home:ready', 'home:open', 'home:retry', 'home:watch'];
+const CHANNELS = ['shell:model', 'shell:navigate', 'shell:back', 'shell:forward', 'shell:search', 'shell:toggleSidebar', 'shell:newRoom', 'home:ready', 'home:open', 'home:retry', 'home:watch', 'home:sort'];
 
 function registerIpc(): void {
   // The window can be recreated (dock click after closing): replace, never double-register.
@@ -273,8 +365,9 @@ function registerIpc(): void {
   });
   ipcMain.handle('shell:navigate', (e, id: unknown) => {
     if (!fromShell(e)) return FORBIDDEN;
-    if (isNativeItem(id)) {
-      void showHome();
+    const native = nativeScreen(id);
+    if (native) {
+      void showScreen(native);
       return { ok: true } as const;
     }
     const url = navUrl(id, APP_URL);
@@ -288,7 +381,7 @@ function registerIpc(): void {
     if (mode !== 'web') return { ok: true } as const;
     const wc = getContentWebContents();
     if (wc?.navigationHistory.canGoBack()) wc.navigationHistory.goBack();
-    else if (cameFromHome) void showHome();
+    else if (cameFromHome) void showScreen(screen);
     return { ok: true } as const;
   });
   ipcMain.handle('shell:forward', (e) => {
@@ -299,8 +392,21 @@ function registerIpc(): void {
   ipcMain.handle('shell:search', (e, q: unknown) => {
     if (!fromShell(e)) return FORBIDDEN;
     homeQuery = typeof q === 'string' ? q.slice(0, MAX_QUERY) : '';
-    if (homeCards) homeState = buildHomeData(homeCards, homeQuery, rails);
+    rebuild();
     pushHome();
+    pushState();
+    return { ok: true } as const;
+  });
+  ipcMain.handle('shell:toggleSidebar', (e) => {
+    if (!fromShell(e)) return FORBIDDEN;
+    sidebarOpen = !sidebarOpen;
+    layout();
+    pushState();
+    return { ok: true } as const;
+  });
+  ipcMain.handle('shell:newRoom', (e) => {
+    if (!fromShell(e)) return FORBIDDEN;
+    void openNewRoom();
     return { ok: true } as const;
   });
 
@@ -347,6 +453,14 @@ function registerIpc(): void {
       watching = false;
     }
   });
+  ipcMain.handle('home:sort', (e, key: unknown) => {
+    if (!fromHome(e)) return FORBIDDEN;
+    if (key !== 'viewers' && key !== 'newest') return { ok: false, reason: 'invalid_sort' } as const;
+    homeSort = key;
+    rebuild();
+    pushHome();
+    return { ok: true } as const;
+  });
   ipcMain.handle('home:retry', (e) => {
     if (!fromHome(e)) return FORBIDDEN;
     void refreshHome({ loading: true });
@@ -375,8 +489,19 @@ export function attachShell(window: BrowserWindow, opts: ShellOptions): { shell:
   homeState = LOADING;
   homeCards = null;
   homeQuery = '';
+  screen = 'rooms';
+  homeSort = 'viewers';
+  sidebarOpen = true;
+  owners.clear();
+  ownerTried.clear();
+  friendsCount = null;
+  meName = null;
   rails = NO_RAILS;
   watching = false;
+  void readDeviceName().then((n) => {
+    deviceName = n;
+    pushState();
+  });
   locale = DEFAULT_LOCALE;
   localeReady = syncLocale();
   if (!cookieWatch) {
@@ -462,7 +587,7 @@ export async function inspectShell(): Promise<unknown> {
     const items = [...document.querySelectorAll('.nav-item')];
     const search = document.getElementById('search');
     return {
-      items: items.map((b) => ({ id: b.dataset.id, label: b.textContent, disabled: b.disabled, active: b.classList.contains('active'), title: b.title })),
+      items: items.map((b) => ({ id: b.dataset.id, label: b.querySelector('span').textContent, disabled: b.disabled, active: b.classList.contains('active'), title: b.title, tail: b.querySelector('.tail').textContent, tailClass: b.querySelector('.tail').className })),
       titles: [...document.querySelectorAll('.section-title')].map((t) => t.textContent),
       backDisabled: document.getElementById('back').disabled,
       forwardDisabled: document.getElementById('forward').disabled,
@@ -470,6 +595,12 @@ export async function inspectShell(): Promise<unknown> {
       searchValue: search ? search.value : null,
       searchPlaceholder: search ? search.placeholder : null,
       htmlLang: document.documentElement.lang,
+      collapsed: document.body.classList.contains('collapsed'),
+      sidebarVar: document.documentElement.style.getPropertyValue('--sidebar'),
+      toggleLabel: document.getElementById('toggle').getAttribute('aria-label'),
+      newRoom: document.getElementById('new-room-label').textContent,
+      profile: document.getElementById('profile').hidden ? null : { initial: document.getElementById('avatar').textContent, name: document.getElementById('who-name').textContent, status: document.getElementById('who-status').textContent },
+      brand: document.querySelector('.brand').textContent,
       backLabel: document.getElementById('back').getAttribute('aria-label'),
       bridgeKeys: Object.keys(window.wewatchShell || {}),
       webBridge: typeof window.wewatchDesktop,
@@ -486,10 +617,11 @@ export async function inspectShell(): Promise<unknown> {
         viewers: t(document.querySelector('.viewers')),
       } : null,
       section: t(document.querySelector('.section-head h2')),
+      sort: document.querySelector('.sort select') ? { label: t(document.querySelector('.sort span')), value: document.querySelector('.sort select').value, options: [...document.querySelectorAll('.sort option')].map((o) => o.textContent) } : null,
       cards: [...document.querySelectorAll('.card')].map((c) => ({
         title: t(c.querySelector('.title')), subtitle: t(c.querySelector('.subtitle')),
         badge: t(c.querySelector('.badge')), badgeClass: c.querySelector('.badge').className,
-        count: t(c.querySelector('.count')), button: t(c.querySelector('button')),
+        count: t(c.querySelector('.count')), button: t(c.querySelector('button')), tile: t(c.querySelector('.tile-label')),
       })),
       imgs: [...document.querySelectorAll('img')].map((i) => i.getAttribute('src')),
       rails: [...document.querySelectorAll('.rail-section')].map((sec) => ({
@@ -499,6 +631,8 @@ export async function inspectShell(): Promise<unknown> {
           img: c.querySelector('img') ? c.querySelector('img').getAttribute('src') : null,
         })),
       })),
+      gridWatch: [...document.querySelectorAll('.grid .watch')].map((c) => t(c.querySelector('.wtitle'))),
+      owners: [...document.querySelectorAll('.card .subtitle')].map((e) => e.textContent),
       toast: t(document.querySelector('.toast')),
       message: t(document.querySelector('.message h2')),
       skeleton: !!document.querySelector('.skeleton'),
@@ -519,6 +653,8 @@ export async function inspectShell(): Promise<unknown> {
           planSection: (() => { const x = [...document.querySelectorAll('section.ww-panel')].find((e) => e.querySelector('svg.lucide-crown')); return x ? getComputedStyle(x).display : null; })(),
           otherSection: (() => { const x = [...document.querySelectorAll('section.ww-panel')].find((e) => !e.querySelector('svg.lucide-crown')); return x ? getComputedStyle(x).display : null; })(),
           planFetch: window.__planFetch ?? null,
+          avatar: (() => { const i = document.querySelector('img'); return i ? { hidden: getComputedStyle(i).display === 'none', marked: !!i.parentElement && i.parentElement.classList.contains('ww-avatar-broken'), bg: i.parentElement ? getComputedStyle(i.parentElement).backgroundImage.slice(0, 20) : null } : null; })(),
+          dialog: document.querySelector('[role="dialog"]') ? document.querySelector('[role="dialog"]').textContent : null,
         };
       })()`)
     : null;

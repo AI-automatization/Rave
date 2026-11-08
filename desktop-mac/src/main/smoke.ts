@@ -27,6 +27,7 @@ const labelIs = (id: string, text: string): string => `document.querySelector('[
 const setLocaleCookie = (value: string): Promise<void> =>
   session.defaultSession.cookies.set({ url: APP_URL, name: 'wewatch-locale', value, path: '/', expirationDate: Math.floor(Date.now() / 1000) + 3600 });
 const bannerIs = (title: string): string => `document.querySelector('.banner h1')?.textContent === ${JSON.stringify(title)}`;
+const STAR_WARS = 'Yulduzlar Jangi (Interstellar)'; // the fake server's busiest room: "name (video title)"
 const click = (target: 'shell' | 'home', selector: string): Promise<unknown> =>
   smokeEval(target, `document.querySelector(${JSON.stringify(selector)}).click()`);
 const clickItem = (id: string): Promise<unknown> => click('shell', `[data-id="${id}"]`);
@@ -66,12 +67,9 @@ export function runSmokeAction(action: string, smoke: Smoke): void {
       await clickItem('settings');
       await wait(1200);
       await look('shell-settings');
-      await clickItem('rooms'); // disabled item: must do nothing
-      await wait(600);
-      await look('shell-rooms-click');
       // Hostile ids through the real bridge: only known sidebar ids may navigate.
       const replies: unknown[] = [];
-      for (const bad of ['evil', 'https://evil.example/', '__proto__', 'rooms', 42, null]) {
+      for (const bad of ['evil', 'https://evil.example/', '__proto__', 'favorites', 42, null]) {
         replies.push(await smokeEval('shell', `window.wewatchShell.navigate(${JSON.stringify(bad)})`));
       }
       await wait(600);
@@ -99,7 +97,7 @@ export function runSmokeAction(action: string, smoke: Smoke): void {
       await until('home', "!!document.querySelector('.message h2')");
       await look('home-search-none');
       await search('');
-      await until('home', bannerIs('Yulduzlar Jangi'));
+      await until('home', bannerIs(STAR_WARS));
       await look('home-search-cleared');
       // Hostile ids through the real Home bridge: nothing may navigate.
       const replies: unknown[] = [];
@@ -137,7 +135,7 @@ export function runSmokeAction(action: string, smoke: Smoke): void {
       await smokeEval('content', "document.cookie = 'wewatch-locale=en; path=/'");
       await until('shell', labelIs('home', 'Home'));
       await look('lang-en');
-      await clickItem('home'); // the native Home, in English
+      await clickItem('rooms'); // the native room list, in English
       await until('home', "document.querySelector('.kicker')?.textContent === 'LIVE RIGHT NOW'");
       await look('lang-home-en');
       await setLocaleCookie('ru'); // changed while Home is shown: both native screens follow at once
@@ -152,6 +150,8 @@ export function runSmokeAction(action: string, smoke: Smoke): void {
       const search = (q: string): Promise<unknown> =>
         smokeEval('shell', `(() => { const s = document.getElementById('search'); s.value = ${JSON.stringify(q)}; s.dispatchEvent(new Event('input')); })()`);
       await wait(2500);
+      await until('home', "document.querySelectorAll('.card').length > 0"); // the first screen (Xonalar) is up
+      await clickItem('home'); // the rails live on Bosh sahifa
       await until('home', "document.querySelectorAll('.watch').length >= 3");
       await look('rails-initial');
       await shot();
@@ -180,6 +180,43 @@ export function runSmokeAction(action: string, smoke: Smoke): void {
       await search('zzzzz-no-such-room'); // the search is about rooms: the rails step aside
       await until('home', "document.querySelectorAll('.watch').length === 0");
       await look('rails-search');
+    })();
+  } else if (action === 'design') {
+    // The Stitch design: sidebar counters + profile, toolbar, sort, the other screens, collapsing, "Yangi xona".
+    void (async () => {
+      await wait(2500);
+      await until('shell', "document.getElementById('profile').hidden === false && !!document.querySelector('[data-id=rooms] .tail.count')");
+      await until('home', "document.querySelectorAll('.card .subtitle').length >= 2");
+      await look('design-initial');
+      await shot();
+      await smokeEval('home', "(() => { const s = document.querySelector('.sort select'); s.value = 'newest'; s.dispatchEvent(new Event('change')); })()");
+      await until('home', "document.querySelector('.sort select')?.value === 'newest'");
+      await look('design-newest');
+      const replies: unknown[] = [];
+      for (const bad of ['oldest', '', 42, null, {}, '__proto__']) replies.push(await smokeEval('home', `window.wewatchHome.sort(${JSON.stringify(bad)})`));
+      smoke('design-sort-hostile', { replies });
+      await click('shell', '#toggle');
+      await until('shell', "document.body.classList.contains('collapsed')");
+      await wait(300);
+      await look('design-collapsed');
+      await shot();
+      await click('shell', '#toggle');
+      await until('shell', "!document.body.classList.contains('collapsed')");
+      await wait(300);
+      await look('design-expanded');
+      await clickItem('live');
+      await until('home', "!!document.querySelector('.banner') && document.querySelectorAll('.card').length === 0");
+      await look('design-live');
+      await clickItem('history');
+      await until('home', "document.querySelectorAll('.grid .watch').length >= 1");
+      await look('design-history');
+      await shot();
+      await clickItem('home');
+      await until('home', "document.querySelectorAll('.rail-section').length === 2");
+      await look('design-home');
+      await click('shell', '#new-room');
+      await until('content', "!!document.querySelector('[role=dialog]')", 8000);
+      await look('design-new-room');
     })();
   } else if (action === 'home-retry') {
     // The first load fails (server down); the user presses "Qayta urinish" and it works.

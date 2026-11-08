@@ -14,10 +14,10 @@ const root = path.resolve(import.meta.dirname, '..', '..');
 const PORT = 8145;
 
 const ID = (n) => `6aec421eb9db0a8762bf6a${String(n).padStart(2, '0')}`;
-const room = (n, over) => ({ _id: ID(n), name: `Xona ${n}`, videoTitle: null, videoThumbnail: null, videoPlatform: 'youtube', ownerId: 'u', members: [], memberCount: 0, maxMembers: 10, status: 'playing', isPrivate: false, ...over });
+const room = (n, over) => ({ _id: ID(n), name: `Xona ${n}`, videoTitle: null, videoThumbnail: null, videoPlatform: 'youtube', ownerId: 'owner_u1', members: [], memberCount: 0, maxMembers: 10, status: 'playing', isPrivate: false, ...over });
 const ROOMS = [
   room(1, { name: 'Yulduzlar Jangi', videoTitle: 'Interstellar', memberCount: 9, videoThumbnail: 'https://img.example.com/a.jpg' }),
-  room(2, { name: 'Muqaddima', memberCount: 3, videoThumbnail: 'http://insecure.example.com/b.jpg' }),
+  room(2, { name: 'Muqaddima', ownerId: 'owner_u2', memberCount: 3, videoThumbnail: 'http://insecure.example.com/b.jpg' }),
   room(3, { name: 'Kutish', status: 'waiting', videoPlatform: 'vk' }),
   room(4, { name: 'Pauza', status: 'paused', memberCount: 2 }),
   room(5, { name: 'Tugagan', status: 'ended' }),
@@ -46,6 +46,15 @@ const server = createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
     if (cookieOf(req, 'access_token') !== 'good') { res.statusCode = 401; return res.end('{}'); }
     return res.end(JSON.stringify({ success: true, data: url.pathname.endsWith('trending') ? TRENDING : HISTORY }));
+  }
+  if (url.pathname === '/api/auth/me' || url.pathname === '/api/user/me/friends' || url.pathname.startsWith('/api/user/')) {
+    res.setHeader('content-type', 'application/json');
+    if (cookieOf(req, 'access_token') !== 'good') { res.statusCode = 401; return res.end('{}'); }
+    if (url.pathname === '/api/auth/me') return res.end(JSON.stringify({ success: true, data: { user: { username: 'azizbek' } } }));
+    if (url.pathname === '/api/user/me/friends') return res.end(JSON.stringify({ success: true, data: [{ _id: 'f1' }, { _id: 'f2' }, { _id: 'f3' }] }));
+    const owner = { owner_u1: 'Sardor', owner_u2: 'Dilnoza' }[url.pathname.slice('/api/user/'.length)];
+    if (!owner) { res.statusCode = 404; return res.end('{}'); }
+    return res.end(JSON.stringify({ success: true, data: { username: owner } }));
   }
   if (url.pathname === '/api/rooms' && req.method === 'POST') {
     let raw = '';
@@ -84,7 +93,7 @@ const server = createServer((req, res) => {
   res.end(`<!doctype html><title>WW ${url.pathname}</title>
 <style>:root{--ww-sidebar:248px} body{margin:0;padding-left:var(--ww-sidebar);background:#05050a;color:#fff}
 aside{position:fixed;left:0;top:0;bottom:0;width:var(--ww-sidebar);background:#900;display:flex}</style>
-<aside class="fixed inset-y-0 left-0 z-40 hidden lg:flex">WEB-SIDEBAR</aside><main>page ${url.pathname}${settings}</main>`);
+<aside class="fixed inset-y-0 left-0 z-40 hidden lg:flex">WEB-SIDEBAR<button class="ww-btn-accent" onclick="document.body.insertAdjacentHTML('beforeend','<div role=dialog>NEW-ROOM-DIALOG</div>')">+</button></aside><main>page ${url.pathname}${settings}</main>`);
 });
 await new Promise((r) => server.listen(PORT, '127.0.0.1', r));
 
@@ -122,23 +131,30 @@ console.log('--- A: signed in (access token valid)');
   check(i?.content === null, 'no web page is loaded while Home is shown (nothing else refreshes the tokens)');
   check(!r.calls.some((c) => c.startsWith('POST /api/auth/refresh')), 'no token refresh when the access token is valid');
   check(r.calls.filter((c) => c === 'GET /api/rooms').length >= 1, 'the room list was fetched from /api/rooms');
-  check(i?.shell.items.find((x) => x.active)?.id === 'home', 'sidebar highlights Bosh sahifa');
+  check(i?.shell.items.find((x) => x.active)?.id === 'rooms', 'sidebar highlights Xonalar (the app\'s main window)');
   check(i?.shell.searchHidden === false, 'the search box is visible on Home');
   check(i?.state.canGoBack === false, 'back is disabled on Home');
   const h = i?.home;
-  check(h?.bridgeKeys.sort().join(',') === 'onData,open,ready,retry,watch', 'Home bridge exposes exactly ready/open/retry/watch/onData');
+  check(h?.bridgeKeys.sort().join(',') === 'onData,open,ready,retry,sort,watch', 'Home bridge exposes exactly ready/open/retry/watch/sort/onData');
   check(h?.webBridge === 'undefined', 'Home has NO web-app bridge');
-  check(h?.banner?.title === 'Yulduzlar Jangi' && h?.banner?.sub === 'Interstellar', 'banner = the playing room with the most viewers (title + video title)');
+  check(h?.banner?.title === 'Yulduzlar Jangi (Interstellar)' && h?.banner?.sub === null, 'banner = the playing room with the most viewers, "name (video title)", no description line (the design has none)');
   check(h?.banner?.kicker === 'ASOSIY JONLI XONA' && h?.banner?.join === "Xonaga qo'shilish", 'banner copy from the design');
   check(h?.banner?.viewers === '9 nafar tomoshabin onlayn', 'banner viewer count from memberCount');
   check(h?.section === 'Faol xonalar', 'section title from the design');
-  check(JSON.stringify(titles(h)) === JSON.stringify(['Muqaddima', 'Kutish', 'Pauza', '<img src="https://evil.example/pwn.png" onerror="alert(1)">']),
-    'grid = the other rooms in server order; "ended", web-only "active" and the bad id are not shown');
+  check(JSON.stringify(titles(h)) === JSON.stringify(['Muqaddima', 'Pauza', '<img src="https://evil.example/pwn.png" onerror="alert(1)">', 'Kutish']),
+    'grid = the other rooms, most viewers first (the default sort); "ended", web-only "active" and the bad id are not shown');
   const [c1, c2, c3, c4] = h?.cards ?? [];
   check(c1?.badge === 'JONLI' && c1?.count === '3 kishi' && c1?.button === "Qo'shilish", 'playing room: JONLI, "3 kishi", Qo\'shilish');
-  check(c2?.badge === 'BOSHLANMOQDA' && c2?.button === 'Kutish xonasi', 'waiting room: BOSHLANMOQDA + Kutish xonasi');
-  check(c3?.badge === 'PAUZADA', 'paused room: PAUZADA');
-  check(c4?.title.startsWith('<img') && !(h?.imgs ?? []).some((s) => s?.includes('pwn.png')), 'markup in a room name stays text (no element, no request)');
+  check(c4?.badge === 'BOSHLANMOQDA' && c4?.button === 'Kutish xonasi', 'waiting room: BOSHLANMOQDA + Kutish xonasi');
+  check(c2?.badge === 'PAUZADA', 'paused room: PAUZADA');
+  check(c3?.title.startsWith('<img') && !(h?.imgs ?? []).some((s) => s?.includes('pwn.png')), 'markup in a room name stays text (no element, no request)');
+  check(c1?.tile === 'YOUTUBE' && c4?.tile === 'VK', 'every card has the platform tile with the platform name in capitals');
+  check(c1?.subtitle === 'Xona egasi: Dilnoza' && c2?.subtitle === 'Xona egasi: Sardor', 'the owner\'s name is looked up and shown as "Xona egasi: <name>"');
+  check(h?.sort?.label === 'Saralash:' && h?.sort?.value === 'viewers' && h?.sort?.options.join('|') === "Ko'ruvchilar soni bo'yicha|Yangi xonalar", 'the sort control, "viewers" by default');
+  check(i?.shell.profile?.name === 'azizbek' && i?.shell.profile?.initial === 'A' && i?.shell.profile?.status.startsWith('Onlayn · '), 'profile block: initial, user name and "Onlayn · <this Mac>"');
+  const tails = Object.fromEntries((i?.shell.items ?? []).map((x) => [x.id, x.tail]));
+  check(tails.rooms === '5' && tails.friends === '3' && tails.live === '', 'sidebar counters: 5 rooms, 3 friends, and the live dot (no text)');
+  check((i?.shell.items.find((x) => x.id === 'live')?.tailClass ?? '').includes('dot'), 'the green live dot shows while a room is playing');
   check((h?.imgs ?? []).every((s) => typeof s === 'string' && s.startsWith('https://')), 'only https posters are ever put into the page (the http one was dropped)');
   check(h?.scripts === 0, 'no script elements in the page');
   const hb = i?.homeBounds, sb = i?.shellBounds;
@@ -150,7 +166,7 @@ console.log('--- A: signed in (access token valid)');
   const s2 = r.get('home-search-none');
   check(s2?.home.message === 'Hech narsa topilmadi' && s2?.home.banner === null, 'a search with no match shows "Hech narsa topilmadi"');
   const s3 = r.get('home-search-cleared');
-  check(s3?.home.banner?.title === 'Yulduzlar Jangi' && titles(s3?.home).length === 4, 'clearing the search brings everything back');
+  check(s3?.home.banner?.title === 'Yulduzlar Jangi (Interstellar)' && titles(s3?.home).length === 4, 'clearing the search brings everything back');
 
   const hs = r.ev.find((x) => x.event === 'home-hostile-ids')?.replies ?? [];
   check(hs.length === 6 && hs.every((x) => x && x.ok === false), 'hostile / invalid room ids are all refused (6 of 6)');
@@ -169,6 +185,7 @@ console.log('--- A: signed in (access token valid)');
   check(r.get('home-friends')?.mode === 'web' && pathOf(r.get('home-friends')?.content?.url) === '/friends', "sidebar Do'stlar opens the web page");
   const vs = r.get('home-via-sidebar');
   check(vs?.mode === 'home' && vs?.content === null && vs?.shell.items.find((x) => x.active)?.id === 'home', 'sidebar Bosh sahifa returns to the native Home');
+  check(vs?.home.banner !== null && vs?.home.cards.length === 0 && vs?.home.rails.length === 2, 'Bosh sahifa = banner + the two rails (no room grid)');
   check(!r.calls.some((c) => c.startsWith('POST /api/auth/refresh')), 'still no token refresh during the whole run');
 }
 
@@ -179,7 +196,7 @@ console.log('--- B: access token expired, refresh token valid');
   const i = r.get('look-initial');
   const refreshes = r.calls.filter((c) => c === 'POST /api/auth/refresh').length;
   check(refreshes === 1, `exactly one refresh request (got ${refreshes})`);
-  check(i?.mode === 'home' && i?.home.banner?.title === 'Yulduzlar Jangi', 'after the refresh the list loads and Home is shown');
+  check(i?.mode === 'home' && i?.home.banner?.title === 'Yulduzlar Jangi (Interstellar)', 'after the refresh the list loads and Home is shown');
   check(i?.content === null, 'the web page was never needed');
 }
 
@@ -204,7 +221,7 @@ console.log('--- D: server down, then "Qayta urinish"');
   check(a?.mode === 'home' && a?.home.message === "Xonalarni yuklab bo'lmadi", 'server error: Home shows "Xonalarni yuklab bo\'lmadi" (no crash, no fall-back to login)');
   check(a?.content === null, 'a server error does not load the web page');
   const b = r.get('retry-after');
-  check(b?.home.banner?.title === 'Yulduzlar Jangi', 'after "Qayta urinish" the rooms are shown');
+  check(b?.home.banner?.title === 'Yulduzlar Jangi (Interstellar)', 'after "Qayta urinish" the rooms are shown');
 }
 
 // ---------------------------------------------------------------- E: language + subscription
@@ -213,9 +230,9 @@ console.log('--- E: language follows the web app; subscription is gone');
   const r = await run('lang', { cookies: 'access_token=good;refresh_token=r1', action: 'lang', startPath: '/settings', startWeb: true, ttl: 25 });
   const labels = (x) => (x?.shell.items ?? []).map((i) => i.label).join('|');
   const ru = r.get('lang-ru');
-  check(labels(ru) === 'Главная|Комнаты|Прямые эфиры|Друзья|История|Избранное|Настройки', 'no language cookie -> the web default (Russian): sidebar items');
+  check(labels(ru) === 'Главная|Комнаты|Прямые эфиры|Друзья|История|Настройки', 'no language cookie -> the web default (Russian): sidebar items');
   check(ru?.shell.titles.join('|') === 'ОСНОВНОЕ|ДРУЗЬЯ И СООБЩЕСТВО|БИБЛИОТЕКА', 'Russian section titles');
-  check(ru?.shell.items.filter((i) => i.disabled).every((i) => i.title === 'Скоро') && ru?.shell.backLabel === 'Назад' && ru?.shell.htmlLang === 'ru', 'Russian tooltip, button label and page language');
+  check(ru?.shell.backLabel === 'Назад' && ru?.shell.htmlLang === 'ru', 'Russian button label and page language');
   check(ru?.content?.planSection === 'none', 'the subscription panel (TARIF / Pro / Payme / Click) is hidden on Settings');
   check(ru?.content?.otherSection !== 'none' && ru?.content?.otherSection !== null, 'the other Settings panels are still visible');
   check(ru?.content?.planFetch === 'blocked', "the page's request to the payment API was cancelled");
@@ -224,20 +241,20 @@ console.log('--- E: language follows the web app; subscription is gone');
   const pr = r.get('lang-pricing');
   check(pathOf(pr?.content?.url) === '/settings' && !r.calls.includes('GET /pricing'), '/pricing cannot be opened (stayed on Settings, server never asked)');
   const uz = r.get('lang-uz');
-  check(labels(uz) === "Bosh sahifa|Xonalar|Jonli efirlar|Do'stlar|Tarix|Sevimlilar|Sozlamalar", 'switching the web language to Uzbek changes the sidebar at once');
+  check(labels(uz) === "Bosh sahifa|Xonalar|Jonli efirlar|Do'stlar|Tarix|Sozlamalar", 'switching the web language to Uzbek changes the sidebar at once');
   check(uz?.shell.titles.join('|') === "ASOSIY|DO'STLAR & HAMJAMIYAT|KUTUBXONA" && uz?.shell.htmlLang === 'uz', 'Uzbek section titles (the approved design)');
   const en = r.get('lang-en');
-  check(labels(en) === 'Home|Rooms|Live streams|Friends|History|Favorites|Settings', 'switching to English changes the sidebar at once');
-  check(en?.shell.titles.join('|') === 'MAIN|FRIENDS & COMMUNITY|LIBRARY' && en?.shell.items.filter((i) => i.disabled).every((i) => i.title === 'Coming soon'), 'English section titles and tooltip');
+  check(labels(en) === 'Home|Rooms|Live streams|Friends|History|Settings', 'switching to English changes the sidebar at once');
+  check(en?.shell.titles.join('|') === 'MAIN|FRIENDS & COMMUNITY|LIBRARY', 'English section titles');
   const he = r.get('lang-home-en');
-  check(he?.mode === 'home', 'the sidebar Home opens the native Home');
+  check(he?.mode === 'home', 'the sidebar Xonalar opens the native room list');
   check(he?.home.banner?.kicker === 'LIVE RIGHT NOW' && he?.home.banner?.join === 'Join' && he?.home.banner?.viewers === '9 watching', 'Home banner in English');
-  check(he?.home.section === 'Active rooms' && he?.home.cards[0]?.button === 'Join' && he?.home.cards[1]?.button === 'Waiting room', 'Home section and buttons in English');
-  check(he?.home.cards.map((c) => c.badge).slice(0, 3).join('|') === 'LIVE|STARTING|PAUSED' && he?.home.cards[0]?.count === '3', 'Home badges and counters in English');
+  check(he?.home.section === 'Active rooms' && he?.home.cards[0]?.button === 'Join' && he?.home.cards[3]?.button === 'Waiting room', 'Home section and buttons in English');
+  check(he?.home.cards.map((c) => c.badge).join('|').startsWith('LIVE|PAUSED') && he?.home.cards[3]?.badge === 'STARTING' && he?.home.cards[0]?.count === '3', 'Home badges and counters in English');
   check(he?.shell.searchPlaceholder === 'Search', 'search box in English');
   const hr = r.get('lang-home-ru');
   check(hr?.home.banner?.kicker === 'СЕЙЧАС В ЭФИРЕ' && hr?.home.banner?.viewers === '9 смотрят' && hr?.home.cards[0]?.count === '3 чел.', 'a language change while Home is shown redraws Home and the sidebar at once (Russian)');
-  check(labels(hr) === 'Главная|Комнаты|Прямые эфиры|Друзья|История|Избранное|Настройки', 'the sidebar followed too');
+  check(labels(hr) === 'Главная|Комнаты|Прямые эфиры|Друзья|История|Настройки', 'the sidebar followed too');
 }
 
 // ---------------------------------------------------------------- F: rails (weekly top, history) + start watching
@@ -251,7 +268,7 @@ console.log('--- F: rails and "start watching"');
   check(top?.cards.map((c) => c.rank).join('|') === '#1|#2' && top?.cards.map((c) => c.views).join('|') === '42 kishi ko‘rdi|7 kishi ko‘rdi', 'weekly top: rank badges and viewer counts');
   check(hist?.cards.length === 1 && hist?.cards[0].title === 'Watched before' && hist?.cards[0].rank === null && hist?.cards[0].views === null, 'history: one card, no rank and no viewer count');
   check((i?.home.imgs ?? []).every((x) => typeof x === 'string' && x.startsWith('https://')) && !(i?.home.imgs ?? []).some((x) => x.includes('insecure')), 'only https posters (the http one was dropped)');
-  check(i?.home.banner?.title === 'Yulduzlar Jangi' && i?.home.cards.length === 4, 'the room list above the rails is unchanged');
+  check(i?.home.banner?.title === 'Yulduzlar Jangi (Interstellar)' && i?.home.cards.length === 0, 'Bosh sahifa: the banner above the rails, no room grid');
 
   const hs = r.ev.find((x) => x.event === 'rails-hostile')?.replies ?? [];
   check(hs.length === 8 && hs.every((x) => x && x.ok === false), 'hostile calls (unknown rail, index out of range / negative / string / fractional, null, __proto__) are all refused (8 of 8)');
@@ -273,6 +290,30 @@ console.log('--- F: rails and "start watching"');
   check(fl?.home.toast === 'Xona ochilmadi, qayta urinib ko‘ring', 'and tells them, in their language');
   check(r.posts.length === 3, 'three requests in all: hostile calls and invalid items made none');
   check(r.get('rails-search')?.home.rails.length === 0, 'a room search hides the rails');
+}
+
+// ---------------------------------------------------------------- G: the design (toolbar, sort, collapse, other screens, new room)
+console.log('--- G: Stitch design details');
+{
+  const r = await run('design', { cookies: 'wewatch-locale=uz;access_token=good;refresh_token=r1', action: 'design', ttl: 40, shotDir: process.env.WW_SMOKE_SHOT_DESIGN ?? '' });
+  const a = r.get('design-initial');
+  check(a?.shell.items.find((x) => x.active)?.id === 'rooms' && a?.home.section === 'Faol xonalar', 'the app opens on Xonalar (the design\'s main window)');
+  const n = r.get('design-newest');
+  check(n?.home.sort.value === 'newest', 'the sort control follows the choice');
+  const bad = r.ev.find((x) => x.event === 'design-sort-hostile')?.replies ?? [];
+  check(bad.length === 6 && bad.every((x) => x && x.ok === false), 'an unknown sort key is refused (6 of 6)');
+  const c = r.get('design-collapsed');
+  check(c?.shell.collapsed === true && c?.shell.sidebarVar === '0px' && c?.homeBounds?.x === 0, 'Yon panel button collapses the sidebar: Home moves to the left edge');
+  const e = r.get('design-expanded');
+  check(e?.shell.collapsed === false && e?.homeBounds?.x === 240, 'and brings it back (240 px)');
+  const l = r.get('design-live');
+  check(l?.shell.items.find((x) => x.active)?.id === 'live' && JSON.stringify(titles(l?.home)) === JSON.stringify(['Muqaddima', '<img src="https://evil.example/pwn.png" onerror="alert(1)">']) && l?.home.banner?.title === 'Yulduzlar Jangi (Interstellar)', 'Jonli efirlar: only the playing rooms (the waiting and paused ones are left out)');
+  const h = r.get('design-history');
+  check(h?.shell.items.find((x) => x.active)?.id === 'history' && JSON.stringify(h?.home.gridWatch) === JSON.stringify(['Watched before']), 'Tarix: a grid with the watched videos, no segments/search');
+  const hm = r.get('design-home');
+  check(hm?.shell.items.find((x) => x.active)?.id === 'home' && hm?.home.rails.length === 2, 'Bosh sahifa = banner + rails');
+  const nr = r.get('design-new-room');
+  check(nr?.mode === 'web' && pathOf(nr?.content?.url) === '/home' && nr?.content?.dialog === 'NEW-ROOM-DIALOG', '"+ Yangi xona" opens the web app\'s own create-room dialog');
 }
 
 server.close();

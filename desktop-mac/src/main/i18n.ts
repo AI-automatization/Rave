@@ -24,12 +24,15 @@ export interface Strings {
   /** One per sidebar section, in the order of NAV_SECTIONS. */
   readonly sections: readonly [string, string, string];
   readonly ui: {
-    readonly comingSoon: string;
     readonly back: string;
     readonly forward: string;
     readonly search: string;
     readonly searchLabel: string;
     readonly navLabel: string;
+    readonly toggleSidebar: string;
+    readonly newRoom: string;
+    /** Status line under the user's name in the sidebar ("Onlayn · <this Mac>"). */
+    readonly online: string;
   };
   readonly home: {
     readonly banner: string;
@@ -56,13 +59,18 @@ export interface Strings {
     /** `{n}` is replaced by the number of people who watched it this week. */
     readonly weeklyViewers: string;
     readonly startError: string;
+    readonly sortLabel: string;
+    readonly sortViewers: string;
+    readonly sortNewest: string;
+    readonly owner: string;
   };
 }
 
 const UZ: Strings = {
-  nav: { home: 'Bosh sahifa', rooms: 'Xonalar', live: 'Jonli efirlar', friends: "Do'stlar", history: 'Tarix', favorites: 'Sevimlilar', settings: 'Sozlamalar' },
+  nav: { home: 'Bosh sahifa', rooms: 'Xonalar', live: 'Jonli efirlar', friends: "Do'stlar", history: 'Tarix', settings: 'Sozlamalar' },
   sections: ['ASOSIY', "DO'STLAR & HAMJAMIYAT", 'KUTUBXONA'],
-  ui: { comingSoon: 'Tez orada', back: 'Orqaga', forward: 'Oldinga', search: 'Qidirish', searchLabel: 'Xonalarni qidirish', navLabel: 'Asosiy navigatsiya' },
+  ui: { back: 'Orqaga', forward: 'Oldinga', search: 'Qidirish', searchLabel: 'Xonalarni qidirish', navLabel: 'Asosiy navigatsiya',
+    toggleSidebar: 'Yon panel', newRoom: 'Yangi xona', online: 'Onlayn' },
   home: {
     banner: 'ASOSIY JONLI XONA',
     joinBanner: "Xonaga qo'shilish",
@@ -86,13 +94,18 @@ const UZ: Strings = {
     railHistory: 'Ko‘rganlarim',
     weeklyViewers: '{n} kishi ko‘rdi',
     startError: 'Xona ochilmadi, qayta urinib ko‘ring',
+    sortLabel: 'Saralash:',
+    sortViewers: "Ko'ruvchilar soni bo'yicha",
+    sortNewest: 'Yangi xonalar',
+    owner: 'Xona egasi',
   },
 };
 
 const RU: Strings = {
-  nav: { home: 'Главная', rooms: 'Комнаты', live: 'Прямые эфиры', friends: 'Друзья', history: 'История', favorites: 'Избранное', settings: 'Настройки' },
+  nav: { home: 'Главная', rooms: 'Комнаты', live: 'Прямые эфиры', friends: 'Друзья', history: 'История', settings: 'Настройки' },
   sections: ['ОСНОВНОЕ', 'ДРУЗЬЯ И СООБЩЕСТВО', 'БИБЛИОТЕКА'],
-  ui: { comingSoon: 'Скоро', back: 'Назад', forward: 'Вперёд', search: 'Поиск', searchLabel: 'Поиск комнат', navLabel: 'Основная навигация' },
+  ui: { back: 'Назад', forward: 'Вперёд', search: 'Поиск', searchLabel: 'Поиск комнат', navLabel: 'Основная навигация',
+    toggleSidebar: 'Боковая панель', newRoom: 'Новая комната', online: 'В сети' },
   home: {
     banner: 'СЕЙЧАС В ЭФИРЕ',
     joinBanner: 'Присоединиться',
@@ -116,13 +129,18 @@ const RU: Strings = {
     railHistory: 'История',
     weeklyViewers: 'Смотрели: {n}',
     startError: 'Не удалось открыть комнату, попробуйте ещё раз',
+    sortLabel: 'Сортировка:',
+    sortViewers: 'По числу зрителей',
+    sortNewest: 'Новые комнаты',
+    owner: 'Владелец комнаты',
   },
 };
 
 const EN: Strings = {
-  nav: { home: 'Home', rooms: 'Rooms', live: 'Live streams', friends: 'Friends', history: 'History', favorites: 'Favorites', settings: 'Settings' },
+  nav: { home: 'Home', rooms: 'Rooms', live: 'Live streams', friends: 'Friends', history: 'History', settings: 'Settings' },
   sections: ['MAIN', 'FRIENDS & COMMUNITY', 'LIBRARY'],
-  ui: { comingSoon: 'Coming soon', back: 'Back', forward: 'Forward', search: 'Search', searchLabel: 'Search rooms', navLabel: 'Main navigation' },
+  ui: { back: 'Back', forward: 'Forward', search: 'Search', searchLabel: 'Search rooms', navLabel: 'Main navigation',
+    toggleSidebar: 'Sidebar', newRoom: 'New room', online: 'Online' },
   home: {
     banner: 'LIVE RIGHT NOW',
     joinBanner: 'Join',
@@ -146,6 +164,10 @@ const EN: Strings = {
     railHistory: 'Watched',
     weeklyViewers: '{n} watched',
     startError: 'Couldn’t open a room, try again',
+    sortLabel: 'Sort by:',
+    sortViewers: 'By viewers',
+    sortNewest: 'Newest rooms',
+    owner: 'Room owner',
   },
 };
 

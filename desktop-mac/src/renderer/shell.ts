@@ -8,6 +8,7 @@ interface NavItemDto {
   id: string;
   label: string;
   route: string | null;
+  native?: boolean; // one of the app's own screens (no web route needed)
 }
 interface SectionDto {
   title: string;
@@ -17,20 +18,29 @@ interface UiDto {
   locale: string;
   nav: Record<string, string>;
   sections: string[];
-  comingSoon: string;
   back: string;
   forward: string;
   search: string;
   searchLabel: string;
   navLabel: string;
+  toggleSidebar: string;
+  newRoom: string;
+}
+interface SideDto {
+  rooms: number | null;
+  friends: number | null;
+  live: boolean;
+  profile: { name: string; initial: string; status: string } | null;
 }
 interface ShellState {
   activeId: string | null;
   canGoBack: boolean;
   canGoForward: boolean;
   searchVisible: boolean;
+  sidebarOpen: boolean;
   query: string;
   ui: UiDto;
+  side: SideDto;
 }
 interface ShellBridge {
   model(): Promise<{ sections: SectionDto[]; state: ShellState }>;
@@ -38,6 +48,8 @@ interface ShellBridge {
   back(): Promise<unknown>;
   forward(): Promise<unknown>;
   search(q: string): Promise<unknown>;
+  toggleSidebar(): Promise<unknown>;
+  newRoom(): Promise<unknown>;
   onState(cb: (s: ShellState) => void): () => void;
 }
 
@@ -59,7 +71,6 @@ const ICONS: Record<string, Shape[]> = {
     ['path', { d: 'M17 14.5c2.5 0 4.2 1.5 4.5 4' }],
   ],
   history: [['circle', { cx: '12', cy: '12', r: '9' }], ['path', { d: 'M12 7v5l3 2' }]],
-  favorites: [['path', { d: 'M6 3h12v18l-6-4-6 4z' }]],
   settings: [
     ['path', { d: 'M4 8h10M18 8h2M4 16h2M10 16h10' }],
     ['circle', { cx: '16', cy: '8', r: '2' }],
@@ -86,6 +97,11 @@ const nav = document.getElementById('nav') as HTMLElement;
 const backBtn = document.getElementById('back') as HTMLButtonElement;
 const forwardBtn = document.getElementById('forward') as HTMLButtonElement;
 const searchBox = document.getElementById('search') as HTMLInputElement;
+const toggleBtn = document.getElementById('toggle') as HTMLButtonElement;
+const newRoomBtn = document.getElementById('new-room') as HTMLButtonElement;
+const newRoomLabel = document.getElementById('new-room-label') as HTMLElement;
+const profile = document.getElementById('profile') as HTMLElement;
+const trailing = new Map<string, HTMLSpanElement>(); // the count / dot at the right end of a sidebar row
 const buttons = new Map<string, HTMLButtonElement>();
 const labels = new Map<string, HTMLSpanElement>();
 const titles: HTMLElement[] = [];
@@ -104,8 +120,12 @@ function render(sections: SectionDto[]): void {
       btn.appendChild(icon(item.id));
       const label = document.createElement('span');
       btn.appendChild(label);
+      const tail = document.createElement('span');
+      tail.className = 'tail';
+      btn.appendChild(tail);
+      trailing.set(item.id, tail);
       labels.set(item.id, label); // the words come from applyUi, in the user's language
-      if (item.route === null) {
+      if (item.route === null && item.native !== true) {
         btn.disabled = true; // the web app has no such page yet
       } else {
         btn.addEventListener('click', () => void bridge.navigate(item.id));
@@ -123,12 +143,33 @@ function applyUi(ui: UiDto): void {
   titles.forEach((t, i) => {
     t.textContent = ui.sections[i] ?? '';
   });
-  for (const [id, btn] of buttons) if (btn.disabled) btn.title = ui.nav[id] ? ui.comingSoon : '';
   backBtn.setAttribute('aria-label', ui.back);
   forwardBtn.setAttribute('aria-label', ui.forward);
+  toggleBtn.setAttribute('aria-label', ui.toggleSidebar);
+  toggleBtn.title = ui.toggleSidebar;
+  newRoomLabel.textContent = ui.newRoom;
   searchBox.placeholder = ui.search;
   searchBox.setAttribute('aria-label', ui.searchLabel);
   (document.getElementById('sidebar') as HTMLElement).setAttribute('aria-label', ui.navLabel);
+}
+
+/** Counts, the live dot and the profile block. Anything the main process could not load is simply not shown. */
+function applySide(side: SideDto): void {
+  const set = (id: string, text: string, kind: string): void => {
+    const el = trailing.get(id);
+    if (!el) return;
+    el.textContent = text;
+    el.className = text === '' && kind === '' ? 'tail' : `tail ${kind}`;
+  };
+  set('rooms', side.rooms !== null && side.rooms > 0 ? String(side.rooms) : '', 'count');
+  set('friends', side.friends !== null && side.friends > 0 ? String(side.friends) : '', 'count');
+  set('live', '', side.live ? 'dot' : '');
+  profile.hidden = side.profile === null;
+  if (side.profile) {
+    (document.getElementById('avatar') as HTMLElement).textContent = side.profile.initial;
+    (document.getElementById('who-name') as HTMLElement).textContent = side.profile.name;
+    (document.getElementById('who-status') as HTMLElement).textContent = side.profile.status;
+  }
 }
 
 function applyState(s: ShellState): void {
@@ -139,6 +180,10 @@ function applyState(s: ShellState): void {
     if (active) btn.setAttribute('aria-current', 'page');
     else btn.removeAttribute('aria-current');
   }
+  document.documentElement.style.setProperty('--sidebar', s.sidebarOpen ? '240px' : '0px');
+  document.body.classList.toggle('collapsed', !s.sidebarOpen);
+  toggleBtn.setAttribute('aria-pressed', String(s.sidebarOpen));
+  applySide(s.side);
   backBtn.disabled = !s.canGoBack;
   forwardBtn.disabled = !s.canGoForward;
   // The search only exists while the room list is shown. The box belongs to the user: its text is restored from the
@@ -154,6 +199,8 @@ searchBox.addEventListener('input', () => {
 });
 backBtn.addEventListener('click', () => void bridge.back());
 forwardBtn.addEventListener('click', () => void bridge.forward());
+toggleBtn.addEventListener('click', () => void bridge.toggleSidebar());
+newRoomBtn.addEventListener('click', () => void bridge.newRoom());
 bridge.onState(applyState);
 void bridge.model().then(({ sections, state }) => {
   render(sections);

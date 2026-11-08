@@ -57,7 +57,7 @@ describe('strings', () => {
     for (const item of NAV_SECTIONS.flatMap((sec) => sec.items)) expect(s.nav[item.id]).toBe(item.label);
   });
   it('the three languages really differ (nothing was left in Uzbek)', () => {
-    for (const key of ['nav.home', 'nav.friends', 'nav.settings', 'home.join', 'home.retry', 'home.errorTitle', 'home.sectionTitle', 'home.railTrending', 'home.railHistory', 'home.startError']) {
+    for (const key of ['nav.home', 'nav.friends', 'nav.settings', 'home.join', 'home.retry', 'home.errorTitle', 'home.sectionTitle', 'home.railTrending', 'home.railHistory', 'home.startError', 'ui.newRoom', 'ui.online', 'home.sortViewers', 'home.owner']) {
       expect(new Set(LOCALES.map((l) => all[l][key])).size, key).toBe(3);
     }
   });
@@ -66,7 +66,7 @@ describe('strings', () => {
 // Reuse, not reinvention: wherever the web app already has the string, ours must be identical to it (all languages).
 const MESSAGES = path.resolve(__dirname, '..', '..', 'apps', 'app-web', 'messages');
 describe.skipIf(!fs.existsSync(path.join(MESSAGES, 'uz.json')))('strings that the web app already translates', () => {
-  const web = (l: Locale) => JSON.parse(fs.readFileSync(path.join(MESSAGES, `${l}.json`), 'utf8')) as { nav: Record<string, string>; home: Record<string, string> };
+  const web = (l: Locale) => JSON.parse(fs.readFileSync(path.join(MESSAGES, `${l}.json`), 'utf8')) as { nav: Record<string, string>; home: Record<string, string>; party: Record<string, string> };
   it.each(LOCALES)('%s matches apps/app-web/messages', (l) => {
     const w = web(l);
     const s = stringsFor(l);
@@ -88,5 +88,6 @@ describe.skipIf(!fs.existsSync(path.join(MESSAGES, 'uz.json')))('strings that th
     expect(s.home.railHistory).toBe(bare(w.home.watchHistory));
     expect(s.home.weeklyViewers).toBe(w.home.weeklyViewers.replace('{count}', '{n}'));
     expect(s.home.startError).toBe(w.home.watchStartError);
+    expect(s.home.owner).toBe(w.party.memberOwner);
   });
 });

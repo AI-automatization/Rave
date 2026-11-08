@@ -8,7 +8,10 @@ export const TOOLBAR_HEIGHT = 52;
 const WEB_DESKTOP_MIN_WIDTH = 1024;
 export const MIN_WINDOW_WIDTH = SIDEBAR_WIDTH + WEB_DESKTOP_MIN_WIDTH;
 
-export type NavItemId = 'home' | 'rooms' | 'live' | 'friends' | 'history' | 'favorites' | 'settings';
+/** The app's own (native) screens. 'rooms' is the screen of the Stitch design (banner + "Faol xonalar"). */
+export type Screen = 'home' | 'rooms' | 'live' | 'history';
+
+export type NavItemId = 'home' | 'rooms' | 'live' | 'friends' | 'history' | 'settings';
 
 export interface NavItem {
   readonly id: NavItemId;
@@ -17,6 +20,8 @@ export interface NavItem {
   readonly route: string | null;
   /** True when the app draws this screen itself (M5.2). `route` then stays as the web fallback (e.g. when signed out). */
   readonly native?: true;
+  /** Which native screen that is. */
+  readonly screen?: Screen;
 }
 export interface NavSection {
   readonly title: string;
@@ -29,22 +34,21 @@ export const NAV_SECTIONS: readonly NavSection[] = [
   {
     title: 'ASOSIY',
     items: [
-      { id: 'home', label: 'Bosh sahifa', route: '/home', native: true },
-      { id: 'rooms', label: 'Xonalar', route: null },
-      { id: 'live', label: 'Jonli efirlar', route: null },
+      { id: 'home', label: 'Bosh sahifa', route: '/home', native: true, screen: 'home' },
+      { id: 'rooms', label: 'Xonalar', route: null, native: true, screen: 'rooms' },
+      { id: 'live', label: 'Jonli efirlar', route: null, native: true, screen: 'live' },
     ],
   },
   {
     title: "DO'STLAR & HAMJAMIYAT",
     items: [
       { id: 'friends', label: "Do'stlar", route: '/friends' },
-      { id: 'history', label: 'Tarix', route: null },
+      { id: 'history', label: 'Tarix', route: null, native: true, screen: 'history' },
     ],
   },
   {
     title: 'KUTUBXONA',
     items: [
-      { id: 'favorites', label: 'Sevimlilar', route: null },
       { id: 'settings', label: 'Sozlamalar', route: '/settings' },
     ],
   },
@@ -60,6 +64,11 @@ export function findNavItem(id: unknown): NavItem | null {
 /** Does this sidebar item open one of the app's own (native) screens instead of a web page? */
 export function isNativeItem(id: unknown): boolean {
   return findNavItem(id)?.native === true;
+}
+
+/** The native screen a sidebar item opens (null for web pages, inert items and unknown ids). */
+export function nativeScreen(id: unknown): Screen | null {
+  return findNavItem(id)?.screen ?? null;
 }
 
 /** Absolute URL (always on the app origin) for a sidebar item, or null if it has no page / the id is unknown. */
@@ -127,11 +136,11 @@ export interface Bounds {
 }
 
 /** Where the web content view sits inside the window: right of the sidebar, below the toolbar. */
-export function contentBounds(winWidth: number, winHeight: number): Bounds {
+export function contentBounds(winWidth: number, winHeight: number, sidebarWidth: number = SIDEBAR_WIDTH): Bounds {
   return {
-    x: SIDEBAR_WIDTH,
+    x: sidebarWidth,
     y: TOOLBAR_HEIGHT,
-    width: Math.max(0, Math.round(winWidth) - SIDEBAR_WIDTH),
+    width: Math.max(0, Math.round(winWidth) - sidebarWidth),
     height: Math.max(0, Math.round(winHeight) - TOOLBAR_HEIGHT),
   };
 }
@@ -177,5 +186,27 @@ export function webEmbedCss(): string {
     // Settings page: the subscription panel ("TARIF", Pro, Payme/Click buttons). It is the only settings panel that holds
     // the crown icon; scoped to `section.ww-panel` so the owner crown in a room's member list is never touched.
     'section.ww-panel:has(svg.lucide-crown) { display: none !important; }',
+    // A round avatar whose picture failed to load (the web app shows the browser's "broken image" icon there):
+    // the picture is hidden by the script below and a neutral silhouette (drawn with gradients: the embed CSS has no urls) shows instead.
+    '.ww-avatar-broken { background-image: radial-gradient(circle at 50% 36%, rgba(255,255,255,.55) 0 15%, transparent 16%), radial-gradient(ellipse 34% 26% at 50% 88%, rgba(255,255,255,.55) 0 96%, transparent 100%) !important; background-repeat: no-repeat !important; }',
   ].join('\n');
+}
+
+/**
+ * Runs inside the web page (main world), once per page load. A user whose avatar file is missing still has an avatar URL,
+ * so the web app draws a plain <img> that fails and the browser paints a broken-image icon. Hide such round pictures and
+ * mark their holder (see `.ww-avatar-broken`); if the same <img> later loads fine (new upload), undo it.
+ */
+export function brokenAvatarScript(): string {
+  return `(() => {
+  if (window.__wwAvatarFix) return;
+  window.__wwAvatarFix = true;
+  const round = (el) => el instanceof HTMLElement && /rounded-full/.test(String(el.className));
+  const isAvatar = (img) => img.alt === '' && (round(img) || round(img.parentElement));
+  const hide = (img) => { img.style.setProperty('display', 'none', 'important'); img.dataset.wwBroken = '1'; img.parentElement?.classList.add('ww-avatar-broken'); };
+  const show = (img) => { img.style.removeProperty('display'); delete img.dataset.wwBroken; img.parentElement?.classList.remove('ww-avatar-broken'); };
+  document.addEventListener('error', (e) => { const t = e.target; if (t instanceof HTMLImageElement && isAvatar(t)) hide(t); }, true);
+  document.addEventListener('load', (e) => { const t = e.target; if (t instanceof HTMLImageElement && t.dataset.wwBroken === '1') show(t); }, true);
+  for (const img of document.images) if (img.complete && img.naturalWidth === 0 && img.getAttribute('src') && isAvatar(img)) hide(img);
+})();`;
 }

@@ -1,30 +1,45 @@
 import { describe, expect, it } from 'vitest';
 import {
-  activeNavId, contentBounds, findNavItem, isHomePath, isNativeItem, isSubscriptionUrl, paymentRequestFilter, MIN_WINDOW_WIDTH, NAV_SECTIONS, navUrl, shellWindowOptions, SIDEBAR_WIDTH,
-  TOOLBAR_HEIGHT, webEmbedCss,
+  activeNavId, contentBounds, findNavItem, isHomePath, isNativeItem, nativeScreen, isSubscriptionUrl, paymentRequestFilter, MIN_WINDOW_WIDTH, NAV_SECTIONS, navUrl, shellWindowOptions, SIDEBAR_WIDTH,
+  TOOLBAR_HEIGHT, webEmbedCss, brokenAvatarScript,
 } from '../src/main/shell-model';
 
 const APP = 'https://app.wewatch.uz';
+
+describe('broken avatar pictures', () => {
+  it('has a neutral silhouette style for a round avatar whose picture failed to load', () => {
+    expect(webEmbedCss()).toContain('.ww-avatar-broken');
+  });
+  it('the page script only listens for failed <img> loads: no network, no eval', () => {
+    const s = brokenAvatarScript();
+    expect(s).toContain("'error'");
+    expect(s).toContain('ww-avatar-broken');
+    for (const bad of ['fetch(', 'XMLHttpRequest', 'eval(', 'Function(', 'innerHTML', 'sendBeacon']) expect(s, bad).not.toContain(bad);
+  });
+});
 
 describe('NAV_SECTIONS (Stitch Variant 1)', () => {
   it('has the sections and items of the approved design, in order', () => {
     expect(NAV_SECTIONS.map((s) => [s.title, s.items.map((i) => i.label)])).toEqual([
       ['ASOSIY', ['Bosh sahifa', 'Xonalar', 'Jonli efirlar']],
       ["DO'STLAR & HAMJAMIYAT", ["Do'stlar", 'Tarix']],
-      ['KUTUBXONA', ['Sevimlilar', 'Sozlamalar']],
+      ['KUTUBXONA', ['Sozlamalar']],
     ]);
   });
-  it('maps only the items that have an existing web page; the rest are not clickable yet', () => {
+  it('maps only the items that have an existing web page; the others are the app\'s own screens', () => {
     const routes = Object.fromEntries(NAV_SECTIONS.flatMap((s) => s.items).map((i) => [i.id, i.route]));
     expect(routes).toEqual({
-      home: '/home', rooms: null, live: null, friends: '/friends', history: null, favorites: null, settings: '/settings',
+      home: '/home', rooms: null, live: null, friends: '/friends', history: null, settings: '/settings',
     });
   });
-  it('only Bosh sahifa is a native screen (M5.2); the other routed items still open the web page', () => {
-    const native = NAV_SECTIONS.flatMap((s) => s.items).filter((i) => i.native === true).map((i) => i.id);
-    expect(native).toEqual(['home']);
-    expect(isNativeItem('home')).toBe(true);
-    for (const id of ['friends', 'settings', 'rooms', 'evil', undefined, null, 7]) expect(isNativeItem(id)).toBe(false);
+  it('Bosh sahifa, Xonalar, Jonli efirlar and Tarix are the app\'s own screens; Do\'stlar and Sozlamalar still open the web page', () => {
+    const native = NAV_SECTIONS.flatMap((s) => s.items).filter((i) => i.native === true).map((i) => [i.id, i.screen]);
+    expect(native).toEqual([['home', 'home'], ['rooms', 'rooms'], ['live', 'live'], ['history', 'history']]);
+    for (const id of ['home', 'rooms', 'live', 'history']) expect(isNativeItem(id), id).toBe(true);
+    for (const id of ['friends', 'settings', 'favorites', 'evil', undefined, null, 7]) expect(isNativeItem(id), String(id)).toBe(false);
+    expect(nativeScreen('rooms')).toBe('rooms');
+    expect(nativeScreen('friends')).toBeNull();
+    expect(nativeScreen('__proto__')).toBeNull();
   });
   it('has unique ids', () => {
     const ids = NAV_SECTIONS.flatMap((s) => s.items.map((i) => i.id));
@@ -88,6 +103,9 @@ describe('activeNavId — which sidebar item matches the page in the content vie
 describe('layout', () => {
   it('puts the web content to the right of the sidebar and below the toolbar', () => {
     expect(contentBounds(1440, 900)).toEqual({ x: SIDEBAR_WIDTH, y: TOOLBAR_HEIGHT, width: 1440 - SIDEBAR_WIDTH, height: 900 - TOOLBAR_HEIGHT });
+  });
+  it('with the sidebar hidden the content starts at the left edge', () => {
+    expect(contentBounds(1440, 900, 0)).toEqual({ x: 0, y: TOOLBAR_HEIGHT, width: 1440, height: 900 - TOOLBAR_HEIGHT });
   });
   it('never returns a negative size', () => {
     expect(contentBounds(100, 10)).toEqual({ x: SIDEBAR_WIDTH, y: TOOLBAR_HEIGHT, width: 0, height: 0 });

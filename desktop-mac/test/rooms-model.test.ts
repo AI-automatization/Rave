@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildHomeData, conflictRoomId, createdRoomId, createRoomApiUrl, filterRooms, parseRooms, parseWatchItems, railApiUrl, roomPlayUrl, watchPayload, pickSpotlight, refreshApiUrl, roomsApiUrl, roomUrl, type RoomCard,
+  buildHomeData, NO_RAILS, friendsApiUrl, meApiUrl, parseFriendsCount, parseUsername, userApiUrl, conflictRoomId, createdRoomId, createRoomApiUrl, filterRooms, parseRooms, parseWatchItems, railApiUrl, roomPlayUrl, watchPayload, pickSpotlight, refreshApiUrl, roomsApiUrl, roomUrl, type RoomCard,
 } from '../src/main/rooms-model';
 
 const APP = 'https://app.wewatch.uz';
@@ -10,14 +10,14 @@ const ID = '6aec421eb9db0a8762bf6ab3';
 const wrap = (data: unknown) => ({ success: true, data, message: 'Success', errors: null });
 const room = (over: Record<string, unknown> = {}) => ({
   _id: ID, name: 'Kino kechasi', videoTitle: 'Interstellar', videoThumbnail: 'https://i.ytimg.com/vi/x/hq.jpg',
-  videoPlatform: 'youtube', ownerId: 'u1', members: ['u1', 'u2'], memberCount: 2, maxMembers: 10, status: 'playing',
+  videoPlatform: 'youtube', ownerId: 'u1x_ab', members: ['u1', 'u2'], memberCount: 2, maxMembers: 10, status: 'playing',
   isPrivate: false, ...over,
 });
 
 describe('parseRooms — the response of the server, which this app does not control', () => {
   it('maps a normal room', () => {
     expect(parseRooms(wrap([room()]))).toEqual([
-      { id: ID, title: 'Kino kechasi', subtitle: 'Interstellar', badge: 'live', members: 2, thumbnail: 'https://i.ytimg.com/vi/x/hq.jpg', platform: 'youtube' },
+      { id: ID, title: 'Kino kechasi', subtitle: 'Interstellar', badge: 'live', members: 2, thumbnail: 'https://i.ytimg.com/vi/x/hq.jpg', platform: 'youtube', ownerId: 'u1x_ab', createdAt: 0 },
     ]);
   });
   it('maps the real server statuses (waiting / playing / paused); "ended" never reaches the list', () => {
@@ -158,7 +158,7 @@ describe('buildHomeData — what the Home screen shows', () => {
     expect(d.query).toBe('kino');
   });
   it('an empty list is ok with total 0 (the screen shows the empty state)', () => {
-    expect(buildHomeData([], '')).toEqual({ status: 'ok', spotlight: null, rooms: [], total: 0, query: '', trending: [], history: [] });
+    expect(buildHomeData([], '')).toEqual({ status: 'ok', screen: 'rooms', sort: 'viewers', spotlight: null, rooms: [], total: 0, query: '', trending: [], history: [], owners: {} });
   });
 });
 
@@ -244,20 +244,107 @@ describe('buildHomeData with rails', () => {
   const rails = { trending: [w('https://a.example/1', { viewers: 5, title: 'Top' })], history: [w('https://a.example/2', { title: null })] };
 
   it('adds the rails as plain cards (title falls back to the link, like the web app)', () => {
-    const d = buildHomeData([c('aaaaaa')], '', rails);
+    const d = buildHomeData([c('aaaaaa')], '', rails, { screen: 'home' });
     expect(d.trending).toEqual([{ title: 'Top', thumbnail: null, viewers: 5 }]);
     expect(d.history).toEqual([{ title: 'https://a.example/2', thumbnail: null, viewers: null }]);
   });
   it('the rails also show when there are no rooms (that is the page that needs them most)', () => {
-    const d = buildHomeData([], '', rails);
+    const d = buildHomeData([], '', rails, { screen: 'home' });
     expect(d.total).toBe(0);
     expect(d.trending).toHaveLength(1);
   });
   it('a search hides the rails (it searches rooms); no rails by default', () => {
-    expect(buildHomeData([c('aaaaaa')], 'aaa', rails).trending).toEqual([]);
-    expect(buildHomeData([c('aaaaaa')], 'aaa', rails).history).toEqual([]);
+    expect(buildHomeData([c('aaaaaa')], 'aaa', rails, { screen: 'home' }).trending).toEqual([]);
+    expect(buildHomeData([c('aaaaaa')], 'aaa', rails, { screen: 'home' }).history).toEqual([]);
     const d = buildHomeData([c('aaaaaa')], '');
     expect(d.trending).toEqual([]);
     expect(d.history).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------- the Stitch design: Xonalar page, sort, owner, screens
+describe('owner and date of a room', () => {
+  it('ownerId only when it is a safe id; createdAt in milliseconds (0 when missing or unparseable)', () => {
+    const one = (over: Record<string, unknown>) => parseRooms(wrap([room(over)]))?.[0];
+    expect(one({})?.ownerId).toBe('u1x_ab');
+    for (const bad of ['', '../x', 5, null, undefined]) expect(one({ ownerId: bad })?.ownerId, String(bad)).toBeNull();
+    expect(one({ createdAt: '2026-11-07T10:00:00.000Z' })?.createdAt).toBe(Date.parse('2026-11-07T10:00:00.000Z'));
+    for (const bad of ['nope', '', null, 5, undefined]) expect(one({ createdAt: bad })?.createdAt, String(bad)).toBe(0);
+  });
+});
+
+describe('screens and sorting', () => {
+  const k = (id: string, badge: RoomCard['badge'], members: number, createdAt = 0): RoomCard => ({ id, title: id, subtitle: null, badge, members, thumbnail: null, platform: null, ownerId: null, createdAt });
+  const w = (u: string) => ({ sourceUrl: u, title: 'T', thumbnail: null, platform: null, viewers: null });
+  const rails = { trending: [w('https://a.example/1')], history: [w('https://a.example/2')] };
+  const all = [k('aaaaaa', 'starting', 5, 30), k('bbbbbb', 'live', 3, 10), k('cccccc', 'live', 9, 20), k('dddddd', 'paused', 1, 40)];
+
+  it('Xonalar (the design page): banner + grid, no rails', () => {
+    const d = buildHomeData(all, '', rails, { screen: 'rooms' });
+    expect(d.screen).toBe('rooms');
+    expect(d.spotlight?.id).toBe('cccccc');
+    expect(d.rooms.map((r) => r.id)).toEqual(['aaaaaa', 'bbbbbb', 'dddddd']);
+    expect(d.trending).toEqual([]);
+    expect(d.history).toEqual([]);
+  });
+  it('Jonli efirlar: only the live rooms', () => {
+    const d = buildHomeData(all, '', rails, { screen: 'live' });
+    expect(d.spotlight?.id).toBe('cccccc');
+    expect(d.rooms.map((r) => r.id)).toEqual(['bbbbbb']);
+    expect(d.total).toBe(4);
+  });
+  it('Bosh sahifa: banner + the two rails, no grid of rooms', () => {
+    const d = buildHomeData(all, '', rails, { screen: 'home' });
+    expect(d.spotlight?.id).toBe('cccccc');
+    expect(d.rooms).toEqual([]);
+    expect(d.trending).toHaveLength(1);
+    expect(d.history).toHaveLength(1);
+  });
+  it('a search on Bosh sahifa shows the matching rooms like Xonalar (and hides the rails)', () => {
+    const d = buildHomeData(all, 'bbbb', rails, { screen: 'home' });
+    expect(d.spotlight?.id).toBe('bbbbbb');
+    expect(d.trending).toEqual([]);
+    const none = buildHomeData(all, 'zzz', rails, { screen: 'home' });
+    expect(none.spotlight).toBeNull();
+    expect(none.rooms).toEqual([]);
+  });
+  it('Tarix: only the history, as cards', () => {
+    const d = buildHomeData(all, '', rails, { screen: 'history' });
+    expect(d.spotlight).toBeNull();
+    expect(d.rooms).toEqual([]);
+    expect(d.trending).toEqual([]);
+    expect(d.history).toHaveLength(1);
+  });
+  it('sort: by viewers (default, stable) or newest first; the banner is always the busiest live room', () => {
+    const byViewers = buildHomeData(all, '', NO_RAILS, { sort: 'viewers' });
+    expect(byViewers.sort).toBe('viewers');
+    expect(byViewers.rooms.map((r) => r.id)).toEqual(['aaaaaa', 'bbbbbb', 'dddddd']);
+    const newest = buildHomeData(all, '', NO_RAILS, { sort: 'newest' });
+    expect(newest.sort).toBe('newest');
+    expect(newest.rooms.map((r) => r.id)).toEqual(['dddddd', 'aaaaaa', 'bbbbbb']);
+    expect(newest.spotlight?.id).toBe('cccccc');
+  });
+  it('the owner names that were looked up travel with the data', () => {
+    expect(buildHomeData(all, '', NO_RAILS, { owners: { u1x_ab: 'Jasur' } }).owners).toEqual({ u1x_ab: 'Jasur' });
+  });
+});
+
+describe('profile, friends and owner lookups', () => {
+  it('endpoints on the app origin; the owner id must be safe', () => {
+    expect(meApiUrl(APP)).toBe('https://app.wewatch.uz/api/auth/me');
+    expect(friendsApiUrl(APP)).toBe('https://app.wewatch.uz/api/user/me/friends');
+    expect(userApiUrl('owner_1x', APP)).toBe('https://app.wewatch.uz/api/user/owner_1x');
+    for (const bad of ['', '../me', 'a/b', 5, null, undefined]) expect(userApiUrl(bad, APP)).toBeNull();
+  });
+  it('username from { data: { username } } (user by id) or { data: { user: { username } } } (me); plain trimmed text only', () => {
+    expect(parseUsername({ data: { username: ' Jasur ' } })).toBe('Jasur');
+    expect(parseUsername({ data: { user: { username: 'Sardor' } } })).toBe('Sardor');
+    expect(parseUsername({ data: { username: 'x'.repeat(200) } })?.length).toBeLessThanOrEqual(40);
+    for (const bad of [null, {}, { data: null }, { data: { username: '' } }, { data: { username: 5 } }, { data: { user: {} } }, 'x']) expect(parseUsername(bad)).toBeNull();
+  });
+  it('number of friends from { data: [...] }', () => {
+    expect(parseFriendsCount({ data: [{}, {}, {}] })).toBe(3);
+    expect(parseFriendsCount({ data: [] })).toBe(0);
+    for (const bad of [null, {}, { data: 'x' }, { data: {} }, 'x']) expect(parseFriendsCount(bad)).toBeNull();
   });
 });

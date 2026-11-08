@@ -7,6 +7,8 @@
 //    The web app compares with 'active', a value the server never sends, so its LIVE badge never shows — not copied here.
 //  - a room carries ownerId only (no owner name, no avatars, no category), so none of those are shown.
 
+import type { Screen } from './shell-model';
+
 export type RoomBadge = 'live' | 'starting' | 'paused';
 
 export interface RoomCard {
@@ -19,6 +21,9 @@ export interface RoomCard {
   /** https URL only — anything else is dropped here, so the renderer never sees it. */
   readonly thumbnail: string | null;
   readonly platform: string | null;
+  /** The room owner's id (the name is looked up separately), and when the room was created (ms; 0 if unknown). */
+  readonly ownerId: string | null;
+  readonly createdAt: number;
 }
 
 const ID_RE = /^[A-Za-z0-9_-]{6,64}$/;
@@ -26,6 +31,7 @@ const MAX_TEXT = 200;
 const MAX_QUERY = 100;
 const BADGES: Readonly<Record<string, RoomBadge>> = { playing: 'live', waiting: 'starting', paused: 'paused' };
 
+const safeId = (v: unknown): string | null => (typeof v === 'string' && ID_RE.test(v) ? v : null);
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const text = (v: unknown): string => (typeof v === 'string' ? v.trim().slice(0, MAX_TEXT) : '');
 
@@ -61,6 +67,8 @@ function toCard(o: Record<string, unknown>): RoomCard | null {
     members: memberCount(o),
     thumbnail: thumbnail(o['videoThumbnail']),
     platform: platform.length > 0 && platform.length <= 30 ? platform : null,
+    ownerId: safeId(o['ownerId']),
+    createdAt: typeof o['createdAt'] === 'string' && Number.isFinite(Date.parse(o['createdAt'])) ? Date.parse(o['createdAt']) : 0,
   };
 }
 
@@ -120,8 +128,12 @@ export interface Rails {
 }
 export const NO_RAILS: Rails = { trending: [], history: [] };
 
+export type SortKey = 'viewers' | 'newest';
+
 export interface HomeData {
   readonly status: 'loading' | 'ok' | 'error';
+  readonly screen: Screen;
+  readonly sort: SortKey;
   readonly spotlight: RoomCard | null;
   readonly rooms: readonly RoomCard[];
   /** Rooms on the server (before the search), so the screen can tell "no rooms" from "nothing matches". */
@@ -129,22 +141,47 @@ export interface HomeData {
   readonly query: string;
   readonly trending: readonly WatchCard[];
   readonly history: readonly WatchCard[];
+  /** Owner id -> user name, for the owners that have been looked up so far. */
+  readonly owners: Readonly<Record<string, string>>;
 }
 
-export const LOADING: HomeData = { status: 'loading', spotlight: null, rooms: [], total: 0, query: '', trending: [], history: [] };
-export const failed = (query = ''): HomeData => ({ status: 'error', spotlight: null, rooms: [], total: 0, query, trending: [], history: [] });
+export const LOADING: HomeData = { status: 'loading', screen: 'rooms', sort: 'viewers', spotlight: null, rooms: [], total: 0, query: '', trending: [], history: [], owners: {} };
+export const failed = (query = '', screen: Screen = 'rooms', sort: SortKey = 'viewers'): HomeData => ({ ...LOADING, status: 'error', query, screen, sort });
 
 const toWatchCard = (i: WatchItem): WatchCard => ({ title: i.title ?? i.sourceUrl, thumbnail: i.thumbnail, viewers: i.viewers });
 
-/** What the Home screen draws: search first, then the banner from what is left, the rest in server order. */
-export function buildHomeData(cards: readonly RoomCard[], query: string, rails: Rails = NO_RAILS): HomeData {
+export interface HomeView {
+  readonly screen?: Screen;
+  readonly sort?: SortKey;
+  readonly owners?: Readonly<Record<string, string>>;
+}
+
+const sortCards = (cards: readonly RoomCard[], sort: SortKey): RoomCard[] =>
+  // Array.prototype.sort is stable: equal keys keep the server's order.
+  [...cards].sort(sort === 'newest' ? (a, b) => b.createdAt - a.createdAt : (a, b) => b.members - a.members);
+
+/**
+ * What a native screen draws.
+ *  rooms   — the Stitch design page: banner (busiest live room) + "Faol xonalar" grid, sortable
+ *  live    — the same, only the rooms that are really playing
+ *  home    — banner + the two rails (weekly top, history); a search turns it into the rooms page
+ *  history — only the user's history
+ */
+export function buildHomeData(cards: readonly RoomCard[], query: string, rails: Rails = NO_RAILS, view: HomeView = {}): HomeData {
   const q = typeof query === 'string' ? query : '';
-  const shown = filterRooms(cards, q);
-  const spotlight = pickSpotlight(shown);
   const searching = q.trim() !== ''; // the search box searches rooms: the rails step aside while it is in use
+  const screen = view.screen ?? 'rooms';
+  const sort = view.sort ?? 'viewers';
+  const owners = view.owners ?? {};
+  const asRooms = screen === 'rooms' || screen === 'live' || (screen === 'home' && searching);
+  const base = screen === 'live' ? cards.filter((c) => c.badge === 'live') : cards;
+  const shown = sortCards(filterRooms(base, q), sort);
+  const spotlight = screen === 'history' ? null : pickSpotlight(shown);
   return {
-    status: 'ok', spotlight, rooms: shown.filter((c) => c !== spotlight), total: cards.length, query: q,
-    trending: searching ? [] : rails.trending.map(toWatchCard), history: searching ? [] : rails.history.map(toWatchCard),
+    status: 'ok', screen, sort, spotlight, rooms: asRooms ? shown.filter((c) => c !== spotlight) : [], total: cards.length, query: q,
+    trending: screen === 'home' && !searching ? rails.trending.map(toWatchCard) : [],
+    history: screen === 'history' || (screen === 'home' && !searching) ? rails.history.map(toWatchCard) : [],
+    owners,
   };
 }
 
@@ -218,8 +255,6 @@ export function watchPayload(item: WatchItem): WatchPayload {
 export const railApiUrl = (appUrl: string, kind: 'trending' | 'history'): string => `${originOf(appUrl)}/api/rooms/${kind}`;
 export const createRoomApiUrl = (appUrl: string): string => `${originOf(appUrl)}/api/rooms`;
 
-const safeId = (v: unknown): string | null => (typeof v === 'string' && ID_RE.test(v) ? v : null);
-
 /** POST /api/rooms succeeded: the new room's id (only a safe id is accepted). */
 export function createdRoomId(body: unknown): string | null {
   return isObject(body) && isObject(body['data']) ? safeId(body['data']['_id']) : null;
@@ -234,4 +269,29 @@ export function conflictRoomId(body: unknown): string | null {
 export function roomPlayUrl(roomId: unknown, sourceUrl: unknown, appUrl: string): string | null {
   const id = safeId(roomId);
   return id && isWebUrl(sourceUrl) ? `${originOf(appUrl)}/room/${id}?play=${encodeURIComponent(sourceUrl)}` : null;
+}
+
+// ---------------------------------------------------------------- profile, friends, owner names (sidebar + room cards)
+export const meApiUrl = (appUrl: string): string => `${originOf(appUrl)}/api/auth/me`;
+export const friendsApiUrl = (appUrl: string): string => `${originOf(appUrl)}/api/user/me/friends`;
+/** Public profile of a room owner; null unless the id is safe (it comes from the server's room list). */
+export function userApiUrl(id: unknown, appUrl: string): string | null {
+  const safe = safeId(id);
+  return safe ? `${originOf(appUrl)}/api/user/${safe}` : null;
+}
+
+const MAX_NAME = 40;
+
+/** { data: { username } } (user by id) or { data: { user: { username } } } (me). Plain trimmed text, nothing else of the profile. */
+export function parseUsername(body: unknown): string | null {
+  if (!isObject(body) || !isObject(body['data'])) return null;
+  const data = body['data'];
+  const user = isObject(data['user']) ? data['user'] : data;
+  const name = typeof user['username'] === 'string' ? user['username'].trim().slice(0, MAX_NAME) : '';
+  return name === '' ? null : name;
+}
+
+/** { data: [...] } of GET /api/user/me/friends: how many friends. */
+export function parseFriendsCount(body: unknown): number | null {
+  return isObject(body) && Array.isArray(body['data']) ? body['data'].length : null;
 }

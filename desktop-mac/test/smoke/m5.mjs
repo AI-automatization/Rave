@@ -19,7 +19,7 @@ const site = createServer((req, res) => {
   res.end(`<!doctype html><title>WW ${req.url}</title>
 <style>:root{--ww-sidebar:248px} body{margin:0;padding-left:var(--ww-sidebar);background:#05050a;color:#fff}
 aside{position:fixed;left:0;top:0;bottom:0;width:var(--ww-sidebar);background:#900;display:flex}</style>
-<aside class="fixed inset-y-0 left-0 z-40 hidden lg:flex">WEB-SIDEBAR</aside><main>page ${req.url}</main>`);
+<aside class="fixed inset-y-0 left-0 z-40 hidden lg:flex">WEB-SIDEBAR</aside><main>page ${req.url}<span class="flex h-8 w-8 rounded-full overflow-hidden"><img alt="" src="/uploads/avatars/missing.png" class="h-full w-full"></span></main>`);
 });
 await new Promise((r) => site.listen(SITE_PORT, '127.0.0.1', r));
 
@@ -42,12 +42,12 @@ const pathOf = (u) => { try { return new URL(u).pathname; } catch { return ''; }
 const init = get('shell-initial');
 check(!!init, 'shell rendered and could be inspected');
 const items = init?.shell.items ?? [];
-check(items.map((i) => i.label).join('|') === "Bosh sahifa|Xonalar|Jonli efirlar|Do'stlar|Tarix|Sevimlilar|Sozlamalar", 'sidebar items, in design order');
+check(items.map((i) => i.label).join('|') === "Bosh sahifa|Xonalar|Jonli efirlar|Do'stlar|Tarix|Sozlamalar", 'sidebar items, in design order');
 check(init?.shell.titles.join('|') === "ASOSIY|DO'STLAR & HAMJAMIYAT|KUTUBXONA", 'section titles');
-check(items.filter((i) => i.disabled).map((i) => i.id).join(',') === 'rooms,live,history,favorites', 'items without a web page are disabled');
+check(items.every((i) => !i.disabled), 'every sidebar item opens something (no dead items)');
 check(items.find((i) => i.active)?.id === 'home', 'Bosh sahifa is active on /home');
 check(init?.shell.backDisabled === true && init?.shell.forwardDisabled === true, 'back/forward disabled at start');
-check(init?.shell.bridgeKeys.sort().join(',') === 'back,forward,model,navigate,onState,search', 'shell bridge exposes exactly model/navigate/back/forward/search/onState');
+check(init?.shell.bridgeKeys.sort().join(',') === 'back,forward,model,navigate,newRoom,onState,search,toggleSidebar', 'shell bridge exposes exactly model/navigate/back/forward/search/toggleSidebar/newRoom/onState');
 check(init?.shell.webBridge === 'undefined', 'shell has NO web-app bridge (wewatchDesktop)');
 check(init?.content.shellBridge === 'undefined', 'web content has NO shell bridge (wewatchShell)');
 check(init?.content.desktopBridge === 'object', 'web content still has the wewatchDesktop bridge');
@@ -57,6 +57,13 @@ const sb = init?.shellBounds, cb = init?.contentBounds;
 check(sb?.x === 0 && sb?.y === 0, 'shell view covers the window');
 check(cb?.x === 240 && cb?.y === 52, 'content view starts right of the 240 px sidebar, below the 52 px toolbar');
 check(cb && sb && cb.width === sb.width - 240 && cb.height === sb.height - 52, 'content view fills the rest of the window');
+
+check(init?.shell.brand === 'WeWatch', 'toolbar shows the WeWatch brand');
+check(init?.shell.newRoom === 'Yangi xona', 'purple "Yangi xona" button, in the web app\'s language');
+check(init?.shell.toggleLabel === 'Yon panel', 'sidebar toggle next to the traffic lights');
+check(init?.shell.profile === null, 'no profile block when the profile could not be loaded');
+
+check(init?.content.avatar?.hidden === true && init?.content.avatar?.marked === true && init?.content.avatar?.bg === 'radial-gradient(circ', 'a round avatar whose picture is missing: broken icon hidden, neutral silhouette shown instead');
 
 const fr = get('shell-friends');
 check(pathOf(fr?.content.url) === '/friends', "click Do'stlar -> content navigates to /friends");
@@ -68,11 +75,9 @@ const st = get('shell-settings');
 check(pathOf(st?.content.url) === '/settings', 'click Sozlamalar -> /settings');
 check(st?.shell.items.find((i) => i.active)?.id === 'settings', 'sidebar highlights Sozlamalar');
 
-const rc = get('shell-rooms-click');
-check(pathOf(rc?.content.url) === '/settings', 'click on a disabled item does nothing');
 
 const hostile = ev.find((x) => x.event === 'shell-hostile-ids')?.replies ?? [];
-check(hostile.length === 6 && hostile.every((r) => r && r.ok === false), 'hostile / unknown / route-less ids are all refused (6 of 6)');
+check(hostile.length === 6 && hostile.every((r) => r && r.ok === false), 'hostile / unknown / removed ids are all refused (6 of 6)');
 const ah = get('shell-after-hostile');
 check(pathOf(ah?.content.url) === '/settings', 'hostile ids did not navigate anywhere');
 

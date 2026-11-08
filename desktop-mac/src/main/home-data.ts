@@ -5,8 +5,8 @@
 import { session } from 'electron';
 import { APP_URL } from './config';
 import {
-  conflictRoomId, createdRoomId, createRoomApiUrl, parseRooms, parseWatchItems, railApiUrl, refreshApiUrl, roomPlayUrl, roomsApiUrl, roomUrl,
-  watchPayload, type Rails, type RoomCard, type WatchItem,
+  conflictRoomId, createdRoomId, createRoomApiUrl, friendsApiUrl, meApiUrl, parseFriendsCount, parseRooms, parseUsername, parseWatchItems, railApiUrl,
+  refreshApiUrl, roomPlayUrl, roomsApiUrl, roomUrl, userApiUrl, watchPayload, type Rails, type RoomCard, type WatchItem,
 } from './rooms-model';
 
 export type RoomsLoad = { kind: 'ok'; rooms: RoomCard[] } | { kind: 'unauthorized' } | { kind: 'unavailable' };
@@ -78,4 +78,31 @@ export async function startWatching(item: WatchItem): Promise<StartResult> {
   } catch {
     return { kind: 'error' };
   }
+}
+
+// ---------------------------------------------------------------- sidebar profile, friends, owner names (all optional extras)
+
+const getJson = async (url: string): Promise<unknown> => {
+  try {
+    const res = await call(url);
+    return res.ok ? await res.json().catch(() => null) : null;
+  } catch {
+    return null;
+  }
+};
+
+/** The signed-in user's name (profile block of the sidebar). null on any failure: the block is then simply not shown. */
+export async function loadMeName(): Promise<string | null> {
+  return parseUsername(await getJson(meApiUrl(APP_URL)));
+}
+
+/** How many friends the user has (count next to "Do'stlar"). */
+export async function loadFriendsCount(): Promise<number | null> {
+  return parseFriendsCount(await getJson(friendsApiUrl(APP_URL)));
+}
+
+/** A room owner's name ("Xona egasi: ..."). Only the user name is read from the profile. */
+export async function loadOwnerName(id: string): Promise<string | null> {
+  const url = userApiUrl(id, APP_URL);
+  return url ? parseUsername(await getJson(url)) : null;
 }
