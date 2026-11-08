@@ -323,8 +323,13 @@ function render(d: HomeDataDto): void {
   if (d.total === 0) {
     root.appendChild(message(S.emptyTitle, S.emptyDesc, undefined, hasRails));
   } else if (!d.spotlight && d.rooms.length === 0) {
-    root.appendChild(message(S.noMatch));
-    return;
+    // Bosh sahifa without a playing room has no banner but still has its rails; only a search / room list can be "empty".
+    if (d.screen === 'home' && d.query.trim() === '' && hasRails) {
+      /* fall through: show the rails */
+    } else {
+      root.appendChild(message(S.noMatch));
+      return;
+    }
   }
   if (d.spotlight) root.appendChild(banner(d.spotlight, S));
   if (d.rooms.length > 0) {

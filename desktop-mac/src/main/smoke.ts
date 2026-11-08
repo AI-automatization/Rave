@@ -227,6 +227,15 @@ export function runSmokeAction(action: string, smoke: Smoke): void {
       await wait(1500);
       await look('retry-after');
     })();
+  } else if (action === 'home-nolive') {
+    // Rooms exist but none is playing: Bosh sahifa has no banner, yet the rails must still show (not "Hech narsa topilmadi").
+    void (async () => {
+      await wait(2500);
+      await until('home', "document.querySelectorAll('.card').length > 0");
+      await clickItem('home');
+      await until('home', "document.querySelectorAll('.watch').length >= 3");
+      await look('nolive-home');
+    })();
   } else if (action === 'home-look') {
     // Just look at where the app ended up (signed out -> web login, refresh path, ...).
     void (async () => {

@@ -36,6 +36,7 @@ const HISTORY = [{ sourceUrl: 'https://rutube.ru/video/fail-1', title: 'Watched 
 let posts = []; // bodies of POST /api/rooms ("start watching")
 let calls = [];
 let down = 0; // number of /api/rooms requests that still answer 500
+let noLive = false; // answer /api/rooms with rooms that are all waiting/paused (nothing playing)
 const cookieOf = (req, name) => (req.headers.cookie ?? '').split(/;\s*/).find((c) => c.startsWith(`${name}=`))?.slice(name.length + 1);
 
 const server = createServer((req, res) => {
@@ -76,7 +77,7 @@ const server = createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
     if (down > 0) { down--; res.statusCode = 500; return res.end('{}'); }
     if (cookieOf(req, 'access_token') !== 'good') { res.statusCode = 401; return res.end('{"message":"Not authenticated"}'); }
-    return res.end(JSON.stringify({ success: true, data: ROOMS, message: 'Success', errors: null }));
+    return res.end(JSON.stringify({ success: true, data: noLive ? ROOMS.filter((r) => r.status !== 'playing') : ROOMS, message: 'Success', errors: null }));
   }
   if (url.pathname === '/api/auth/refresh' && req.method === 'POST') {
     res.setHeader('content-type', 'application/json');
@@ -314,6 +315,17 @@ console.log('--- G: Stitch design details');
   check(hm?.shell.items.find((x) => x.active)?.id === 'home' && hm?.home.rails.length === 2, 'Bosh sahifa = banner + rails');
   const nr = r.get('design-new-room');
   check(nr?.mode === 'web' && pathOf(nr?.content?.url) === '/home' && nr?.content?.dialog === 'NEW-ROOM-DIALOG', '"+ Yangi xona" opens the web app\'s own create-room dialog');
+}
+
+// ---------------------------------------------------------------- H: rooms exist but none is playing
+console.log('--- H: rooms exist, none playing');
+{
+  noLive = true;
+  const r = await run('nolive', { cookies: 'wewatch-locale=uz;access_token=good;refresh_token=r1', action: 'home-nolive', ttl: 30 });
+  noLive = false;
+  const n = r.get('nolive-home');
+  check(n?.shell.items.find((x) => x.active)?.id === 'home' && n?.home.banner === null, 'Bosh sahifa without a playing room has no banner');
+  check(n?.home.rails.length === 2 && n?.home.message !== 'Hech narsa topilmadi', 'but the weekly top and history rails are still shown (no "Hech narsa topilmadi")');
 }
 
 server.close();

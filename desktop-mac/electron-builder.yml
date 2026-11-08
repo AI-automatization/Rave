@@ -6,6 +6,7 @@ productName: WeWatch
 directories:
   output: out
   buildResources: build
+beforeBuild: scripts/before-build.cjs
 files:
   - dist/**/*
   - package.json
