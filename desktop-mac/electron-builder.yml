@@ -1,0 +1,20 @@
+# macOS packaging (M6). Unsigned for now (no Apple Developer account): users open it via
+# System Settings → Privacy & Security → "Open Anyway". Auto-update (electron-updater) does NOT work
+# for unsigned macOS apps, so it is not wired in.
+appId: uz.wewatch.desktop
+productName: WeWatch
+directories:
+  output: out
+  buildResources: build
+files:
+  - dist/**/*
+  - package.json
+protocols:
+  - name: WeWatch
+    schemes: [wewatch]
+mac:
+  category: public.app-category.entertainment
+  identity: null
+  target:
+    - { target: dmg, arch: [arm64, x64] }
+    - { target: zip, arch: [arm64, x64] }

@@ -1,0 +1,15 @@
+<!doctype html><meta charset="utf-8"><title>FILM</title>
+<body style="margin:0;background:#000"><canvas id="c" width="640" height="360" style="width:100%;height:100%"></canvas>
+<script>
+// A "film": moving picture + a steady 440 Hz tone (so the sound can be measured at the other end).
+const c = document.getElementById('c'), g = c.getContext('2d');
+let t = 0;
+(function draw() {
+  t++;
+  g.fillStyle = `hsl(${(t * 3) % 360} 70% 40%)`; g.fillRect(0, 0, 640, 360);
+  g.fillStyle = '#fff'; g.fillRect((t * 7) % 600, 150, 40, 60);
+  requestAnimationFrame(draw);
+})();
+const ac = new AudioContext(); const o = ac.createOscillator(); o.frequency.value = 440;
+const gain = ac.createGain(); gain.gain.value = 0.15; o.connect(gain); gain.connect(ac.destination); o.start();
+</script>

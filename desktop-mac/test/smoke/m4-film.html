@@ -1,0 +1,19 @@
+<!doctype html><meta charset="utf-8"><title>FILM-M4</title>
+<body style="margin:0;background:#000;color:#fff">film site (M4 smoke)
+<script>
+const rep = (step, data) => fetch('http://127.0.0.1:8125/report', { method: 'POST', mode: 'no-cors', headers: { 'content-type': 'text/plain' }, body: JSON.stringify({ step, data }) }).catch(() => {});
+const AD = 'http://ads.doubleclick.net:8128', OK = 'http://cdn.legit.test:8128';
+// ads of every kind a movie site throws at you
+fetch(AD + '/film-fetch', { mode: 'no-cors' }).catch(() => {});
+new Image().src = AD + '/film-img';
+const s = document.createElement('script'); s.src = AD + '/film-script.js'; document.head.appendChild(s);
+const f = document.createElement('iframe'); f.src = AD + '/film-iframe'; document.body.appendChild(f);
+window.open(AD + '/film-popunder'); // popunder
+fetch(OK + '/film-ok', { mode: 'no-cors' }).catch(() => {}); // a normal resource: must load
+(async () => {
+  const gum = await navigator.mediaDevices.getUserMedia({ audio: true }).then(() => 'granted', (e) => e.name);
+  const geo = await new Promise((r) => navigator.geolocation.getCurrentPosition(() => r('granted'), (e) => r('code' + e.code), { timeout: 3000 }));
+  const notif = typeof Notification !== 'undefined' ? await Notification.requestPermission() : 'n/a';
+  rep('film-perms', { gum, geo, notif, ua: navigator.userAgent });
+})();
+</script>

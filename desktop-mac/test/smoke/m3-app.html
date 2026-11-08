@@ -1,0 +1,75 @@
+<!doctype html><meta charset="utf-8"><title>FAKE-WEB-APP</title>
+<body style="font:13px monospace;background:#111;color:#ccc;padding:8px">fake WeWatch web app (M3 smoke). Plays the room owner AND the viewer.
+<video id="v" muted playsinline style="width:200px"></video><canvas id="cv" width="32" height="18" hidden></canvas>
+<script>
+const report = (step, data) => fetch('/report', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ step, data }) }).catch(() => {});
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+(async () => {
+  const bridge = window.wewatchDesktop;
+  report('bridge', { platform: bridge?.platform, version: bridge?.version, vbKeys: Object.keys(bridge?.vb || {}) });
+  const states = []; bridge.vb.onState((s) => states.push(s));
+
+  // The VB must refuse anything that is not an http(s) page.
+  report('open-file', await bridge.vb.open('file:///etc/passwd'));
+  report('open-js', await bridge.vb.open('javascript:alert(1)'));
+  report('open-garbage', await bridge.vb.open('not a url'));
+  report('open-nonstring', await bridge.vb.open(123));
+
+  // 880 Hz = "the room's voice chat / app sounds". It plays in THIS window and must never leak into the share.
+  const ac2 = new AudioContext(); const o2 = ac2.createOscillator(); o2.frequency.value = 880;
+  const g2 = ac2.createGain(); g2.gain.value = 0.15; o2.connect(g2); g2.connect(ac2.destination); o2.start();
+
+  report('capture-without-vb', await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }).then(() => ({ ok: true }), (e) => ({ ok: false, error: String(e) })));
+
+  report('open-film', await bridge.vb.open('http://127.0.0.1:8127/film.html'));
+  await sleep(2500);
+  report('metrics', await bridge.vb.metrics());
+
+  let stream;
+  try { stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: true }); }
+  catch (e) { report('capture', { error: String(e) }); report('done', {}); return; }
+  report('capture', { audio: stream.getAudioTracks().length, video: stream.getVideoTracks().length, label: stream.getAudioTracks()[0]?.label });
+
+  // Owner → viewer over real WebRTC (loopback inside this page, no server).
+  const pc1 = new RTCPeerConnection(), pc2 = new RTCPeerConnection();
+  pc1.onicecandidate = (e) => e.candidate && pc2.addIceCandidate(e.candidate);
+  pc2.onicecandidate = (e) => e.candidate && pc1.addIceCandidate(e.candidate);
+  const remote = new MediaStream();
+  const gotTracks = new Promise((res) => { let n = 0; pc2.ontrack = (e) => { remote.addTrack(e.track); if (++n === 2) res(); }; });
+  stream.getTracks().forEach((t) => pc1.addTrack(t, stream));
+  await pc1.setLocalDescription(await pc1.createOffer()); await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription(await pc2.createAnswer()); await pc1.setRemoteDescription(pc2.localDescription);
+  await Promise.race([gotTracks, sleep(8000)]);
+  report('webrtc', { remoteAudio: remote.getAudioTracks().length, remoteVideo: remote.getVideoTracks().length });
+
+  // Measure what the VIEWER receives.
+  const v = document.getElementById('v'); v.srcObject = remote; v.play().catch(() => {});
+  let frames = 0; const cnt = () => { frames++; v.requestVideoFrameCallback(cnt); }; v.requestVideoFrameCallback(cnt);
+  const au = new Audio(); au.srcObject = remote; au.muted = true; au.play().catch(() => {}); // keeps the remote audio flowing into Web Audio
+  const ctx = new AudioContext(); const an = ctx.createAnalyser(); an.fftSize = 4096;
+  ctx.createMediaStreamSource(remote).connect(an);
+  const tb = new Float32Array(an.fftSize), fb = new Float32Array(an.frequencyBinCount), bin = (f) => Math.round(f / (ctx.sampleRate / 4096));
+  let live = 0, n = 0, e440 = -200, e880 = -200, maxRms = 0, pattern = '';
+  const t0 = Date.now();
+  while (Date.now() - t0 < 8000) {
+    await sleep(200); n++;
+    an.getFloatTimeDomainData(tb); let s = 0; for (const x of tb) s += x * x; const rms = Math.sqrt(s / tb.length);
+    maxRms = Math.max(maxRms, rms); if (rms > 0.002) live++; pattern += rms > 0.002 ? '1' : '0';
+    an.getFloatFrequencyData(fb);
+    const pk = (f) => Math.max(fb[bin(f) - 1], fb[bin(f)], fb[bin(f) + 1]);
+    e440 = Math.max(e440, pk(440)); e880 = Math.max(e880, pk(880));
+  }
+  const g = document.getElementById('cv').getContext('2d'); let luma = -1;
+  try { g.drawImage(v, 0, 0, 32, 18); const d = g.getImageData(0, 0, 32, 18).data; let t = 0; for (let i = 0; i < d.length; i += 4) t += (d[i] + d[i + 1] + d[i + 2]) / 3; luma = Math.round(t / (d.length / 4)); } catch {}
+  report('measure', { pattern, samples: n, live, maxRms: +maxRms.toFixed(4), e440dB: Math.round(e440), e880dB: Math.round(e880), frames, luma });
+
+  // Close the VB: state event + sharing must stop being possible.
+  const closed = new Promise((res) => bridge.vb.onState((s) => s.open === false && res(true)));
+  report('close', await bridge.vb.close());
+  report('closed-event', await Promise.race([closed, sleep(4000).then(() => false)]));
+  report('close-again', await bridge.vb.close());
+  report('capture-after-close', await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }).then(() => ({ ok: true }), (e) => ({ ok: false, error: String(e) })));
+  report('states', states);
+  report('done', {});
+})().catch((e) => { report('fatal', String(e)); report('done', {}); });
+</script>
