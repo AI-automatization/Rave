@@ -66,6 +66,7 @@ let resetToken: string | null = null; // the emailed reset token of an intercept
 let googleWaiting = false; // a Google sign-in is waiting for the system browser
 let log: Log = () => {};
 let contentView: WebContentsView | null = null;
+let contentFullscreen = false; // a player in the web page went full screen: the page fills the whole window
 let contentPrefs: WebPreferences = {};
 let onContent: (wc: WebContents) => void = () => {};
 
@@ -270,7 +271,7 @@ function layout(): void {
   const b = contentBounds(w, h, sidebarVisible() ? SIDEBAR_WIDTH : 0);
   if (shellView && alive(shellView)) shellView.setBounds({ x: 0, y: 0, width: w, height: h });
   if (homeView && alive(homeView)) homeView.setBounds(b);
-  if (contentView && alive(contentView)) contentView.setBounds(b);
+  if (contentView && alive(contentView)) contentView.setBounds(contentFullscreen ? { x: 0, y: 0, width: w, height: h } : b);
   if (authView && alive(authView)) authView.setBounds(b);
   if (helpView && alive(helpView)) helpView.setBounds(b); // same area as the sign-in screen it covers
   reapplyVbDock();
@@ -290,6 +291,9 @@ function ensureContent(): WebContents {
   contentView = cv;
   layout();
   const wc = cv.webContents;
+  // A player's "full screen" button: a view stays inside its own box unless the app makes it fill the window.
+  wc.on('enter-html-full-screen', () => { contentFullscreen = true; layout(); });
+  wc.on('leave-html-full-screen', () => { contentFullscreen = false; layout(); });
   // The web app draws its own left sidebar; the native one replaces it (interim, until every screen is native).
   wc.on('dom-ready', () => {
     void wc.insertCSS(webEmbedCss()).catch(() => {});
@@ -352,6 +356,7 @@ function ensureContent(): WebContents {
 function destroyContent(): void {
   const cv = contentView;
   contentView = null;
+  contentFullscreen = false;
   if (!cv) return;
   if (win && !win.isDestroyed()) win.contentView.removeChildView(cv);
   if (!cv.webContents.isDestroyed()) cv.webContents.close();

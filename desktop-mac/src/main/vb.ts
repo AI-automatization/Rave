@@ -1,7 +1,7 @@
 // Virtual Browser (VB): a separate window, with its own Chromium profile, that the room owner uses to
 // open the film site on THEIR computer. Its picture + sound go to the room via capture.ts (WebRTC) —
 // no server-side Chromium. The app window only ever talks to it through the origin-guarded IPC.
-import { BrowserWindow, WebContentsView, session, type Rectangle, type WebContents } from 'electron';
+import { BrowserWindow, WebContentsView, screen, session, type Rectangle, type WebContents } from 'electron';
 import { BACKGROUND, devEnv } from './config';
 import { shouldBlockAd } from './adblock';
 import { checkVbUrl, chromeUserAgent, failPageUrl, sameSite } from './urls';
@@ -61,6 +61,7 @@ export const getVbWindow = (): BrowserWindow | null => (vbWin && !vbWin.isDestro
 let dockView: WebContentsView | null = null;
 let dockRect: Rect | null = null; // where the room page says its video area is (web content view coordinates)
 let dockSuppressed = false; // true while the web content view is not what the window shows
+let dockFullscreen = false; // the VB page's own player went full screen: the dock then fills the whole window
 let dockOrigin: () => Rectangle | null = () => null; // the web content view's bounds inside the window
 const dockAlive = (): WebContentsView | null => (dockView && !dockView.webContents.isDestroyed() ? dockView : null);
 /** The page whose picture + sound the room gets: the docked view, or the separate VB window. */
@@ -76,6 +77,19 @@ function applyDock(): void {
   const host = getMainWindow();
   if (!v || !host) return;
   const o = dockOrigin();
+  if (dockFullscreen) {
+    const [w, h] = host.getContentSize();
+    if (w !== undefined && h !== undefined) {
+      // Chromium sizes a full-screen page to the whole DISPLAY. On a Mac with a notch the window's content area is shorter
+      // (the menu-bar strip is not part of it), so the page was shrunk to keep the display's proportions and left empty
+      // bands at the sides. A view as tall as the display, moved up by the missing strip, is the size Chromium expects:
+      // only the top strip (black bar above a 16:9 video) falls outside the window.
+      const extra = Math.max(0, screen.getDisplayMatching(host.getBounds()).size.height - h);
+      v.setBounds({ x: 0, y: -extra, width: w, height: h + extra });
+    }
+    host.contentView.addChildView(v); // above everything
+    return;
+  }
   if (!dockRect || dockSuppressed || !o) {
     if (o) v.setBounds(o);
     host.contentView.addChildView(v, 0); // index 0 = bottom of the stack
@@ -124,6 +138,9 @@ async function openDocked(url: string): Promise<VbResult> {
   const wc = view.webContents;
   applyDock();
   wireVbContents(wc);
+  // The film player's "full screen" button: the page fills the whole window (a view otherwise stays inside its own box).
+  wc.on('enter-html-full-screen', () => { dockFullscreen = true; applyDock(); });
+  wc.on('leave-html-full-screen', () => { dockFullscreen = false; applyDock(); });
   const loaded = whenLoaded(wc);
   void wc.loadURL(url).catch(() => {});
   await loaded;
@@ -135,6 +152,7 @@ function closeDock(): boolean {
   if (!v) return false;
   dockView = null;
   dockRect = null;
+  dockFullscreen = false;
   const host = getMainWindow();
   if (host) host.contentView.removeChildView(v);
   v.webContents.close();
