@@ -8,6 +8,11 @@ import { REDIS_KEYS, TTL } from '@shared/constants';
 import { getUserWatchStats, revokeUserSessions, disconnectUserSocket, cascadeDeleteUser } from '@shared/utils/serviceClient';
 import { containsBannedWord } from '@shared/utils/bannedWords';
 
+const PRIVATE_PROFILE_FIELDS = [
+  'email', 'fcmTokens', 'lastDevice', 'blockReason', 'blockedAt',
+  'restrictions', 'mutedPeerIds', 'pinnedPeerIds', 'settings',
+] as const;
+
 export class ProfileService {
   constructor(private redis: Redis) {}
 
@@ -22,7 +27,10 @@ export class ProfileService {
     if (!user) throw new NotFoundError('User not found');
 
     const isOnline = await this.isUserOnline(userId);
-    return Object.assign(user.toJSON(), { isOnline }) as unknown as IUserDocument & { isOnline: boolean };
+    // Public endpoint (no auth): never expose contact, device or private settings fields.
+    const json = user.toJSON() as unknown as Record<string, unknown>;
+    for (const key of PRIVATE_PROFILE_FIELDS) Reflect.deleteProperty(json, key);
+    return Object.assign(json, { isOnline }) as unknown as IUserDocument & { isOnline: boolean };
   }
 
   async updateProfile(userId: string, updates: { username?: string; bio?: string; avatar?: string }): Promise<IUserDocument> {

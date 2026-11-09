@@ -91,10 +91,16 @@ BACKUP_SIZE=$(du -sh "${BACKUP_FILE}" | cut -f1)
 echo "[$(date -u)] Backup created: ${BACKUP_FILE} (${BACKUP_SIZE})"
 
 # ─── 3. Загрузка в MinIO ──────────────────────────────────────────────────────
-mc alias set wewatch "${MINIO_ENDPOINT}" "${MINIO_ACCESS}" "${MINIO_SECRET}" --quiet
-# Бакет НЕ создаём: у ключа нет на это прав, и это нормально — он и не должен
-# уметь ничего, кроме записи в свой префикс.
-mc cp "${BACKUP_FILE}" "wewatch/${MINIO_BUCKET}/${MINIO_PREFIX}${DATE}/${BACKUP_NAME}" --quiet
+# rclone remote "ww" is configured from env only (no config file on disk).
+export RCLONE_CONFIG_WW_TYPE=s3
+export RCLONE_CONFIG_WW_PROVIDER=Other
+export RCLONE_CONFIG_WW_ENDPOINT="${MINIO_ENDPOINT}"
+export RCLONE_CONFIG_WW_ACCESS_KEY_ID="${MINIO_ACCESS}"
+export RCLONE_CONFIG_WW_SECRET_ACCESS_KEY="${MINIO_SECRET}"
+export RCLONE_CONFIG_WW_REGION="${MINIO_REGION:-auto}"
+# Бакет НЕ создаём и не проверяем: ключу достаточно права записи.
+export RCLONE_CONFIG_WW_NO_CHECK_BUCKET=true
+rclone copyto "${BACKUP_FILE}" "ww:${MINIO_BUCKET}/${MINIO_PREFIX}${DATE}/${BACKUP_NAME}"
 echo "[$(date -u)] Uploaded: ${MINIO_BUCKET}/${MINIO_PREFIX}${DATE}/${BACKUP_NAME}"
 
 # ─── 4. Ретенция ──────────────────────────────────────────────────────────────
@@ -109,10 +115,9 @@ CUTOFF_NUM=$(date -u -d "${RETENTION_DAYS} days ago" +"%Y%m%d" 2>/dev/null || \
 if [ -z "${CUTOFF_NUM}" ]; then
   echo "[$(date -u)] WARNING: cutoff date not computed — retention skipped"
 else
-  # Листинг ИМЕННО от префикса: mc отдаёт пути относительно него, поэтому
+  # Листинг ИМЕННО от префикса: rclone lsf отдаёт пути относительно него, поэтому
   # разбор на YYYY/MM/DD ниже не меняется, а чужие папки в выборку не попадают.
-  mc ls --recursive "wewatch/${MINIO_BUCKET}/${MINIO_PREFIX}" --quiet 2>/dev/null \
-    | awk '{print $NF}' \
+  rclone lsf -R --files-only "ww:${MINIO_BUCKET}/${MINIO_PREFIX}" 2>/dev/null \
     | awk -F/ 'NF >= 4 { print $1 "/" $2 "/" $3 }' \
     | sort -u \
     | while read -r DAY; do
@@ -124,7 +129,7 @@ else
             ;;
         esac
         if [ "${DAY_NUM}" -lt "${CUTOFF_NUM}" ]; then
-          mc rm --recursive --force "wewatch/${MINIO_BUCKET}/${MINIO_PREFIX}${DAY}/" --quiet || true
+          rclone purge "ww:${MINIO_BUCKET}/${MINIO_PREFIX}${DAY}" || true
           echo "[$(date -u)] Deleted old backup dir: ${DAY}"
         fi
       done
