@@ -33,6 +33,7 @@ import { roomDialogStringsFor } from './room-create-strings';
 import { DEFAULT_LOCALE, LOCALE_COOKIE, LOCALES, parseLocale, stringsFor, type Locale } from './i18n';
 import { buildHomeData, failed, LOADING, NO_RAILS, roomUrl, type HomeData, type HomeView, type Rails, type RoomCard, type SortKey } from './rooms-model';
 import { helpContactUrl, helpStringsFor } from './help-strings';
+import { raiseVbDock, reapplyVbDock, setVbDockOrigin, setVbDockSuppressed } from './vb';
 import { activeNavId, contentBounds, isAuthPath, isHomePath, nativeScreen, NAV_SECTIONS, navUrl, SIDEBAR_WIDTH, webEmbedCss, brokenAvatarScript, localeSyncScript, type NavItemId, type Screen } from './shell-model';
 
 const RENDERER_DIR = path.join(__dirname, '..', 'renderer');
@@ -272,6 +273,7 @@ function layout(): void {
   if (contentView && alive(contentView)) contentView.setBounds(b);
   if (authView && alive(authView)) authView.setBounds(b);
   if (helpView && alive(helpView)) helpView.setBounds(b); // same area as the sign-in screen it covers
+  reapplyVbDock();
 }
 
 // ---------- content (web) view: created on demand, destroyed when leaving it ----------
@@ -283,6 +285,7 @@ function ensureContent(): WebContents {
   const cv = new WebContentsView({ webPreferences: contentPrefs });
   cv.setBackgroundColor('#05050A'); // web app background, no flash while it loads
   win.contentView.addChildView(cv); // added last = on top of the shell and Home
+  raiseVbDock(); // ... except the docked VB, which belongs above the room page
   if (helpOpen && helpView) win.contentView.addChildView(helpView); // ... but Help stays above it
   contentView = cv;
   layout();
@@ -366,6 +369,7 @@ function onContentNavigated(url: string): void {
 
 function setMode(next: Mode): void {
   mode = next;
+  setVbDockSuppressed(next !== 'web');
   hideHelp(); // any change of what the window shows (sign-in, sign-out, a room link) closes the Help screen
   if (alive(homeView)) homeView?.setVisible(next === 'home');
   if (alive(authView)) authView?.setVisible(next === 'auth');
@@ -953,6 +957,7 @@ export interface ShellOptions {
 
 /** Builds the shell and Home views inside `window`. The content (web) view is created later, on demand. */
 export function attachShell(window: BrowserWindow, opts: ShellOptions): { shell: WebContentsView; home: WebContentsView } {
+  setVbDockOrigin(() => (contentView && alive(contentView) ? contentView.getBounds() : null));
   nativeTheme.themeSource = 'dark'; // the design is dark; a light vibrancy under a dark UI would look broken
   win = window;
   contentPrefs = opts.contentPrefs;

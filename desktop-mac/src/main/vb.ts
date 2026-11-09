@@ -1,11 +1,12 @@
 // Virtual Browser (VB): a separate window, with its own Chromium profile, that the room owner uses to
 // open the film site on THEIR computer. Its picture + sound go to the room via capture.ts (WebRTC) —
 // no server-side Chromium. The app window only ever talks to it through the origin-guarded IPC.
-import { BrowserWindow, session, type WebContents } from 'electron';
+import { BrowserWindow, WebContentsView, session, type Rectangle, type WebContents } from 'electron';
 import { BACKGROUND, devEnv } from './config';
 import { shouldBlockAd } from './adblock';
 import { checkVbUrl, chromeUserAgent, failPageUrl, sameSite } from './urls';
-import { focusMainWindow, sendToMain } from './window';
+import { focusMainWindow, getMainWindow, sendToMain } from './window';
+import { parseDockRect, toWindowRect, type Rect } from './vb-dock-model';
 
 export const VB_PARTITION = 'persist:vb'; // own cookies/cache — never touches the app session
 
@@ -20,11 +21,127 @@ const VB_PERMISSIONS: ReadonlySet<string> = new Set([
 
 export type VbResult = { ok: true } | { ok: false; reason: string };
 
+/**
+ * Resolves when the page has finished loading (or after `ms`). The room captures the page's main frame right after
+ * vb:open — a frame that is replaced by a navigation (redirects) would leave the capture without a picture.
+ */
+function whenLoaded(wc: WebContents, ms = 8000): Promise<void> {
+  return new Promise((resolve) => {
+    const done = (): void => {
+      clearTimeout(timer);
+      wc.removeListener('did-finish-load', done);
+      wc.removeListener('did-fail-load', done);
+      wc.removeListener('destroyed', done);
+      resolve();
+    };
+    const timer = setTimeout(done, ms);
+    wc.on('did-finish-load', done);
+    wc.on('did-fail-load', done);
+    wc.on('destroyed', done);
+  });
+}
+
+const VB_WEB_PREFS = {
+  partition: VB_PARTITION,
+  sandbox: true,
+  contextIsolation: true,
+  nodeIntegration: false,
+  spellcheck: false,
+  autoplayPolicy: 'no-user-gesture-required', // the site's player may start itself; its sound is what the room hears
+  backgroundThrottling: false, // keep rendering while minimised/behind other windows — viewers still watch
+} as const;
+
 let vbWin: BrowserWindow | null = null;
 let adsBlocked = 0;
 /** Ad requests cancelled since the app started (shown in vb.metrics). */
 export const getAdsBlocked = (): number => adsBlocked;
 export const getVbWindow = (): BrowserWindow | null => (vbWin && !vbWin.isDestroyed() ? vbWin : null);
+
+// ---- docked VB: the VB page as a view INSIDE the app window, exactly over the room's video area ----
+let dockView: WebContentsView | null = null;
+let dockRect: Rect | null = null; // where the room page says its video area is (web content view coordinates)
+let dockSuppressed = false; // true while the web content view is not what the window shows
+let dockOrigin: () => Rectangle | null = () => null; // the web content view's bounds inside the window
+const dockAlive = (): WebContentsView | null => (dockView && !dockView.webContents.isDestroyed() ? dockView : null);
+/** The page whose picture + sound the room gets: the docked view, or the separate VB window. */
+export const getVbWebContents = (): WebContents | null => getVbWindow()?.webContents ?? dockAlive()?.webContents ?? null;
+
+/** shell.ts: where the web content view starts inside the window (the dock rectangle is relative to it). */
+export const setVbDockOrigin = (f: () => Rectangle | null): void => { dockOrigin = f; };
+
+// The dock is NEVER hidden (setVisible(false) would stop the picture the room gets): while the room page does not show it,
+// it sits BEHIND everything, at the size of the content area. Shown = on top, exactly over the room's video box.
+function applyDock(): void {
+  const v = dockAlive();
+  const host = getMainWindow();
+  if (!v || !host) return;
+  const o = dockOrigin();
+  if (!dockRect || dockSuppressed || !o) {
+    if (o) v.setBounds(o);
+    host.contentView.addChildView(v, 0); // index 0 = bottom of the stack
+    return;
+  }
+  v.setBounds(toWindowRect(dockRect, o));
+  host.contentView.addChildView(v); // top
+}
+
+/** shell.ts: the window layout changed (sidebar toggled, window resized) — move the dock with the content view. */
+export const reapplyVbDock = (): void => applyDock();
+/** shell.ts: only the web content view shows the room, so the dock is hidden whenever the window shows anything else. */
+export function setVbDockSuppressed(suppressed: boolean): void {
+  dockSuppressed = suppressed;
+  if (suppressed) dockRect = null; // a stale rectangle must never show the dock in a wrong place later
+  applyDock();
+}
+/** shell.ts: a freshly added content view lands on top of the dock — put the dock back above it. */
+export function raiseVbDock(): void {
+  const v = dockAlive();
+  const host = getMainWindow();
+  if (v && host) host.contentView.addChildView(v);
+}
+/** The room page → the app: here is my video area (CSS px), or null = hide. */
+export function setVbDockRect(raw: unknown): VbResult {
+  dockRect = parseDockRect(raw);
+  applyDock();
+  return { ok: true };
+}
+
+async function openDocked(url: string): Promise<VbResult> {
+  const host = getMainWindow();
+  if (!host) return { ok: false, reason: 'no_window' };
+  const existing = dockAlive();
+  if (existing) {
+    const loaded = whenLoaded(existing.webContents);
+    void existing.webContents.loadURL(url).catch(() => {});
+    await loaded;
+    return { ok: true };
+  }
+  getVbWindow()?.close(); // one VB at a time
+  const view = new WebContentsView({ webPreferences: VB_WEB_PREFS });
+  view.setBackgroundColor('#000000');
+  dockView = view;
+  host.contentView.addChildView(view, 0); // behind everything until the room page reports where its video box is (see applyDock)
+  const wc = view.webContents;
+  applyDock();
+  wireVbContents(wc);
+  const loaded = whenLoaded(wc);
+  void wc.loadURL(url).catch(() => {});
+  await loaded;
+  return { ok: true };
+}
+
+function closeDock(): boolean {
+  const v = dockAlive();
+  if (!v) return false;
+  dockView = null;
+  dockRect = null;
+  const host = getMainWindow();
+  if (host) host.contentView.removeChildView(v);
+  v.webContents.close();
+  sendToMain('vb:state', { open: false });
+  clearVbCache();
+  return true;
+}
 
 /** Session rules for the VB profile: no "Electron" in the UA, ad networks cancelled, http(s)-only navigations, no sensitive permissions. */
 export function protectVbSession(onBlocked: (url: string, reason: string) => void): void {
@@ -84,14 +201,17 @@ function wireVbContents(wc: WebContents): void {
   wc.on('render-process-gone', (_e, d) => send({ open: true, crashed: d.reason }));
 }
 
-export function openVb(url: string): VbResult {
+export function openVb(url: string, docked = false): VbResult | Promise<VbResult> {
   const reason = checkVbUrl(url);
   if (reason) return { ok: false, reason };
+  if (docked) return openDocked(url);
+  closeDock(); // one VB at a time: the separate window replaces a docked view
   const existing = getVbWindow();
   if (existing) {
+    const loaded = whenLoaded(existing.webContents);
     void existing.loadURL(url).catch(() => {});
     if (!BACKGROUND) existing.focus();
-    return { ok: true };
+    return loaded.then(() => ({ ok: true }) as const);
   }
   const win = new BrowserWindow({
     width: 1280,
@@ -99,15 +219,7 @@ export function openVb(url: string): VbResult {
     title: 'WeWatch — Virtual Browser',
     backgroundColor: '#000000',
     show: !BACKGROUND, // automated runs never put a window in front of the user
-    webPreferences: {
-      partition: VB_PARTITION,
-      sandbox: true,
-      contextIsolation: true,
-      nodeIntegration: false,
-      spellcheck: false,
-      autoplayPolicy: 'no-user-gesture-required', // the site's player may start itself; its sound is what the room hears
-      backgroundThrottling: false, // keep rendering while minimised/behind other windows — viewers still watch
-    },
+    webPreferences: { ...VB_WEB_PREFS },
   });
   vbWin = win;
   // Automated run: the window must PAINT (a hidden window gives the capture no video frames) but stay invisible and never
@@ -124,13 +236,15 @@ export function openVb(url: string): VbResult {
     clearVbCache();
     focusMainWindow();
   });
+  const loadedFirst = whenLoaded(win.webContents);
   void win.loadURL(url).catch(() => {}); // aborted by a redirect / blocked request — page events tell the rest
   // Smoke only (devEnv is '' in the packaged app): prove capture keeps working while the VB is minimised.
   if (devEnv('WW_SMOKE_VB_MINIMIZE') === '1') setTimeout(() => !win.isDestroyed() && win.minimize(), 1200);
-  return { ok: true };
+  return loadedFirst.then(() => ({ ok: true }) as const);
 }
 
 export function closeVb(): VbResult {
+  if (closeDock()) return { ok: true };
   const win = getVbWindow();
   if (!win) return { ok: false, reason: 'not_open' };
   win.close();
@@ -138,6 +252,11 @@ export function closeVb(): VbResult {
 }
 
 export function focusVb(): VbResult {
+  const docked = dockAlive();
+  if (docked) {
+    if (!BACKGROUND) docked.webContents.focus();
+    return { ok: true };
+  }
   const win = getVbWindow();
   if (!win) return { ok: false, reason: 'not_open' };
   if (BACKGROUND) return { ok: true };

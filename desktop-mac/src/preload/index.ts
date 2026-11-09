@@ -16,7 +16,8 @@ contextBridge.exposeInMainWorld('wewatchDesktop', {
   platform: 'macos',
   version: 1,
   vb: {
-    open: (url: string) => ipcRenderer.invoke('vb:open', url),
+    open: (url: string, opts?: { docked?: boolean }) => ipcRenderer.invoke('vb:open', url, opts),
+    setBounds: (rect: { x: number; y: number; width: number; height: number } | null) => ipcRenderer.invoke('vb:setBounds', rect),
     close: () => ipcRenderer.invoke('vb:close'),
     focus: () => ipcRenderer.invoke('vb:focus'),
     onState: listen('vb:state'),

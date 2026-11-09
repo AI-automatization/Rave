@@ -24,6 +24,7 @@ import { ChangeVideoDialog } from '@/components/party/ChangeVideoDialog';
 import { useVoiceChat } from '@/hooks/use-voice-chat';
 import { useDesktopScreenShare } from '@/hooks/use-desktop-screen-share';
 import { DesktopScreenView } from '@/components/party/DesktopScreenView';
+import { DesktopVbDock } from '@/components/party/DesktopVbDock';
 import { useSocket } from '@/hooks/use-socket';
 import { roomsApi } from '@/lib/api/rooms.api';
 import { ApiError } from '@/lib/api-client';
@@ -473,7 +474,9 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   // True between the owner's VB click (VB_START emitted with the room's own source page) and the
   // session actually starting — the panel shows a spinner instead of the URL form meanwhile.
   const [vbStarting, setVbStarting] = useState(false);
-  const showVB = vbActive || (isOwner && showVBPanel);
+  // Desktop app owner: the site plays in the owner's OWN VB window (streamed to the room) — the server-side VB is never shown.
+  const desktopOwner = screenShare.canShare;
+  const showVB = !desktopOwner && (vbActive || (isOwner && showVBPanel));
   const handleVBStop = () => { vbStop(); setShowVBPanel(false); setVbStarting(false); };
   // Server-side stop (candidates ready, pick timeout, error) — drop the local panel too, otherwise
   // the owner is left on an empty URL form after the session is already gone.
@@ -515,6 +518,23 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
     const url = room?.videoUrl;
     if (url && unwrapVbProxyUrl(url) === url) originalSourceUrlRef.current = url;
   }, [room?.videoUrl]);
+
+  // Desktop app, owner: a site the room cannot embed (platform 'other', e.g. uzmovi) is opened in the owner's own VB
+  // window and streamed to everyone — no server-side VB. Once per source URL; if it fails the owner still has the
+  // "Brauzerni ochish" button.
+  const desktopAutoUrlRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!desktopOwner || !room || room.videoPlatform !== 'other') return;
+    if (screenShare.isSharing || screenShare.starting) return;
+    const url = originalSourceUrlRef.current ?? (room.videoUrl ? unwrapVbProxyUrl(room.videoUrl) : null);
+    if (!url || desktopAutoUrlRef.current === url) return;
+    desktopAutoUrlRef.current = url;
+    void screenShare.start(url);
+  }, [desktopOwner, room, screenShare]);
+  // A server-side VB that started anyway (older server, a media change) is stopped; the desktop VB takes over.
+  useEffect(() => {
+    if (desktopOwner && vbActive) vbStop();
+  }, [desktopOwner, vbActive, vbStop]);
 
   // Owner-initiated, per-URL VB opens (from the generic iframe's "Open in Virtual Browser" button) —
   // `showVBPanel` keeps the VB view mounted so its unreachable state is visible if the start fails.
@@ -655,12 +675,19 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                 </span>
               </div>
             )}
-            {screenShare.stream ? (
+            {screenShare.docked ? (
+              <DesktopVbDock setRect={screenShare.setDockRect} label={t('desktopVbYouShare')} />
+            ) : screenShare.stream ? (
               <DesktopScreenView
                 stream={screenShare.stream}
                 muted={screenShare.isSharing}
                 label={t(screenShare.isSharing ? 'desktopVbYouShare' : 'desktopVbWatching')}
               />
+            ) : desktopOwner && room?.videoPlatform === 'other' && screenShare.starting ? (
+              <div className="flex aspect-video w-full items-center justify-center gap-2 rounded-[var(--ww-r-lg)] bg-black/60 text-[13px] text-[var(--ww-text-2)]">
+                <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+                {t('desktopVbOpening')}
+              </div>
             ) : showVB ? (
               <VirtualBrowserPlayer
                 isOwner={isOwner}
@@ -711,7 +738,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                   <Link2 size={14} aria-hidden="true" />
                   {t('changeVideo')}
                 </button>
-                {!showVB && (
+                {!showVB && !desktopOwner && (
                   <button
                     onClick={() => {
                       trackClick('room:open_vb_panel');
@@ -742,7 +769,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                     {t(screenShare.isSharing ? 'desktopVbStop' : 'desktopVbStart')}
                   </button>
                 )}
-                {screenShare.isSharing && (
+                {screenShare.isSharing && !screenShare.docked && (
                   <button
                     onClick={screenShare.focusVb}
                     type="button"

@@ -27,7 +27,10 @@ interface DesktopBridge {
   platform: 'windows';
   version: number;
   vb: {
-    open(url: string): Promise<{ ok: true } | { ok: false; reason: string }>;
+    /** docked: the VB page opens INSIDE the app window, over the room's video area (Mac build; older builds ignore it). */
+    open(url: string, opts?: { docked?: boolean }): Promise<{ ok: true } | { ok: false; reason: string }>;
+    /** Docked VB: where the room's video area is (CSS px, relative to the page), or null to hide it. */
+    setBounds?(rect: { x: number; y: number; width: number; height: number } | null): Promise<{ ok: boolean }>;
     close(): Promise<{ ok: boolean }>;
     focus(): Promise<{ ok: boolean }>;
     onState(cb: (s: DesktopVbState) => void): () => void;
@@ -66,12 +69,36 @@ const MAX_FRAMERATE = 30;
 
 type Sdp = { type: 'offer' | 'answer'; sdp: string };
 
+/**
+ * getDisplayMedia on the VB, retried when the picture never starts: a capture taken while the VB page is still settling in
+ * its place can stay without frames (the track stays "muted"); a second capture of the settled page works. The last
+ * attempt is kept whatever happens.
+ */
+async function captureVb(): Promise<MediaStream> {
+  for (let attempt = 0; ; attempt++) {
+    const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: MAX_FRAMERATE }, audio: true });
+    const video = stream.getVideoTracks()[0];
+    if (!video || !video.muted || attempt >= 2) return stream;
+    const started = await new Promise<boolean>((resolve) => {
+      const timer = window.setTimeout(() => { video.removeEventListener('unmute', onUnmute); resolve(false); }, 2500);
+      const onUnmute = () => { window.clearTimeout(timer); resolve(true); };
+      video.addEventListener('unmute', onUnmute, { once: true });
+    });
+    if (started) return stream;
+    stream.getTracks().forEach((t) => t.stop());
+  }
+}
+
 export function useDesktopScreenShare(socket: Socket | null, roomJoined: boolean, isOwner: boolean) {
   const [bridge, setBridge] = useState<DesktopBridge | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The VB sits inside the app window over the room's video area (instead of a separate window).
+  const [docked, setDocked] = useState(false);
+  // start() waits here until the room's video box has told the app where it is (the VB is hidden until then, and a hidden VB gives no picture).
+  const dockReadyRef = useRef<(() => void) | null>(null);
 
   const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const localRef = useRef<MediaStream | null>(null);
@@ -140,6 +167,7 @@ export function useDesktopScreenShare(socket: Socket | null, roomJoined: boolean
     localRef.current?.getTracks().forEach((t) => t.stop());
     localRef.current = null;
     setLocalStream(null);
+    setDocked(false);
     closeOwnerPeers();
     if (wasSharing) socket?.emit(CLIENT_EVENTS.SCREEN_STOP);
     void bridge?.vb.close();
@@ -152,10 +180,19 @@ export function useDesktopScreenShare(socket: Socket | null, roomJoined: boolean
     setStarting(true);
     setError(null);
     try {
-      const opened = await bridge.vb.open(url);
+      // A build that can place the VB inside the window shows it over the room's video area; others open a window.
+      const wantDock = typeof bridge.vb.setBounds === 'function';
+      const opened = await bridge.vb.open(url, wantDock ? { docked: true } : undefined);
       if (!opened.ok) { setError(opened.reason); return; }
+      // Docked: the room shows the box the VB is painted over from now on — the capture below needs the VB visible.
+      setDocked(wantDock);
+      if (wantDock) {
+        await new Promise<void>((resolve) => { dockReadyRef.current = resolve; window.setTimeout(resolve, 2500); });
+        dockReadyRef.current = null;
+        await new Promise((r) => window.setTimeout(r, 400)); // let the VB paint its first frame in its place
+      }
       // main.js answers getDisplayMedia with exactly the VB window + system audio.
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: MAX_FRAMERATE }, audio: true });
+      const stream = await captureVb();
       stream.getVideoTracks().forEach((t) => { t.contentHint = 'motion'; });
       // The VB window was closed from Windows (X button) — end the share for everyone.
       stream.getVideoTracks()[0]?.addEventListener('ended', () => stop());
@@ -164,6 +201,7 @@ export function useDesktopScreenShare(socket: Socket | null, roomJoined: boolean
       socket?.emit(CLIENT_EVENTS.SCREEN_START);
     } catch {
       setError('capture_failed');
+      setDocked(false);
       void bridge.vb.close();
     } finally {
       setStarting(false);
@@ -269,6 +307,12 @@ export function useDesktopScreenShare(socket: Socket | null, roomJoined: boolean
     error,
     start,
     stop,
+    /** True while the VB is docked in the window: the room shows a placeholder the app paints the VB over. */
+    docked,
+    setDockRect: (rect: { x: number; y: number; width: number; height: number } | null) => {
+      void bridge?.vb.setBounds?.(rect);
+      if (rect) dockReadyRef.current?.();
+    },
     focusVb: () => { void bridge?.vb.focus(); },
   };
 }

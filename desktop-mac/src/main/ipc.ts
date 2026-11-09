@@ -1,20 +1,27 @@
 import { app, ipcMain, type IpcMainInvokeEvent } from 'electron';
 import { APP_ORIGIN } from './config';
 import { isAppOrigin } from './urls';
-import { closeVb, focusVb, getAdsBlocked, openVb, type VbResult } from './vb';
+import { closeVb, focusVb, getAdsBlocked, openVb, setVbDockRect, type VbResult } from './vb';
 
 type Result = VbResult | ({ ok: true } & Record<string, unknown>);
+type MaybeAsync = Result | Promise<Result>;
 
 /** The bridge is only served to our own origin — a foreign page in the main window gets 'forbidden'. */
 const guard =
-  <A extends unknown[]>(handler: (...args: A) => Result) =>
-  (event: IpcMainInvokeEvent, ...args: A): Result => {
+  <A extends unknown[]>(handler: (...args: A) => MaybeAsync) =>
+  (event: IpcMainInvokeEvent, ...args: A): MaybeAsync => {
     if (!isAppOrigin(event.senderFrame?.url ?? '', APP_ORIGIN)) return { ok: false, reason: 'forbidden' };
     return handler(...args);
   };
 
 export function registerIpc(): void {
-  ipcMain.handle('vb:open', guard((url: unknown) => (typeof url === 'string' ? openVb(url) : { ok: false, reason: 'invalid_url' })));
+  // opts.docked = true: the VB page opens INSIDE the app window, over the room's video area (see vb.ts); otherwise a separate window.
+  ipcMain.handle(
+    'vb:open',
+    guard((url: unknown, opts?: unknown) =>
+      typeof url === 'string' ? openVb(url, typeof opts === 'object' && opts !== null && (opts as { docked?: unknown }).docked === true) : { ok: false, reason: 'invalid_url' }),
+  );
+  ipcMain.handle('vb:setBounds', guard((rect: unknown) => setVbDockRect(rect)));
   ipcMain.handle('vb:close', guard(() => closeVb()));
   ipcMain.handle('vb:focus', guard(() => focusVb()));
   ipcMain.handle(

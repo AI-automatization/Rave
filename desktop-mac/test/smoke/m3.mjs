@@ -76,7 +76,7 @@ for (const minimized of [false, true]) {
   const s = await run(minimized);
   const bridge = get(s, 'bridge');
   check(bridge?.platform === 'macos' && bridge?.version === 1, 'bridge: platform macos, version 1');
-  check(JSON.stringify(bridge?.vbKeys) === JSON.stringify(['open', 'close', 'focus', 'onState', 'onBlocked', 'metrics']), 'bridge: vb contract keys');
+  check(JSON.stringify(bridge?.vbKeys) === JSON.stringify(['open', 'setBounds', 'close', 'focus', 'onState', 'onBlocked', 'metrics']), 'bridge: vb contract keys');
   check(get(s, 'open-file')?.reason === 'protocol_not_allowed', 'vb.open(file://) refused');
   check(get(s, 'open-js')?.reason === 'protocol_not_allowed', 'vb.open(javascript:) refused');
   check(get(s, 'open-garbage')?.reason === 'invalid_url', 'vb.open(garbage) refused');

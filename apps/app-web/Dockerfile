@@ -11,8 +11,9 @@ ARG NEXT_PUBLIC_LANDING_URL=https://wewatch.uz
 ENV NEXT_PUBLIC_SOCKET_URL=$NEXT_PUBLIC_SOCKET_URL
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_LANDING_URL=$NEXT_PUBLIC_LANDING_URL
-# Windows desktop app features (picker "Take video", owner's VB screen share) — inert unless "1"
-ARG NEXT_PUBLIC_DESKTOP_VB=0
+# Desktop app features (Windows/Mac: picker "Take video", owner's VB screen share). On in the atxamov/dev branch; it only
+# does anything inside the desktop app (needs window.wewatchDesktop) — a normal browser never sees it. Set 0 to turn off.
+ARG NEXT_PUBLIC_DESKTOP_VB=1
 ENV NEXT_PUBLIC_DESKTOP_VB=$NEXT_PUBLIC_DESKTOP_VB
 
 # Accept runtime service URLs (inlined by Next.js webpack at build time)
