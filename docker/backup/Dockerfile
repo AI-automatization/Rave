@@ -1,5 +1,5 @@
 # ─── WeWatch MongoDB Backup Container ────────────────────────────────────────
-# mongodump + gpg + MinIO client (mc). Расписание внутри контейнера,
+# mongodump + gpg + rclone (S3). Расписание внутри контейнера,
 # см. scripts/backup-mongo-scheduler.sh.
 #
 # База — официальный образ mongo той же мажорной версии, что и прод: клиент
@@ -15,12 +15,11 @@ FROM mongo:7
 ENTRYPOINT []
 
 RUN apt-get update -qq \
-    && apt-get install -y --no-install-recommends gnupg curl ca-certificates \
+    && apt-get install -y --no-install-recommends gnupg curl ca-certificates rclone \
     && rm -rf /var/lib/apt/lists/*
 
-# MinIO client (Railway собирает на amd64)
-RUN curl -fsSL "https://dl.min.io/client/mc/release/linux-amd64/mc" -o /usr/local/bin/mc \
-    && chmod +x /usr/local/bin/mc
+# S3 client: rclone from apt. dl.min.io stopped serving `mc` (HTTP 410, Nov 2026),
+# which broke every image build; the old container kept running with stale creds.
 
 COPY scripts/backup-mongo.sh /usr/local/bin/backup-mongo.sh
 COPY scripts/backup-mongo-scheduler.sh /usr/local/bin/backup-mongo-scheduler.sh
@@ -32,6 +31,6 @@ RUN sed -i 's/\r$//' /usr/local/bin/backup-mongo.sh /usr/local/bin/backup-mongo-
 
 # Проверяем на сборке, а не на первом ночном прогоне: если в образе вдруг нет
 # mongodump — узнать об этом надо здесь, а не через месяц при восстановлении.
-RUN mongodump --version && gpg --version | head -1 && mc --version
+RUN mongodump --version && gpg --version | head -1 && rclone version | head -1
 
 CMD ["/usr/local/bin/backup-mongo-scheduler.sh"]
