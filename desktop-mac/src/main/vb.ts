@@ -105,6 +105,7 @@ export function openVb(url: string): VbResult {
       contextIsolation: true,
       nodeIntegration: false,
       spellcheck: false,
+      autoplayPolicy: 'no-user-gesture-required', // the site's player may start itself; its sound is what the room hears
       backgroundThrottling: false, // keep rendering while minimised/behind other windows — viewers still watch
     },
   });

@@ -73,6 +73,7 @@ export function createMainWindow(log: Log = () => {}): BrowserWindow {
       sandbox: true,
       contextIsolation: true,
       nodeIntegration: false,
+      autoplayPolicy: 'no-user-gesture-required', // a viewer's room video must start with sound; the page is only our own site
     },
     onContent: guardContent,
     log,
