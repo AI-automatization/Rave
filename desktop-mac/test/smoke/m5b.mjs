@@ -290,7 +290,7 @@ console.log('--- C: signed out');
   check(!r.calls.some((c) => c === 'GET /login' || c === 'GET /register' || c === 'GET /'), 'the web sign-in page was never even requested');
   check(i?.auth?.screen === 'login' && i?.auth?.title === 'Xush kelibsiz' && i?.auth?.lang === 'uz', 'first run: the login screen, in Uzbek (no language cookie yet)');
   check(i?.shell.langHidden === false && JSON.stringify(i?.shell.langActive) === '["uz"]', 'the UZ/RU switch is in the toolbar, Uzbek selected');
-  check(i?.shell.collapsed === true && i?.shell.toggleHidden === true && i?.shell.newRoomHidden === true, 'no sidebar, no sidebar toggle, no "Yangi xona"');
+  check(i?.shell.collapsed === true && i?.shell.newRoomHidden === true, 'no sidebar, no "Yangi xona"');
   check(i?.authBounds?.x === 0 && i?.authBounds?.y === 52 && i?.authBounds?.width === i?.shellBounds?.width, 'the sign-in screen fills the window below the toolbar');
   check(i?.shell.items.every((x) => !x.active), 'no sidebar item is highlighted');
   check(i?.state.canGoBack === false && i?.state.signedIn === false, 'no "back", not signed in');
@@ -309,7 +309,7 @@ console.log('--- D: server down, then "Qayta urinish"');
 }
 
 // ---------------------------------------------------------------- E: language + subscription
-console.log('--- E: language follows the web app; subscription is gone');
+console.log('--- E: language follows the web app; subscription (obuna) is reachable');
 {
   const r = await run('lang', { cookies: 'wewatch-locale=ru;access_token=good;refresh_token=r1', action: 'lang', startPath: '/settings', startWeb: true, ttl: 25 });
   const labels = (x) => (x?.shell.items ?? []).map((i) => i.label).join('|');
@@ -317,13 +317,9 @@ console.log('--- E: language follows the web app; subscription is gone');
   check(labels(ru) === 'Главная|Комнаты|Прямые эфиры|Друзья|История|Настройки', 'Russian language cookie -> Russian sidebar items');
   check(ru?.shell.titles.join('|') === 'ОСНОВНОЕ|ДРУЗЬЯ И СООБЩЕСТВО|БИБЛИОТЕКА', 'Russian section titles');
   check(ru?.shell.backLabel === 'Назад' && ru?.shell.htmlLang === 'ru', 'Russian button label and page language');
-  check(ru?.content?.planSection === 'none', 'the subscription panel (TARIF / Pro / Payme / Click) is hidden on Settings');
-  check(ru?.content?.otherSection !== 'none' && ru?.content?.otherSection !== null, 'the other Settings panels are still visible');
-  check(ru?.content?.planFetch === 'blocked', "the page's request to the payment API was cancelled");
-  check(!r.calls.some((c) => c.includes('/api/payment')), 'the payment API never reached the server');
-  check(r.ev.some((x) => x.event === 'payment-blocked'), 'the app logged the blocked payment request');
-  const pr = r.get('lang-pricing');
-  check(pathOf(pr?.content?.url) === '/settings' && !r.calls.includes('GET /pricing'), '/pricing cannot be opened (stayed on Settings, server never asked)');
+  check(ru?.content?.planSection !== 'none' && ru?.content?.planSection !== null, 'the subscription panel (TARIF / Pro) is visible on Settings');
+  check(ru?.content?.planFetch === 'ok', "the page's request to the payment API goes through");
+  check(r.calls.some((c) => c.includes('/api/payment')), 'the payment API reached the server');
   const uz = r.get('lang-uz');
   check(labels(uz) === "Bosh sahifa|Xonalar|Jonli efirlar|Do'stlar|Tarix|Sozlamalar", 'switching the web language to Uzbek changes the sidebar at once');
   check(uz?.shell.titles.join('|') === "ASOSIY|DO'STLAR & HAMJAMIYAT|KUTUBXONA" && uz?.shell.htmlLang === 'uz', 'Uzbek section titles (the approved design)');
@@ -386,10 +382,8 @@ console.log('--- G: Stitch design details');
   check(n?.home.sort.value === 'newest', 'the sort control follows the choice');
   const bad = r.ev.find((x) => x.event === 'design-sort-hostile')?.replies ?? [];
   check(bad.length === 6 && bad.every((x) => x && x.ok === false), 'an unknown sort key is refused (6 of 6)');
-  const c = r.get('design-collapsed');
-  check(c?.shell.collapsed === true && c?.shell.sidebarVar === '0px' && c?.homeBounds?.x === 0, 'Yon panel button collapses the sidebar: Home moves to the left edge');
   const e = r.get('design-expanded');
-  check(e?.shell.collapsed === false && e?.homeBounds?.x === 240, 'and brings it back (240 px)');
+  check(e?.shell.collapsed === false && e?.homeBounds?.x === 240, 'the sidebar is always open when signed in (240 px), there is no collapse button');
   const l = r.get('design-live');
   check(l?.shell.items.find((x) => x.active)?.id === 'live' && JSON.stringify(titles(l?.home)) === JSON.stringify(['Muqaddima', '<img src="https://evil.example/pwn.png" onerror="alert(1)">']) && l?.home.banner?.title === 'Yulduzlar Jangi (Interstellar)', 'Jonli efirlar: only the playing rooms (the waiting and paused ones are left out)');
   const h = r.get('design-history');
@@ -528,7 +522,7 @@ console.log('--- J: native sign-in screens');
   check(ev('external-suppressed')?.url === 'https://wewatch.uz', '"WeWatch haqida" opens the fixed site https://wewatch.uz (suppressed in the smoke run)');
 
   const rg = r.get('auth-registered');
-  check(rg?.mode === 'home' && rg?.state.signedIn === true && rg?.shell.collapsed === false && rg?.shell.toggleHidden === false && rg?.shell.langHidden === true, 'the right code signs in: native Home with the sidebar, no language switch');
+  check(rg?.mode === 'home' && rg?.state.signedIn === true && rg?.shell.collapsed === false && rg?.shell.langHidden === true, 'the right code signs in: native Home with the sidebar, no language switch');
   const ck = ev('auth-cookies')?.cookies ?? [];
   check(ck.some((c) => c.name === 'access_token' && c.httpOnly) && ck.some((c) => c.name === 'refresh_token' && c.httpOnly), 'the BFF\'s httpOnly access_token / refresh_token cookies are in the app session');
   const lo = r.get('auth-after-logout');

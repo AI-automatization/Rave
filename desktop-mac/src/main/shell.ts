@@ -76,7 +76,7 @@ let homeCards: readonly RoomCard[] | null = null;
 let homeQuery = '';
 let screen: Screen = 'rooms'; // which native screen is shown (the design's main window is "Xonalar")
 let homeSort: SortKey = 'viewers';
-let sidebarOpen = true; // the user's own choice (toggle button)
+let sidebarOpen = true; // always open while signed in (the Mac app has no sidebar toggle)
 let sessionChecked = false; // true once the server accepted the sign-in; until then (and on the sign-in screens) there is no sidebar
 const SITE_URL = 'https://wewatch.uz';
 const owners = new Map<string, string>(); // owner id -> name (looked up once)
@@ -618,7 +618,7 @@ const openNewRoom = (): Promise<void> => openWebDialog(NEW_ROOM_BUTTON);
 // ---------- IPC ----------
 
 const FORBIDDEN = { ok: false, reason: 'forbidden' } as const;
-const CHANNELS = ['auth:ready', 'auth:login', 'auth:register', 'auth:confirm', 'auth:forgot', 'auth:reset', 'auth:google', 'auth:cancelGoogle', 'auth:help', 'auth:about', 'help:ready', 'help:back', 'help:contact', 'shell:model', 'shell:navigate', 'shell:back', 'shell:forward', 'shell:search', 'shell:toggleSidebar', 'shell:newRoom', 'shell:locale', 'home:newRoom', 'home:join', 'home:createRoom', 'home:joinRoom', 'home:searchVideos', 'home:videoMeta', 'home:readClipboard', 'home:openPlatform', 'settings:reload', 'settings:saveProfile', 'settings:pickAvatar', 'settings:language', 'settings:password', 'settings:signOutAll', 'settings:delete', 'settings:logout', 'home:ready', 'home:open', 'home:retry', 'home:watch', 'home:sort'];
+const CHANNELS = ['auth:ready', 'auth:login', 'auth:register', 'auth:confirm', 'auth:forgot', 'auth:reset', 'auth:google', 'auth:cancelGoogle', 'auth:help', 'auth:about', 'help:ready', 'help:back', 'help:contact', 'shell:model', 'shell:navigate', 'shell:back', 'shell:forward', 'shell:search', 'shell:newRoom', 'shell:locale', 'home:newRoom', 'home:join', 'home:createRoom', 'home:joinRoom', 'home:searchVideos', 'home:videoMeta', 'home:readClipboard', 'home:openPlatform', 'settings:reload', 'settings:saveProfile', 'settings:pickAvatar', 'settings:language', 'settings:password', 'settings:signOutAll', 'settings:delete', 'settings:logout', 'home:ready', 'home:open', 'home:retry', 'home:watch', 'home:sort'];
 
 function registerIpc(): void {
   // The window can be recreated (dock click after closing): replace, never double-register.
@@ -664,13 +664,6 @@ function registerIpc(): void {
     homeQuery = typeof q === 'string' ? q.slice(0, MAX_QUERY) : '';
     rebuild();
     pushHome();
-    pushState();
-    return { ok: true } as const;
-  });
-  ipcMain.handle('shell:toggleSidebar', (e) => {
-    if (!fromShell(e)) return FORBIDDEN;
-    sidebarOpen = !sidebarOpen;
-    layout();
     pushState();
     return { ok: true } as const;
   });
@@ -1115,9 +1108,7 @@ export async function inspectShell(): Promise<unknown> {
       searchPlaceholder: search ? search.placeholder : null,
       htmlLang: document.documentElement.lang,
       collapsed: document.body.classList.contains('collapsed'),
-      toggleHidden: document.getElementById('toggle').hidden,
       sidebarVar: document.documentElement.style.getPropertyValue('--sidebar'),
-      toggleLabel: document.getElementById('toggle').getAttribute('aria-label'),
       newRoom: document.getElementById('new-room-label').textContent,
       profile: document.getElementById('profile').hidden ? null : { initial: document.getElementById('avatar').textContent, name: document.getElementById('who-name').textContent, status: document.getElementById('who-status').textContent },
       brand: document.querySelector('.brand').textContent,

@@ -18,7 +18,6 @@ contextBridge.exposeInMainWorld('wewatchShell', {
   back: () => ipcRenderer.invoke('shell:back'),
   forward: () => ipcRenderer.invoke('shell:forward'),
   search: (q: string) => ipcRenderer.invoke('shell:search', q),
-  toggleSidebar: () => ipcRenderer.invoke('shell:toggleSidebar'),
   newRoom: () => ipcRenderer.invoke('shell:newRoom'),
   setLocale: (l: string) => ipcRenderer.invoke('shell:locale', l),
   onState: (cb: (s: ShellState) => void): (() => void) => {

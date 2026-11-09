@@ -126,14 +126,11 @@ export function runSmokeAction(action: string, smoke: Smoke): void {
       await look('home-via-sidebar');
     })();
   } else if (action === 'lang') {
-    // Language follows the web app's cookie, live; the subscription panel and /pricing are gone. Starts on the web
+    // Language follows the web app's cookie, live; the subscription (obuna) panel stays. Starts on the web
     // /settings page, signed in, with NO language cookie (so the default, Russian, applies).
     void (async () => {
       await wait(2500);
       await look('lang-ru');
-      await smokeEval('content', "location.href = '/pricing'"); // must be refused
-      await wait(1200);
-      await look('lang-pricing');
       await smokeEval('content', "document.cookie = 'wewatch-locale=uz; path=/'"); // what the web Settings language switch does
       await until('shell', labelIs('home', 'Bosh sahifa'));
       await look('lang-uz');
@@ -200,13 +197,6 @@ export function runSmokeAction(action: string, smoke: Smoke): void {
       const replies: unknown[] = [];
       for (const bad of ['oldest', '', 42, null, {}, '__proto__']) replies.push(await smokeEval('home', `window.wewatchHome.sort(${JSON.stringify(bad)})`));
       smoke('design-sort-hostile', { replies });
-      await click('shell', '#toggle');
-      await until('shell', "document.body.classList.contains('collapsed')");
-      await wait(300);
-      await look('design-collapsed');
-      await shot();
-      await click('shell', '#toggle');
-      await until('shell', "!document.body.classList.contains('collapsed')");
       await wait(300);
       await look('design-expanded');
       await clickItem('live');

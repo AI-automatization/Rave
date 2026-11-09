@@ -7,7 +7,6 @@ import { flushPendingDeepLink, handleDeepLink, queueDeepLink } from './deeplink'
 import { addDnsSwitches, configureDns } from './dns';
 import { registerIpc } from './ipc';
 import { buildMenu } from './menu';
-import { paymentRequestFilter } from './shell-model';
 import { installPermissionPolicy } from './permissions';
 import { chromeUserAgent } from './urls';
 import { clearVbCache, closeVb, protectVbSession } from './vb';
@@ -127,11 +126,6 @@ if (!app.requestSingleInstanceLock()) {
         (e: unknown) => smoke('resolve', { ok: false, error: String(e), ms: Date.now() - t0 }),
       );
     }
-    // Subscription (obuna / Pro) is not part of the Mac app: no page of the app can reach the payment API.
-    session.defaultSession.webRequest.onBeforeRequest({ urls: paymentRequestFilter(APP_URL) }, (details, cb) => {
-      smoke('payment-blocked', { path: new URL(details.url).pathname });
-      cb({ cancel: true });
-    });
     installPermissionPolicy();
     installCapture();
     protectVbSession((url, reason) => {

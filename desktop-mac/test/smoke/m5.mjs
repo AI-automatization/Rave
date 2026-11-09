@@ -47,7 +47,7 @@ check(init?.shell.titles.join('|') === "ASOSIY|DO'STLAR & HAMJAMIYAT|KUTUBXONA",
 check(items.every((i) => !i.disabled), 'every sidebar item opens something (no dead items)');
 check(items.find((i) => i.active)?.id === 'home', 'Bosh sahifa is active on /home');
 check(init?.shell.backDisabled === true && init?.shell.forwardDisabled === true, 'back/forward disabled at start');
-check(init?.shell.bridgeKeys.sort().join(',') === 'back,forward,model,navigate,newRoom,onState,search,setLocale,toggleSidebar', 'shell bridge exposes exactly model/navigate/back/forward/search/toggleSidebar/newRoom/setLocale/onState');
+check(init?.shell.bridgeKeys.sort().join(',') === 'back,forward,model,navigate,newRoom,onState,search,setLocale', 'shell bridge exposes exactly model/navigate/back/forward/search/newRoom/setLocale/onState');
 check(init?.shell.webBridge === 'undefined', 'shell has NO web-app bridge (wewatchDesktop)');
 check(init?.content.shellBridge === 'undefined', 'web content has NO shell bridge (wewatchShell)');
 check(init?.content.desktopBridge === 'object', 'web content still has the wewatchDesktop bridge');
@@ -60,7 +60,6 @@ check(cb && sb && cb.width === sb.width - 240 && cb.height === sb.height - 52, '
 
 check(init?.shell.brand === 'WeWatch', 'toolbar shows the WeWatch brand');
 check(init?.shell.newRoom === 'Yangi xona', 'purple "Yangi xona" button, in the web app\'s language');
-check(init?.shell.toggleLabel === 'Yon panel', 'sidebar toggle next to the traffic lights');
 check(init?.shell.profile === null, 'no profile block when the profile could not be loaded');
 
 check(init?.content.avatar?.hidden === true && init?.content.avatar?.marked === true && init?.content.avatar?.bg === 'radial-gradient(circ', 'a round avatar whose picture is missing: broken icon hidden, neutral silhouette shown instead');
@@ -91,7 +90,7 @@ check(fw?.shell.forwardDisabled === true, 'forward disabled again at the end of 
 const lg = get('shell-login');
 check(lg?.mode === 'auth' && lg?.content === null && lg?.auth?.screen === 'login', 'the web page going to /login is replaced by the native sign-in screen (web page unloaded)');
 check(!ev.some((x) => x.event === 'loaded' && pathOf(x.url) === '/login'), 'the web /login page never loaded');
-check(lg?.shell.collapsed === true && lg?.shell.toggleHidden === true && lg?.authBounds?.x === 0, 'sign-in screen: no sidebar, no sidebar toggle, the screen fills the window');
+check(lg?.shell.collapsed === true && lg?.authBounds?.x === 0, 'sign-in screen: no sidebar, the screen fills the window');
 
 console.log(failures.length ? `\n${failures.length} FAILED` : '\nALL PASSED');
 process.exit(failures.length ? 1 : 0);

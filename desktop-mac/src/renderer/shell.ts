@@ -49,7 +49,6 @@ interface ShellBridge {
   back(): Promise<unknown>;
   forward(): Promise<unknown>;
   search(q: string): Promise<unknown>;
-  toggleSidebar(): Promise<unknown>;
   newRoom(): Promise<unknown>;
   setLocale(l: string): Promise<unknown>;
   onState(cb: (s: ShellState) => void): () => void;
@@ -99,7 +98,6 @@ const nav = document.getElementById('nav') as HTMLElement;
 const backBtn = document.getElementById('back') as HTMLButtonElement;
 const forwardBtn = document.getElementById('forward') as HTMLButtonElement;
 const searchBox = document.getElementById('search') as HTMLInputElement;
-const toggleBtn = document.getElementById('toggle') as HTMLButtonElement;
 const newRoomBtn = document.getElementById('new-room') as HTMLButtonElement;
 const langBox = document.getElementById('lang') as HTMLElement;
 const newRoomLabel = document.getElementById('new-room-label') as HTMLElement;
@@ -148,8 +146,6 @@ function applyUi(ui: UiDto): void {
   });
   backBtn.setAttribute('aria-label', ui.back);
   forwardBtn.setAttribute('aria-label', ui.forward);
-  toggleBtn.setAttribute('aria-label', ui.toggleSidebar);
-  toggleBtn.title = ui.toggleSidebar;
   newRoomLabel.textContent = ui.newRoom;
   searchBox.placeholder = ui.search;
   searchBox.setAttribute('aria-label', ui.searchLabel);
@@ -185,8 +181,6 @@ function applyState(s: ShellState): void {
   }
   document.documentElement.style.setProperty('--sidebar', s.sidebarOpen ? '240px' : '0px');
   document.body.classList.toggle('collapsed', !s.sidebarOpen);
-  toggleBtn.setAttribute('aria-pressed', String(s.sidebarOpen));
-  toggleBtn.hidden = !s.signedIn;
   // Signed-out screens: no "new room" button; the language switch (Uzbek / Russian) sits there instead.
   newRoomBtn.hidden = !s.signedIn;
   langBox.hidden = s.signedIn;
@@ -207,7 +201,6 @@ searchBox.addEventListener('input', () => {
 });
 backBtn.addEventListener('click', () => void bridge.back());
 forwardBtn.addEventListener('click', () => void bridge.forward());
-toggleBtn.addEventListener('click', () => void bridge.toggleSidebar());
 newRoomBtn.addEventListener('click', () => void bridge.newRoom());
 langBox.addEventListener('click', (e) => {
   const l = (e.target as HTMLElement).closest('button')?.dataset.l;
