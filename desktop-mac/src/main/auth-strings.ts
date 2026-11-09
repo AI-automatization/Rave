@@ -68,6 +68,15 @@ const UZ_WEB = {
   resetLinkInvalidHint: "Havola eskirgan yoki to'liq emas. Quyidagi tugma orqali yangi havola so'rang.",
   help: "Yordam",
   backToSite: "WeWatch haqida",
+  heroTitle: "Uzoqda bo‘lsangiz ham, <accent>birga</accent> tomosha qiling.",
+  heroSubtitle: "Do‘stlaringiz bilan real vaqtda filmlar, seriallar va videolarni sinxron tarzda tomosha qiling, chat qiling va his-tuyg‘ularingizni bo‘lishing.",
+  heroFeature1Title: "Birga tomosha",
+  heroFeature1Desc: "Sinxron ijro etish",
+  heroFeature2Title: "Jonli chat",
+  heroFeature2Desc: "Emotsiyalarni ulashing",
+  heroFeature3Title: "Do‘stlar bilan",
+  heroFeature3Desc: "Yaqinroq bo‘ling",
+  heroImageAlt: "Ikki kishi divanda o‘tirib WeWatch orqali birga film ko‘rmoqda",
 } as const;
 const RU_WEB = {
   welcomeBack: "С возвращением",
@@ -128,6 +137,15 @@ const RU_WEB = {
   resetLinkInvalidHint: "Ссылка устарела или неполная. Запросите новую по кнопке ниже.",
   help: "Помощь",
   backToSite: "О WeWatch",
+  heroTitle: "Даже на расстоянии — смотрите <accent>вместе</accent>.",
+  heroSubtitle: "Смотрите фильмы, сериалы и видео с друзьями синхронно в реальном времени, общайтесь в чате и делитесь эмоциями.",
+  heroFeature1Title: "Смотреть вместе",
+  heroFeature1Desc: "Синхронное воспроизведение",
+  heroFeature2Title: "Живой чат",
+  heroFeature2Desc: "Делитесь эмоциями",
+  heroFeature3Title: "С друзьями",
+  heroFeature3Desc: "Будьте ближе",
+  heroImageAlt: "Двое на диване смотрят фильм вместе через WeWatch",
 } as const;
 
 const UZ_MOBILE = {
