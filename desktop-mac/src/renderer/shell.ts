@@ -38,6 +38,7 @@ interface ShellState {
   canGoForward: boolean;
   searchVisible: boolean;
   sidebarOpen: boolean;
+  signedIn: boolean;
   query: string;
   ui: UiDto;
   side: SideDto;
@@ -50,6 +51,7 @@ interface ShellBridge {
   search(q: string): Promise<unknown>;
   toggleSidebar(): Promise<unknown>;
   newRoom(): Promise<unknown>;
+  setLocale(l: string): Promise<unknown>;
   onState(cb: (s: ShellState) => void): () => void;
 }
 
@@ -99,6 +101,7 @@ const forwardBtn = document.getElementById('forward') as HTMLButtonElement;
 const searchBox = document.getElementById('search') as HTMLInputElement;
 const toggleBtn = document.getElementById('toggle') as HTMLButtonElement;
 const newRoomBtn = document.getElementById('new-room') as HTMLButtonElement;
+const langBox = document.getElementById('lang') as HTMLElement;
 const newRoomLabel = document.getElementById('new-room-label') as HTMLElement;
 const profile = document.getElementById('profile') as HTMLElement;
 const trailing = new Map<string, HTMLSpanElement>(); // the count / dot at the right end of a sidebar row
@@ -183,6 +186,11 @@ function applyState(s: ShellState): void {
   document.documentElement.style.setProperty('--sidebar', s.sidebarOpen ? '240px' : '0px');
   document.body.classList.toggle('collapsed', !s.sidebarOpen);
   toggleBtn.setAttribute('aria-pressed', String(s.sidebarOpen));
+  toggleBtn.hidden = !s.signedIn;
+  // Signed-out screens: no "new room" button; the language switch (Uzbek / Russian) sits there instead.
+  newRoomBtn.hidden = !s.signedIn;
+  langBox.hidden = s.signedIn;
+  for (const b of langBox.querySelectorAll('button')) b.classList.toggle('active', b.dataset.l === s.ui.locale);
   applySide(s.side);
   backBtn.disabled = !s.canGoBack;
   forwardBtn.disabled = !s.canGoForward;
@@ -201,6 +209,10 @@ backBtn.addEventListener('click', () => void bridge.back());
 forwardBtn.addEventListener('click', () => void bridge.forward());
 toggleBtn.addEventListener('click', () => void bridge.toggleSidebar());
 newRoomBtn.addEventListener('click', () => void bridge.newRoom());
+langBox.addEventListener('click', (e) => {
+  const l = (e.target as HTMLElement).closest('button')?.dataset.l;
+  if (l) void bridge.setLocale(l);
+});
 bridge.onState(applyState);
 void bridge.model().then(({ sections, state }) => {
   render(sections);

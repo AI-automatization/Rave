@@ -1,7 +1,7 @@
 import { BrowserWindow, shell } from 'electron';
 import path from 'node:path';
 import { startBrowserLogin, type Log } from './auth';
-import { APP_ORIGIN, devEnv, IN_APP_HOSTS } from './config';
+import { APP_ORIGIN, devEnv, IN_APP_HOSTS, BACKGROUND } from './config';
 import { attachShell, getContentWebContents, openInApp, startApp } from './shell';
 import { isSubscriptionUrl, shellWindowOptions } from './shell-model';
 import { isGoogleStartUrl, isSafeExternalUrl, keepInApp } from './urls';
@@ -31,9 +31,9 @@ export function createMainWindow(log: Log = () => {}): BrowserWindow {
   });
   mainWin = win;
 
-  // Google sign-in never runs inside the app: the login button goes to <app>/api/auth/google/start,
-  // which we take over and run through the system browser (see auth.ts). After sign-in the post-login page is
-  // opened through openInApp: /home -> the native Home, anything else -> the web view.
+  // Google sign-in never runs inside the app. The native sign-in screen starts it itself (shell.ts, auth:google); a web
+  // page that still navigates to <app>/api/auth/google/start (the web login button) is taken over here and run through
+  // the system browser too (see auth.ts). After sign-in the post-login page is opened through openInApp.
   const googleLogin = (url: string): void => {
     void startBrowserLogin(new URL(url).searchParams.get('redirect'), win, log, openInApp);
   };
@@ -75,6 +75,7 @@ export function createMainWindow(log: Log = () => {}): BrowserWindow {
       nodeIntegration: false,
     },
     onContent: guardContent,
+    log,
   });
 
   // Show once the shell has painted (the window's own empty page may never fire ready-to-show); fallback timer
@@ -83,7 +84,14 @@ export function createMainWindow(log: Log = () => {}): BrowserWindow {
   const showWindow = (): void => {
     if (shown || win.isDestroyed()) return;
     shown = true;
-    win.show();
+    if (!BACKGROUND) {
+      win.show();
+      return;
+    }
+    // Automated run: the window must paint (pages, video) but stay invisible and never take focus.
+    win.setOpacity(0);
+    win.setIgnoreMouseEvents(true);
+    win.showInactive();
   };
   shellView.webContents.once('did-finish-load', showWindow);
   setTimeout(showWindow, 3000);
@@ -106,6 +114,7 @@ export function sendToMain(channel: string, payload: unknown): void {
 export function focusMainWindow(): void {
   const win = getMainWindow();
   if (!win) return;
+  if (BACKGROUND) return;
   if (win.isMinimized()) win.restore();
   win.show();
   win.focus();

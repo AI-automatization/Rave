@@ -1,0 +1,155 @@
+// Words of the native sign-in screens. No Electron imports — pure, unit-tested.
+//
+// Nothing here is invented. Sources, copied as they are:
+//   - everything under *_WEB: apps/app-web/messages/{uz,ru}.json, namespace "auth" (the web sign-in pages' own texts;
+//     test/auth-strings.test.ts compares them with those files whenever the web app sits next to this folder).
+//   - resend / resendCooldown / errResend: apps/mobile/src/i18n/translations.ts, namespace "verifyEmail" — the web
+//     VerifyEmail step has no "resend code" button, the mobile app has one (same request, same 60 s cooldown).
+//   - google: the web button shows just the brand name ("Google"); strength labels: RegisterForm.tsx shows them in English.
+// Only Uzbek and Russian exist on the sign-in screen's switch; English falls back to Russian (the web app's own fallback).
+import type { Locale } from './i18n';
+
+const UZ_WEB = {
+  welcomeBack: "Xush kelibsiz",
+  welcomeBackSub: "Do’stlaringiz sizni kutmoqda — hisobingizga kiring.",
+  continueWithGoogle: "Google orqali davom etish",
+  orDivider: "yoki",
+  emailLabel: "Email",
+  emailPlaceholder: "siz@example.com",
+  passwordLabel: "Parol",
+  passwordPlaceholder: "Parolingiz",
+  forgotPassword: "Unutdingizmi?",
+  showPassword: "Parolni ko‘rsatish",
+  hidePassword: "Parolni yashirish",
+  login: "Kirish",
+  noAccount: "Hisob yo'qmi?",
+  registerLink: "Ro'yxatdan o'ting",
+  wrongCredentials: "Email yoki parol noto'g'ri",
+  genericError: "Xatolik yuz berdi, qayta urinib ko'ring",
+  bannedTitle: "Akkaunt bloklangan",
+  bannedReason: "Sabab: {reason}",
+  bannedHint: "Agar bu xato deb hisoblasangiz — qo'llab-quvvatlash xizmatiga murojaat qiling.",
+  loggingIn: "Kirish...",
+  loggingInSub: "Ochilgan oynada kirishni yakunlang",
+  registerHeading: "Hisob yarating",
+  registerSub: "Bir daqiqa — va birga ko‘rishni boshlaysiz.",
+  usernameLabel: "Foydalanuvchi nomi",
+  usernamePattern: "3–20 belgi: faqat lotin harflari, raqamlar va _ (bo'sh joysiz)",
+  passwordMin: "Kamida 6 ta belgi",
+  passwordPattern: "Kichik, KATTA harflar va raqam kerak",
+  register: "Ro'yxatdan o'tish",
+  hasAccount: "Hisob bormi?",
+  loginLink: "Kirish",
+  emailVerifyTitle: "Emailni tasdiqlang",
+  emailVerifyText: "6 raqamli tasdiqlash kodi yuborildi:",
+  emailVerifyDigit: "Kodning {n}-raqami",
+  emailVerifyChecking: "Kod tekshirilmoqda...",
+  goToLogin: "Kirish sahifasiga",
+  forgotHeading: "Parolni unutdingizmi?",
+  forgotSubtitle: "Hisobingiz emailini kiriting — parolni tiklash havolasini yuboramiz.",
+  forgotSubmit: "Havola yuborish",
+  forgotSending: "Yuborilmoqda...",
+  forgotSent: "Havola yuborildi",
+  forgotSentHint: "Agar {email} manzilida hisob mavjud bo'lsa, parolni tiklash havolasi yuborildi. Pochtangizni, kerak bo'lsa \"Spam\" papkasini ham tekshiring.",
+  forgotBackToLogin: "Kirish sahifasiga qaytish",
+  forgotRateLimited: "Juda ko'p urinish. Bir necha daqiqadan so'ng qayta urinib ko'ring.",
+  resetHeading: "Yangi parol",
+  resetSubtitle: "WeWatch akkauntingiz uchun ishonchli parol o'ylab toping.",
+  resetNewPasswordLabel: "Yangi parol",
+  resetRepeatLabel: "Parolni takrorlang",
+  passwordMismatch: "Parollar mos kelmadi",
+  resetSaving: "Saqlanmoqda...",
+  resetSubmit: "Yangi parolni saqlash",
+  resetSuccess: "Parol o'zgartirildi",
+  resetSuccessHint: "Endi yangi parol bilan hisobingizga — ilovada ham, brauzerda ham — kirishingiz mumkin.",
+  resetFailed: "Parolni tiklab bo'lmadi",
+  resetNetworkError: "Serverga ulanib bo'lmadi",
+  resetLinkInvalid: "Havola yaroqsiz",
+  resetLinkInvalidHint: "Havola eskirgan yoki to'liq emas. Quyidagi tugma orqali yangi havola so'rang.",
+  help: "Yordam",
+  backToSite: "WeWatch haqida",
+} as const;
+const RU_WEB = {
+  welcomeBack: "С возвращением",
+  welcomeBackSub: "Друзья уже ждут — войдите в аккаунт.",
+  continueWithGoogle: "Продолжить с Google",
+  orDivider: "или",
+  emailLabel: "Email",
+  emailPlaceholder: "you@example.com",
+  passwordLabel: "Пароль",
+  passwordPlaceholder: "Ваш пароль",
+  forgotPassword: "Забыли?",
+  showPassword: "Показать пароль",
+  hidePassword: "Скрыть пароль",
+  login: "Войти",
+  noAccount: "Нет аккаунта?",
+  registerLink: "Зарегистрироваться",
+  wrongCredentials: "Неверный email или пароль",
+  genericError: "Произошла ошибка, попробуйте снова",
+  bannedTitle: "Аккаунт заблокирован",
+  bannedReason: "Причина: {reason}",
+  bannedHint: "Если вы считаете это ошибкой — обратитесь в поддержку.",
+  loggingIn: "Входим в аккаунт...",
+  loggingInSub: "Завершите вход в открытом окне",
+  registerHeading: "Создать аккаунт",
+  registerSub: "Минута — и смотрите вместе.",
+  usernameLabel: "Имя пользователя",
+  usernamePattern: "3–20 символов: только латинские буквы, цифры и _ (без пробелов)",
+  passwordMin: "Минимум 6 символов",
+  passwordPattern: "Нужны строчные, ЗАГЛАВНЫЕ буквы и цифра",
+  register: "Зарегистрироваться",
+  hasAccount: "Уже есть аккаунт?",
+  loginLink: "Войти",
+  emailVerifyTitle: "Подтвердите email",
+  emailVerifyText: "6-значный код подтверждения отправлен на:",
+  emailVerifyDigit: "Цифра кода №{n}",
+  emailVerifyChecking: "Проверяем код...",
+  goToLogin: "На страницу входа",
+  forgotHeading: "Забыли пароль?",
+  forgotSubtitle: "Введите email вашего аккаунта — мы отправим ссылку для сброса пароля.",
+  forgotSubmit: "Отправить ссылку",
+  forgotSending: "Отправляем...",
+  forgotSent: "Ссылка отправлена",
+  forgotSentHint: "Если аккаунт с адресом {email} существует, ссылка для сброса пароля отправлена. Проверьте почту, включая папку «Спам».",
+  forgotBackToLogin: "Вернуться ко входу",
+  forgotRateLimited: "Слишком много попыток. Повторите через несколько минут.",
+  resetHeading: "Новый пароль",
+  resetSubtitle: "Придумайте надёжный пароль для вашего аккаунта WeWatch.",
+  resetNewPasswordLabel: "Новый пароль",
+  resetRepeatLabel: "Повторите пароль",
+  passwordMismatch: "Пароли не совпадают",
+  resetSaving: "Сохраняем...",
+  resetSubmit: "Сохранить новый пароль",
+  resetSuccess: "Пароль изменён",
+  resetSuccessHint: "Теперь можно войти в аккаунт с новым паролем — и в приложении, и в браузере.",
+  resetFailed: "Ошибка сброса пароля",
+  resetNetworkError: "Не удалось подключиться к серверу",
+  resetLinkInvalid: "Ссылка недействительна",
+  resetLinkInvalidHint: "Ссылка устарела или неполная. Запросите новую по кнопке ниже.",
+  help: "Помощь",
+  backToSite: "О WeWatch",
+} as const;
+
+const UZ_MOBILE = {
+  resend: 'Kodni qayta yuborish',
+  resendCooldown: 'Qayta yuborish',
+  errResend: "Kod qayta yuborib bo'lmadi",
+} as const;
+const RU_MOBILE = {
+  resend: 'Отправить код повторно',
+  resendCooldown: 'Отправить повторно',
+  errResend: 'Не удалось отправить код повторно',
+} as const;
+const SHARED = { google: 'Google', weak: 'weak', okay: 'okay', strong: 'strong' } as const;
+
+export type AuthStringKey = keyof typeof UZ_WEB | keyof typeof UZ_MOBILE | keyof typeof SHARED;
+export type AuthStrings = Readonly<Record<AuthStringKey, string>> & { readonly lang: 'uz' | 'ru' };
+
+const UZ: AuthStrings = { lang: 'uz', ...UZ_WEB, ...UZ_MOBILE, ...SHARED };
+const RU: AuthStrings = { lang: 'ru', ...RU_WEB, ...RU_MOBILE, ...SHARED };
+
+/** The sign-in screens' words; English (the web app's third language) shows Russian. */
+export const authStringsFor = (l: Locale): AuthStrings => (l === 'uz' ? UZ : RU);
+
+/** The keys copied from the web app (the test compares them with apps/app-web/messages). */
+export const WEB_KEYS = Object.keys(UZ_WEB) as (keyof typeof UZ_WEB)[];

@@ -1,0 +1,522 @@
+/* Native sign-in screens. Same dark tokens as the shell, Home and Help (the web app's own palette: apps/app-web
+   globals.css); the look follows the web sign-in page: a centred panel, inputs with icons, violet primary button. */
+:root {
+  color-scheme: dark;
+  --bg: #05050a;
+  --accent: #7c3aed;
+  --accent-hi: #a78bfa;
+  --text: #efedf7;
+  --text-2: rgba(239, 237, 247, 0.66);
+  --text-3: rgba(239, 237, 247, 0.48);
+  --text-4: rgba(239, 237, 247, 0.34);
+  --line: rgba(255, 255, 255, 0.08);
+  --panel: rgba(255, 255, 255, 0.035);
+  --field: rgba(255, 255, 255, 0.045);
+  --danger: #ff6b6b;
+  --success: #4ade80;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+html,
+body {
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  cursor: default;
+}
+body {
+  background:
+    radial-gradient(ellipse 60% 40% at 50% -6%, rgba(124, 58, 237, 0.22), transparent 70%),
+    radial-gradient(ellipse 40% 30% at 85% 105%, rgba(124, 58, 237, 0.10), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+button {
+  border: 0;
+  background: none;
+  cursor: default;
+}
+
+svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.wrap {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  width: 100%;
+  max-width: 452px; /* 420 px panel + 16 px gutters */
+  margin: 0 auto;
+  padding: 32px 16px 40px;
+}
+
+/* ---- brand ---- */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.brand svg {
+  width: 36px;
+  height: 29px;
+  stroke: none;
+}
+
+/* ---- panel ---- */
+.card {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 22px;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.card h1 {
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.card .sub {
+  color: var(--text-3);
+  font-size: 14px;
+}
+.center {
+  align-items: center;
+  text-align: center;
+}
+.center h1 {
+  font-size: 22px;
+}
+.who-mail {
+  color: var(--text);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+/* ---- form ---- */
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.label {
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 500;
+}
+.control {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.control > svg {
+  position: absolute;
+  left: 13px;
+  width: 17px;
+  height: 17px;
+  color: var(--text-4);
+  pointer-events: none;
+}
+.control input {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px 0 40px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  outline: none;
+  background: var(--field);
+  font-size: 14px;
+}
+.control input.has-toggle {
+  padding-right: 44px;
+}
+.control input::placeholder {
+  color: var(--text-4);
+}
+.control input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.28);
+}
+.control input[aria-invalid='true'] {
+  border-color: rgba(255, 107, 107, 0.6);
+}
+.eye {
+  position: absolute;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  color: var(--text-3);
+}
+.eye:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+}
+.eye svg {
+  width: 17px;
+  height: 17px;
+}
+.field-error {
+  color: var(--danger);
+  font-size: 12.5px;
+}
+.hint {
+  color: var(--text-4);
+  font-size: 12.5px;
+}
+.field-error[hidden],
+.hint[hidden],
+.notice[hidden],
+.strength[hidden] {
+  display: none;
+}
+
+/* strength meter (register) */
+.strength {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bars {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+}
+.bars i {
+  height: 4px;
+  flex: 1;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.strength.weak .bars i:nth-child(-n + 1) {
+  background: #ef4444;
+}
+.strength.okay .bars i:nth-child(-n + 2) {
+  background: #f59e0b;
+}
+.strength.strong .bars i:nth-child(-n + 3) {
+  background: #10b981;
+}
+.strength span {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+.strength.weak span {
+  color: #f87171;
+}
+.strength.okay span {
+  color: #fbbf24;
+}
+.strength.strong span {
+  color: #34d399;
+}
+
+/* ---- buttons ---- */
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 48px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.btn svg {
+  width: 18px;
+  height: 18px;
+}
+.btn.primary {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(124, 58, 237, 0.28);
+}
+.btn.primary:not(:disabled):hover {
+  filter: brightness(1.1);
+}
+.btn.primary:not(:disabled):hover svg.arrow {
+  transform: translateX(2px);
+}
+.btn.google {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
+.btn.google:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.btn.google svg {
+  stroke: none;
+}
+.btn:disabled {
+  opacity: 0.45;
+}
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.link {
+  padding: 4px 0;
+  margin: -4px 0;
+  color: var(--accent-hi);
+  font-size: 13px;
+  font-weight: 500;
+}
+.link:not(:disabled):hover {
+  color: #fff;
+}
+.link:disabled {
+  color: var(--text-4);
+}
+.link.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.link.back svg {
+  width: 14px;
+  height: 14px;
+}
+.switch {
+  color: var(--text-3);
+  font-size: 13.5px;
+  text-align: center;
+}
+.switch .link {
+  font-size: 13.5px;
+}
+
+/* "yoki" divider */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.divider i {
+  height: 1px;
+  flex: 1;
+  background: var(--line);
+}
+.divider span {
+  color: var(--text-4);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* ---- notices ---- */
+.notice {
+  padding: 11px 13px;
+  border: 1px solid rgba(255, 107, 107, 0.28);
+  border-radius: 11px;
+  background: rgba(255, 107, 107, 0.08);
+  color: #ffb4b4;
+  font-size: 13px;
+}
+.notice strong {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--danger);
+}
+.notice .muted {
+  margin-top: 4px;
+  color: var(--text-3);
+}
+
+/* ---- medallion (verify / sent / reset results) ---- */
+.medal {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
+.medal::before {
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  background: rgba(124, 58, 237, 0.16);
+  content: '';
+}
+.medal svg {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  stroke-width: 1.6;
+  color: var(--accent-hi);
+}
+.medal.ok::before {
+  background: rgba(74, 222, 128, 0.1);
+}
+.medal.ok svg {
+  color: var(--success);
+}
+.medal.bad::before {
+  background: rgba(255, 107, 107, 0.1);
+}
+.medal.bad svg {
+  color: var(--danger);
+}
+
+/* ---- e-mail code ---- */
+.otp {
+  display: flex;
+  justify-content: center;
+  gap: 9px;
+}
+.otp input {
+  width: 46px;
+  height: 54px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  outline: none;
+  background: var(--field);
+  font-size: 22px;
+  font-weight: 600;
+  text-align: center;
+}
+.otp input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.28);
+}
+.otp input[aria-invalid='true'] {
+  border-color: rgba(255, 107, 107, 0.6);
+}
+.status {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text-3);
+  font-size: 13px;
+}
+.status svg {
+  width: 15px;
+  height: 15px;
+}
+.col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+.col .notice {
+  width: 100%;
+  text-align: left;
+}
+
+/* ---- waiting for the browser (Google) ---- */
+.wait {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+}
+.wait::before,
+.wait::after {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  content: '';
+}
+.wait::before {
+  border: 1px solid var(--line);
+}
+.wait::after {
+  border: 2px solid transparent;
+  border-top-color: var(--accent-hi);
+  animation: spin 0.9s linear infinite;
+}
+.wait i {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(124, 58, 237, 0.16);
+}
+
+/* ---- footer ---- */
+.foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-4);
+  font-size: 12.5px;
+}
+.foot button {
+  padding: 6px 2px;
+  color: var(--text-4);
+}
+.foot button:hover {
+  color: var(--text-2);
+}
+.foot .dot {
+  opacity: 0.5;
+}
+
+@media (max-width: 420px) {
+  .card {
+    padding: 20px;
+  }
+  .otp {
+    gap: 6px;
+  }
+  .otp input {
+    width: 40px;
+  }
+}

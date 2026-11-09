@@ -2,7 +2,7 @@
 // open the film site on THEIR computer. Its picture + sound go to the room via capture.ts (WebRTC) —
 // no server-side Chromium. The app window only ever talks to it through the origin-guarded IPC.
 import { BrowserWindow, session, type WebContents } from 'electron';
-import { devEnv } from './config';
+import { BACKGROUND, devEnv } from './config';
 import { shouldBlockAd } from './adblock';
 import { checkVbUrl, chromeUserAgent, failPageUrl, sameSite } from './urls';
 import { focusMainWindow, sendToMain } from './window';
@@ -90,7 +90,7 @@ export function openVb(url: string): VbResult {
   const existing = getVbWindow();
   if (existing) {
     void existing.loadURL(url).catch(() => {});
-    existing.focus();
+    if (!BACKGROUND) existing.focus();
     return { ok: true };
   }
   const win = new BrowserWindow({
@@ -98,6 +98,7 @@ export function openVb(url: string): VbResult {
     height: 720,
     title: 'WeWatch — Virtual Browser',
     backgroundColor: '#000000',
+    show: !BACKGROUND, // automated runs never put a window in front of the user
     webPreferences: {
       partition: VB_PARTITION,
       sandbox: true,
@@ -108,6 +109,13 @@ export function openVb(url: string): VbResult {
     },
   });
   vbWin = win;
+  // Automated run: the window must PAINT (a hidden window gives the capture no video frames) but stay invisible and never
+  // take focus: fully transparent, click-through, shown without activating the app.
+  if (BACKGROUND) {
+    win.setOpacity(0);
+    win.setIgnoreMouseEvents(true);
+    win.showInactive();
+  }
   wireVbContents(win.webContents);
   win.on('closed', () => {
     if (vbWin === win) vbWin = null;
@@ -131,6 +139,7 @@ export function closeVb(): VbResult {
 export function focusVb(): VbResult {
   const win = getVbWindow();
   if (!win) return { ok: false, reason: 'not_open' };
+  if (BACKGROUND) return { ok: true };
   if (win.isMinimized()) win.restore();
   win.focus();
   return { ok: true };

@@ -210,6 +210,9 @@ body.collapsed #sidebar {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+.tool[hidden] {
+  display: none;
+}
 .tool:not([disabled]):hover {
   background: var(--hover);
 }
@@ -306,4 +309,33 @@ body.collapsed #toolbar {
 }
 .primary:hover {
   filter: brightness(1.12);
+}
+
+.primary[hidden],
+.lang[hidden] {
+  display: none;
+}
+/* Uzbek / Russian switch of the login screens, top right of the toolbar */
+.lang {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  -webkit-app-region: no-drag;
+}
+.lang button {
+  height: 24px;
+  padding: 0 12px;
+  border-radius: 6px;
+  color: var(--text-2);
+  font-weight: 600;
+}
+.lang button:hover {
+  background: var(--hover);
+}
+.lang button.active {
+  background: var(--accent);
+  color: #fff;
 }

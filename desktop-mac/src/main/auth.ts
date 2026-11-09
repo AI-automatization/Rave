@@ -1,5 +1,5 @@
 import { dialog, net, session, shell, type BrowserWindow } from 'electron';
-import { APP_ORIGIN, APP_URL, AUTH_NO_BROWSER, AUTH_POLL_MS, AUTH_URL } from './config';
+import { APP_ORIGIN, APP_URL, AUTH_NO_BROWSER, BACKGROUND, AUTH_POLL_MS, AUTH_URL } from './config';
 import { classifyPoll, safeRedirect } from './urls';
 
 // Google sign-in NEVER runs inside the app (RFC 8252: no embedded login; Google blocks embedded browsers).
@@ -46,12 +46,24 @@ async function setSessionTokens(accessToken: string, refreshToken?: string): Pro
  * `load` opens the post-login page where the web app lives (the content view); `win` is only used for dialogs and focus.
  * Defaults to the window's own page for callers without a separate content view.
  */
+/** How a Google sign-in ended (the native sign-in screen shows the failures itself; other callers get a dialog). */
+export type GoogleResult = { kind: 'ok' } | { kind: 'blocked'; reason: string } | { kind: 'error' } | { kind: 'cancelled' };
+
+/** The user gave up waiting (native sign-in screen): the polling loop stops at its next step. */
+export function cancelBrowserLogin(): void {
+  loginGen++;
+}
+
 export async function startBrowserLogin(
   rawRedirect: unknown,
   win: BrowserWindow,
   log: Log = () => {},
   load: (url: string) => Promise<void> = (u) => win.loadURL(u),
-): Promise<void> {
+  dialogs = true,
+): Promise<GoogleResult> {
+  const fail = (m: string): void => {
+    if (dialogs) showError(win, m);
+  };
   const gen = ++loginGen;
   const redirect = safeRedirect(rawRedirect, '/home');
 
@@ -63,8 +75,8 @@ export async function startBrowserLogin(
     state = s;
   } catch (e) {
     log('login-init-failed', { error: String(e) });
-    showError(win, MSG.initFailed);
-    return;
+    fail(MSG.initFailed);
+    return { kind: 'error' };
   }
 
   const browserUrl = `${AUTH_URL}/google/mobile?state=${encodeURIComponent(state)}`;
@@ -74,7 +86,7 @@ export async function startBrowserLogin(
   const deadline = Date.now() + LOGIN_TIMEOUT_MS;
   while (gen === loginGen && Date.now() < deadline) {
     await new Promise((res) => setTimeout(res, AUTH_POLL_MS));
-    if (gen !== loginGen || win.isDestroyed()) return;
+    if (gen !== loginGen || win.isDestroyed()) return { kind: 'cancelled' };
 
     let outcome;
     try {
@@ -90,22 +102,25 @@ export async function startBrowserLogin(
     if (outcome.kind === 'pending') continue;
     if (outcome.kind === 'blocked') {
       log('login-blocked');
-      showError(win, MSG.blocked(outcome.reason));
-      return;
+      fail(MSG.blocked(outcome.reason));
+      return { kind: 'blocked', reason: outcome.reason };
     }
     if (outcome.kind === 'error') {
       log('login-error');
-      showError(win, MSG.failed);
-      return;
+      fail(MSG.failed);
+      return { kind: 'error' };
     }
 
     await setSessionTokens(outcome.accessToken, outcome.refreshToken);
     log('login-success', { redirect, hasRefresh: !!outcome.refreshToken }); // never log tokens
     const dest = new URL(redirect, APP_URL);
     load(dest.origin === APP_ORIGIN ? dest.toString() : new URL('/home', APP_URL).toString()).catch(() => {});
-    if (win.isMinimized()) win.restore();
-    win.show();
-    win.focus();
-    return;
+    if (!BACKGROUND) {
+      if (win.isMinimized()) win.restore();
+      win.show();
+      win.focus();
+    }
+    return { kind: 'ok' };
   }
+  return { kind: gen === loginGen ? 'error' : 'cancelled' }; // waited 5 minutes without an answer, or cancelled
 }

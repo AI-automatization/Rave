@@ -80,7 +80,24 @@ interface SettingsDto {
   locale: 'uz' | 'ru' | 'en';
   s: SettingsStrings;
 }
+interface RoomDialogStrings { [k: string]: string }
+type DialogResult = { ok: true } | { ok: false; message?: string; reason?: string };
+interface SearchItemDto { title: string; thumbnail: string | null; url: string; platform: string; duration: string | null }
+interface VideoMetaDto { title: string | null; thumbnail: string | null }
+interface RoomDialogApi {
+  open(kind: 'create' | 'join', strings: RoomDialogStrings, opts: {
+    create?(url: string, name: string, isPrivate: boolean, title: string | null, thumbnail: string | null): Promise<DialogResult>;
+    join?(code: string): Promise<DialogResult>;
+    search?(q: string): Promise<SearchItemDto[]>;
+    videoMeta?(url: string): Promise<VideoMetaDto>;
+    readClipboard?(): Promise<{ url: string | null }>;
+    openPlatform?(id: string): Promise<unknown>;
+    onClose?(): void;
+  }): void;
+  close(): void;
+}
 interface HomeDataDto {
+  roomDialog: RoomDialogStrings;
   settings?: SettingsDto;
   strings: HomeStrings; // every word on this screen, in the language of the web app (sent by the main process)
   status: 'loading' | 'ok' | 'error';
@@ -104,6 +121,13 @@ interface HomeBridge {
   sort(key: string): Promise<unknown>;
   newRoom(): Promise<unknown>;
   join(): Promise<unknown>;
+  createRoom(url: string, name: string, isPrivate: boolean, title: string | null, thumbnail: string | null): Promise<DialogResult>;
+  joinRoom(code: string): Promise<DialogResult>;
+  searchVideos(q: string): Promise<SearchItemDto[]>;
+  videoMeta(url: string): Promise<VideoMetaDto>;
+  readClipboard(): Promise<{ url: string | null }>;
+  openPlatform(id: string): Promise<unknown>;
+  onOpenDialog(cb: (kind: 'create' | 'join') => void): () => void;
   settings: {
     reload(): Promise<unknown>;
     saveProfile(username: string, bio: string): Promise<Outcome>;
@@ -119,6 +143,20 @@ interface HomeBridge {
 
 const bridge = (window as unknown as { wewatchHome: HomeBridge }).wewatchHome;
 const root = document.getElementById('root') as HTMLElement;
+const roomDialog = (window as unknown as { wwRoomDialog?: RoomDialogApi }).wwRoomDialog;
+let dialogStrings: RoomDialogStrings | null = null;
+function openRoomDialog(kind: 'create' | 'join'): void {
+  if (!roomDialog || !dialogStrings) return;
+  roomDialog.open(kind, dialogStrings, {
+    create: (url, name, isPrivate, title, thumbnail) => bridge.createRoom(url, name, isPrivate, title, thumbnail),
+    join: (code) => bridge.joinRoom(code),
+    search: (q) => bridge.searchVideos(q),
+    videoMeta: (url) => bridge.videoMeta(url),
+    readClipboard: () => bridge.readClipboard(),
+    openPlatform: (id) => bridge.openPlatform(id),
+  });
+}
+bridge.onOpenDialog((kind) => openRoomDialog(kind)); // the toolbar's "+ Yangi xona" (main process asks)
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -396,8 +434,8 @@ function homeHeader(d: HomeDataDto, S: HomeStrings): HTMLElement {
   text.appendChild(sub);
   const actions = el('div', 'home-head-actions');
   actions.append(
-    actionButton('btn ghost', joinIcon(), S.join, () => void bridge.join()),
-    actionButton('btn primary', plusIcon(), S.create, () => void bridge.newRoom()),
+    actionButton('btn ghost', joinIcon(), S.join, () => openRoomDialog('join')),
+    actionButton('btn primary', plusIcon(), S.create, () => openRoomDialog('create')),
   );
   h.append(text, actions);
   return h;
@@ -421,8 +459,8 @@ function startHero(S: HomeStrings): HTMLElement {
   body.appendChild(el('p', 'hero-sub', S.startSub));
   const actions = el('div', 'hero-actions');
   actions.append(
-    actionButton('btn primary big', plusIcon(), S.quickCreate, () => void bridge.newRoom()),
-    actionButton('btn ghost big', joinIcon(), S.quickJoin, () => void bridge.join()),
+    actionButton('btn primary big', plusIcon(), S.quickCreate, () => openRoomDialog('create')),
+    actionButton('btn ghost big', joinIcon(), S.quickJoin, () => openRoomDialog('join')),
   );
   body.appendChild(actions);
   const sources = el('div', 'hero-sources');
@@ -659,6 +697,7 @@ function renderSettings(d: HomeDataDto): void {
 }
 
 function render(d: HomeDataDto): void {
+  dialogStrings = d.roomDialog;
   if (d.screen === 'settings') {
     renderSettings(d);
     return;

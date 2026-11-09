@@ -22,6 +22,22 @@ contextBridge.exposeInMainWorld('wewatchHome', {
     logout: () => ipcRenderer.invoke('settings:logout'),
   },
   join: () => ipcRenderer.invoke('home:join'),
+  createRoom: (url: string, name: string, isPrivate: boolean, title: string | null, thumbnail: string | null) =>
+    ipcRenderer.invoke('home:createRoom', url, name, isPrivate, title, thumbnail),
+  joinRoom: (code: string) => ipcRenderer.invoke('home:joinRoom', code),
+  searchVideos: (q: string) => ipcRenderer.invoke('home:searchVideos', q),
+  videoMeta: (url: string) => ipcRenderer.invoke('home:videoMeta', url),
+  readClipboard: () => ipcRenderer.invoke('home:readClipboard'),
+  openPlatform: (id: string) => ipcRenderer.invoke('home:openPlatform', id),
+  onOpenDialog: (cb: (kind: string) => void): (() => void) => {
+    const fn = (_e: unknown, kind: unknown): void => {
+      if (kind === 'create' || kind === 'join') cb(kind);
+    };
+    ipcRenderer.on('home:openDialog', fn);
+    return () => {
+      ipcRenderer.removeListener('home:openDialog', fn);
+    };
+  },
   onData: (cb: (data: unknown) => void): (() => void) => {
     const fn = (_e: unknown, data: unknown): void => cb(data);
     ipcRenderer.on('home:data', fn);

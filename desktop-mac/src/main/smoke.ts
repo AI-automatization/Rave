@@ -2,6 +2,7 @@
 // They press buttons in the native views like a user would and record what is on screen after each step.
 import { session } from 'electron';
 import { APP_URL, devEnv } from './config';
+import { authStringsFor, type AuthStringKey } from './auth-strings';
 import { inspectShell, smokeEval, smokeShots } from './shell';
 
 type Smoke = (event: string, data?: Record<string, unknown>) => void;
@@ -11,7 +12,7 @@ const wait = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms)
  * Poll until `expr` is truthy inside a view (or give up after `ms`). A window that sits behind other apps has its page
  * timers throttled by Chromium, so a fixed sleep after typing into the search box is not reliable.
  */
-async function until(target: 'shell' | 'home' | 'content', expr: string, ms = 5000): Promise<boolean> {
+async function until(target: 'shell' | 'home' | 'help' | 'auth' | 'content', expr: string, ms = 5000): Promise<boolean> {
   const end = Date.now() + ms;
   while (Date.now() < end) {
     try {
@@ -28,9 +29,10 @@ const setLocaleCookie = (value: string): Promise<void> =>
   session.defaultSession.cookies.set({ url: APP_URL, name: 'wewatch-locale', value, path: '/', expirationDate: Math.floor(Date.now() / 1000) + 3600 });
 const bannerIs = (title: string): string => `document.querySelector('.banner h1')?.textContent === ${JSON.stringify(title)}`;
 const STAR_WARS = 'Yulduzlar Jangi (Interstellar)'; // the fake server's busiest room: "name (video title)"
-const click = (target: 'shell' | 'home', selector: string): Promise<unknown> =>
+const click = (target: 'shell' | 'home' | 'help' | 'auth', selector: string): Promise<unknown> =>
   smokeEval(target, `document.querySelector(${JSON.stringify(selector)}).click()`);
 const clickItem = (id: string): Promise<unknown> => click('shell', `[data-id="${id}"]`);
+const authLabel = (k: AuthStringKey): string => authStringsFor('uz')[k]; // the sign-in screen's Uzbek words
 
 /** WW_SMOKE_COOKIES="access_token=a;refresh_token=b": fake session cookies, so a smoke run starts signed in. */
 export async function presetSmokeCookies(): Promise<void> {
@@ -81,6 +83,9 @@ export function runSmokeAction(action: string, smoke: Smoke): void {
       await click('shell', '#forward');
       await wait(1200);
       await look('shell-forward');
+      await smokeEval('content', "location.href = '/login'"); // a login page: no sidebar, no sidebar toggle
+      await wait(1500);
+      await look('shell-login');
     })();
   } else if (action === 'home') {
     // M5.2: the native Home — data, search, opening a room, coming back.
@@ -215,8 +220,9 @@ export function runSmokeAction(action: string, smoke: Smoke): void {
       await until('home', "document.querySelectorAll('.rail-section').length === 2");
       await look('design-home');
       await click('shell', '#new-room');
-      await until('content', "!!document.querySelector('[role=dialog]')", 8000);
+      await until('home', "!!document.querySelector('.rd-overlay')", 8000);
       await look('design-new-room');
+      await smokeEval('home', 'window.wwRoomDialog.close()');
     })();
   } else if (action === 'home-retry') {
     // The first load fails (server down); the user presses "Qayta urinish" and it works.
@@ -294,15 +300,144 @@ export function runSmokeAction(action: string, smoke: Smoke): void {
       await clickItem('home');
       await until('home', "document.querySelectorAll('.watch').length >= 3");
       await look('nolive-home');
-      // The start block's two buttons open the web app's own dialogs (create / join), like the sidebar's "+ Yangi xona".
+      // The start block's two buttons open the NATIVE create / join dialogs (no web page is loaded).
       await smokeEval('home', "document.querySelectorAll('.hero .btn.big')[0].click()");
-      await until('content', "!!document.querySelector('[role=\"dialog\"]')");
+      await until('home', "!!document.querySelector('.rd-overlay')");
       await look('nolive-create');
-      await clickItem('home');
-      await until('home', "document.querySelectorAll('.hero .btn.big').length === 2");
+      await smokeEval('home', 'window.wwRoomDialog.close()');
+      await until('home', "!document.querySelector('.rd-overlay')");
       await smokeEval('home', "document.querySelectorAll('.hero .btn.big')[1].click()");
-      await until('content', "!!document.querySelector('[role=\"dialog\"]')");
+      await until('home', "!!document.querySelector('.rd-overlay')");
       await look('nolive-join');
+    })();
+  } else if (action === 'auth') {
+    // The native sign-in screens against a fake web app (BFF routes): hostile calls, language, errors, register + code,
+    // forgot password, footer, Google (blocked / cancelled), a web page that asks for a sign-in, sign-in, sign-out.
+    void (async () => {
+      const type = (name: string, v: string): Promise<unknown> =>
+        smokeEval('auth', `(() => { const i = document.querySelector('input[name="${name}"]'); i.value = ${JSON.stringify(v)}; i.dispatchEvent(new Event('input')); })()`);
+      const submit = (): Promise<unknown> => smokeEval('auth', "document.querySelector('.card form').requestSubmit()");
+      const screenIs = (v: string): string => `document.querySelector('.card')?.dataset.screen === ${JSON.stringify(v)}`;
+      const clickText = (text: string): Promise<unknown> =>
+        smokeEval('auth', `[...document.querySelectorAll('.card button')].find((b) => b.textContent.includes(${JSON.stringify(text)})).click()`);
+      const noticeShown = "!!document.querySelector('.card .notice') && !document.querySelector('.card .notice').hidden";
+      const cookieNames = async (): Promise<unknown> =>
+        (await session.defaultSession.cookies.get({ url: APP_URL })).map((c) => ({ name: c.name, httpOnly: c.httpOnly })); // never values
+
+      await wait(2000);
+      await until('auth', screenIs('login'));
+      await look('auth-initial');
+      await shot();
+      const replies: unknown[] = [];
+      for (const js of ["login(5, null)", "login('', 'x')", "login('a@b.c', 'x'.repeat(2000))", "register('a b', 'x@y.z', 'secret1')", "register('okname', 'x@y.z', '12345')",
+        "confirm('a@b.c', '12ab56')", "confirm('a@b.c', 123456)", "forgot(42)", "reset('secret1', 'secret1')"]) {
+        replies.push(await smokeEval('auth', `window.wewatchAuth.${js}`));
+      }
+      smoke('auth-hostile', { replies });
+      await click('shell', '#lang button[data-l="ru"]');
+      await until('auth', "document.querySelector('.card h1')?.textContent === 'С возвращением'");
+      await look('auth-ru');
+      await click('shell', '#lang button[data-l="uz"]');
+      await until('auth', "document.querySelector('.card h1')?.textContent === 'Xush kelibsiz'");
+      // wrong password -> the server's own message
+      await type('email', 'm7@example.com');
+      await type('password', 'wrong-pass');
+      await submit();
+      await until('auth', noticeShown);
+      await look('auth-wrong');
+      await type('email', 'banned@example.com');
+      await submit();
+      await until('auth', "!!document.querySelector('.card .notice strong')");
+      await look('auth-banned');
+      // Google: the auth service says "blocked" -> the ban notice; then wait and cancel
+      await smokeEval('auth', "document.querySelector('.btn.google').click()");
+      await until('auth', screenIs('google'));
+      await look('auth-google-wait');
+      await until('auth', `${screenIs('login')} && !!document.querySelector('.card .notice strong')`, 8000);
+      await look('auth-google-blocked');
+      await smokeEval('auth', "document.querySelector('.btn.google').click()");
+      await until('auth', screenIs('google'));
+      await clickText(authLabel('forgotBackToLogin'));
+      await until('auth', screenIs('login'));
+      await look('auth-google-cancelled');
+      // register: field rules, a taken name, then the e-mail code
+      await clickText(authLabel('registerLink'));
+      await until('auth', screenIs('register'));
+      await type('username', 'a b');
+      await type('regEmail', 'new@example.com');
+      await type('regPassword', '12345');
+      await look('auth-register-invalid');
+      await type('username', ' taken_name ');
+      await type('regPassword', 'secret12');
+      await submit();
+      await until('auth', noticeShown);
+      await look('auth-register-taken');
+      await type('username', 'yangi_user');
+      await submit();
+      await until('auth', screenIs('verify'));
+      await look('auth-verify');
+      await shot();
+      await type('code0', '000000'); // pasted into the first box: spread over all six and sent
+      await until('auth', noticeShown);
+      await look('auth-code-wrong');
+      // forgot password
+      await clickText(authLabel('goToLogin'));
+      await until('auth', screenIs('login'));
+      await clickText(authLabel('forgotPassword'));
+      await until('auth', screenIs('forgot'));
+      await type('forgotEmail', 'm7@example.com');
+      await submit();
+      await until('auth', screenIs('forgotSent'));
+      await look('auth-forgot-sent');
+      await clickText(authLabel('forgotBackToLogin'));
+      await until('auth', screenIs('login'));
+      // footer
+      await smokeEval('auth', "document.querySelectorAll('.foot button')[0].click()");
+      await until('help', "!!document.querySelector('.faq')");
+      await wait(300);
+      await look('auth-help');
+      await smokeEval('help', "document.querySelector('.back').click()");
+      await wait(500);
+      await look('auth-help-closed');
+      await smokeEval('auth', "document.querySelectorAll('.foot button')[1].click()");
+      await wait(500);
+      // the e-mail code signs the new user in
+      await clickText(authLabel('registerLink'));
+      await until('auth', screenIs('register'));
+      await type('username', 'yangi_user');
+      await type('regEmail', 'new@example.com');
+      await type('regPassword', 'secret12');
+      await submit();
+      await until('auth', screenIs('verify'));
+      await type('code0', '123456');
+      await until('home', "document.querySelectorAll('.card').length > 0", 8000);
+      await wait(500);
+      await look('auth-registered');
+      smoke('auth-cookies', { cookies: await cookieNames() });
+      // sign out -> the native sign-in screen, empty
+      smoke('auth-logout', { reply: await smokeEval('home', 'window.wewatchHome.settings.logout()') });
+      await until('auth', screenIs('login'));
+      await look('auth-after-logout');
+      // sign in with the password
+      await type('email', 'm7@example.com');
+      await type('password', 'right-pass');
+      await submit();
+      await until('home', "document.querySelectorAll('.card').length > 0", 8000);
+      await wait(500);
+      await look('auth-signed-in');
+      // a web page that asks for a sign-in (the session died inside a room): native screen, then back to that room
+      await clickItem('friends');
+      await until('content', "location.pathname === '/friends'");
+      await smokeEval('content', `location.href = '/login?redirect=' + encodeURIComponent('/room/6aec421eb9db0a8762bf6a03')`);
+      await until('auth', screenIs('login'));
+      await wait(300);
+      await look('auth-intercepted');
+      await type('email', 'm7@example.com');
+      await type('password', 'right-pass');
+      await submit();
+      await until('content', "location.pathname.startsWith('/room/')", 8000);
+      await wait(500);
+      await look('auth-redirected');
     })();
   } else if (action === 'home-look') {
     // Just look at where the app ended up (signed out -> web login, refresh path, ...).

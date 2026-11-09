@@ -2,7 +2,7 @@
 import { app, BrowserWindow, session } from 'electron';
 import fs from 'node:fs';
 import { installCapture } from './capture';
-import { APP_URL, devEnv, PROTOCOL } from './config';
+import { APP_URL, BACKGROUND, devEnv, PROTOCOL } from './config';
 import { flushPendingDeepLink, handleDeepLink, queueDeepLink } from './deeplink';
 import { addDnsSwitches, configureDns } from './dns';
 import { registerIpc } from './ipc';
@@ -13,6 +13,11 @@ import { chromeUserAgent } from './urls';
 import { clearVbCache, closeVb, protectVbSession } from './vb';
 import { presetSmokeCookies, runSmokeAction } from './smoke';
 import { createMainWindow, focusMainWindow, getMainWindow, observeContent, sendToMain } from './window';
+
+// Automated runs (smokes, agents) must never make a sound on the user's Mac: every page is muted (per page, so the
+// VB capture under test still gets the audio; the --mute-audio switch would silence the capture too). The real
+// microphone/camera are refused in permissions.ts.
+if (BACKGROUND) app.on('web-contents-created', (_e, wc) => wc.setAudioMuted(true));
 
 // Smoke/debug log for automated checks. Development only: devEnv() is '' in the packaged app.
 const SMOKE_OUT = devEnv('WW_SMOKE_OUT');
@@ -45,7 +50,10 @@ observeContent((content) => {
       // Smoke action: act like the web app's "Sign in with Google" button (renderer-initiated navigation).
       if (devEnv('WW_SMOKE_ACTION') === 'google-login' && !smokeActionDone) {
         smokeActionDone = true;
-        void content.executeJavaScript("location.href = '/api/auth/google/start?redirect=%2Froom%2Fxyz789'");
+        // after the first-run language reload (localeSyncScript) has happened, or it would cancel this navigation
+        setTimeout(() => {
+          if (!content.isDestroyed()) void content.executeJavaScript("location.href = '/api/auth/google/start?redirect=%2Froom%2Fxyz789'");
+        }, 1500);
       }
     }
   });
@@ -95,6 +103,7 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   void app.whenReady().then(() => {
+    if (BACKGROUND) app.dock?.hide(); // automated run: no Dock icon, never steals focus
     // Sites in the app must not see "Electron" (some refuse to play for unknown browsers).
     app.userAgentFallback = chromeUserAgent(app.userAgentFallback);
     session.defaultSession.setUserAgent(chromeUserAgent(session.defaultSession.getUserAgent()));

@@ -106,6 +106,25 @@ export function isHomePath(url: string, appUrl: string): boolean {
   }
 }
 
+const LOCALE_PREFIX = /^\/(uz|en|ru)(?=\/|$)/;
+const AUTH_ROUTES = ['/login', '/register', '/auth', '/guest'];
+
+/**
+ * Login, registration, password reset and guest join: pages shown before sign-in, where the sidebar must not exist.
+ * The Mac app never shows the first three (auth-model.ts nativeAuthTarget switches to the native sign-in screen); the
+ * guest join page (a shared room link opened while signed out) is still the web page.
+ */
+export function isAuthPath(url: string, appUrl: string): boolean {
+  try {
+    const u = new URL(url);
+    if (u.origin !== new URL(appUrl).origin) return false;
+    const p = u.pathname.replace(LOCALE_PREFIX, '') || '/';
+    return AUTH_ROUTES.some((r) => p === r || p.startsWith(`${r}/`));
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Subscription ("obuna" / Pro / tarif) is not part of the Mac app. Abdulaziz, 07.11: "olib tashlash kerak, Bekzod aka ham
  * kerak emas dedi". The web app reaches it through /api/payment/* (plan + checkout) and the public /pricing page.
@@ -190,6 +209,25 @@ export function webEmbedCss(): string {
     // the picture is hidden by the script below and a neutral silhouette (drawn with gradients: the embed CSS has no urls) shows instead.
     '.ww-avatar-broken { background-image: radial-gradient(circle at 50% 36%, rgba(255,255,255,.55) 0 15%, transparent 16%), radial-gradient(ellipse 34% 26% at 50% 88%, rgba(255,255,255,.55) 0 96%, transparent 100%) !important; background-repeat: no-repeat !important; }',
   ].join('\n');
+}
+
+/**
+ * Runs inside the web page. The web app keeps its language in localStorage (the zustand store 'wewatch-locale') and only
+ * READS the cookie once at start, then the store wins — so a language written to the cookie alone (by the sign-in screen's
+ * switch or by the native Settings) is ignored. This copies the cookie into the store; true = it changed, reload the page.
+ */
+export function localeSyncScript(): string {
+  return `(() => {
+  const m = document.cookie.match(/(?:^|;\\s*)wewatch-locale=(uz|ru|en)/);
+  if (!m) return false;
+  let cur = null;
+  try { cur = JSON.parse(localStorage.getItem('wewatch-locale') || 'null')?.state?.locale ?? null; } catch (e) { cur = null; }
+  if (cur === m[1]) return false;
+  // at most one rewrite per language in this tab: if the store ever refuses to hold the value, never reload in a loop
+  try { if (sessionStorage.getItem('__wwLocaleSync') === m[1]) return false; sessionStorage.setItem('__wwLocaleSync', m[1]); } catch (e) { return false; }
+  localStorage.setItem('wewatch-locale', JSON.stringify({ state: { locale: m[1] }, version: 0 }));
+  return true;
+})();`;
 }
 
 /**

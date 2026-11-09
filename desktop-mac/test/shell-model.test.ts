@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  activeNavId, contentBounds, findNavItem, isHomePath, isNativeItem, nativeScreen, isSubscriptionUrl, paymentRequestFilter, MIN_WINDOW_WIDTH, NAV_SECTIONS, navUrl, shellWindowOptions, SIDEBAR_WIDTH,
+  activeNavId, contentBounds, isAuthPath, findNavItem, isHomePath, isNativeItem, nativeScreen, isSubscriptionUrl, paymentRequestFilter, MIN_WINDOW_WIDTH, NAV_SECTIONS, navUrl, shellWindowOptions, SIDEBAR_WIDTH,
   TOOLBAR_HEIGHT, webEmbedCss, brokenAvatarScript,
 } from '../src/main/shell-model';
 
@@ -188,5 +188,18 @@ describe('subscription is removed from the Mac app (Abdulaziz, with Bekzod aka: 
   it('network filter: both forms of the payment API path on the app origin only', () => {
     expect(paymentRequestFilter('https://app.wewatch.uz/home')).toEqual(['https://app.wewatch.uz/api/payment', 'https://app.wewatch.uz/api/payment/*']);
     expect(paymentRequestFilter('http://localhost:3000/')).toEqual(['http://localhost:3000/api/payment', 'http://localhost:3000/api/payment/*']);
+  });
+});
+
+describe('isAuthPath — pages shown before sign-in have no sidebar', () => {
+  it.each(['/login', '/login?redirect=%2Fhome', '/register', '/register/', '/uz/login', '/auth/forgot-password', '/auth/reset-password?t=1', '/guest?redirect=%2Froom%2F1'])('%s', (p) => {
+    expect(isAuthPath(`${APP}${p}`, APP)).toBe(true);
+  });
+  it.each(['/home', '/room/abc', '/profile', '/loginx', '/support', '/'])('%s is not', (p) => {
+    expect(isAuthPath(`${APP}${p}`, APP)).toBe(false);
+  });
+  it('another host or garbage is not', () => {
+    expect(isAuthPath('https://evil.example/login', APP)).toBe(false);
+    expect(isAuthPath('not a url', APP)).toBe(false);
   });
 });

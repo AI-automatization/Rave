@@ -1,57 +1,84 @@
-// The native Mac shell around the web app (M5.1 + M5.2). The window holds up to three views:
+// The native Mac shell around the web app (M5.1 + M5.2). The window holds up to five views:
 //   shell   — our own sidebar + toolbar (src/renderer/shell.*), frosted glass from the window's vibrancy
 //   home    — the native Home screen (src/renderer/home.*): banner room + room cards, drawn by us from /api/rooms
-//   content — the web app, created only when a web page is needed (room, friends, settings, login) and DESTROYED when
-//             the user returns to Home — so only one thing ever refreshes the sign-in tokens (they rotate: two
-//             refreshers would invalidate each other).
+//   auth    — the native sign-in screens (src/renderer/auth.*): login, register + e-mail code, forgot / reset password.
+//             Shown whenever nobody is signed in; the web app's own /login, /register and /auth/* pages are never shown
+//             (a web page that tries to go there is stopped and this screen takes over).
+//   help    — the native Help screen (src/renderer/help.*): FAQ + contacts, opened from the sign-in screen's footer, shown
+//             ABOVE the sign-in screen only while it is open (the sign-in screen keeps what was typed underneath)
+//   content — the web app, created only when a web page is needed (room, friends, guest join) and DESTROYED when
+//             the user returns to a native screen — so only one thing ever refreshes the sign-in tokens (they rotate:
+//             two refreshers would invalidate each other).
 // Renderers ask for things by id only; this file validates every call and builds every URL itself.
 import {
-  dialog, ipcMain, nativeTheme, session, WebContentsView, type BrowserWindow, type IpcMainInvokeEvent, type WebContents, type WebPreferences,
+  dialog, ipcMain, nativeTheme, session, shell, WebContentsView, type BrowserWindow, type IpcMainInvokeEvent, type WebContents, type WebPreferences,
 } from 'electron';
 import { execFile } from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { APP_URL, devEnv } from './config';
+import { APP_URL, AUTH_NO_BROWSER, devEnv } from './config';
+import { cancelBrowserLogin, startBrowserLogin, type Log } from './auth';
+import { confirmEmail, forgotPassword, login, register, resetPassword } from './auth-api';
+import { nativeAuthTarget, type AuthOutcome, type AuthScreen, type AuthTarget } from './auth-model';
+import { authStringsFor } from './auth-strings';
 import { changePassword, deleteAccount, loadProfile, logout, saveProfile, signOutAll, uploadAvatar, type Outcome } from './settings';
 import { avatarImageUrl, AVATAR_MAX_BYTES, type Profile } from './settings-model';
 import { settingsStringsFor } from './settings-strings';
 import { loadFriends, loadMeName, loadOwnerName, loadRails, loadRooms, startWatching } from './home-data';
+import { createRoom, joinRoom, openPlatformSite, readClipboardLink, searchVideos, videoMeta } from './room-create';
+import { outcomeText, type RoomOutcome } from './room-create-model';
+import { roomDialogStringsFor } from './room-create-strings';
 import { DEFAULT_LOCALE, LOCALE_COOKIE, LOCALES, parseLocale, stringsFor, type Locale } from './i18n';
 import { buildHomeData, failed, LOADING, NO_RAILS, roomUrl, type HomeData, type HomeView, type Rails, type RoomCard, type SortKey } from './rooms-model';
-import { activeNavId, contentBounds, isHomePath, nativeScreen, NAV_SECTIONS, navUrl, SIDEBAR_WIDTH, webEmbedCss, brokenAvatarScript, type NavItemId, type Screen } from './shell-model';
+import { helpContactUrl, helpStringsFor } from './help-strings';
+import { activeNavId, contentBounds, isAuthPath, isHomePath, nativeScreen, NAV_SECTIONS, navUrl, SIDEBAR_WIDTH, webEmbedCss, brokenAvatarScript, localeSyncScript, type NavItemId, type Screen } from './shell-model';
 
 const RENDERER_DIR = path.join(__dirname, '..', 'renderer');
 const PRELOAD_DIR = path.join(__dirname, '..', 'preload');
 const SHELL_HTML = path.join(RENDERER_DIR, 'shell.html');
 const HOME_HTML = path.join(RENDERER_DIR, 'home.html');
+const HELP_HTML = path.join(RENDERER_DIR, 'help.html');
+const AUTH_HTML = path.join(RENDERER_DIR, 'auth.html');
 const SHELL_URL = pathToFileURL(SHELL_HTML).href;
 const HOME_URL = pathToFileURL(HOME_HTML).href;
+const HELP_URL = pathToFileURL(HELP_HTML).href;
+const AUTH_PAGE_URL = pathToFileURL(AUTH_HTML).href;
 
 const REFRESH_CHECK_MS = 30_000;
 const STALE_MS = 45_000;
 const MAX_QUERY = 100;
 const MAX_OWNER_LOOKUPS = 24;
 
-type Mode = 'home' | 'web';
+type Mode = 'home' | 'web' | 'auth';
 
 let win: BrowserWindow | null = null;
 let shellView: WebContentsView | null = null;
 let homeView: WebContentsView | null = null;
+let helpView: WebContentsView | null = null;
+let helpOpen = false; // the native Help screen covers the sign-in screen (signed-out only)
+let authView: WebContentsView | null = null;
+let authEntry: AuthScreen = 'login'; // which sign-in screen to open with
+let pendingRedirect: string | null = null; // where to go after signing in (a page that asked for a sign-in), or null = Home
+let resetToken: string | null = null; // the emailed reset token of an intercepted reset link; never sent to the renderer
+let googleWaiting = false; // a Google sign-in is waiting for the system browser
+let log: Log = () => {};
 let contentView: WebContentsView | null = null;
 let contentPrefs: WebPreferences = {};
 let onContent: (wc: WebContents) => void = () => {};
 
 let mode: Mode = 'home';
 let cameFromHome = false; // the web page was opened from Home: "back" from its first page returns to Home
-let suppressAutoHome = false; // the web login/home page we forced must not bounce straight back to the native Home
+let suppressAutoHome = false; // the web /home page we opened on purpose must not bounce straight back to the native Home
 let homeState: HomeData = LOADING;
 let homeCards: readonly RoomCard[] | null = null;
 let homeQuery = '';
 let screen: Screen = 'rooms'; // which native screen is shown (the design's main window is "Xonalar")
 let homeSort: SortKey = 'viewers';
-let sidebarOpen = true;
+let sidebarOpen = true; // the user's own choice (toggle button)
+let sessionChecked = false; // true once the server accepted the sign-in; until then (and on the sign-in screens) there is no sidebar
+const SITE_URL = 'https://wewatch.uz';
 const owners = new Map<string, string>(); // owner id -> name (looked up once)
 const ownerTried = new Set<string>();
 let friendsCount: number | null = null;
@@ -60,6 +87,7 @@ let meName: string | null = null;
 let deviceName = os.hostname();
 let rails: Rails = NO_RAILS; // weekly top + history; the renderer points at their items by position only
 let watching = false; // one "start watching" at a time
+let roomDialogBusy = false; // one create/join request at a time
 let homeGen = 0;
 let lastFetch = 0;
 let locale: Locale = DEFAULT_LOCALE; // the web app's language (cookie), so the app shows one language only
@@ -82,6 +110,8 @@ interface ShellState {
   /** The search box exists only on the room screens. */
   searchVisible: boolean;
   sidebarOpen: boolean;
+  /** False on the sign-in screens: the window then has no sidebar and no sidebar toggle. */
+  signedIn: boolean;
   query: string;
   ui: Record<string, unknown>;
   /** Sidebar extras of the design: room count badge, friends count, live dot, profile block. */
@@ -98,10 +128,20 @@ function side(): ShellState['side'] {
   };
 }
 
+/** True while the window shows signed-in content: the sign-in is confirmed and no sign-in / guest-join screen is shown. */
+function signedInView(): boolean {
+  if (!sessionChecked || mode === 'auth') return false;
+  const wc = mode === 'web' ? getContentWebContents() : null;
+  return !(wc && isAuthPath(wc.getURL(), APP_URL));
+}
+/** The sidebar belongs to the signed-in app only; the user's toggle then decides. */
+const sidebarVisible = (): boolean => sidebarOpen && signedInView();
+
 function state(): ShellState {
   const wc = getContentWebContents();
   const list = mode === 'home' && screen !== 'history' && screen !== 'settings';
-  const base = { query: homeQuery, ui: shellUi(locale), side: side(), sidebarOpen, searchVisible: list };
+  const base = { query: homeQuery, ui: shellUi(locale), side: side(), sidebarOpen: sidebarVisible(), signedIn: signedInView(), searchVisible: list };
+  if (mode === 'auth') return { ...base, activeId: null, canGoBack: helpOpen, canGoForward: false }; // Back closes Help
   if (mode === 'home' || !wc) {
     return { ...base, activeId: mode === 'home' ? (screen satisfies NavItemId) : null, canGoBack: false, canGoForward: false };
   }
@@ -113,12 +153,54 @@ function state(): ShellState {
   };
 }
 
-const pushState = (): void => alive(shellView)?.send('shell:state', state());
+const pushState = (): void => {
+  if (helpOpen && signedInView()) hideHelp(); // the sign-in went through behind the Help screen
+  layout(); // the sidebar may have appeared or gone (sign-in / sign-out / guest join page)
+  alive(shellView)?.send('shell:state', state());
+};
 const homePayload = (): Record<string, unknown> =>
   screen === 'settings' && mode === 'home'
-    ? { ...homeState, status: 'ok', screen: 'settings', strings: stringsFor(locale).home, settings: settingsPayload() }
-    : { ...homeState, strings: stringsFor(locale).home };
+    ? { ...homeState, status: 'ok', screen: 'settings', strings: stringsFor(locale).home, roomDialog: roomDialogStringsFor(locale), settings: settingsPayload() }
+    : { ...homeState, strings: stringsFor(locale).home, roomDialog: roomDialogStringsFor(locale) };
 const pushHome = (): void => alive(homeView)?.send('home:data', homePayload());
+const pushHelp = (fresh = false): void => alive(helpView)?.send('help:data', { strings: helpStringsFor(locale), fresh });
+/** `fresh` = the sign-in screen is (re)entered: it opens `authEntry` with empty fields; otherwise only the words change. */
+const pushAuth = (fresh = false): void =>
+  alive(authView)?.send('auth:data', { strings: authStringsFor(locale), fresh, screen: authEntry, hasToken: resetToken !== null, googleWaiting });
+
+/** Keyboard focus to one of our views — only while the window already has it (a background run never takes focus). */
+function focusView(wc: WebContents | null): void {
+  if (wc && win && !win.isDestroyed() && win.isFocused()) wc.focus();
+}
+
+// ---------- Help (native screen above the sign-in screen) ----------
+
+/** Show the Help screen. Only on the sign-in screens: it is the signed-out person's help. */
+function openHelp(): void {
+  const hv = alive(helpView);
+  if (!win || win.isDestroyed() || !helpView || !hv || helpOpen || mode !== 'auth') return;
+  helpOpen = true;
+  win.contentView.addChildView(helpView); // re-adding moves it to the top, above the sign-in screen
+  helpView.setVisible(true);
+  layout();
+  pushHelp(true);
+  focusView(hv);
+  pushState();
+}
+
+/** Hide it without any other side effect (callers push the state). */
+function hideHelp(): void {
+  helpOpen = false;
+  if (alive(helpView)) helpView?.setVisible(false);
+}
+
+/** Back to the sign-in screen exactly as it was (its view was never touched). */
+function closeHelp(): void {
+  if (!helpOpen) return;
+  hideHelp();
+  pushState();
+  focusView(alive(authView));
+}
 
 // ---------- this computer's name ("Onlayn · MacBook Air" under the user's name) ----------
 
@@ -141,6 +223,19 @@ async function readLocale(): Promise<Locale> {
   }
 }
 
+const setLocaleCookie = (l: Locale): Promise<void> =>
+  session.defaultSession.cookies.set({ url: APP_URL, name: LOCALE_COOKIE, value: l, path: '/', expirationDate: Math.floor(Date.now() / 1000) + 365 * 24 * 3600 });
+
+/** First run: no language chosen yet. The app starts in Uzbek (the web app alone would fall back to Russian). */
+async function seedLocale(): Promise<void> {
+  try {
+    const cs = await session.defaultSession.cookies.get({ url: APP_URL, name: LOCALE_COOKIE });
+    if (cs.length === 0) await setLocaleCookie('uz');
+  } catch {
+    /* no cookie jar yet: the default stays */
+  }
+}
+
 /** Follow the web app's language setting: re-read the cookie and, if it changed, redraw both native screens. */
 async function syncLocale(): Promise<void> {
   const next = await readLocale();
@@ -148,6 +243,8 @@ async function syncLocale(): Promise<void> {
   locale = next;
   pushState();
   pushHome();
+  pushHelp();
+  pushAuth();
 }
 
 /** Only our own page, in our own view, may call an IPC channel (a page in the content view cannot). */
@@ -162,15 +259,19 @@ function fromView(e: IpcMainInvokeEvent, view: WebContentsView | null, url: stri
 }
 const fromShell = (e: IpcMainInvokeEvent): boolean => fromView(e, shellView, SHELL_URL);
 const fromHome = (e: IpcMainInvokeEvent): boolean => fromView(e, homeView, HOME_URL);
+const fromHelp = (e: IpcMainInvokeEvent): boolean => fromView(e, helpView, HELP_URL);
+const fromAuth = (e: IpcMainInvokeEvent): boolean => fromView(e, authView, AUTH_PAGE_URL);
 
 function layout(): void {
   if (!win || win.isDestroyed()) return;
   const [w, h] = win.getContentSize();
   if (w === undefined || h === undefined) return;
-  const b = contentBounds(w, h, sidebarOpen ? SIDEBAR_WIDTH : 0);
+  const b = contentBounds(w, h, sidebarVisible() ? SIDEBAR_WIDTH : 0);
   if (shellView && alive(shellView)) shellView.setBounds({ x: 0, y: 0, width: w, height: h });
   if (homeView && alive(homeView)) homeView.setBounds(b);
   if (contentView && alive(contentView)) contentView.setBounds(b);
+  if (authView && alive(authView)) authView.setBounds(b);
+  if (helpView && alive(helpView)) helpView.setBounds(b); // same area as the sign-in screen it covers
 }
 
 // ---------- content (web) view: created on demand, destroyed when leaving it ----------
@@ -182,6 +283,7 @@ function ensureContent(): WebContents {
   const cv = new WebContentsView({ webPreferences: contentPrefs });
   cv.setBackgroundColor('#05050A'); // web app background, no flash while it loads
   win.contentView.addChildView(cv); // added last = on top of the shell and Home
+  if (helpOpen && helpView) win.contentView.addChildView(helpView); // ... but Help stays above it
   contentView = cv;
   layout();
   const wc = cv.webContents;
@@ -189,12 +291,56 @@ function ensureContent(): WebContents {
   wc.on('dom-ready', () => {
     void wc.insertCSS(webEmbedCss()).catch(() => {});
     void wc.executeJavaScript(brokenAvatarScript()).catch(() => {});
+    // The web app's language lives in its own storage; make it follow the cookie (sign-in screen switch, native Settings, first run).
+    void wc.executeJavaScript(localeSyncScript()).then((changed) => { if (changed === true && !wc.isDestroyed()) wc.reload(); }).catch(() => {});
   });
+  // The web app's own sign-in pages are never shown: wherever the page tries to go to /login, /register or /auth/...
+  // (a link, a client-side route change, a server redirect after the session died), the native sign-in screen takes
+  // over, keeping the page's ?redirect= so the user lands where they were going. The view is replaced on the next tick,
+  // never from inside its own navigation event.
+  const toNative = (url: string): AuthTarget | null => nativeAuthTarget(url, APP_URL);
+  const goNative = (t: AuthTarget): void => {
+    setImmediate(() => {
+      if (getContentWebContents() === wc) showAuth(t);
+    });
+  };
+  wc.on('will-navigate', (e, url) => {
+    const t = toNative(url);
+    if (!t) return;
+    e.preventDefault();
+    goNative(t);
+  });
+  wc.on('will-redirect', (e, url, _inPlace, isMainFrame) => {
+    const t = isMainFrame ? toNative(url) : null;
+    if (!t) return;
+    e.preventDefault();
+    goNative(t);
+  });
+  // The guest join page (/guest, a shared room link opened while signed out) is the only pre-sign-in web page left;
+  // leaving it for another app page means the guest session exists, so the sidebar may show.
+  let onGuestPage = false;
+  const leftGuestPage = (url: string): void => {
+    const guest = isAuthPath(url, APP_URL);
+    if (onGuestPage && !guest) sessionChecked = true;
+    onGuestPage = guest;
+  };
   wc.on('did-navigate', (_e, url) => {
+    const t = toNative(url);
+    if (t) return goNative(t);
+    leftGuestPage(url);
     onContentNavigated(url);
     pushState();
   });
-  wc.on('did-navigate-in-page', () => pushState());
+  wc.on('did-navigate-in-page', (_e, url, isMainFrame) => {
+    if (isMainFrame) {
+      const t = toNative(url);
+      if (t) return goNative(t);
+      leftGuestPage(url);
+      // Next.js often changes the page in place (no new document): this is where such a move is noticed.
+      onContentNavigated(url);
+    }
+    pushState();
+  });
   wc.on('did-finish-load', () => pushState());
   onContent(wc);
   return wc;
@@ -208,7 +354,7 @@ function destroyContent(): void {
   if (!cv.webContents.isDestroyed()) cv.webContents.close();
 }
 
-/** The web app navigated by itself (e.g. after an email login it lands on /home): show the native Home instead. */
+/** The web app navigated by itself to its /home page: show the native Home instead. */
 function onContentNavigated(url: string): void {
   if (mode !== 'web') return;
   if (!isHomePath(url, APP_URL)) {
@@ -220,12 +366,16 @@ function onContentNavigated(url: string): void {
 
 function setMode(next: Mode): void {
   mode = next;
+  hideHelp(); // any change of what the window shows (sign-in, sign-out, a room link) closes the Help screen
   if (alive(homeView)) homeView?.setVisible(next === 'home');
-  if (next === 'home') destroyContent();
+  if (alive(authView)) authView?.setVisible(next === 'auth');
+  if (next !== 'web') destroyContent();
   pushState();
 }
 
 function openWeb(url: string): void {
+  const t = nativeAuthTarget(url, APP_URL);
+  if (t) return showAuth(t); // never load the web sign-in pages
   if (mode === 'home') cameFromHome = true;
   setMode('web');
   void ensureContent().loadURL(url).catch(() => {});
@@ -253,15 +403,8 @@ async function refreshHome(opts: { loading?: boolean; background?: boolean } = {
   const r = await loadRooms();
   if (gen !== homeGen) return; // a newer refresh superseded this one
   lastFetch = Date.now();
-  if (r.kind === 'unauthorized') {
-    // Not signed in (or the session died): the web login takes over. Mark it so a web /home does not bounce us back.
-    homeCards = null;
-    suppressAutoHome = true;
-    cameFromHome = false;
-    setMode('web');
-    void ensureContent().loadURL(APP_URL).catch(() => {});
-    return;
-  }
+  sessionChecked = r.kind !== 'unauthorized';
+  if (r.kind === 'unauthorized') return showAuth(); // not signed in (or the session died): the sign-in screen takes over
   if (r.kind === 'unavailable') {
     if (opts.background && homeCards) return; // a failed background refresh keeps what is on screen
     homeCards = null;
@@ -347,7 +490,7 @@ async function loadSettings(): Promise<void> {
   pushHome();
   const r = await loadProfile();
   if (gen !== settingsGen) return;
-  if (r.kind === 'unauthorized') return backToLogin();
+  if (r.kind === 'unauthorized') return showAuth();
   if (r.kind === 'ok') {
     settingsView = { status: 'ok', profile: r.profile };
     meName = r.profile.username; // the sidebar's profile block follows
@@ -358,24 +501,47 @@ async function loadSettings(): Promise<void> {
   pushState();
 }
 
-/** Signed out (own request, or the server ended the session): forget the user and show the web login. */
-function backToLogin(): void {
+/** Forget everything about the signed-in user (signed out, or the server ended the session). */
+function forgetUser(): void {
   settingsGen++;
   settingsView = { status: 'loading', profile: null };
   homeCards = null;
+  sessionChecked = false;
   meName = null;
   friendsCount = null;
   friendsOnline = 0;
   owners.clear();
   ownerTried.clear();
   rails = NO_RAILS;
-  suppressAutoHome = true;
-  cameFromHome = false;
-  setMode('web');
-  void ensureContent().loadURL(APP_URL).catch(() => {});
 }
 
-/** After a settings call: a dead session goes to the login, anything else is handed back to the screen. */
+/**
+ * The native sign-in screen: the app's first screen without a session, and where every sign-out ends (own request, the
+ * server ended the session, password changed, account deleted, a web page that asked for a sign-in).
+ */
+function showAuth(t: Partial<AuthTarget> = {}): void {
+  forgetUser();
+  authEntry = t.screen ?? 'login';
+  pendingRedirect = t.redirect ?? null;
+  resetToken = authEntry === 'reset' ? t.token ?? null : null;
+  cameFromHome = false;
+  suppressAutoHome = false;
+  setMode('auth');
+  pushAuth(true);
+  focusView(alive(authView));
+}
+const backToLogin = (): void => showAuth();
+
+/** Signed in (password, e-mail code or Google): the page that asked for the sign-in, else the native Home. */
+function afterSignIn(url?: string): Promise<void> {
+  sessionChecked = true;
+  const dest = url ?? new URL(pendingRedirect ?? '/home', APP_URL).toString();
+  pendingRedirect = null;
+  resetToken = null;
+  return openInApp(dest);
+}
+
+/** After a settings call: a dead session goes to the sign-in screen, anything else is handed back to the screen. */
 function settled(r: Outcome): Outcome {
   if (!r.ok && r.kind === 'unauthorized') backToLogin();
   return r;
@@ -385,6 +551,7 @@ function settled(r: Outcome): Outcome {
 export function startApp(startWeb: boolean): void {
   if (startWeb) {
     suppressAutoHome = true;
+    sessionChecked = true; // dev/smoke start: treated as already signed in (the sidebar shows)
     openWeb(APP_URL);
     cameFromHome = false; // started on the web page: there is no Home to go back to
   } else {
@@ -397,7 +564,31 @@ export function startApp(startWeb: boolean): void {
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
 /**
- * Creating a room is the web app's own dialog (CreateRoomDialog), which lives in its layout and is opened by its sidebar's
+ * "+ Yangi xona" / "Qo'shilish": the NATIVE dialog of the Home view (room-dialog.ts). From a web page (a room) the window
+ * first goes back to the native list, then the dialog opens there. No web page is loaded for it.
+ */
+async function openRoomDialog(kind: 'create' | 'join'): Promise<void> {
+  if (mode !== 'home') await showScreen('rooms');
+  alive(homeView)?.send('home:openDialog', kind);
+  alive(homeView)?.focus();
+}
+
+/** A create/join answer -> what the dialog gets. A room is opened here (the URL comes from room-create-model, app origin only). */
+function settleRoom(o: RoomOutcome, action: 'create' | 'join'): { ok: true } | { ok: false; reason?: 'unauthorized'; message?: string } {
+  if (o.kind === 'room') {
+    suppressAutoHome = false;
+    openWeb(o.url);
+    return { ok: true };
+  }
+  if (o.kind === 'unauthorized') {
+    backToLogin(); // the session died: the sign-in screen takes over
+    return { ok: false, reason: 'unauthorized' };
+  }
+  return { ok: false, message: outcomeText(o, action, roomDialogStringsFor(locale)) ?? undefined };
+}
+
+/**
+ * (Old, unused by the buttons now) creating a room through the web app's own dialog (CreateRoomDialog), which lives in its layout and is opened by its sidebar's
  * "create" button — a button our content view hides together with that sidebar. So: open the web app's page, press that
  * button for the user, and let the web dialog do the rest (source, privacy, ...). Gives up quietly after ~10 s (e.g. signed out).
  */
@@ -427,7 +618,7 @@ const openNewRoom = (): Promise<void> => openWebDialog(NEW_ROOM_BUTTON);
 // ---------- IPC ----------
 
 const FORBIDDEN = { ok: false, reason: 'forbidden' } as const;
-const CHANNELS = ['shell:model', 'shell:navigate', 'shell:back', 'shell:forward', 'shell:search', 'shell:toggleSidebar', 'shell:newRoom', 'home:newRoom', 'home:join', 'settings:reload', 'settings:saveProfile', 'settings:pickAvatar', 'settings:language', 'settings:password', 'settings:signOutAll', 'settings:delete', 'settings:logout', 'home:ready', 'home:open', 'home:retry', 'home:watch', 'home:sort'];
+const CHANNELS = ['auth:ready', 'auth:login', 'auth:register', 'auth:confirm', 'auth:forgot', 'auth:reset', 'auth:google', 'auth:cancelGoogle', 'auth:help', 'auth:about', 'help:ready', 'help:back', 'help:contact', 'shell:model', 'shell:navigate', 'shell:back', 'shell:forward', 'shell:search', 'shell:toggleSidebar', 'shell:newRoom', 'shell:locale', 'home:newRoom', 'home:join', 'home:createRoom', 'home:joinRoom', 'home:searchVideos', 'home:videoMeta', 'home:readClipboard', 'home:openPlatform', 'settings:reload', 'settings:saveProfile', 'settings:pickAvatar', 'settings:language', 'settings:password', 'settings:signOutAll', 'settings:delete', 'settings:logout', 'home:ready', 'home:open', 'home:retry', 'home:watch', 'home:sort'];
 
 function registerIpc(): void {
   // The window can be recreated (dock click after closing): replace, never double-register.
@@ -453,6 +644,10 @@ function registerIpc(): void {
   });
   ipcMain.handle('shell:back', (e) => {
     if (!fromShell(e)) return FORBIDDEN;
+    if (helpOpen) {
+      closeHelp();
+      return { ok: true } as const;
+    }
     if (mode !== 'web') return { ok: true } as const;
     const wc = getContentWebContents();
     if (wc?.navigationHistory.canGoBack()) wc.navigationHistory.goBack();
@@ -461,7 +656,7 @@ function registerIpc(): void {
   });
   ipcMain.handle('shell:forward', (e) => {
     if (!fromShell(e)) return FORBIDDEN;
-    if (mode === 'web') getContentWebContents()?.navigationHistory.goForward();
+    if (mode === 'web' && !helpOpen) getContentWebContents()?.navigationHistory.goForward();
     return { ok: true } as const;
   });
   ipcMain.handle('shell:search', (e, q: unknown) => {
@@ -479,15 +674,113 @@ function registerIpc(): void {
     pushState();
     return { ok: true } as const;
   });
+  // Language switch of the sign-in screens (Settings cannot be reached yet): same cookie as the web app's own setting.
+  // The cookie watcher redraws the native screens; a web page (guest join) reloads so it is drawn in that language.
+  ipcMain.handle('shell:locale', async (e, l: unknown) => {
+    if (!fromShell(e)) return FORBIDDEN;
+    if (l !== 'uz' && l !== 'ru') return { ok: false } as const;
+    await setLocaleCookie(l);
+    const wc = getContentWebContents();
+    if (wc) {
+      await wc.executeJavaScript(localeSyncScript()).catch(() => false); // storage first, so one reload is enough
+      wc.reload();
+    }
+    return { ok: true } as const;
+  });
   ipcMain.handle('shell:newRoom', (e) => {
     if (!fromShell(e)) return FORBIDDEN;
-    void openNewRoom();
+    void openRoomDialog('create');
+    return { ok: true } as const;
+  });
+  // ---- the sign-in screens ----
+  // Every value the renderer sends is checked for type and length in auth-model.ts before anything is sent; the URLs,
+  // bodies and the reset token are the main process's own. Nothing typed here is ever logged.
+  const signedIn = (r: AuthOutcome): AuthOutcome => {
+    if (r.ok && mode === 'auth') void afterSignIn();
+    return r;
+  };
+  ipcMain.handle('auth:ready', async (e) => {
+    if (!fromAuth(e)) return FORBIDDEN;
+    await localeReady;
+    pushAuth(true);
+    return { ok: true } as const;
+  });
+  ipcMain.handle('auth:login', async (e, email: unknown, password: unknown) => {
+    if (!fromAuth(e)) return FORBIDDEN;
+    return signedIn(await login(email, password));
+  });
+  // Also the "resend code" button of the e-mail step (the same request sends a fresh code).
+  ipcMain.handle('auth:register', async (e, username: unknown, email: unknown, password: unknown) => {
+    if (!fromAuth(e)) return FORBIDDEN;
+    return register(username, email, password);
+  });
+  ipcMain.handle('auth:confirm', async (e, email: unknown, code: unknown) => {
+    if (!fromAuth(e)) return FORBIDDEN;
+    return signedIn(await confirmEmail(email, code));
+  });
+  ipcMain.handle('auth:forgot', async (e, email: unknown) => {
+    if (!fromAuth(e)) return FORBIDDEN;
+    return forgotPassword(email);
+  });
+  ipcMain.handle('auth:reset', async (e, password: unknown, confirm: unknown) => {
+    if (!fromAuth(e)) return FORBIDDEN;
+    const r = await resetPassword(resetToken, password, confirm);
+    if (r.ok) resetToken = null; // used up
+    return r;
+  });
+  // Google: the system browser + polling flow of auth.ts. Failures are shown on the sign-in screen itself.
+  ipcMain.handle('auth:google', async (e) => {
+    if (!fromAuth(e)) return FORBIDDEN;
+    if (!win || win.isDestroyed() || mode !== 'auth') return { kind: 'error' } as const;
+    googleWaiting = true;
+    try {
+      return await startBrowserLogin(pendingRedirect ?? '/home', win, log, (url) => afterSignIn(url), false);
+    } finally {
+      googleWaiting = false;
+    }
+  });
+  ipcMain.handle('auth:cancelGoogle', (e) => {
+    if (!fromAuth(e)) return FORBIDDEN;
+    cancelBrowserLogin();
+    return { ok: true } as const;
+  });
+  ipcMain.handle('auth:help', (e) => {
+    if (!fromAuth(e)) return FORBIDDEN;
+    openHelp();
+    return { ok: true } as const;
+  });
+  // "WeWatch haqida": always the public site, a fixed link (the renderer cannot name one).
+  ipcMain.handle('auth:about', (e) => {
+    if (!fromAuth(e)) return FORBIDDEN;
+    if (mode !== 'auth') return { ok: false } as const;
+    if (AUTH_NO_BROWSER) log('external-suppressed', { url: SITE_URL }); // dev/smoke runs never open the system browser
+    else void shell.openExternal(SITE_URL);
+    return { ok: true } as const;
+  });
+  // ---- Help ----
+  ipcMain.handle('help:ready', async (e) => {
+    if (!fromHelp(e)) return FORBIDDEN;
+    await localeReady;
+    pushHelp(true);
+    return { ok: true } as const;
+  });
+  ipcMain.handle('help:back', (e) => {
+    if (!fromHelp(e)) return FORBIDDEN;
+    closeHelp();
+    return { ok: true } as const;
+  });
+  // The renderer names a contact channel by id; the link is ours (HELP_CONTACTS), opened in the system browser / mail client.
+  ipcMain.handle('help:contact', (e, id: unknown) => {
+    if (!fromHelp(e)) return FORBIDDEN;
+    const url = helpContactUrl(id);
+    if (!url || !helpOpen) return { ok: false, reason: 'unknown' } as const;
+    void shell.openExternal(url);
     return { ok: true } as const;
   });
   // The Home's own "Xona yaratish" / "Qo'shilish" buttons: the same web dialogs, opened for the user.
   ipcMain.handle('home:newRoom', (e) => {
     if (!fromHome(e)) return FORBIDDEN;
-    void openNewRoom();
+    void openRoomDialog('create');
     return { ok: true } as const;
   });
   // ---- Sozlamalar ----
@@ -527,7 +820,7 @@ function registerIpc(): void {
     if (!fromHome(e)) return FORBIDDEN;
     if (typeof l !== 'string' || !(LOCALES as readonly string[]).includes(l)) return { ok: false, kind: 'invalid' } as const;
     // The same cookie the web app writes; the cookie watcher redraws both native screens.
-    await session.defaultSession.cookies.set({ url: APP_URL, name: LOCALE_COOKIE, value: l, path: '/', expirationDate: Math.floor(Date.now() / 1000) + 365 * 24 * 3600 });
+    await setLocaleCookie(l as Locale);
     return { ok: true } as const;
   });
   ipcMain.handle('settings:password', async (e, current: unknown, next: unknown, confirm: unknown) => {
@@ -560,8 +853,45 @@ function registerIpc(): void {
   });
   ipcMain.handle('home:join', (e) => {
     if (!fromHome(e)) return FORBIDDEN;
-    void openWebDialog(JOIN_BUTTON);
+    void openRoomDialog('join');
     return { ok: true } as const;
+  });
+  // Native dialogs: the renderer sends what the user typed; room-create.ts validates it again, calls the BFF and builds the room URL.
+  ipcMain.handle('home:createRoom', async (e, url: unknown, name: unknown, isPrivate: unknown, title: unknown, thumbnail: unknown) => {
+    if (!fromHome(e)) return FORBIDDEN;
+    if (roomDialogBusy) return { ok: false, reason: 'busy' } as const;
+    roomDialogBusy = true;
+    try {
+      return settleRoom(await createRoom(url, name, isPrivate, title, thumbnail), 'create');
+    } finally {
+      roomDialogBusy = false;
+    }
+  });
+  ipcMain.handle('home:joinRoom', async (e, code: unknown) => {
+    if (!fromHome(e)) return FORBIDDEN;
+    if (roomDialogBusy) return { ok: false, reason: 'busy' } as const;
+    roomDialogBusy = true;
+    try {
+      return settleRoom(await joinRoom(code), 'join');
+    } finally {
+      roomDialogBusy = false;
+    }
+  });
+  ipcMain.handle('home:searchVideos', async (e, q: unknown) => {
+    if (!fromHome(e)) return FORBIDDEN;
+    return searchVideos(q);
+  });
+  ipcMain.handle('home:videoMeta', async (e, url: unknown) => {
+    if (!fromHome(e)) return FORBIDDEN;
+    return videoMeta(url);
+  });
+  ipcMain.handle('home:readClipboard', (e) => {
+    if (!fromHome(e)) return FORBIDDEN;
+    return { url: readClipboardLink() }; // only a recognised http(s) video link leaves the main process
+  });
+  ipcMain.handle('home:openPlatform', (e, id: unknown) => {
+    if (!fromHome(e)) return FORBIDDEN;
+    return openPlatformSite(id) ? ({ ok: true } as const) : ({ ok: false, reason: 'unknown' } as const);
   });
 
   ipcMain.handle('home:ready', async (e) => {
@@ -594,12 +924,7 @@ function registerIpc(): void {
         return { ok: true } as const;
       }
       if (r.kind === 'unauthorized') {
-        // The session died: the web login takes over (same as for the room list).
-        homeCards = null;
-        suppressAutoHome = true;
-        cameFromHome = false;
-        setMode('web');
-        void ensureContent().loadURL(APP_URL).catch(() => {});
+        showAuth(); // the session died: the sign-in screen takes over (same as for the room list)
         return { ok: false, reason: 'unauthorized' } as const;
       }
       return { ok: false, reason: 'error' } as const;
@@ -629,6 +954,8 @@ export interface ShellOptions {
   contentPrefs: WebPreferences;
   /** Called for every content view that gets created, so the window can attach its navigation guards to it. */
   onContent: (wc: WebContents) => void;
+  /** Dev/smoke event log (Google sign-in steps); never receives typed values or tokens. */
+  log?: Log;
 }
 
 /** Builds the shell and Home views inside `window`. The content (web) view is created later, on demand. */
@@ -637,7 +964,13 @@ export function attachShell(window: BrowserWindow, opts: ShellOptions): { shell:
   win = window;
   contentPrefs = opts.contentPrefs;
   onContent = opts.onContent;
+  log = opts.log ?? (() => {});
   mode = 'home';
+  helpOpen = false;
+  authEntry = 'login';
+  pendingRedirect = null;
+  resetToken = null;
+  googleWaiting = false;
   cameFromHome = false;
   suppressAutoHome = false;
   homeState = LOADING;
@@ -646,6 +979,7 @@ export function attachShell(window: BrowserWindow, opts: ShellOptions): { shell:
   screen = 'rooms';
   homeSort = 'viewers';
   sidebarOpen = true;
+  sessionChecked = false;
   owners.clear();
   ownerTried.clear();
   friendsCount = null;
@@ -660,7 +994,7 @@ export function attachShell(window: BrowserWindow, opts: ShellOptions): { shell:
     pushState();
   });
   locale = DEFAULT_LOCALE;
-  localeReady = syncLocale();
+  localeReady = seedLocale().then(syncLocale);
   if (!cookieWatch) {
     cookieWatch = true; // the web app writes the cookie when the user changes the language in its Settings
     session.defaultSession.cookies.on('changed', (_e, cookie) => {
@@ -684,14 +1018,37 @@ export function attachShell(window: BrowserWindow, opts: ShellOptions): { shell:
   sv.setBackgroundColor('#00000000'); // transparent: vibrancy shows through the sidebar
   const hv = new WebContentsView({ webPreferences: localPrefs('home.js') });
   hv.setBackgroundColor('#05050A');
+  const hpv = new WebContentsView({ webPreferences: localPrefs('help.js') });
+  hpv.setBackgroundColor('#05050A');
+  hpv.setVisible(false); // shown only while the Help screen is open
+  const av = new WebContentsView({ webPreferences: localPrefs('auth.js') });
+  av.setBackgroundColor('#05050A');
+  av.setVisible(false); // shown only while nobody is signed in
   window.contentView.addChildView(sv);
   window.contentView.addChildView(hv); // above the shell: covers all of it except the sidebar and the toolbar
+  window.contentView.addChildView(av);
+  window.contentView.addChildView(hpv); // re-added on top whenever Help opens
   shellView = sv;
   homeView = hv;
+  helpView = hpv;
+  authView = av;
   lockDown(sv.webContents);
   lockDown(hv.webContents);
+  lockDown(hpv.webContents);
+  lockDown(av.webContents);
+  // Escape closes Help, whichever of our own views has the keyboard.
+  for (const wc of [sv.webContents, hpv.webContents, av.webContents]) {
+    wc.on('before-input-event', (e, input) => {
+      if (helpOpen && input.type === 'keyDown' && input.key === 'Escape') {
+        e.preventDefault();
+        closeHelp();
+      }
+    });
+  }
   void sv.webContents.loadFile(SHELL_HTML);
   void hv.webContents.loadFile(HOME_HTML);
+  void hpv.webContents.loadFile(HELP_HTML);
+  void av.webContents.loadFile(AUTH_HTML);
 
   layout();
   window.on('resize', layout);
@@ -714,9 +1071,13 @@ export function attachShell(window: BrowserWindow, opts: ShellOptions): { shell:
     clearInterval(timer);
     destroyContent();
     // Views are not destroyed with their window: close their web contents or they leak.
-    for (const v of [sv, hv]) if (!v.webContents.isDestroyed()) v.webContents.close();
+    cancelBrowserLogin();
+    for (const v of [sv, hv, hpv, av]) if (!v.webContents.isDestroyed()) v.webContents.close();
     shellView = null;
     homeView = null;
+    helpView = null;
+    authView = null;
+    helpOpen = false;
     win = null;
   });
   return { shell: sv, home: hv };
@@ -725,8 +1086,8 @@ export function attachShell(window: BrowserWindow, opts: ShellOptions): { shell:
 // ---------- dev / smoke only (called only when WW_SMOKE_OUT is set) ----------
 
 /** Dev/smoke only: run a snippet inside one of the views. */
-export async function smokeEval(target: 'shell' | 'home' | 'content', js: string): Promise<unknown> {
-  const wc = target === 'shell' ? alive(shellView) : target === 'home' ? alive(homeView) : getContentWebContents();
+export async function smokeEval(target: 'shell' | 'home' | 'help' | 'auth' | 'content', js: string): Promise<unknown> {
+  const wc = target === 'shell' ? alive(shellView) : target === 'home' ? alive(homeView) : target === 'help' ? alive(helpView) : target === 'auth' ? alive(authView) : getContentWebContents();
   // userGesture: a page that moves itself without any user activation is skipped by the Back button (Chromium's history intervention) — real users have clicked.
   return wc ? wc.executeJavaScript(js, true) : null;
 }
@@ -734,7 +1095,7 @@ export async function smokeEval(target: 'shell' | 'home' | 'content', js: string
 /** Dev/smoke only: PNGs of the views (capturePage does not include the window's vibrancy material). */
 export async function smokeShots(dir: string): Promise<void> {
   const fs = await import('node:fs');
-  for (const [name, wc] of [['shell', alive(shellView)], ['home', alive(homeView)], ['content', getContentWebContents()]] as const) {
+  for (const [name, wc] of [['shell', alive(shellView)], ['home', alive(homeView)], ['auth', alive(authView)], ['content', getContentWebContents()]] as const) {
     if (wc) fs.writeFileSync(path.join(dir, `${name}.png`), (await wc.capturePage()).toPNG());
   }
 }
@@ -754,6 +1115,7 @@ export async function inspectShell(): Promise<unknown> {
       searchPlaceholder: search ? search.placeholder : null,
       htmlLang: document.documentElement.lang,
       collapsed: document.body.classList.contains('collapsed'),
+      toggleHidden: document.getElementById('toggle').hidden,
       sidebarVar: document.documentElement.style.getPropertyValue('--sidebar'),
       toggleLabel: document.getElementById('toggle').getAttribute('aria-label'),
       newRoom: document.getElementById('new-room-label').textContent,
@@ -762,12 +1124,41 @@ export async function inspectShell(): Promise<unknown> {
       backLabel: document.getElementById('back').getAttribute('aria-label'),
       bridgeKeys: Object.keys(window.wewatchShell || {}),
       webBridge: typeof window.wewatchDesktop,
+      langHidden: document.getElementById('lang').hidden,
+      langActive: [...document.querySelectorAll('#lang button.active')].map((b) => b.dataset.l),
+      newRoomHidden: document.getElementById('new-room').hidden,
+    };
+  })()`);
+  const auth = await smokeEval('auth', `(() => {
+    const t = (e) => (e ? e.textContent : null);
+    const card = document.querySelector('.card');
+    return {
+      bridgeKeys: Object.keys(window.wewatchAuth || {}),
+      webBridge: typeof window.wewatchDesktop,
+      lang: document.documentElement.lang,
+      screen: card ? card.dataset.screen : null,
+      title: t(document.querySelector('.card h1')),
+      sub: t(document.querySelector('.card .sub')),
+      inputs: [...document.querySelectorAll('.card input')].map((i) => ({ name: i.name, type: i.type, placeholder: i.placeholder })),
+      labels: [...document.querySelectorAll('.card .label')].map((l) => t(l)),
+      primary: t(document.querySelector('.card .btn.primary')),
+      primaryDisabled: document.querySelector('.card .btn.primary') ? document.querySelector('.card .btn.primary').disabled : null,
+      google: t(document.querySelector('.card .btn.google')),
+      telegram: /telegram/i.test(document.body.textContent),
+      divider: t(document.querySelector('.card .divider span')),
+      links: [...document.querySelectorAll('.card .link')].map((a) => t(a)),
+      notice: (() => { const n = document.querySelector('.card .notice'); return n && !n.hidden ? n.textContent : null; })(),
+      fieldErrors: [...document.querySelectorAll('.card .field-error')].filter((e) => !e.hidden).map((e) => t(e)),
+      footer: [...document.querySelectorAll('.foot button')].map((b) => t(b)),
+      brand: t(document.querySelector('.brand')),
+      scripts: document.querySelectorAll('#root script').length,
     };
   })()`);
   const home = await smokeEval('home', `(() => {
     const t = (e) => (e ? e.textContent : null);
     return {
       bridgeKeys: Object.keys(window.wewatchHome || {}),
+      roomDialog: document.querySelector('.rd-overlay') ? t(document.getElementById('rd-title')) : null,
       webBridge: typeof window.wewatchDesktop,
       banner: document.querySelector('.banner') ? {
         kicker: t(document.querySelector('.kicker')), title: t(document.querySelector('.banner h1')),
@@ -834,8 +1225,10 @@ export async function inspectShell(): Promise<unknown> {
       })()`)
     : null;
   return {
-    mode, shell, home, content, state: state(),
+    mode, shell, home, auth, content, state: state(),
+    authVisible: authView?.getVisible() ?? null, authBounds: authView?.getBounds() ?? null,
     shellBounds: shellView?.getBounds(), homeBounds: homeView?.getBounds(), contentBounds: contentView?.getBounds() ?? null,
     homeVisible: homeView?.getVisible() ?? null,
+    help: { open: helpOpen, visible: helpView?.getVisible() ?? null, bounds: helpView?.getBounds() ?? null },
   };
 }

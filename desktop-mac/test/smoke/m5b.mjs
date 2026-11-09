@@ -1,5 +1,6 @@
 // Smoke test for the native Home (M5.2): real Electron + a fake app-web (API with cookie auth, token refresh, pages).
-// Four launches: signed in · access token expired (refresh path) · signed out (web login takes over) · server down (retry).
+// Launches: signed in · access token expired (refresh path) · signed out (the native sign-in screen) · server down (retry) ·
+// language · rails · design · no live room · Sozlamalar · the native sign-in screens end to end (fake BFF auth routes).
 // No network, no real login. Run: npm run smoke:m5b   (builds first)
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
@@ -38,12 +39,59 @@ let calls = [];
 let down = 0; // number of /api/rooms requests that still answer 500
 let bodies = []; // bodies of the settings requests, in order
 let noLive = false; // answer /api/rooms with rooms that are all waiting/paused (nothing playing)
+let authBodies = []; // bodies of the sign-in requests (BFF routes), in order
+let googlePolls = 0;
+let googleInits = 0;
+const SIGNED_IN = ['access_token=good; Path=/; HttpOnly; SameSite=Lax; Max-Age=900', 'refresh_token=r1; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000'];
+const SIGNED_OUT = ['access_token=; Path=/; Max-Age=0', 'refresh_token=; Path=/; Max-Age=0'];
 const cookieOf = (req, name) => (req.headers.cookie ?? '').split(/;\s*/).find((c) => c.startsWith(`${name}=`))?.slice(name.length + 1);
 
 const server = createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
   const log = `${req.method} ${url.pathname}`;
   calls.push(log);
+  // ---- the web app's BFF sign-in routes (apps/app-web/src/app/api/auth/*) and the auth service's Google poll flow
+  if (req.method === 'POST' && ['/api/auth/login', '/api/auth/register', '/api/auth/register/confirm', '/api/auth/forgot-password', '/api/auth/reset-password'].includes(url.pathname)) {
+    let raw = '';
+    req.on('data', (c) => { raw += c; });
+    req.on('end', () => {
+      res.setHeader('content-type', 'application/json');
+      let json = null;
+      try { json = JSON.parse(raw); } catch { /* keep null */ }
+      authBodies.push({ route: url.pathname, json, ctype: req.headers['content-type'] ?? '' });
+      const send = (status, body, cookies) => { res.statusCode = status; if (cookies) res.setHeader('set-cookie', cookies); res.end(JSON.stringify(body)); };
+      if (url.pathname === '/api/auth/login') {
+        if (json?.email === 'banned@example.com') return send(403, { success: false, message: 'spam', code: 'ACCOUNT_BLOCKED', reason: 'spam' });
+        if (json?.password === 'right-pass') return send(200, { success: true, data: { user: { username: 'azizbek' } } }, SIGNED_IN);
+        return send(401, { success: false, message: 'Invalid email or password', errors: null });
+      }
+      if (url.pathname === '/api/auth/register') {
+        if (json?.username === 'taken_name') return send(409, { success: false, message: 'Username already taken', errors: null });
+        return send(200, { success: true, data: null, message: 'Verification code sent' });
+      }
+      if (url.pathname === '/api/auth/register/confirm') {
+        if (json?.code === '123456') return send(200, { success: true, data: { user: { username: 'yangi_user' } } }, SIGNED_IN);
+        return send(400, { success: false, message: 'Invalid verification code', errors: null });
+      }
+      if (url.pathname === '/api/auth/forgot-password') return send(200, { success: true, data: null, message: 'If this email exists, a reset link has been sent.' });
+      return send(200, { success: true, data: null, message: 'Password reset' });
+    });
+    return;
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v1/auth/google/init') {
+    googleInits++;
+    googlePolls = 0;
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({ data: { state: `state-${googleInits}-abcdefgh` } }));
+  }
+  if (req.method === 'GET' && url.pathname === '/api/v1/auth/google/poll') {
+    googlePolls++;
+    res.setHeader('content-type', 'application/json');
+    // the first sign-in attempt: the account is blocked; any later one keeps waiting (the user cancels it)
+    if (url.searchParams.get('state') === 'state-1-abcdefgh' && googlePolls >= 2) return res.end(JSON.stringify({ data: { error: 'ACCOUNT_BLOCKED', reason: 'spam' } }));
+    res.statusCode = 202;
+    return res.end(JSON.stringify({ data: null }));
+  }
   if ((url.pathname === '/api/rooms/trending' || url.pathname === '/api/rooms/history') && req.method === 'GET') {
     res.setHeader('content-type', 'application/json');
     if (cookieOf(req, 'access_token') !== 'good') { res.statusCode = 401; return res.end('{}'); }
@@ -69,6 +117,7 @@ const server = createServer((req, res) => {
         if (typeof json?.oldPassword !== 'string' || typeof json?.newPassword !== 'string') { res.statusCode = 400; return res.end('{"message":"Validation error"}'); }
       }
       if (url.pathname === '/api/user/me/avatar') return res.end(JSON.stringify({ success: true, data: { avatarUrl: '/uploads/avatars/new.png' } }));
+      if (url.pathname === '/api/auth/logout' || url.pathname === '/api/auth/logout-all') res.setHeader('set-cookie', SIGNED_OUT); // like the BFF
       return res.end('{"success":true}');
     });
     return;
@@ -123,17 +172,20 @@ aside{position:fixed;left:0;top:0;bottom:0;width:var(--ww-sidebar);background:#9
 });
 await new Promise((r) => server.listen(PORT, '127.0.0.1', r));
 
-async function run(name, { cookies = '', action = 'home', startPath = '/home', downFor = 0, ttl = 20, shotDir = '', startWeb = false, avatarFile = '' } = {}) {
+async function run(name, { cookies = '', action = 'home', startPath = '/home', downFor = 0, ttl = 20, shotDir = '', startWeb = false, avatarFile = '', extraEnv = {} } = {}) {
   calls = [];
   posts = [];
   down = downFor;
   bodies = [];
+  authBodies = [];
+  googleInits = 0;
+  googlePolls = 0;
   const out = path.join(os.tmpdir(), `ww-m5b-${name}-${Date.now()}.jsonl`);
   fs.writeFileSync(out, '');
   const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'ww-m5b-ud-'));
   const env = {
     ...process.env, WW_APP_URL: `http://127.0.0.1:${PORT}${startPath}`, WW_SMOKE_OUT: out, WW_SMOKE_TTL: String(ttl),
-    WW_SMOKE_ACTION: action, WW_SMOKE_COOKIES: cookies,
+    WW_SMOKE_ACTION: action, WW_SMOKE_COOKIES: cookies, ...extraEnv,
   };
   if (shotDir) env.WW_SMOKE_SHOT = shotDir;
   if (startWeb) env.WW_START_WEB = '1';
@@ -141,7 +193,7 @@ async function run(name, { cookies = '', action = 'home', startPath = '/home', d
   const child = spawn(electronBin, [root, `--user-data-dir=${userData}`], { env, stdio: 'ignore' });
   await new Promise((r) => child.on('exit', r));
   const ev = fs.readFileSync(out, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l));
-  return { ev, calls: [...calls], posts: [...posts], bodies: [...bodies], get: (n) => ev.find((x) => x.event === n)?.inspect };
+  return { ev, calls: [...calls], posts: [...posts], bodies: [...bodies], authBodies: [...authBodies], get: (n) => ev.find((x) => x.event === n)?.inspect };
 }
 
 const failures = [];
@@ -163,7 +215,7 @@ console.log('--- A: signed in (access token valid)');
   check(i?.shell.searchHidden === false, 'the search box is visible on Home');
   check(i?.state.canGoBack === false, 'back is disabled on Home');
   const h = i?.home;
-  check(h?.bridgeKeys.sort().join(',') === 'join,newRoom,onData,open,ready,retry,settings,sort,watch', 'Home bridge exposes exactly ready/open/retry/watch/sort/newRoom/join/settings/onData');
+  check(h?.bridgeKeys.sort().join(',') === 'createRoom,join,joinRoom,newRoom,onData,onOpenDialog,open,openPlatform,readClipboard,ready,retry,searchVideos,settings,sort,videoMeta,watch', 'Home bridge exposes exactly the known calls (incl. the native room dialogs)');
   check(h?.webBridge === 'undefined', 'Home has NO web-app bridge');
   check(h?.banner?.title === 'Yulduzlar Jangi (Interstellar)' && h?.banner?.sub === null, 'banner = the playing room with the most viewers, "name (video title)", no description line (the design has none)');
   check(h?.banner?.kicker === 'ASOSIY JONLI XONA' && h?.banner?.join === "Xonaga qo'shilish", 'banner copy from the design');
@@ -228,17 +280,21 @@ console.log('--- B: access token expired, refresh token valid');
   check(i?.content === null, 'the web page was never needed');
 }
 
-// ---------------------------------------------------------------- C: signed out
+// ---------------------------------------------------------------- C: signed out (first run: no cookies at all)
 console.log('--- C: signed out');
 {
-  const r = await run('signed-out', { cookies: 'wewatch-locale=uz', action: 'home-look', startPath: '/login' });
+  const r = await run('signed-out', { cookies: '', action: 'home-look', startPath: '/home' });
   const i = r.get('look-initial');
-  check(i?.mode === 'web' && i?.homeVisible === false, 'signed out: the web view takes over');
-  check(pathOf(i?.content?.url) === '/login', 'the web login page is shown');
-  check(i?.shell.items.every((x) => !x.active), 'no sidebar item is highlighted on the login page');
-  check(i?.state.canGoBack === false, 'no "back" to a Home that cannot be shown');
+  check(i?.mode === 'auth' && i?.homeVisible === false && i?.authVisible === true, 'signed out: the native sign-in screen takes over');
+  check(i?.content === null && !r.ev.some((x) => x.event === 'loaded'), 'no web page is loaded at all (the web /login is never shown)');
+  check(!r.calls.some((c) => c === 'GET /login' || c === 'GET /register' || c === 'GET /'), 'the web sign-in page was never even requested');
+  check(i?.auth?.screen === 'login' && i?.auth?.title === 'Xush kelibsiz' && i?.auth?.lang === 'uz', 'first run: the login screen, in Uzbek (no language cookie yet)');
+  check(i?.shell.langHidden === false && JSON.stringify(i?.shell.langActive) === '["uz"]', 'the UZ/RU switch is in the toolbar, Uzbek selected');
+  check(i?.shell.collapsed === true && i?.shell.toggleHidden === true && i?.shell.newRoomHidden === true, 'no sidebar, no sidebar toggle, no "Yangi xona"');
+  check(i?.authBounds?.x === 0 && i?.authBounds?.y === 52 && i?.authBounds?.width === i?.shellBounds?.width, 'the sign-in screen fills the window below the toolbar');
+  check(i?.shell.items.every((x) => !x.active), 'no sidebar item is highlighted');
+  check(i?.state.canGoBack === false && i?.state.signedIn === false, 'no "back", not signed in');
   check(r.calls.filter((c) => c === 'POST /api/auth/refresh').length === 1, 'one refresh attempt, which failed (no refresh token)');
-  check(r.ev.filter((x) => x.event === 'loaded').length === 1, 'the login page loaded once (no redirect loop)');
 }
 
 // ---------------------------------------------------------------- D: server down, then retry
@@ -255,10 +311,10 @@ console.log('--- D: server down, then "Qayta urinish"');
 // ---------------------------------------------------------------- E: language + subscription
 console.log('--- E: language follows the web app; subscription is gone');
 {
-  const r = await run('lang', { cookies: 'access_token=good;refresh_token=r1', action: 'lang', startPath: '/settings', startWeb: true, ttl: 25 });
+  const r = await run('lang', { cookies: 'wewatch-locale=ru;access_token=good;refresh_token=r1', action: 'lang', startPath: '/settings', startWeb: true, ttl: 25 });
   const labels = (x) => (x?.shell.items ?? []).map((i) => i.label).join('|');
   const ru = r.get('lang-ru');
-  check(labels(ru) === 'Главная|Комнаты|Прямые эфиры|Друзья|История|Настройки', 'no language cookie -> the web default (Russian): sidebar items');
+  check(labels(ru) === 'Главная|Комнаты|Прямые эфиры|Друзья|История|Настройки', 'Russian language cookie -> Russian sidebar items');
   check(ru?.shell.titles.join('|') === 'ОСНОВНОЕ|ДРУЗЬЯ И СООБЩЕСТВО|БИБЛИОТЕКА', 'Russian section titles');
   check(ru?.shell.backLabel === 'Назад' && ru?.shell.htmlLang === 'ru', 'Russian button label and page language');
   check(ru?.content?.planSection === 'none', 'the subscription panel (TARIF / Pro / Payme / Click) is hidden on Settings');
@@ -341,7 +397,7 @@ console.log('--- G: Stitch design details');
   const hm = r.get('design-home');
   check(hm?.shell.items.find((x) => x.active)?.id === 'home' && hm?.home.rails.length === 2, 'Bosh sahifa = banner + rails');
   const nr = r.get('design-new-room');
-  check(nr?.mode === 'web' && pathOf(nr?.content?.url) === '/home' && nr?.content?.dialog === 'NEW-ROOM-DIALOG', '"+ Yangi xona" opens the web app\'s own create-room dialog');
+  check(nr?.mode === 'home' && nr?.content === null && typeof nr?.home.roomDialog === 'string' && nr.home.roomDialog.length > 0, '"+ Yangi xona" opens the NATIVE create-room dialog (no web page loaded)');
 }
 
 // ---------------------------------------------------------------- H: rooms exist but none is playing
@@ -357,8 +413,9 @@ console.log('--- H: rooms exist, none playing');
   check(n?.home.head?.sub === 'Hozir hech kim onlayn emas' && JSON.stringify(n?.home.head?.buttons) === JSON.stringify(["Qo'shilish", 'Xona yaratish']), 'header: nobody online, and the two actions Qo\'shilish / Xona yaratish');
   check(n?.home.hero?.title === 'Xona oching va birga tomosha qiling' && n?.home.hero?.steps.length === 3 && n?.home.hero?.chips.join('|') === 'YouTube|VK Video|Rutube|To‘g‘ridan havola', 'the start block: title, 3 steps, supported sources (as on the web)');
   check(JSON.stringify(n?.home.hero?.buttons) === JSON.stringify(['Xona yaratish', 'Kod bilan kirish']), 'start block buttons: Xona yaratish / Kod bilan kirish');
-  check(r.get('nolive-create')?.content?.dialog === 'NEW-ROOM-DIALOG', '"Xona yaratish" in the start block opens the web create-room dialog');
-  check(r.get('nolive-join')?.content?.dialog === 'JOIN-DIALOG', '"Kod bilan kirish" opens the web join dialog'); 
+  const nc = r.get('nolive-create'), nj = r.get('nolive-join');
+  check(nc?.mode === 'home' && nc?.content === null && !!nc?.home.roomDialog, '"Xona yaratish" in the start block opens the native create dialog');
+  check(nj?.mode === 'home' && nj?.content === null && !!nj?.home.roomDialog && nj.home.roomDialog !== nc?.home.roomDialog, '"Kod bilan kirish" opens the native join dialog'); 
 }
 
 // ---------------------------------------------------------------- I: Sozlamalar (the app's own settings screen)
@@ -387,7 +444,7 @@ console.log('--- I: Sozlamalar');
   const ok = r.bodies.filter((b) => b.route === 'POST /api/auth/change-password');
   check(ok.length === 2 && JSON.stringify(ok[1].json) === JSON.stringify({ oldPassword: 'old', newPassword: 'newpass1' }), 'the password goes out as { oldPassword, newPassword } (what the server expects)');
   const after = r.get('settings-after-password');
-  check(after?.mode === 'web' && r.calls.includes('POST /api/auth/logout'), 'after a password change the app signs out and shows the login');
+  check(after?.mode === 'auth' && after?.auth?.screen === 'login' && after?.content === null && r.calls.includes('POST /api/auth/logout'), 'after a password change the app signs out and shows the native sign-in screen');
 }
 {
   const png = path.join(os.tmpdir(), `ww-avatar-${Date.now()}.png`);
@@ -396,7 +453,7 @@ console.log('--- I: Sozlamalar');
   const up = r.bodies.find((b) => b.route === 'PATCH /api/user/me/avatar');
   check(r.ev.find((x) => x.event === 'settings-avatar')?.reply?.ok === true && up?.ctype.startsWith('multipart/form-data') && up?.multipart?.mime === 'image/png' && up?.multipart?.filename === 'avatar.png', 'avatar: sent as multipart field "avatar" with its real type');
   check(r.ev.find((x) => x.event === 'settings-signout-all')?.reply?.ok === true && r.calls.includes('POST /api/auth/logout-all'), 'sign out of all devices calls /api/auth/logout-all');
-  check(r.get('settings-after-signout')?.mode === 'web', 'and the login page is shown');
+  check(r.get('settings-after-signout')?.mode === 'auth' && r.get('settings-after-signout')?.auth?.screen === 'login', 'and the native sign-in screen is shown');
   const txt = path.join(os.tmpdir(), `ww-avatar-${Date.now()}.txt`);
   fs.writeFileSync(txt, 'not a picture');
   const r2 = await run('settings-b2', { cookies: 'wewatch-locale=uz;access_token=good;refresh_token=r1', action: 'settings-b', ttl: 30, avatarFile: txt });
@@ -407,7 +464,83 @@ console.log('--- I: Sozlamalar');
   check(r.ev.find((x) => x.event === 'settings-delete-empty')?.reply?.kind === 'required', 'delete account: an empty password is refused locally');
   const del = r.bodies.find((b) => b.route === 'DELETE /api/user/me');
   check(r.ev.find((x) => x.event === 'settings-delete')?.reply?.ok === true && JSON.stringify(del?.json) === JSON.stringify({ password: 'secret1' }), 'delete account: DELETE /api/user/me with the password');
-  check(r.calls.includes('POST /api/auth/logout') && r.get('settings-after-delete')?.mode === 'web', 'afterwards the app signs out and shows the login');
+  check(r.calls.includes('POST /api/auth/logout') && r.get('settings-after-delete')?.mode === 'auth', 'afterwards the app signs out and shows the native sign-in screen');
+}
+
+// ---------------------------------------------------------------- J: the native sign-in screens, end to end
+console.log('--- J: native sign-in screens');
+{
+  const r = await run('auth', {
+    cookies: 'wewatch-locale=uz', action: 'auth', ttl: 70, shotDir: process.env.WW_SMOKE_SHOT_AUTH ?? '',
+    extraEnv: { WW_AUTH_URL: `http://127.0.0.1:${PORT}/api/v1/auth`, WW_AUTH_NO_BROWSER: '1', WW_AUTH_POLL_MS: '300' },
+  });
+  const ev = (n) => r.ev.find((x) => x.event === n);
+  const a = r.get('auth-initial');
+  check(a?.mode === 'auth' && a?.auth?.screen === 'login', 'starts on the native login screen');
+  check(a?.auth?.bridgeKeys.sort().join(',') === 'about,cancelGoogle,confirm,forgot,google,help,login,onData,ready,register,reset', 'the sign-in bridge exposes exactly its own actions');
+  check(a?.auth?.webBridge === 'undefined' && a?.home.bridgeKeys.length > 0 && !a?.home.bridgeKeys.includes('login'), 'no web-app bridge in the sign-in view; Home has no sign-in calls');
+  check(a?.auth?.sub === 'Do’stlaringiz sizni kutmoqda — hisobingizga kiring.' && a?.auth?.google === 'Google' && a?.auth?.divider === 'yoki', 'the web texts: heading, Google button, "yoki" divider');
+  check(JSON.stringify(a?.auth?.inputs) === JSON.stringify([{ name: 'email', type: 'email', placeholder: 'siz@example.com' }, { name: 'password', type: 'password', placeholder: 'Parolingiz' }]), 'email + password fields with the web placeholders');
+  check(JSON.stringify(a?.auth?.labels) === JSON.stringify(['Email', 'Parol']) && a?.auth?.primary === 'Kirish' && a?.auth?.primaryDisabled === true, 'labels; "Kirish" stays disabled until both fields are filled');
+  check(JSON.stringify(a?.auth?.links) === JSON.stringify(['Unutdingizmi?', "Ro'yxatdan o'ting"]), '"Unutdingizmi?" and "Ro\'yxatdan o\'ting" links');
+  check(JSON.stringify(a?.auth?.footer) === JSON.stringify(['Yordam', 'WeWatch haqida']), 'footer: Yordam · WeWatch haqida');
+  check(a?.auth?.telegram === false, 'no Telegram anywhere on the screen');
+  check(a?.auth?.scripts === 0, 'no script elements in the page');
+
+  const hs = ev('auth-hostile')?.replies ?? [];
+  check(hs.length === 9 && hs.every((x) => x && x.ok === false && x.kind === 'invalid'), 'hostile / invalid calls are refused locally (9 of 9)');
+  const ru = r.get('auth-ru');
+  check(ru?.auth?.title === 'С возвращением' && ru?.auth?.primary === 'Войти' && ru?.auth?.divider === 'или' && JSON.stringify(ru?.auth?.footer) === JSON.stringify(['Помощь', 'О WeWatch']), 'the toolbar switch redraws the screen in Russian');
+  check(JSON.stringify(ru?.shell.langActive) === '["ru"]' && ru?.shell.htmlLang === 'ru', 'and the switch shows Русский as chosen');
+
+  const w = r.get('auth-wrong');
+  check(w?.auth?.notice === 'Invalid email or password', 'a wrong password shows the server\'s own message (as the web does)');
+  const lb = r.authBodies.find((b) => b.route === '/api/auth/login');
+  check(JSON.stringify(lb?.json) === JSON.stringify({ email: 'm7@example.com', password: 'wrong-pass' }) && lb?.ctype === 'application/json', 'login request = { email, password } as JSON to the BFF, exactly like LoginForm');
+  check(r.get('auth-banned')?.auth?.notice === 'Akkaunt bloklanganSabab: spamAgar bu xato deb hisoblasangiz — qo\'llab-quvvatlash xizmatiga murojaat qiling.', 'a blocked account shows the ban notice with the reason');
+
+  check(r.get('auth-google-wait')?.auth?.title === 'Kirish...', 'Google: "Kirish..." while the system browser is used');
+  check(r.get('auth-google-blocked')?.auth?.notice?.startsWith('Akkaunt bloklangan'), 'Google: a blocked account is shown on the screen (no dialog)');
+  const gc = r.get('auth-google-cancelled');
+  check(gc?.auth?.screen === 'login' && gc?.auth?.notice === null, 'Google: "Kirish sahifasiga qaytish" stops waiting');
+  check(ev('login-browser')?.opened === false, 'Google: the system browser was not opened in the smoke run');
+
+  const ri = r.get('auth-register-invalid');
+  check(JSON.stringify(ri?.auth?.fieldErrors) === JSON.stringify(["3–20 belgi: faqat lotin harflari, raqamlar va _ (bo'sh joysiz)", 'Kamida 6 ta belgi']) && ri?.auth?.primaryDisabled === true, 'register: the web rules (user name pattern, 6+ password) block the button');
+  check(r.get('auth-register-taken')?.auth?.notice === 'Username already taken', 'register: a taken name shows the server message');
+  const rb = r.authBodies.filter((b) => b.route === '/api/auth/register');
+  check(JSON.stringify(rb[1]?.json) === JSON.stringify({ username: 'yangi_user', email: 'new@example.com', password: 'secret12' }), 'register request = { username, email, password }; the user name is trimmed like the web input');
+  check(JSON.stringify(rb[0]?.json?.username) === '"taken_name"', 'spaces typed around the name are removed before sending');
+  const v = r.get('auth-verify');
+  check(v?.auth?.screen === 'verify' && v?.auth?.title === 'Emailni tasdiqlang' && v?.auth?.inputs.length === 6, 'the e-mail step: 6 code boxes');
+  check(v?.auth?.links.some((t) => t.startsWith('Qayta yuborish (') && t.endsWith('s)')), 'resend is on a 60 s cooldown right after the code was sent');
+  const cw = r.get('auth-code-wrong');
+  check(cw?.auth?.notice === 'Invalid verification code', 'a wrong code shows the server message');
+  const cb = r.authBodies.filter((b) => b.route === '/api/auth/register/confirm');
+  check(JSON.stringify(cb[0]?.json) === JSON.stringify({ email: 'new@example.com', code: '000000' }), 'confirm request = { email, code } (a pasted code is spread over the boxes and sent)');
+
+  const fs2 = r.get('auth-forgot-sent');
+  check(fs2?.auth?.title === 'Havola yuborildi' && fs2?.auth?.sub?.includes('m7@example.com'), 'forgot password: the web\'s "Havola yuborildi" with the address');
+  check(JSON.stringify(r.authBodies.find((b) => b.route === '/api/auth/forgot-password')?.json) === JSON.stringify({ email: 'm7@example.com' }), 'forgot request = { email }');
+  const hp = r.get('auth-help');
+  check(hp?.help?.open === true && hp?.help?.visible === true && hp?.state.canGoBack === true, '"Yordam" opens the native Help screen above the sign-in screen');
+  check(r.get('auth-help-closed')?.help?.open === false && r.get('auth-help-closed')?.auth?.screen === 'login', 'its back button returns to the sign-in screen');
+  check(ev('external-suppressed')?.url === 'https://wewatch.uz', '"WeWatch haqida" opens the fixed site https://wewatch.uz (suppressed in the smoke run)');
+
+  const rg = r.get('auth-registered');
+  check(rg?.mode === 'home' && rg?.state.signedIn === true && rg?.shell.collapsed === false && rg?.shell.toggleHidden === false && rg?.shell.langHidden === true, 'the right code signs in: native Home with the sidebar, no language switch');
+  const ck = ev('auth-cookies')?.cookies ?? [];
+  check(ck.some((c) => c.name === 'access_token' && c.httpOnly) && ck.some((c) => c.name === 'refresh_token' && c.httpOnly), 'the BFF\'s httpOnly access_token / refresh_token cookies are in the app session');
+  const lo = r.get('auth-after-logout');
+  check(ev('auth-logout')?.reply?.ok === true && lo?.mode === 'auth' && lo?.auth?.screen === 'login' && lo?.auth?.inputs.every(() => true), 'sign out returns to the native sign-in screen');
+  check(lo?.shell.collapsed === true && lo?.shell.profile === null, 'the sidebar and the user\'s name are gone');
+  const si = r.get('auth-signed-in');
+  check(si?.mode === 'home' && si?.home.cards.length > 0 && si?.shell.profile?.name === 'azizbek', 'the right password signs in: native Home with the rooms and the user\'s name');
+  const ic = r.get('auth-intercepted');
+  check(ic?.mode === 'auth' && ic?.content === null && !r.calls.includes('GET /login'), 'a web page going to /login is stopped: the native screen shows instead (the web page never loads)');
+  const rd = r.get('auth-redirected');
+  check(rd?.mode === 'web' && pathOf(rd?.content?.url) === `/room/${ID(3)}` && rd?.state.signedIn === true, 'after signing in the user lands on the page that asked for it (?redirect=)');
+  check(!JSON.stringify(r.ev).includes('right-pass') && !JSON.stringify(r.ev).includes('secret12'), 'no password ever reaches the log');
 }
 
 server.close();

@@ -1,5 +1,5 @@
 import { session, shell, systemPreferences } from 'electron';
-import { APP_ORIGIN } from './config';
+import { APP_ORIGIN, BACKGROUND } from './config';
 import { microphoneStep } from './permissions-model';
 import { isAppOrigin } from './urls';
 
@@ -14,6 +14,8 @@ export function installPermissionPolicy(ses: Electron.Session = session.defaultS
   ses.setPermissionRequestHandler((wc, perm, cb, details) => {
     if (!isAppOrigin(details.requestingUrl || wc.getURL(), APP_ORIGIN)) return cb(false);
     const types = (details as { mediaTypes?: string[] }).mediaTypes;
+    // Automated run: never the real microphone/camera of the user's Mac, never a macOS prompt or its settings.
+    if (BACKGROUND && perm === 'media' && (types?.includes('audio') || types?.includes('video'))) return cb(false);
     const step = microphoneStep(perm, types, process.platform, process.platform === 'darwin' ? systemPreferences.getMediaAccessStatus('microphone') : 'unknown');
     if (step === 'ask') {
       systemPreferences.askForMediaAccess('microphone').then(cb, () => cb(false));
