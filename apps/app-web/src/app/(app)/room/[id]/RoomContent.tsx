@@ -769,6 +769,17 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                     {t(screenShare.isSharing ? 'desktopVbStop' : 'desktopVbStart')}
                   </button>
                 )}
+                {screenShare.docked && (
+                  <button
+                    onClick={screenShare.toggleVideoOnly}
+                    type="button"
+                    data-testid="room-vb-video-only"
+                    className="ww-btn-subtle flex h-9 cursor-pointer items-center gap-1.5 rounded-[var(--ww-r-sm)] px-3 text-[12.5px] font-medium text-[var(--ww-text-2)]"
+                  >
+                    <Globe size={14} aria-hidden="true" />
+                    {t(screenShare.videoOnly ? 'desktopVbFullPage' : 'desktopVbVideoOnly')}
+                  </button>
+                )}
                 {screenShare.isSharing && !screenShare.docked && (
                   <button
                     onClick={screenShare.focusVb}

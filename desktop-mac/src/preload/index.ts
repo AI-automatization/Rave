@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('wewatchDesktop', {
   version: 1,
   vb: {
     open: (url: string, opts?: { docked?: boolean }) => ipcRenderer.invoke('vb:open', url, opts),
+    setVideoOnly: (on: boolean) => ipcRenderer.invoke('vb:setVideoOnly', on),
     setBounds: (rect: { x: number; y: number; width: number; height: number } | null) => ipcRenderer.invoke('vb:setBounds', rect),
     close: () => ipcRenderer.invoke('vb:close'),
     focus: () => ipcRenderer.invoke('vb:focus'),

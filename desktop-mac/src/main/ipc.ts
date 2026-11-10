@@ -1,7 +1,7 @@
 import { app, ipcMain, type IpcMainInvokeEvent } from 'electron';
 import { APP_ORIGIN } from './config';
 import { isAppOrigin } from './urls';
-import { closeVb, focusVb, getAdsBlocked, openVb, setVbDockRect, type VbResult } from './vb';
+import { closeVb, focusVb, getAdsBlocked, openVb, setVbDockRect, setVbVideoOnly, type VbResult } from './vb';
 
 type Result = VbResult | ({ ok: true } & Record<string, unknown>);
 type MaybeAsync = Result | Promise<Result>;
@@ -22,6 +22,7 @@ export function registerIpc(): void {
       typeof url === 'string' ? openVb(url, typeof opts === 'object' && opts !== null && (opts as { docked?: unknown }).docked === true) : { ok: false, reason: 'invalid_url' }),
   );
   ipcMain.handle('vb:setBounds', guard((rect: unknown) => setVbDockRect(rect)));
+  ipcMain.handle('vb:setVideoOnly', guard((on: unknown) => setVbVideoOnly(on === true)));
   ipcMain.handle('vb:close', guard(() => closeVb()));
   ipcMain.handle('vb:focus', guard(() => focusVb()));
   ipcMain.handle(

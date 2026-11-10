@@ -10,6 +10,7 @@ import { buildMenu } from './menu';
 import { installPermissionPolicy } from './permissions';
 import { chromeUserAgent } from './urls';
 import { clearVbCache, closeVb, protectVbSession } from './vb';
+import { initAdEngine } from './adblock-engine';
 import { presetSmokeCookies, runSmokeAction } from './smoke';
 import { createMainWindow, focusMainWindow, getMainWindow, observeContent, sendToMain } from './window';
 
@@ -133,6 +134,8 @@ if (!app.requestSingleInstanceLock()) {
       sendToMain('vb:blocked', { url, reason });
     });
     clearVbCache(); // in case the app was killed with the VB open
+    // Filter lists for the VB's ad blocker (downloaded once, cached). Smoke runs stay offline and deterministic.
+    if (!SMOKE_OUT) void initAdEngine((m) => smoke('adblock', { m }));
 
     buildMenu();
     registerIpc();

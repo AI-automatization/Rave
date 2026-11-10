@@ -30,6 +30,8 @@ interface DesktopBridge {
     /** docked: the VB page opens INSIDE the app window, over the room's video area (Mac build; older builds ignore it). */
     open(url: string, opts?: { docked?: boolean }): Promise<{ ok: true } | { ok: false; reason: string }>;
     /** Docked VB: where the room's video area is (CSS px, relative to the page), or null to hide it. */
+    /** Docked VB: true = the room gets only the film's picture, false = the whole site page. Mac build. */
+    setVideoOnly?(on: boolean): Promise<{ ok: boolean }>;
     setBounds?(rect: { x: number; y: number; width: number; height: number } | null): Promise<{ ok: boolean }>;
     close(): Promise<{ ok: boolean }>;
     focus(): Promise<{ ok: boolean }>;
@@ -97,6 +99,8 @@ export function useDesktopScreenShare(socket: Socket | null, roomJoined: boolean
   const [error, setError] = useState<string | null>(null);
   // The VB sits inside the app window over the room's video area (instead of a separate window).
   const [docked, setDocked] = useState(false);
+  // Docked VB: share only the film's picture (default) or the whole site page.
+  const [videoOnly, setVideoOnlyState] = useState(true);
   // start() waits here until the room's video box has told the app where it is (the VB is hidden until then, and a hidden VB gives no picture).
   const dockReadyRef = useRef<(() => void) | null>(null);
 
@@ -168,6 +172,7 @@ export function useDesktopScreenShare(socket: Socket | null, roomJoined: boolean
     localRef.current = null;
     setLocalStream(null);
     setDocked(false);
+    setVideoOnlyState(true);
     closeOwnerPeers();
     if (wasSharing) socket?.emit(CLIENT_EVENTS.SCREEN_STOP);
     void bridge?.vb.close();
@@ -186,6 +191,7 @@ export function useDesktopScreenShare(socket: Socket | null, roomJoined: boolean
       if (!opened.ok) { setError(opened.reason); return; }
       // Docked: the room shows the box the VB is painted over from now on — the capture below needs the VB visible.
       setDocked(wantDock);
+      setVideoOnlyState(true);
       if (wantDock) {
         await new Promise<void>((resolve) => { dockReadyRef.current = resolve; window.setTimeout(resolve, 2500); });
         dockReadyRef.current = null;
@@ -309,6 +315,12 @@ export function useDesktopScreenShare(socket: Socket | null, roomJoined: boolean
     stop,
     /** True while the VB is docked in the window: the room shows a placeholder the app paints the VB over. */
     docked,
+    videoOnly,
+    toggleVideoOnly: () => {
+      const next = !videoOnly;
+      setVideoOnlyState(next);
+      void bridge?.vb.setVideoOnly?.(next);
+    },
     setDockRect: (rect: { x: number; y: number; width: number; height: number } | null) => {
       void bridge?.vb.setBounds?.(rect);
       if (rect) dockReadyRef.current?.();

@@ -25,5 +25,8 @@
     "electron-builder": "^26.18.0",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
+  },
+  "dependencies": {
+    "@ghostery/adblocker": "2.20.3"
   }
 }

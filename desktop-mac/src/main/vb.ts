@@ -3,10 +3,12 @@
 // no server-side Chromium. The app window only ever talks to it through the origin-guarded IPC.
 import { BrowserWindow, WebContentsView, screen, session, type Rectangle, type WebContents } from 'electron';
 import { BACKGROUND, devEnv } from './config';
-import { shouldBlockAd } from './adblock';
+import { shouldBlockAd, hostOf, isYouTubeHost } from './adblock';
+import { adEngineMatches } from './adblock-engine';
 import { checkVbUrl, chromeUserAgent, failPageUrl, sameSite } from './urls';
 import { focusMainWindow, getMainWindow, sendToMain } from './window';
 import { parseDockRect, toWindowRect, type Rect } from './vb-dock-model';
+import { FOCUS_VIDEO_SCRIPT, PLAYING_VIDEO_SCRIPT, UNFOCUS_SCRIPT, focusIframeScript, pickPlayerFrame, type FrameProbe } from './vb-focus-model';
 
 export const VB_PARTITION = 'persist:vb'; // own cookies/cache — never touches the app session
 
@@ -61,6 +63,9 @@ export const getVbWindow = (): BrowserWindow | null => (vbWin && !vbWin.isDestro
 let dockView: WebContentsView | null = null;
 let dockRect: Rect | null = null; // where the room page says its video area is (web content view coordinates)
 let dockSuppressed = false; // true while the web content view is not what the window shows
+let dockVideoOnly = true; // the room gets the film's picture only, not the site around it (vb-focus-model.ts)
+let focusTimer: ReturnType<typeof setInterval> | null = null;
+let focusBusy = false;
 let dockFullscreen = false; // the VB page's own player went full screen: the dock then fills the whole window
 let dockOrigin: () => Rectangle | null = () => null; // the web content view's bounds inside the window
 const dockAlive = (): WebContentsView | null => (dockView && !dockView.webContents.isDestroyed() ? dockView : null);
@@ -120,6 +125,57 @@ export function setVbDockRect(raw: unknown): VbResult {
   return { ok: true };
 }
 
+/** One pass of "video only": find the frame with the playing film and stretch its player over the view; nothing playing → normal page. */
+async function focusTick(): Promise<void> {
+  const v = dockAlive();
+  if (!v || !dockVideoOnly || focusBusy) return;
+  focusBusy = true;
+  try {
+    const main = v.webContents.mainFrame;
+    const frames = main.framesInSubtree;
+    const probes: FrameProbe[] = [];
+    for (const f of frames) {
+      let area = 0;
+      try {
+        const r = (await f.executeJavaScript(PLAYING_VIDEO_SCRIPT, false)) as { area?: number } | null;
+        area = r?.area ?? 0;
+      } catch {
+        /* a frame that went away while we asked */
+      }
+      probes.push({ id: f.routingId, isMain: f === main, url: f.url, area });
+    }
+    const player = pickPlayerFrame(probes);
+    if (!player) {
+      await main.executeJavaScript(UNFOCUS_SCRIPT, false);
+    } else if (player.isMain) {
+      await main.executeJavaScript(FOCUS_VIDEO_SCRIPT, false);
+    } else {
+      // the iframe of the TOP page that contains the player (the player may sit deeper inside it)
+      let f = frames.find((x) => x.routingId === player.id);
+      while (f && f.parent && f.parent !== main) f = f.parent;
+      await main.executeJavaScript(focusIframeScript(f?.url ?? player.url), false);
+    }
+  } catch {
+    /* the page navigated or closed mid-pass: the next tick starts over */
+  } finally {
+    focusBusy = false;
+  }
+}
+
+function stopFocusTimer(): void {
+  if (focusTimer) clearInterval(focusTimer);
+  focusTimer = null;
+}
+
+/** The owner's switch: only the video (default) or the whole site page in the docked VB. */
+export function setVbVideoOnly(on: boolean): VbResult {
+  dockVideoOnly = on;
+  const v = dockAlive();
+  if (v && !on) void v.webContents.mainFrame.executeJavaScript(UNFOCUS_SCRIPT, false).catch(() => {});
+  if (v && on) void focusTick();
+  return { ok: true };
+}
+
 async function openDocked(url: string): Promise<VbResult> {
   const host = getMainWindow();
   if (!host) return { ok: false, reason: 'no_window' };
@@ -138,6 +194,9 @@ async function openDocked(url: string): Promise<VbResult> {
   const wc = view.webContents;
   applyDock();
   wireVbContents(wc);
+  dockVideoOnly = true;
+  stopFocusTimer();
+  focusTimer = setInterval(() => void focusTick(), 1500);
   // The film player's "full screen" button: the page fills the whole window (a view otherwise stays inside its own box).
   wc.on('enter-html-full-screen', () => { dockFullscreen = true; applyDock(); });
   wc.on('leave-html-full-screen', () => { dockFullscreen = false; applyDock(); });
@@ -153,6 +212,7 @@ function closeDock(): boolean {
   dockView = null;
   dockRect = null;
   dockFullscreen = false;
+  stopFocusTimer();
   const host = getMainWindow();
   if (host) host.contentView.removeChildView(v);
   v.webContents.close();
@@ -171,7 +231,13 @@ export function protectVbSession(onBlocked: (url: string, reason: string) => voi
   // One onBeforeRequest per session (a second call replaces the first) — all URL rules live here.
   ses.webRequest.onBeforeRequest((details, cb) => {
     // Ad networks: any resource type, so popunder pages, pre-roll videos and trackers never load.
-    if (shouldBlockAd(details.url, details.webContents?.getURL() || details.referrer || '')) {
+    const pageUrl = details.webContents?.getURL() || details.referrer || '';
+    if (shouldBlockAd(details.url, pageUrl)) {
+      adsBlocked++;
+      return cb({ cancel: true });
+    }
+    // The filter lists (EasyList + RU AdList) — never for the page's own navigation, never on YouTube.
+    if (details.resourceType !== 'mainFrame' && !isYouTubeHost(hostOf(pageUrl)) && adEngineMatches(details.url, pageUrl, details.resourceType)) {
       adsBlocked++;
       return cb({ cancel: true });
     }
