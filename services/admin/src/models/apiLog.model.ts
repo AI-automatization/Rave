@@ -1,4 +1,5 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, Document } from 'mongoose';
+import { dbConnection } from '../db';
 
 export interface IApiLogDocument extends Document {
   service: string;
@@ -45,4 +46,4 @@ apiLogSchema.index({ timestamp: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
 apiLogSchema.index({ service: 1, level: 1 });
 apiLogSchema.index({ userId: 1 });
 
-export const ApiLog = model<IApiLogDocument>('ApiLog', apiLogSchema);
+export const ApiLog = dbConnection.model<IApiLogDocument>('ApiLog', apiLogSchema);

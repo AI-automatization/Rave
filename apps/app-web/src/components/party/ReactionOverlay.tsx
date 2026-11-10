@@ -1,6 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { AvatarImg } from '@/components/ui/AvatarImg';
 
 interface FloatingReaction {
   id: string;
@@ -45,8 +46,7 @@ export function ReactionOverlay({ reactions }: Props) {
           >
             <span className="text-3xl leading-none">{r.emoji}</span>
             {r.avatar ? (
-              // eslint-disable-next-line @next/next/no-img-element -- tiny ephemeral overlay avatar, not worth next/image's layout machinery
-              <img src={r.avatar} alt="" className="w-4 h-4 rounded-full object-cover ring-1 ring-white/40" />
+              <AvatarImg src={r.avatar} alt="" className="w-4 h-4 rounded-full object-cover ring-1 ring-white/40" />
             ) : r.username ? (
               <span className="w-4 h-4 rounded-full bg-violet-500/80 ring-1 ring-white/40 flex items-center justify-center text-[8px] font-semibold text-white leading-none">
                 {r.username.charAt(0).toUpperCase()}

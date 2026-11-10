@@ -1,4 +1,5 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, Document } from 'mongoose';
+import { getServiceConnection } from '@shared/utils/serviceConnection';
 
 export type VideoPlatform = 'youtube' | 'vimeo' | 'twitch' | 'dailymotion' | 'direct' | 'other';
 export type VideoStatus   = 'pending' | 'approved' | 'rejected';
@@ -66,4 +67,4 @@ externalVideoSchema.index({ submittedBy: 1 });
 externalVideoSchema.index({ status: 1 });
 externalVideoSchema.index({ isPublic: 1, rating: -1 });
 
-export const ExternalVideo = model<IExternalVideoDocument>('ExternalVideo', externalVideoSchema);
+export const ExternalVideo = getServiceConnection('content').model<IExternalVideoDocument>('ExternalVideo', externalVideoSchema);

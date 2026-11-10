@@ -1,4 +1,5 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, Document } from 'mongoose';
+import { getServiceConnection } from '@shared/utils/serviceConnection';
 
 // Append-only log — one row per watch session (room-leave event), distinct from
 // WatchProgress (watchProgress.model.ts), which is a single upserted "resume position" row
@@ -26,4 +27,4 @@ const watchHistoryEntrySchema = new Schema<IWatchHistoryEntryDocument>(
 
 watchHistoryEntrySchema.index({ userId: 1, watchedAt: -1 });
 
-export const WatchHistoryEntry = model<IWatchHistoryEntryDocument>('WatchHistoryEntry', watchHistoryEntrySchema);
+export const WatchHistoryEntry = getServiceConnection('content').model<IWatchHistoryEntryDocument>('WatchHistoryEntry', watchHistoryEntrySchema);

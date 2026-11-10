@@ -1,4 +1,5 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, Document } from 'mongoose';
+import { dbConnection } from '../db';
 
 export interface IAppSettingDocument extends Document {
   key: string;
@@ -17,4 +18,4 @@ const schema = new Schema<IAppSettingDocument>(
   },
 );
 
-export const AppSetting = model<IAppSettingDocument>('AppSetting', schema);
+export const AppSetting = dbConnection.model<IAppSettingDocument>('AppSetting', schema);

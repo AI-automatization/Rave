@@ -2,7 +2,7 @@
 // so the VB screencast showed the film small among page clutter. This init script (every frame of
 // a VB page, see virtualBrowser.service.ts) makes the playing movie's <video> element itself fill
 // the whole viewport (object-fit: contain — never cropped). The site's own player chrome stays
-// underneath: WeWatch draws one control bar of its own instead (VirtualBrowserPlayer.tsx), driven
+// hidden (visibility, 2026-11-08 — it used to stay underneath and peek through): WeWatch draws one control bar of its own instead (VirtualBrowserPlayer.tsx), driven
 // through window.__wewatchMovieState / __wewatchMovieControl below (virtualBrowser.service.ts).
 // Two earlier tries failed live on 2026-10-26: resizing the site's player box left its play
 // button off-center, scaling the box cropped the film — and both showed two sets of controls.
@@ -16,7 +16,7 @@ export const VB_FULLSCREEN_SCRIPT = /* js */ `
 (function () {
   if (window.__wewatchFullscreen) return;
   window.__wewatchFullscreen = true;
-  var ATTR = 'data-wewatch-full', ANC = 'data-wewatch-full-anc', MSG = '__wewatchFull';
+  var ATTR = 'data-wewatch-full', ANC = 'data-wewatch-full-anc', CTRL = 'data-wewatch-ctrl', MSG = '__wewatchFull';
   var MIN_DURATION_S = 90, MIN_W = 240, MIN_H = 135, CHECK_MS = 2000;
   var current = null, exited = new WeakSet(), childFrame = null;
 
@@ -35,13 +35,18 @@ export const VB_FULLSCREEN_SCRIPT = /* js */ `
       // z-index would keep the video under the site header — neutralize while maximized.
       '[' + ANC + ']{transform:none!important;filter:none!important;perspective:none!important;contain:none!important;' +
       'will-change:auto!important;z-index:auto!important;overflow:visible!important;}' +
-      'html[' + ANC + '],html[' + ANC + '] body{overflow:hidden!important;}';
+      'html[' + ANC + '],html[' + ANC + '] body{overflow:hidden!important;}' +
+      // Only the movie is seen: the site's own controls, overlays and logos around it are hidden
+      // (and, hidden, can't catch clicks) — WeWatch's control bar is the one set of controls.
+      'html[' + ANC + '] body *:not([' + ATTR + ']):not(#__wewatch_full_bg){visibility:hidden!important;}';
     (document.head || document.documentElement).appendChild(s);
   }
 
   function apply(el) {
     ensureStyle();
     el.setAttribute(ATTR, '');
+    // Native <video controls> would still draw its own bar on top of the picture.
+    if (el instanceof HTMLVideoElement && el.controls) { el.controls = false; el.setAttribute(CTRL, ''); }
     for (var a = el.parentElement; a; a = a.parentElement) a.setAttribute(ANC, '');
     if (!document.getElementById('__wewatch_full_bg')) {
       var bg = document.createElement('div');
@@ -56,6 +61,8 @@ export const VB_FULLSCREEN_SCRIPT = /* js */ `
   function clear() {
     var marked = document.querySelectorAll('[' + ATTR + '],[' + ANC + ']');
     for (var i = 0; i < marked.length; i++) { marked[i].removeAttribute(ATTR); marked[i].removeAttribute(ANC); }
+    var native = document.querySelectorAll('video[' + CTRL + ']');
+    for (var j = 0; j < native.length; j++) { native[j].removeAttribute(CTRL); native[j].controls = true; }
     var bg = document.getElementById('__wewatch_full_bg');
     if (bg) bg.remove();
     current = null; childFrame = null;

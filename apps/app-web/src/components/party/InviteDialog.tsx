@@ -12,6 +12,7 @@ import { toast } from '@/hooks/use-toast';
 import type { IUser } from '@/types';
 import { trackClick } from '@/lib/analytics';
 import { copyText } from '@/lib/copy-text';
+import { AvatarImg } from '@/components/ui/AvatarImg';
 
 interface Props {
   open: boolean;
@@ -169,7 +170,7 @@ export function InviteDialog({ open, onOpenChange }: Props) {
               >
                 <div className="w-7 h-7 rounded-full bg-white/[0.08] flex items-center justify-center text-xs font-bold text-slate-300 overflow-hidden shrink-0">
                   {friend.avatar
-                    ? <img src={friend.avatar} alt="" className="w-full h-full object-cover" />
+                    ? <AvatarImg src={friend.avatar} alt="" className="w-full h-full object-cover" />
                     : friend.username?.[0]?.toUpperCase() ?? '?'}
                 </div>
                 <span className="flex-1 text-sm text-slate-300 truncate">{friend.username}</span>

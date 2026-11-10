@@ -1,7 +1,5 @@
 import { Router } from 'express';
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
 import Redis from 'ioredis';
 import { UserController } from '../controllers/user.controller';
 import { UserService } from '../services/user.service';
@@ -19,27 +17,11 @@ import {
   pinMessageSchema,
   markReadUpToSchema,
 } from '../validators/user.validator';
-import { config } from '../config/index';
 import { LIMITS } from '@shared/constants';
 
-// Multer config — avatar upload
-const avatarStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    const uploadDir = path.join(config.uploadPath, 'avatars');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-    cb(null, uniqueName);
-  },
-});
-
+// Multer config — avatar upload (kept in memory, then stored by utils/avatarStorage)
 const avatarUpload = multer({
-  storage: avatarStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: LIMITS.AVATAR_MAX_SIZE },
   fileFilter: (_req, file, cb) => {
     const allowed = ['image/jpeg', 'image/png', 'image/webp'];

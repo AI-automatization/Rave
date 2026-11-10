@@ -11,6 +11,7 @@ import { memberColor } from '@/lib/dm/dm-format';
 import { toast } from '@/store/toast.store';
 import { useApiError } from '@/hooks/use-api-error';
 import { trackClick } from '@/lib/analytics';
+import { AvatarImg } from '@/components/ui/AvatarImg';
 
 interface Props {
   message: DmMessage | null;
@@ -83,7 +84,7 @@ export function ForwardPicker({ message, currentPeerId, onClose }: Props) {
                     style={{ background: `${color}2E`, border: `1px solid ${color}59`, color }}
                   >
                     {c.peerAvatar ? (
-                      <img src={c.peerAvatar} alt="" className="h-full w-full object-cover" />
+                      <AvatarImg src={c.peerAvatar} alt="" className="h-full w-full object-cover" />
                     ) : (
                       initials
                     )}

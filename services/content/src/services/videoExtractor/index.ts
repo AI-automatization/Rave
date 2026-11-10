@@ -69,7 +69,9 @@ const YTDLP_PLATFORMS: ReadonlySet<VideoPlatform> = new Set([
 
 /** Playwright concurrency guard — max 2 browser instances at a time */
 let playwrightRunning = 0;
-const PLAYWRIGHT_MAX_CONCURRENT = 2;
+// Tunable only for the merged `media` container (shares RAM with watch-party's VB pool);
+// default = the historic value, so the standalone service is unchanged.
+const PLAYWRIGHT_MAX_CONCURRENT = Math.max(1, Number(process.env.CONTENT_PLAYWRIGHT_MAX_CONCURRENT) || 2);
 
 /** Sites geo-blocked from our UAE server (T-S046) */
 const GEO_BLOCKED_DOMAINS = new Set([

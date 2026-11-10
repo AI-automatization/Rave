@@ -1,4 +1,5 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, Document } from 'mongoose';
+import { dbConnection } from '../db';
 
 export interface IAnalyticsEventDocument extends Document {
   sessionId: string;
@@ -31,4 +32,4 @@ schema.index({ userId: 1, ts: -1 });
 // Keep raw events for 30 days
 schema.index({ ts: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
 
-export const AnalyticsEvent = model<IAnalyticsEventDocument>('AnalyticsEvent', schema);
+export const AnalyticsEvent = dbConnection.model<IAnalyticsEventDocument>('AnalyticsEvent', schema);

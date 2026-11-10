@@ -19,6 +19,7 @@ import { UserPlus } from 'lucide-react';
 import { useFriends } from '@/hooks/use-friends';
 import { avatarColor } from '@/lib/utils';
 import type { IUser } from '@/types';
+import { AvatarImg } from '@/components/ui/AvatarImg';
 
 const MAX_SHOWN = 8;
 
@@ -36,7 +37,7 @@ function FriendAvatar({ user }: { user: IUser }) {
           style={{ background: `${color}2E`, border: `1px solid ${color}59`, color }}
         >
           {user.avatar ? (
-            <img src={user.avatar} alt="" className="h-full w-full object-cover" />
+            <AvatarImg src={user.avatar} alt="" className="h-full w-full object-cover" />
           ) : (
             (user.username?.[0]?.toUpperCase() ?? '?')
           )}

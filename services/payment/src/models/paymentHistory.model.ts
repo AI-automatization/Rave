@@ -1,4 +1,5 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import { Document, Schema } from 'mongoose';
+import { dbConnection } from '../db';
 import { BillingProvider } from './subscription.model';
 
 // Append-only log of subscription lifecycle events, written once per applied webhook event
@@ -35,4 +36,4 @@ const PaymentHistorySchema = new Schema<IPaymentHistoryEntry>(
 
 PaymentHistorySchema.index({ userId: 1, createdAt: -1 });
 
-export const PaymentHistoryEntry = mongoose.model<IPaymentHistoryEntry>('PaymentHistoryEntry', PaymentHistorySchema);
+export const PaymentHistoryEntry = dbConnection.model<IPaymentHistoryEntry>('PaymentHistoryEntry', PaymentHistorySchema);
