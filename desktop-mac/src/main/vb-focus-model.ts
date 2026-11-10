@@ -55,12 +55,15 @@ export const FOCUS_VIDEO_SCRIPT = `(() => {
     if (r.width >= 160 && r.height >= 90 && area > best) { best = area; video = v; }
   }
   if (!video) return false;
-  // climb to the element that wraps the video and its on-screen controls (about the video's own size), never to <body>
+  // Climb to the element that wraps the video and its on-screen controls, never to <body>. A parent counts only if the video
+  // starts at ITS top-left corner (so a tab bar or title above the video is not dragged in and does not push the picture down)
+  // and it is about as wide as the video, at most a control bar (56 px) taller.
   let el = video;
   const vr = video.getBoundingClientRect();
   while (el.parentElement && el.parentElement !== document.body && el.parentElement !== document.documentElement) {
     const pr = el.parentElement.getBoundingClientRect();
-    if (pr.width <= vr.width * 1.12 && pr.height <= vr.height * 1.25) el = el.parentElement; else break;
+    const fits = pr.width <= vr.width * 1.05 + 2 && pr.height <= vr.height + 56 && vr.top - pr.top <= 4 && vr.left - pr.left <= 4;
+    if (fits) el = el.parentElement; else break;
   }
   ${MARK}
 })()`;
