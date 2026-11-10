@@ -1,4 +1,5 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import { Schema, Document, Types } from 'mongoose';
+import { dbConnection } from '../db';
 
 export type SenderRole = 'user' | 'admin';
 
@@ -25,4 +26,4 @@ const schema = new Schema<ISupportMessageDocument>(
 
 schema.index({ conversationId: 1, createdAt: 1 });
 
-export const SupportMessage = model<ISupportMessageDocument>('SupportMessage', schema);
+export const SupportMessage = dbConnection.model<ISupportMessageDocument>('SupportMessage', schema);

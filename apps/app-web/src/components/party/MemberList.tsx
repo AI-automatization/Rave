@@ -7,6 +7,7 @@ import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { avatarColor } from '@/lib/utils';
 import { trackClick } from '@/lib/analytics';
+import { AvatarImg } from '@/components/ui/AvatarImg';
 
 interface Props {
   /** Whether the CURRENT VIEWER owns this room (not whether the listed member does — that's the
@@ -48,8 +49,7 @@ export function MemberList({ isOwner: viewerIsOwner = false, onKick, raisedHands
           >
             <span className="relative shrink-0">
               {member.avatar ? (
-                // eslint-disable-next-line @next/next/no-img-element -- user-uploaded avatar URL, not worth a next/image domain allowlist entry
-                <img
+                <AvatarImg
                   src={member.avatar}
                   alt=""
                   className="h-7 w-7 rounded-full object-cover"

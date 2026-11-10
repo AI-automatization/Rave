@@ -1,4 +1,5 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, Document } from 'mongoose';
+import { dbConnection } from '../db';
 
 export interface IAuditLogDocument extends Document {
   adminId: string;
@@ -34,4 +35,4 @@ auditLogSchema.index({ targetId: 1 });
 // TTL 90 days — also covers createdAt range queries (replaces separate createdAt: -1 index)
 auditLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
 
-export const AuditLog = model<IAuditLogDocument>('AuditLog', auditLogSchema);
+export const AuditLog = dbConnection.model<IAuditLogDocument>('AuditLog', auditLogSchema);

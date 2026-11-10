@@ -6,6 +6,7 @@ import { Bell } from 'lucide-react';
 import { WIcon } from '@/components/common/WeWatchLogo';
 import { useAuthStore } from '@/store/auth.store';
 import { useUnreadCount } from '@/hooks/use-unread-count';
+import { AvatarImg } from '@/components/ui/AvatarImg';
 
 const PALETTE = ['#7C3AED', '#2563EB', '#059669', '#D97706', '#DC2626', '#DB2777', '#0891B2'];
 function avatarColor(id: string): string {
@@ -51,7 +52,7 @@ export function AppNav() {
               style={{ background: user.avatar ? undefined : avatarColor(user._id ?? user.username ?? 'u') }}
             >
               {user.avatar
-                ? <img src={user.avatar} alt="" className="w-full h-full object-cover" />
+                ? <AvatarImg src={user.avatar} alt="" className="w-full h-full object-cover" />
                 : (user.username?.[0]?.toUpperCase() ?? '?')}
             </div>
           </Link>

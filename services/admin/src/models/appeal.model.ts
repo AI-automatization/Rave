@@ -1,4 +1,5 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, Document } from 'mongoose';
+import { dbConnection } from '../db';
 
 export type AppealStatus = 'pending' | 'approved' | 'rejected';
 
@@ -32,4 +33,4 @@ const schema = new Schema<IAppealDocument>(
 
 schema.index({ status: 1, createdAt: -1 });
 
-export const Appeal = model<IAppealDocument>('Appeal', schema);
+export const Appeal = dbConnection.model<IAppealDocument>('Appeal', schema);

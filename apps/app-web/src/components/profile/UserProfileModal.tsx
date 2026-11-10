@@ -11,6 +11,7 @@ import { useApiError } from '@/hooks/use-api-error';
 import { avatarColor } from '@/lib/utils';
 import { trackClick } from '@/lib/analytics';
 import type { IUser } from '@/types';
+import { AvatarImg } from '@/components/ui/AvatarImg';
 
 interface Props {
   /** `null` closes the modal — callers just clear the id they're holding. */
@@ -83,8 +84,7 @@ export function UserProfileModal({ userId, onClose }: Props) {
                   style={{ background: `${color}2E`, border: `1px solid ${color}59`, color }}
                 >
                   {profile.avatar ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- user-uploaded avatar URL, not worth a next/image domain allowlist entry
-                    <img src={profile.avatar} alt="" className="h-full w-full object-cover" />
+                    <AvatarImg src={profile.avatar} alt="" className="h-full w-full object-cover" />
                   ) : (
                     (profile.username?.[0] ?? '?').toUpperCase()
                   )}

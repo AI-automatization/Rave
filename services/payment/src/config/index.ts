@@ -1,11 +1,6 @@
 import dotenv from 'dotenv';
+import { scopedEnv } from '@shared/utils/scopedEnv';
 dotenv.config();
-
-const requireEnv = (key: string): string => {
-  const value = process.env[key];
-  if (!value) throw new Error(`Missing required environment variable: ${key}`);
-  return value;
-};
 
 // Railway template o'zgaruvchisi resolve bo'lmagan bo'lsa (${{...}}) — bo'sh string qaytaradi
 const resolveEnv = (key: string): string => {
@@ -14,12 +9,19 @@ const resolveEnv = (key: string): string => {
   return value;
 };
 
+// `core` runs several services in one process: PAYMENT_<KEY> wins, plain <KEY> is the fallback.
+const requireScoped = (key: string): string => {
+  const value = scopedEnv('PAYMENT', key);
+  if (!value) throw new Error(`Missing required environment variable: ${key}`);
+  return value;
+};
+
 export const config = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   port: parseInt(process.env.PORT ?? '3009', 10),
-  mongoUri: requireEnv('MONGO_URI'),
-  jwtPublicKey: requireEnv('JWT_PUBLIC_KEY').replace(/\\n/g, '\n'),
-  corsOrigins: process.env.CORS_ORIGINS ?? 'http://localhost:3000,http://localhost:5173,http://localhost:8081',
+  mongoUri: requireScoped('MONGO_URI'),
+  jwtPublicKey: requireScoped('JWT_PUBLIC_KEY').replace(/\\n/g, '\n'),
+  corsOrigins: scopedEnv('PAYMENT', 'CORS_ORIGINS') ?? 'http://localhost:3000,http://localhost:5173,http://localhost:8081',
 
   // tezcode-billing — shared Tezcode billing platform (docs/INTEGRATION.md, provided by
   // Abdulaziz 2026-08-19 — separate repo/system, not part of this monorepo). Env names match

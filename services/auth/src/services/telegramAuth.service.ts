@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import Redis from 'ioredis';
 import { User, IUserDocument } from '../models/user.model';
 import { logger } from '@shared/utils/logger';
+import { scopedEnv } from '@shared/utils/scopedEnv';
 import { UnauthorizedError } from '@shared/utils/errors';
 import { UserRole } from '@shared/types';
 import { REDIS_KEYS } from '@shared/constants';
@@ -17,7 +18,7 @@ export class TelegramAuthService {
   async initTelegramAuth(): Promise<{ state: string; botUrl: string }> {
     const state = crypto.randomBytes(16).toString('hex');
     await this.redis.setex(REDIS_KEYS.tgState(state), 300, '1'); // 5 daqiqa TTL
-    const botUsername = process.env.TELEGRAM_BOT_USERNAME ?? '';
+    const botUsername = scopedEnv('AUTH', 'TELEGRAM_BOT_USERNAME') ?? '';
     // tg:// scheme triggers iOS "Back to CineSync" button automatically
     const botUrl = `tg://resolve?domain=${botUsername}&start=auth_${state}`;
     return { state, botUrl };
@@ -29,7 +30,7 @@ export class TelegramAuthService {
    * the button's signed callback IS the auth proof.
    */
   getTelegramLoginUrl(): string {
-    const botUsername = process.env.TELEGRAM_BOT_USERNAME ?? '';
+    const botUsername = scopedEnv('AUTH', 'TELEGRAM_BOT_USERNAME') ?? '';
     return `tg://resolve?domain=${botUsername}&start=login`;
   }
 
@@ -43,7 +44,7 @@ export class TelegramAuthService {
     auth_date: string;
     hash: string;
   }): Promise<{ accessToken: string; refreshToken: string; user: IUserDocument }> {
-    const botToken = process.env.TELEGRAM_BOT_TOKEN ?? '';
+    const botToken = scopedEnv('AUTH', 'TELEGRAM_BOT_TOKEN') ?? '';
 
     // auth_date freshness check (5 daqiqadan eski bo'lsa reject)
     const authAge = Math.floor(Date.now() / 1000) - parseInt(data.auth_date, 10);
@@ -108,7 +109,7 @@ export class TelegramAuthService {
     // (loginWithTelegramData — already does the hash verification).
     if (param === 'login') {
       const callbackUrl = `${process.env.CLIENT_URL ?? 'https://app.wewatch.uz'}/auth/telegram/callback`;
-      const botUsername = process.env.TELEGRAM_BOT_USERNAME ?? '';
+      const botUsername = scopedEnv('AUTH', 'TELEGRAM_BOT_USERNAME') ?? '';
       await this.sendTelegramMessage(chatId, '🔐 Нажмите кнопку ниже, чтобы войти в WeWatch:', {
         reply_markup: {
           inline_keyboard: [[{
@@ -219,7 +220,7 @@ export class TelegramAuthService {
   }
 
   private async sendTelegramMessage(chatId: number, text: string, extra?: Record<string, unknown>): Promise<void> {
-    const botToken = process.env.TELEGRAM_BOT_TOKEN ?? '';
+    const botToken = scopedEnv('AUTH', 'TELEGRAM_BOT_TOKEN') ?? '';
     if (!botToken) { logger.warn('TELEGRAM_BOT_TOKEN not set'); return; }
     try {
       const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {

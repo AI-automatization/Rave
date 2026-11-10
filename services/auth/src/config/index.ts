@@ -1,9 +1,17 @@
 import dotenv from 'dotenv';
+import { scopedEnv } from '@shared/utils/scopedEnv';
 
 dotenv.config();
 
 const requireEnv = (key: string): string => {
   const value = process.env[key];
+  if (!value) throw new Error(`Missing required environment variable: ${key}`);
+  return value;
+};
+
+// `core` runs several services in one process: AUTH_<KEY> wins, plain <KEY> is the fallback.
+const requireScoped = (key: string): string => {
+  const value = scopedEnv('AUTH', key);
   if (!value) throw new Error(`Missing required environment variable: ${key}`);
   return value;
 };
@@ -17,7 +25,7 @@ export const config = {
 
   jwt: {
     privateKey: requireEnv('JWT_PRIVATE_KEY').replace(/\\n/g, '\n').trim(),
-    publicKey: requireEnv('JWT_PUBLIC_KEY').replace(/\\n/g, '\n').trim(),
+    publicKey: requireScoped('JWT_PUBLIC_KEY').replace(/\\n/g, '\n').trim(),
     accessTokenExpiry: process.env.JWT_EXPIRES_IN ?? '15m',
     refreshTokenExpiry: 30 * 24 * 60 * 60 * 1000, // 30 days in ms
   },
@@ -26,7 +34,7 @@ export const config = {
     host: process.env.SMTP_HOST ?? 'smtp.sendgrid.net',
     port: parseInt(process.env.SMTP_PORT ?? '587', 10),
     user: process.env.SMTP_USER ?? '',
-    pass: process.env.SMTP_PASS ?? '',
+    pass: scopedEnv('AUTH', 'SMTP_PASS') ?? '',
     from: process.env.EMAIL_FROM ?? 'noreply@wewatch.uz',
   },
 
@@ -39,7 +47,7 @@ export const config = {
   },
 
   clientUrl: process.env.CLIENT_URL ?? 'http://localhost:3000',
-  adminUrls: (process.env.ADMIN_URL ?? 'http://localhost:5173').split(',').map((u) => u.trim()).filter(Boolean),
+  adminUrls: (scopedEnv('AUTH', 'ADMIN_URL') ?? 'http://localhost:5173').split(',').map((u) => u.trim()).filter(Boolean),
   superadminEmail: requireEnv('SUPERADMIN_EMAIL'),
   userServiceUrl: process.env.USER_SERVICE_URL ?? 'http://localhost:3002',
 } as const;

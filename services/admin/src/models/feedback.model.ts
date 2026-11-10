@@ -1,4 +1,5 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, Document } from 'mongoose';
+import { dbConnection } from '../db';
 
 export type FeedbackType = 'bug' | 'feature' | 'other';
 export type FeedbackStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
@@ -45,4 +46,4 @@ const feedbackSchema = new Schema<IFeedbackDocument>(
 feedbackSchema.index({ status: 1, createdAt: -1 });
 feedbackSchema.index({ type: 1 });
 
-export const Feedback = model<IFeedbackDocument>('Feedback', feedbackSchema);
+export const Feedback = dbConnection.model<IFeedbackDocument>('Feedback', feedbackSchema);

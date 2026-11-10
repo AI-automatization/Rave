@@ -1,4 +1,5 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, Document } from 'mongoose';
+import { dbConnection } from '../db';
 
 export interface IScreenVisit {
   screen: string;
@@ -69,4 +70,4 @@ schema.index({ exitScreen: 1 });
 // Keep sessions for 90 days
 schema.index({ startTime: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
 
-export const AnalyticsSession = model<IAnalyticsSessionDocument>('AnalyticsSession', schema);
+export const AnalyticsSession = dbConnection.model<IAnalyticsSessionDocument>('AnalyticsSession', schema);

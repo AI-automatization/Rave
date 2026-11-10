@@ -131,4 +131,7 @@ userSchema.index({ appleId: 1 },    { sparse: true });
 userSchema.index({ emailVerifyToken: 1 }, { sparse: true });
 userSchema.index({ passwordResetToken: 1 }, { sparse: true });
 
-export const User = model<IUserDocument>('User', userSchema);
+// Model name is service-specific ('AuthUser') so auth and user can live in ONE process (`core`):
+// both map the same `users` collection with different schemas, and mongoose forbids two
+// schemas under one model name (OverwriteModelError). Collection is pinned explicitly.
+export const User = model<IUserDocument>('AuthUser', userSchema, 'users');
