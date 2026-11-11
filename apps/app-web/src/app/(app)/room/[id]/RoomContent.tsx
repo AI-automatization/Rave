@@ -11,6 +11,7 @@ import { useVirtualBrowser } from '@/hooks/use-virtual-browser';
 import { VideoPlayer } from '@/components/party/VideoPlayer';
 import { VirtualBrowserPlayer } from '@/components/party/VirtualBrowserPlayer';
 import { resolveLinkPlatform, normalizeLinkInput } from '@/lib/link-routing';
+import { SERVER_VB_ENABLED } from '@/lib/server-vb';
 import { ChatPanel } from '@/components/party/ChatPanel';
 import { MemberList } from '@/components/party/MemberList';
 import { RoomHeader } from '@/components/party/RoomHeader';
@@ -531,7 +532,8 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   }, [vbStop, sendMediaChange]);
 
   const handleVideoFatalError = useCallback(() => {
-    if (!isOwner || showVB) return;
+    // No server VB (lib/server-vb.ts) — an auto-retry would only come back "unreachable".
+    if (!SERVER_VB_ENABLED || !isOwner || showVB) return;
     const targetUrl = originalSourceUrlRef.current;
     if (!targetUrl) return; // no known source page to retry (e.g. fatal error before any CHANGE_MEDIA)
     if (vbAttemptedUrlsRef.current.has(targetUrl)) return; // this exact source was already tried
@@ -670,8 +672,9 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                 onBufferEnd={sendBufferEnd}
                 onFatalError={handleVideoFatalError}
                 onPickDifferentVideo={() => setCandidatePickerOpen(true)}
-                onOpenVirtualBrowser={() => setShowVBPanel(true)}
-                onOpenUrlInVirtualBrowser={handleOpenUrlInVB}
+                onOpenVirtualBrowser={SERVER_VB_ENABLED ? () => setShowVBPanel(true) : undefined}
+                onOpenUrlInVirtualBrowser={SERVER_VB_ENABLED ? handleOpenUrlInVB : undefined}
+                onTryIframe={handleTryIframe}
                 sourceUnreachable={vbUnreachable}
                 duckAudio={anyoneSpeaking}
               />
@@ -689,7 +692,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                   <Link2 size={14} aria-hidden="true" />
                   {t('changeVideo')}
                 </button>
-                {!showVB && (
+                {SERVER_VB_ENABLED && !showVB && (
                   <button
                     onClick={() => { trackClick('room:open_vb_panel'); setShowVBPanel(true); }}
                     type="button"

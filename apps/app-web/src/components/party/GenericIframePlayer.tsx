@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Globe, Loader2 } from 'lucide-react';
+import { Globe, Loader2, MonitorSmartphone } from 'lucide-react';
 import { trackClick } from '@/lib/analytics';
 
 interface Props {
@@ -21,6 +21,10 @@ export function GenericIframePlayer({ url, isOwner, onOpenInVirtualBrowser }: Pr
   const t = useTranslations('party');
   const [loaded, setLoaded] = useState(false);
   useEffect(() => setLoaded(false), [url]);
+  // Banner for plain browsers only: the desktop app syncs these sites through its local VB (no
+  // server VB since 2026-11-11, see lib/server-vb.ts). Read after mount — no hydration mismatch.
+  const [inDesktopApp, setInDesktopApp] = useState(true);
+  useEffect(() => { setInDesktopApp(!!window.wewatchDesktop); }, []);
 
   // Only http(s) is ever framed — a javascript:/data: URL in room.videoUrl must never reach src.
   let safeUrl: string | null = null;
@@ -33,6 +37,12 @@ export function GenericIframePlayer({ url, isOwner, onOpenInVirtualBrowser }: Pr
 
   return (
     <div className="flex flex-col gap-2">
+      {!inDesktopApp && (
+        <div className="flex items-center gap-2 rounded-[var(--ww-r-sm)] border border-violet-500/25 bg-violet-500/10 px-3 py-2 text-[12px] leading-snug text-[var(--ww-text-2)]">
+          <MonitorSmartphone size={15} className="shrink-0 text-violet-400" aria-hidden="true" />
+          <span>{t('iframeSyncInApp')}</span>
+        </div>
+      )}
       {/* A web page, not a video: 16:9 on a phone is ~200px tall — unusable. Give it most of the
           screen there; keep the 16:9 box from sm up, where it matches the other players. */}
       <div className="relative h-[62svh] sm:h-auto sm:aspect-video bg-black rounded-xl overflow-hidden">
@@ -66,7 +76,7 @@ export function GenericIframePlayer({ url, isOwner, onOpenInVirtualBrowser }: Pr
       <div className="flex flex-col items-start gap-2 px-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
         <p className="min-w-0 flex-1 text-[11.5px] leading-snug text-[var(--ww-text-4)]">
           {t('iframeNotSynced')}
-          {isOwner && <> {t('iframeBlankHint')}</>}
+          {isOwner && onOpenInVirtualBrowser && <> {t('iframeBlankHint')}</>}
         </p>
         {isOwner && onOpenInVirtualBrowser && (
           <button
