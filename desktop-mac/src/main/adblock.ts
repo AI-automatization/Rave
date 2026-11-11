@@ -15,6 +15,16 @@ export const AD_DOMAINS: ReadonlySet<string> = new Set([
 ]);
 export const AD_HOST_MARKERS: readonly string[] = ['dsp-ui.uz'];
 
+// Ads a site serves from its OWN hosts, so neither the list above nor EasyList/RU AdList knows them. Exact paths
+// only — the rest of the site (its player, its film stream) must keep loading. uzmovi.net (2026-11-11): the pre-roll
+// MP4s live under story.uzmovi.net/ads/videos/, view events go to uzmovi.net/ads/video/event, and
+// /js/video-ad-manager.js runs the pre-roll. Blocking only /ads/ left a 7 s black wait before the film (the manager
+// waits for the failed MP4); blocking the manager as well starts the film at once — 12 s of ad before.
+export const AD_PATHS: readonly { host: string; prefix: string }[] = [
+  { host: 'uzmovi.net', prefix: '/ads/' },
+  { host: 'uzmovi.net', prefix: '/js/video-ad-manager.js' },
+];
+
 export const hostOf = (raw: string): string => {
   try {
     return new URL(raw).hostname.toLowerCase();
@@ -36,7 +46,19 @@ export function isAdHost(host: string): boolean {
 // YouTube pages keep their ads: blocking them breaks YouTube's terms, and our search runs on its API.
 export const isYouTubeHost = (h: string): boolean => /(^|\.)(youtube\.com|youtu\.be|youtube-nocookie\.com)$/.test(h);
 
+/** True for a site's own ad path from AD_PATHS (host or any subdomain of it, path prefix). */
+export function isAdPath(requestUrl: string): boolean {
+  let u: URL;
+  try {
+    u = new URL(requestUrl);
+  } catch {
+    return false;
+  }
+  const host = u.hostname.toLowerCase();
+  return AD_PATHS.some((r) => (host === r.host || host.endsWith('.' + r.host)) && u.pathname.startsWith(r.prefix));
+}
+
 /** Should the VB cancel this request? `pageUrl` = the top-level page that issued it. */
 export function shouldBlockAd(requestUrl: string, pageUrl: string): boolean {
-  return isAdHost(hostOf(requestUrl)) && !isYouTubeHost(hostOf(pageUrl));
+  return (isAdHost(hostOf(requestUrl)) || isAdPath(requestUrl)) && !isYouTubeHost(hostOf(pageUrl));
 }
