@@ -7,7 +7,7 @@
 
   Watch Party live sync · Direct messages · Friends · Telegram & Google auth · Web, Android and iOS clients
 
-  [Website](https://wewatch.uz) · [Web App](https://app.wewatch.uz)
+  [Website](https://wewatch.uz) · [Web App](https://wewatch.uz/home)
 
   ![Node.js](https://img.shields.io/badge/Node.js-20-339933?logo=node.js&logoColor=white)
   ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
@@ -45,8 +45,7 @@ WeWatch lets you start a room, drop in a video link, and watch it together with 
 | `services/admin` | Express + MongoDB | 3008 |
 | `services/payment` | Express + MongoDB — tezcode-billing bridge | 3009 |
 | `apps/mobile` | React Native + Expo (Android + iOS) | — |
-| `apps/web` | Next.js — marketing site (wewatch.uz) | — |
-| `apps/app-web` | Next.js — web app (app.wewatch.uz) | — |
+| `apps/web` | Next.js 16 — landing (/uz /ru /en) + web app (/home, /room, /login …) on wewatch.uz | — |
 | `apps/admin-ui` | React + Vite admin dashboard | 5173 |
 | **Database** | MongoDB Atlas | — |
 | **Cache / pub-sub** | Redis 7 | — |
@@ -59,7 +58,7 @@ WeWatch lets you start a room, drop in a video link, and watch it together with 
 ```
 Node.js microservices, each independently deployable to Railway.
 
-  apps/mobile, apps/web, apps/app-web, apps/admin-ui
+  apps/mobile, apps/web, apps/admin-ui
               │
               │  (each client calls every service's own Railway URL directly —
               │   no shared API gateway)
