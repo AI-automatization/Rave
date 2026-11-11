@@ -77,7 +77,11 @@ const loggerTransports: winston.transport[] = [
   }),
 ];
 
-// MongoDB transport — production only (avoid circular dep in dev)
+// MongoDB transport — production only (avoid circular dep in dev).
+// Only errors go to Mongo: nothing reads these docs (the admin panel reads
+// cinesync_admin.api_logs, written by apiLogger.middleware), and info lines
+// stay in Railway logs. Errors expire after 30 days, same as apiLog.model.ts,
+// so the index spec matches if mongoose already created it.
 // .replace(/\s+/g, '') — URI ichidagi bo'sh joy/newline ni tozalash (Railway env bug)
 const mongoUri = process.env.MONGO_URI?.trim().replace(/\s+/g, '');
 if (!isDev && mongoUri) {
@@ -88,7 +92,8 @@ if (!isDev && mongoUri) {
       new MongoDB({
         db: mongoUri,
         collection: 'api_logs',
-        level: 'info',
+        level: process.env.MONGO_LOG_LEVEL || 'error',
+        expireAfterSeconds: 30 * 24 * 60 * 60,
         options: { useUnifiedTopology: true },
         format: prodFormat,
       }),
