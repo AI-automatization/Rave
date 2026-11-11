@@ -435,6 +435,11 @@ export function hasSession(roomId: string): boolean {
   return sessions.has(roomId);
 }
 
+/** roomIds that currently hold a Chromium session — used by the orphan sweep (vbOrphan.ts). */
+export function listSessionRoomIds(): string[] {
+  return [...sessions.keys()];
+}
+
 export function getSessionOwner(roomId: string): string | undefined {
   return sessions.get(roomId)?.ownerId;
 }

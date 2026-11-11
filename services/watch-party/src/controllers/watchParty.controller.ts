@@ -15,6 +15,7 @@ import { enqueueVBRequest } from '../socket/vbQueue.helper';
 import { isOfficialEmbedHost, isOwnVbUrl } from '../services/extractionClient';
 import { isDomainBlocked } from './domain.admin.controller';
 import { fetchRoomSockets } from '../socket/roomSockets.helper';
+import { stopSession } from '../services/virtualBrowser.service';
 
 export class WatchPartyController {
   constructor(
@@ -397,6 +398,8 @@ export class WatchPartyController {
       const { userId } = (req as AuthenticatedRequest).user;
       const roomId = req.params.id;
       await this.watchPartyService.closeRoom(userId, roomId);
+      // The room is gone — its Chromium/ffmpeg must go with it (previously leaked until restart).
+      await stopSession(roomId).catch((e) => logger.warn('closeRoom: failed to stop VB session', { roomId, error: (e as Error).message }));
       this.io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'owner_left' });
       res.json(apiResponse.success(null, 'Room closed'));
     } catch (error) {

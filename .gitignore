@@ -78,3 +78,6 @@ apps/mobile/ios/Pods/
 # APK build artifacts (never commit — regenerate via eas build)
 *.apk
 .local/
+
+# watch-party unit test build output
+services/watch-party/.test-out/
