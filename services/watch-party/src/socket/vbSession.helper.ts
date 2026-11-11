@@ -13,7 +13,7 @@ import { VideoCandidate } from '@shared/types';
 import { rankCandidates } from './vbCandidateRank.helper';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { signProxyUrl } from '@shared/utils/proxySignature';
-import { getSessionViewport, startSession, getSessionPageTitle, enableAutoProxy, MediaType, VB_WATCH_IN_BROWSER, getSessionCurrentUrl, hasSession, setOnSessionEnded, getMovieState, probeUrl } from '../services/virtualBrowser.service';
+import { getSessionViewport, startSession, getSessionPageTitle, enableAutoProxy, MediaType, VB_WATCH_IN_BROWSER, getSessionCurrentUrl, hasSession, setOnSessionEnded, getMovieState, probeUrl, SERVER_VB_ENABLED } from '../services/virtualBrowser.service';
 import { WatchPartyRoom } from '../models/watchPartyRoom.model';
 import { WatchPartyPlaylistService } from '../services/watchPartyPlaylist.service';
 import { resolveDirectMedia, probeStreamHint } from './directResolve.helper';
@@ -316,6 +316,15 @@ export async function startVBForRoom(
   // Fast path (directResolve.helper.ts): a direct media file or a yt-dlp-extractable page plays in
   // seconds without launching Chromium or making the owner pick from candidates.
   if (await commitDirectMedia(io, redis, roomId, ownerId, url)) return;
+
+  // Server VB kill-switch (SERVER_VB_ENABLED, virtualBrowser.service.ts): no server Chromium.
+  // Room-wide 'unreachable' reuses the clients' existing "site didn't open — open it as an embedded
+  // page or paste another link" toast; no throw, so callers neither queue nor log an error.
+  if (!SERVER_VB_ENABLED) {
+    logger.info('VB: server VB disabled, not launching Chromium', { roomId, url });
+    io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'unreachable' });
+    return;
+  }
 
   // Real prod case 2026-08-06 (uzmovi.net): VB is a best-effort sniffer — ads, related-content
   // widgets, and (separately) a duration bug on captured streams can all pass its heuristics —

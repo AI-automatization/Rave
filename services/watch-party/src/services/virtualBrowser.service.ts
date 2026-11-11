@@ -110,6 +110,15 @@ const MAX_CONCURRENT_FREE = Math.max(1, Number(process.env.WATCH_PARTY_VB_MAX_CO
 // never fire in practice; if it does, that's a bug to investigate, not a capacity plan to revisit.
 const MAX_TOTAL_SAFETY_CEILING = Math.max(1, Number(process.env.WATCH_PARTY_VB_SAFETY_CEILING) || 60);
 
+// 2026-11-11 team-lead decision (Polat): the virtual browser runs ONLY on the viewer's own machine
+// (desktop/mobile clients), never on our server. Server Chromium is the single biggest RAM line on
+// Railway, and the stream it resolves is useless to everyone else anyway — pirate-player tokens are
+// bound to the IP/Referer of whoever resolved them. So this is a kill-switch, default OFF: every
+// server Chromium launch goes through startSession()/probeUrl() below, both refuse while it is off.
+// yt-dlp direct extraction (commitDirectMedia, no browser) keeps working. Rollback without a deploy:
+// set Railway variable SERVER_VB=on on the media service.
+export const SERVER_VB_ENABLED = process.env.SERVER_VB === 'on';
+
 // Called after a slot actually frees (stopSession) so the Free queue (vbQueue.helper.ts) can try
 // its next request immediately instead of waiting for the next unrelated VB_START to notice.
 let onSlotFreed: (() => void) | null = null;
@@ -765,6 +774,10 @@ export async function startSession(
   // without a Referer — cinemar.cc, the kinogo player, 2026-11-05.
   referer?: string,
 ): Promise<'unreachable' | 'redirect_blocked' | void> {
+  // Defense in depth — startVBForRoom() already stops before this while server VB is off.
+  if (!SERVER_VB_ENABLED) {
+    throw new Error('server_vb_disabled');
+  }
   if (startingRooms.has(roomId)) {
     throw new Error('virtual_browser_starting');
   }
@@ -1274,6 +1287,10 @@ export async function startSession(
  * only means "we don't know yet", which the caller records as needing the interactive fallback.
  */
 export async function probeUrl(url: string, referer?: string): Promise<{ mediaUrl: string; type: MediaType } | null> {
+  if (!SERVER_VB_ENABLED) {
+    logger.info('VB probe: skipped, server VB disabled (SERVER_VB != on)', { url });
+    return null;
+  }
   if (activeProbes >= MAX_BACKGROUND_PROBES || sessions.size + activeProbes >= MAX_TOTAL_SAFETY_CEILING) {
     logger.info('VB probe: skipped, no spare capacity', { url, sessions: sessions.size, activeProbes });
     return null;
