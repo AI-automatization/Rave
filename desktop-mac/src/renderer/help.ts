@@ -5,7 +5,7 @@
 // Wrapped in a function so this script's names do not collide with the other renderer scripts (all are plain scripts).
 (() => {
 interface HelpStringsDto {
-  lang: 'uz' | 'ru';
+  lang: 'uz' | 'ru' | 'en';
   title: string;
   back: string;
   heading: string;

@@ -184,7 +184,7 @@ async function run(name, { cookies = '', action = 'home', startPath = '/home', d
   fs.writeFileSync(out, '');
   const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'ww-m5b-ud-'));
   const env = {
-    ...process.env, WW_APP_URL: `http://127.0.0.1:${PORT}${startPath}`, WW_SMOKE_OUT: out, WW_SMOKE_TTL: String(ttl),
+    ...process.env, WW_APP_URL: `http://127.0.0.1:${PORT}${startPath}`, WW_VB_ALLOW_PRIVATE: '1', WW_SMOKE_OUT: out, WW_SMOKE_TTL: String(ttl),
     WW_SMOKE_ACTION: action, WW_SMOKE_COOKIES: cookies, ...extraEnv,
   };
   if (shotDir) env.WW_SMOKE_SHOT = shotDir;

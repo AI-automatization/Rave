@@ -27,7 +27,7 @@ const out = path.join(os.tmpdir(), `ww-m5-${Date.now()}.jsonl`);
 fs.writeFileSync(out, '');
 const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'ww-m5-ud-'));
 const child = spawn(electronBin, [root, `--user-data-dir=${userData}`], {
-  env: { ...process.env, WW_APP_URL: `http://127.0.0.1:${SITE_PORT}/home`, WW_START_WEB: '1', WW_SMOKE_COOKIES: 'wewatch-locale=uz', WW_SMOKE_OUT: out, WW_SMOKE_TTL: '16', WW_SMOKE_ACTION: 'shell' },
+  env: { ...process.env, WW_APP_URL: `http://127.0.0.1:${SITE_PORT}/home`, WW_START_WEB: '1', WW_SMOKE_COOKIES: 'wewatch-locale=uz', WW_VB_ALLOW_PRIVATE: '1', WW_SMOKE_OUT: out, WW_SMOKE_TTL: '16', WW_SMOKE_ACTION: 'shell' },
   stdio: 'ignore',
 });
 await new Promise((r) => child.on('exit', r));

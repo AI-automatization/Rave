@@ -63,8 +63,11 @@ describe('isAppOrigin', () => {
 
 describe('keepInApp', () => {
   const hosts = new Set(['app.wewatch.uz', 'wewatch.uz', 'www.wewatch.uz']);
-  it('keeps WeWatch hosts over http(s) only', () => {
+  it('keeps WeWatch hosts over https only', () => {
     expect(keepInApp('https://app.wewatch.uz/home', hosts)).toBe(true);
+    expect(keepInApp('http://app.wewatch.uz/home', hosts)).toBe(false);
+    expect(keepInApp('http://app.wewatch.uz/home', hosts, true)).toBe(true); // development only
+    expect(keepInApp('http://evil.example/', hosts, true)).toBe(false);
     expect(keepInApp('https://wewatch.uz/privacy', hosts)).toBe(true);
     expect(keepInApp('https://accounts.google.com/o/oauth2', hosts)).toBe(false);
     expect(keepInApp('file://app.wewatch.uz/x', hosts)).toBe(false);
@@ -134,7 +137,16 @@ describe('classifyPoll', () => {
 describe('checkVbUrl', () => {
   it('allows http(s) only', () => {
     expect(checkVbUrl('https://example.com/a')).toBeNull();
-    expect(checkVbUrl('http://127.0.0.1:8127/film.html')).toBeNull();
+    expect(checkVbUrl('http://93.184.216.34/film.html')).toBeNull();
+    expect(checkVbUrl('http://127.0.0.1:8127/film.html', true)).toBeNull(); // development smokes only
+  });
+  it.each(['http://localhost/x', 'http://127.0.0.1/x', 'http://127.1.2.3/x', 'http://192.168.0.1/', 'http://10.0.0.5/', 'http://172.16.0.1/',
+    'http://172.31.255.1/', 'http://169.254.169.254/latest', 'http://0.0.0.0/', 'http://[::1]/', 'http://[fd00::1]/', 'http://[fe80::1]/',
+    'http://[::ffff:127.0.0.1]/', 'http://nas.local/', 'http://app.internal/', 'http://foo.localhost/', 'http://100.64.0.1/'])('blocks the local address %s', (u) => {
+    expect(checkVbUrl(u)).toBe('private_address');
+  });
+  it.each(['http://172.32.0.1/', 'http://172.15.0.1/', 'https://example.com/', 'http://8.8.8.8/', 'http://[2606:4700::1111]/'])('allows the public address %s', (u) => {
+    expect(checkVbUrl(u)).toBeNull();
   });
   it.each([['file:///etc/passwd', 'protocol_not_allowed'], ['javascript:alert(1)', 'protocol_not_allowed'],
     ['data:text/html,x', 'protocol_not_allowed'], ['wewatch://room/a', 'protocol_not_allowed'], ['ftp://h/x', 'protocol_not_allowed'],

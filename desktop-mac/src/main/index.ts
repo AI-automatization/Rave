@@ -11,7 +11,6 @@ import { installPermissionPolicy } from './permissions';
 import { chromeUserAgent } from './urls';
 import { clearVbCache, closeVb, protectVbSession } from './vb';
 import { initAdEngine } from './adblock-engine';
-import { presetSmokeCookies, runSmokeAction } from './smoke';
 import { createMainWindow, focusMainWindow, getMainWindow, observeContent, sendToMain } from './window';
 
 // Automated runs (smokes, agents) must never make a sound on the user's Mac: every page is muted (per page, so the
@@ -26,6 +25,13 @@ const smoke = (event: string, data: Record<string, unknown> = {}): void => {
 };
 
 addDnsSwitches(); // must run before the app is ready
+
+/** Every main window (first launch, Dock click, a link arriving after the window was closed) owns the VB it opens. */
+function openMainWindow(): BrowserWindow {
+  const win = createMainWindow(smoke);
+  win.on('closed', () => closeVb()); // the VB belongs to the room window
+  return win;
+}
 
 // Smoke/debug observers: the web view is created on demand, so listeners attach whenever one appears.
 let smokeActionDone = false;
@@ -63,7 +69,8 @@ observeContent((content) => {
 });
 const smokeStarted = (_win: BrowserWindow): void => {
   const action = devEnv('WW_SMOKE_ACTION');
-  if (SMOKE_OUT && action) runSmokeAction(action, smoke);
+  // smoke.ts is development only and is not shipped (electron-builder.yml excludes it): load it on demand.
+  if (SMOKE_OUT && action) void import('./smoke.js').then((m) => m.runSmokeAction(action, smoke));
 };
 
 
@@ -77,7 +84,10 @@ app.on('open-url', (event, url) => {
   event.preventDefault();
   smoke('open-url', { url });
   queueDeepLink(url);
-  if (app.isReady() && getMainWindow()) flushPendingDeepLink();
+  if (app.isReady()) {
+    if (!getMainWindow()) openMainWindow(); // app alive, window closed: bring a window back for the link
+    flushPendingDeepLink();
+  }
 });
 
 if (!app.requestSingleInstanceLock()) {
@@ -87,14 +97,16 @@ if (!app.requestSingleInstanceLock()) {
   app.on('second-instance', (_e, argv) => {
     const link = argv.find((a) => a.toLowerCase().startsWith(`${PROTOCOL}://`));
     smoke('second-instance', { link: link ?? null });
+    if (!getMainWindow() && app.isReady()) openMainWindow();
     focusMainWindow();
     handleDeepLink(link);
   });
 
   app.on('activate', () => {
     // Dock click with no window: macOS apps stay alive after the last window closes.
-    if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
+    if (BrowserWindow.getAllWindows().length === 0) openMainWindow();
     else focusMainWindow();
+    flushPendingDeepLink(); // a wewatch:// link that arrived while the window was closed
   });
 
   // macOS convention: closing the last window does not quit the app.
@@ -140,10 +152,8 @@ if (!app.requestSingleInstanceLock()) {
     buildMenu();
     registerIpc();
     void (async () => {
-      if (SMOKE_OUT) await presetSmokeCookies(); // fake session cookies for smoke runs (dev only)
-      const win = createMainWindow(smoke);
-      win.on('closed', () => closeVb()); // the VB belongs to the room window
-      smokeStarted(win);
+      if (SMOKE_OUT) await (await import('./smoke.js')).presetSmokeCookies(); // fake session cookies for smoke runs (dev only)
+      smokeStarted(openMainWindow());
     })();
 
     flushPendingDeepLink();

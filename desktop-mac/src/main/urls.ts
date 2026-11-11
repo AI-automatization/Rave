@@ -44,11 +44,14 @@ export function isAppOrigin(raw: string, appOrigin: string): boolean {
   }
 }
 
-/** The main window may only show WeWatch hosts over http(s); everything else leaves for the browser. */
-export function keepInApp(raw: string, hosts: ReadonlySet<string>): boolean {
+/**
+ * The main window may only show WeWatch hosts, and only over https; everything else leaves for the browser.
+ * `allowHttp` is for development only (the app itself served from http://localhost) — never true in the packaged app.
+ */
+export function keepInApp(raw: string, hosts: ReadonlySet<string>, allowHttp = false): boolean {
   try {
     const u = new URL(raw);
-    return (u.protocol === 'https:' || u.protocol === 'http:') && hosts.has(u.hostname);
+    return (u.protocol === 'https:' || (allowHttp && u.protocol === 'http:')) && hosts.has(u.hostname);
   } catch {
     return false;
   }
@@ -108,15 +111,55 @@ export function chromeUserAgent(ua: string): string {
 
 // ── Virtual Browser (VB) helpers ─────────────────────────────────────────
 
-/** null when the VB may open `raw`, otherwise the reason it may not (only http(s) pages open). */
-export function checkVbUrl(raw: string): 'invalid_url' | 'protocol_not_allowed' | null {
+/**
+ * True for hosts that point at this computer or the local network: localhost, *.local / *.internal, and IP literals
+ * in loopback / private / link-local / unique-local / unspecified ranges (incl. IPv4-mapped IPv6). Pure string check;
+ * hostnames that merely RESOLVE to such an address are caught by `isPrivateIp` after DNS (vb.ts).
+ */
+export function isPrivateHost(rawHost: string): boolean {
+  const h = rawHost.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
+  if (h === '' || h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.local') || h.endsWith('.internal')) return true;
+  return isPrivateIp(h);
+}
+
+/** Private / loopback / link-local IPv4 or IPv6 literal. Anything that is not an IP literal → false. */
+export function isPrivateIp(ip: string): boolean {
+  const dotted = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(ip);
+  // URL parsing turns [::ffff:127.0.0.1] into [::ffff:7f00:1] — read the two hex groups back as an IPv4 address.
+  const hex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(ip);
+  const v4 = dotted
+    ? dotted[1]
+    : hex
+      ? [parseInt(hex[1]!, 16) >> 8, parseInt(hex[1]!, 16) & 255, parseInt(hex[2]!, 16) >> 8, parseInt(hex[2]!, 16) & 255].join('.')
+      : ip;
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(v4 ?? '');
+  if (m) {
+    const [a, b] = [Number(m[1]), Number(m[2])];
+    return (
+      a === 0 || a === 10 || a === 127 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127) || a >= 224
+    );
+  }
+  if (!ip.includes(':')) return false;
+  const v6 = ip.toLowerCase();
+  return v6 === '::' || v6 === '::1' || /^f[cd][0-9a-f]{2}:/.test(v6) || /^fe[89ab][0-9a-f]:/.test(v6);
+}
+
+export type VbUrlProblem = 'invalid_url' | 'protocol_not_allowed' | 'private_address';
+
+/**
+ * null when the VB may open `raw`, otherwise the reason it may not: only http(s) pages open, and (unless
+ * `allowPrivate`, development smokes only) never this computer or the local network — the VB frame goes to the room.
+ */
+export function checkVbUrl(raw: string, allowPrivate = false): VbUrlProblem | null {
   let u: URL;
   try {
     u = new URL(raw);
   } catch {
     return 'invalid_url';
   }
-  return u.protocol === 'http:' || u.protocol === 'https:' ? null : 'protocol_not_allowed';
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') return 'protocol_not_allowed';
+  return !allowPrivate && isPrivateHost(u.hostname) ? 'private_address' : null;
 }
 
 // Last two host labels (three for co.uk / com.ua-style hosts) — enough to tell youtube.com from an ad

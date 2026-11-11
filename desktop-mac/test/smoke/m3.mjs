@@ -51,7 +51,7 @@ async function run(minimized) {
       ...process.env,
       WW_APP_URL: `http://127.0.0.1:${APP_PORT}/`,
       WW_START_WEB: '1', // these smokes test the web page's features, not the native Home
-      WW_SMOKE_OUT: out,
+      WW_VB_ALLOW_PRIVATE: '1', WW_SMOKE_OUT: out,
       WW_SMOKE_TTL: '70',
       ...(minimized ? { WW_SMOKE_VB_MINIMIZE: '1' } : {}),
     },

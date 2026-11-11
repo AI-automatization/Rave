@@ -5,7 +5,7 @@
 
 // Wrapped in a function so this script's names do not collide with the other renderer scripts (all are plain scripts).
 (() => {
-type Strings = Record<string, string> & { lang: 'uz' | 'ru' };
+type Strings = Record<string, string> & { lang: 'uz' | 'ru' | 'en' };
 type Entry = 'login' | 'register' | 'forgot' | 'reset';
 interface AuthData {
   strings: Strings;

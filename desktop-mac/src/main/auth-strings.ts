@@ -1,12 +1,12 @@
 // Words of the native sign-in screens. No Electron imports — pure, unit-tested.
 //
 // Nothing here is invented. Sources, copied as they are:
-//   - everything under *_WEB: apps/app-web/messages/{uz,ru}.json, namespace "auth" (the web sign-in pages' own texts;
+//   - everything under *_WEB: apps/app-web/messages/{uz,ru,en}.json, namespace "auth" (the web sign-in pages' own texts;
 //     test/auth-strings.test.ts compares them with those files whenever the web app sits next to this folder).
 //   - resend / resendCooldown / errResend: apps/mobile/src/i18n/translations.ts, namespace "verifyEmail" — the web
 //     VerifyEmail step has no "resend code" button, the mobile app has one (same request, same 60 s cooldown).
 //   - google: the web button shows just the brand name ("Google"); strength labels: RegisterForm.tsx shows them in English.
-// Only Uzbek and Russian exist on the sign-in screen's switch; English falls back to Russian (the web app's own fallback).
+// English (EN_WEB) is copied from apps/app-web/messages/en.json the same way; EN_MOBILE from the mobile app's `en`.
 import type { Locale } from './i18n';
 
 const UZ_WEB = {
@@ -148,6 +148,76 @@ const RU_WEB = {
   heroImageAlt: "Двое на диване смотрят фильм вместе через WeWatch",
 } as const;
 
+const EN_WEB = {
+  welcomeBack: "Welcome back",
+  welcomeBackSub: "Your friends are waiting — sign in to your account.",
+  continueWithGoogle: "Continue with Google",
+  orDivider: "or",
+  emailLabel: "Email",
+  emailPlaceholder: "you@example.com",
+  passwordLabel: "Password",
+  passwordPlaceholder: "Your password",
+  forgotPassword: "Forgot?",
+  showPassword: "Show password",
+  hidePassword: "Hide password",
+  login: "Login",
+  noAccount: "No account?",
+  registerLink: "Register",
+  wrongCredentials: "Invalid email or password",
+  genericError: "An error occurred, please try again",
+  bannedTitle: "Account blocked",
+  bannedReason: "Reason: {reason}",
+  bannedHint: "If you believe this is a mistake — please contact support.",
+  loggingIn: "Signing in...",
+  loggingInSub: "Complete sign-in in the popup window",
+  registerHeading: "Create an account",
+  registerSub: "One minute — and you’re watching together.",
+  usernameLabel: "Username",
+  usernamePattern: "3–20 characters: Latin letters, numbers and _ only (no spaces)",
+  passwordMin: "At least 6 characters",
+  passwordPattern: "Needs lowercase, UPPERCASE letters and a number",
+  register: "Register",
+  hasAccount: "Already have an account?",
+  loginLink: "Login",
+  emailVerifyTitle: "Verify your email",
+  emailVerifyText: "A 6-digit verification code was sent to:",
+  emailVerifyDigit: "Code digit {n}",
+  emailVerifyChecking: "Checking the code...",
+  goToLogin: "Go to Login",
+  forgotHeading: "Forgot your password?",
+  forgotSubtitle: "Enter your account email — we'll send you a password reset link.",
+  forgotSubmit: "Send link",
+  forgotSending: "Sending...",
+  forgotSent: "Link sent",
+  forgotSentHint: "If an account exists for {email}, a password reset link has been sent. Check your inbox, including the spam folder.",
+  forgotBackToLogin: "Back to sign in",
+  forgotRateLimited: "Too many attempts. Try again in a few minutes.",
+  resetHeading: "New password",
+  resetSubtitle: "Choose a strong password for your WeWatch account.",
+  resetNewPasswordLabel: "New password",
+  resetRepeatLabel: "Repeat password",
+  passwordMismatch: "Passwords do not match",
+  resetSaving: "Saving...",
+  resetSubmit: "Save new password",
+  resetSuccess: "Password changed",
+  resetSuccessHint: "You can now sign in with your new password — in the app or in the browser.",
+  resetFailed: "Could not reset the password",
+  resetNetworkError: "Could not reach the server",
+  resetLinkInvalid: "Link is invalid",
+  resetLinkInvalidHint: "This link has expired or is incomplete. Request a new one with the button below.",
+  help: "Help",
+  backToSite: "About WeWatch",
+  heroTitle: "Far apart, still watching <accent>together</accent>.",
+  heroSubtitle: "Watch movies, series and videos with your friends in perfect sync — chat live and share every reaction as it happens.",
+  heroFeature1Title: "Watch together",
+  heroFeature1Desc: "Synced playback",
+  heroFeature2Title: "Live chat",
+  heroFeature2Desc: "Share the moment",
+  heroFeature3Title: "With friends",
+  heroFeature3Desc: "Feel closer",
+  heroImageAlt: "Two people on a sofa watching a film together through WeWatch",
+} as const;
+
 const UZ_MOBILE = {
   resend: 'Kodni qayta yuborish',
   resendCooldown: 'Qayta yuborish',
@@ -158,16 +228,22 @@ const RU_MOBILE = {
   resendCooldown: 'Отправить повторно',
   errResend: 'Не удалось отправить код повторно',
 } as const;
+const EN_MOBILE = {
+  resend: 'Resend code',
+  resendCooldown: 'Resend',
+  errResend: 'Failed to resend code',
+} as const;
 const SHARED = { google: 'Google', weak: 'weak', okay: 'okay', strong: 'strong' } as const;
 
 export type AuthStringKey = keyof typeof UZ_WEB | keyof typeof UZ_MOBILE | keyof typeof SHARED;
-export type AuthStrings = Readonly<Record<AuthStringKey, string>> & { readonly lang: 'uz' | 'ru' };
+export type AuthStrings = Readonly<Record<AuthStringKey, string>> & { readonly lang: Locale };
 
 const UZ: AuthStrings = { lang: 'uz', ...UZ_WEB, ...UZ_MOBILE, ...SHARED };
 const RU: AuthStrings = { lang: 'ru', ...RU_WEB, ...RU_MOBILE, ...SHARED };
+const EN: AuthStrings = { lang: 'en', ...EN_WEB, ...EN_MOBILE, ...SHARED };
 
-/** The sign-in screens' words; English (the web app's third language) shows Russian. */
-export const authStringsFor = (l: Locale): AuthStrings => (l === 'uz' ? UZ : RU);
+/** The sign-in screens' words in the web app's language (uz / ru / en). */
+export const authStringsFor = (l: Locale): AuthStrings => (l === 'uz' ? UZ : l === 'en' ? EN : RU);
 
 /** The keys copied from the web app (the test compares them with apps/app-web/messages). */
 export const WEB_KEYS = Object.keys(UZ_WEB) as (keyof typeof UZ_WEB)[];

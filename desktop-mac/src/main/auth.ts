@@ -1,5 +1,6 @@
 import { dialog, net, session, shell, type BrowserWindow } from 'electron';
 import { APP_ORIGIN, APP_URL, AUTH_NO_BROWSER, BACKGROUND, AUTH_POLL_MS, AUTH_URL } from './config';
+import { DEFAULT_LOCALE, type Locale } from './i18n';
 import { classifyPoll, safeRedirect } from './urls';
 
 // Google sign-in NEVER runs inside the app (RFC 8252: no embedded login; Google blocks embedded browsers).
@@ -21,11 +22,30 @@ export type Log = (event: string, data?: Record<string, unknown>) => void;
 
 let loginGen = 0; // a newer click cancels the older polling loop
 
-const MSG = {
-  initFailed: "Google orqali kirishni boshlab bo'lmadi. Internetni tekshirib, qayta urinib ko'ring.",
-  failed: "Google orqali kirish amalga oshmadi. Qayta urinib ko'ring.",
-  blocked: (reason: string) => `Hisob bloklangan${reason ? `: ${reason}` : ''}`,
-} as const;
+const MSG: Record<Locale, { initFailed: string; failed: string; blocked: (reason: string) => string }> = {
+  uz: {
+    initFailed: "Google orqali kirishni boshlab bo'lmadi. Internetni tekshirib, qayta urinib ko'ring.",
+    failed: "Google orqali kirish amalga oshmadi. Qayta urinib ko'ring.",
+    blocked: (reason) => `Hisob bloklangan${reason ? `: ${reason}` : ''}`,
+  },
+  ru: {
+    initFailed: 'Не удалось начать вход через Google. Проверьте интернет и попробуйте снова.',
+    failed: 'Вход через Google не удался. Попробуйте снова.',
+    blocked: (reason) => `Аккаунт заблокирован${reason ? `: ${reason}` : ''}`,
+  },
+  en: {
+    initFailed: "Couldn't start Google sign-in. Check your internet connection and try again.",
+    failed: 'Google sign-in failed. Please try again.',
+    blocked: (reason) => `Account blocked${reason ? `: ${reason}` : ''}`,
+  },
+};
+
+// The app's language for these system dialogs (set by shell.ts whenever the web app's language cookie is read).
+let dialogLocale: Locale = DEFAULT_LOCALE;
+export function setAuthDialogLocale(l: Locale): void {
+  dialogLocale = l;
+}
+export const getDialogLocale = (): Locale => dialogLocale;
 
 function showError(win: BrowserWindow, message: string): void {
   if (!win.isDestroyed()) void dialog.showMessageBox(win, { type: 'warning', title: 'WeWatch', message });
@@ -49,7 +69,7 @@ async function setSessionTokens(accessToken: string, refreshToken?: string): Pro
 /** How a Google sign-in ended (the native sign-in screen shows the failures itself; other callers get a dialog). */
 export type GoogleResult = { kind: 'ok' } | { kind: 'blocked'; reason: string } | { kind: 'error' } | { kind: 'cancelled' };
 
-/** The user gave up waiting (native sign-in screen): the polling loop stops at its next step. */
+/** Stop waiting for Google: the user gave up, signed in another way or signed out. The polling loop ends at its next step. */
 export function cancelBrowserLogin(): void {
   loginGen++;
 }
@@ -75,7 +95,7 @@ export async function startBrowserLogin(
     state = s;
   } catch (e) {
     log('login-init-failed', { error: String(e) });
-    fail(MSG.initFailed);
+    fail(MSG[dialogLocale].initFailed);
     return { kind: 'error' };
   }
 
@@ -99,15 +119,18 @@ export async function startBrowserLogin(
       continue; // network blip — keep waiting until the deadline
     }
 
+    // Cancelled while the answer was on its way (signed in another way, signed out, a newer attempt): drop it — never
+    // write these tokens over the session the user has now.
+    if (gen !== loginGen || win.isDestroyed()) return { kind: 'cancelled' };
     if (outcome.kind === 'pending') continue;
     if (outcome.kind === 'blocked') {
       log('login-blocked');
-      fail(MSG.blocked(outcome.reason));
+      fail(MSG[dialogLocale].blocked(outcome.reason));
       return { kind: 'blocked', reason: outcome.reason };
     }
     if (outcome.kind === 'error') {
       log('login-error');
-      fail(MSG.failed);
+      fail(MSG[dialogLocale].failed);
       return { kind: 'error' };
     }
 

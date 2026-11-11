@@ -22,10 +22,13 @@ describe('help strings — uz and ru stay in step', () => {
     for (const k of ['title', 'back', 'heading', 'subtitle', 'faqTitle', 'contactTitle', 'contactSub', 'open'] as const) expect(uz[k]).not.toBe(ru[k]);
     uz.faq.forEach((f, i) => expect(f.a).not.toBe(ru.faq[i]?.a));
   });
-  it('language tags, fallback: English follows the web app and shows Russian', () => {
+  it('language tags; English has its own words (not Russian)', () => {
+    const en = helpStringsFor('en');
     expect(uz.lang).toBe('uz');
     expect(ru.lang).toBe('ru');
-    expect(helpStringsFor('en')).toBe(ru);
+    expect(en.lang).toBe('en');
+    expect(en.faq.length).toBe(ru.faq.length);
+    expect(JSON.stringify(en)).not.toMatch(/[\u0400-\u04FF]/);
   });
   it('no contact row without a whitelist entry, and the handle matches the link', () => {
     for (const s of [uz, ru]) {

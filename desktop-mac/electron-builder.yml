@@ -7,8 +7,11 @@ directories:
   output: out
   buildResources: build
 beforeBuild: scripts/before-build.cjs
+afterPack: scripts/after-pack.cjs
 files:
   - dist/**/*
+  - "!dist/main/smoke.js" # development smoke driver, never loaded by the packaged app (index.ts)
+  - "!dist/main/smoke.js.map"
   - package.json
 protocols:
   - name: WeWatch

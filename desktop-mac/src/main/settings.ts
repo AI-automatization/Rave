@@ -1,8 +1,7 @@
 // Network side of the native Sozlamalar screen. Like Home, everything is done by the MAIN process with the app's own
 // session cookies; the renderer only asks "save these fields" / "pick a picture" and never chooses a URL.
 import { APP_URL } from './config';
-import { call } from './home-data';
-import { refreshApiUrl } from './rooms-model';
+import { call, refreshSession } from './home-data';
 import { checkAvatar, classifyError, detectImage, parseProfile, settingsApiUrls, validatePasswordChange, validateProfile, type ErrorKind, type Profile } from './settings-model';
 
 export type Outcome = { ok: true } | { ok: false; kind: ErrorKind | 'username' | 'bio' | 'required' | 'min' | 'max' | 'mismatch' | 'type' | 'size' };
@@ -20,8 +19,9 @@ async function withSessionRefresh(run: () => Promise<Response>): Promise<Respons
   if (res.status === 401) {
     const msg = await res.clone().json().then((b: unknown) => (b as { message?: unknown } | null)?.message, () => undefined);
     if (typeof msg === 'string' && /password is incorrect/i.test(msg)) return res;
-    const refreshed = await call(refreshApiUrl(APP_URL), { method: 'POST' });
-    if (refreshed.ok) res = await run();
+    const outcome = await refreshSession(); // shared with Home: one refresh at a time; 5xx/offline never means "signed out"
+    if (outcome === 'ok') res = await run();
+    else if (outcome === 'transient') throw new Error('session_refresh_unavailable');
   }
   return res;
 }

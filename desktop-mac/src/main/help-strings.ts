@@ -7,7 +7,8 @@
 //   - "forgot password": apps/app-web/messages/{uz,ru}.json  auth.forgotHeading + auth.forgotSubtitle.
 //   - header: messages support.title / emptyTitle / subtitle (apps/app-web); the page title is auth.help ("Yordam" / "Помощь").
 //   - contact channels: wewatch.uz/{uz,ru}/contact — Telegram support @wewatch_support, Telegram channel @wewatchh, e-mail support@wewatch.uz.
-// Only Uzbek and Russian exist on the login screen's switch; English falls back to Russian (the web app's own fallback).
+// English: apps/web/src/app/en/faq/page.tsx and apps/app-web/messages/en.json (same selection as uz/ru). Own translation of the
+// design's Uzbek: contactTitle / contactSub / back.
 import type { Locale } from './i18n';
 
 /** The renderer names a contact channel by id; this table is the ONLY place that decides where it leads. */
@@ -34,7 +35,7 @@ export interface HelpFaqItem {
   readonly a: string;
 }
 export interface HelpStrings {
-  readonly lang: 'uz' | 'ru';
+  readonly lang: Locale;
   readonly title: string;
   /** Label of the button that returns to the login page. */
   readonly back: string;
@@ -135,6 +136,49 @@ const RU: HelpStrings = {
   ],
 };
 
+const EN: HelpStrings = {
+  lang: 'en',
+  title: 'Help',
+  back: 'Back to sign in',
+  heading: 'How can we help?',
+  subtitle: 'We usually reply within a few hours',
+  faqTitle: 'Frequently asked questions',
+  faq: [
+    {
+      q: 'Forgot your password?',
+      a: "Enter your account email — we'll send you a password reset link.",
+    },
+    {
+      q: 'What is a watch party?',
+      a: 'A watch party is synchronized co-watching over the internet. Several people watch the same video in real time, as if they were sitting together. WeWatch keeps playback aligned: play, pause and seek happen simultaneously for everyone in the room.',
+    },
+    {
+      q: 'Which video services does WeWatch support?',
+      a: 'WeWatch supports YouTube, VK Video, Rutube and direct .mp4 links in the web version.',
+    },
+    {
+      q: 'Do I need an account to watch?',
+      a: 'Creating a room and controlling playback requires a free account. If someone sends you a room link, you can join as a guest and watch without signing up.',
+    },
+    {
+      q: 'How many people can be in one room?',
+      a: 'Up to 10 participants in a single room. A room closes automatically after 10 minutes of inactivity.',
+    },
+    {
+      q: 'Can one person watch from a phone and another from a computer?',
+      a: 'Yes. Participants can open the web version in browsers on iPhone, Android and desktop and join the same synchronized room. Native apps are in development.',
+    },
+  ],
+  contactTitle: 'Direct channels',
+  contactSub: 'We reply fast — usually within a day.',
+  open: 'Open',
+  contacts: [
+    { id: 'telegram-support', label: 'Telegram', handle: '@wewatch_support' },
+    { id: 'telegram-channel', label: 'Telegram channel', handle: '@wewatchh' },
+    { id: 'email', label: 'Email', handle: 'support@wewatch.uz' },
+  ],
+};
+
 export function helpStringsFor(l: Locale): HelpStrings {
-  return l === 'uz' ? UZ : RU;
+  return l === 'uz' ? UZ : l === 'en' ? EN : RU;
 }

@@ -19,7 +19,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { APP_URL, AUTH_NO_BROWSER, devEnv } from './config';
-import { cancelBrowserLogin, startBrowserLogin, type Log } from './auth';
+import { cancelBrowserLogin, setAuthDialogLocale, startBrowserLogin, type Log } from './auth';
 import { confirmEmail, forgotPassword, login, register, resetPassword } from './auth-api';
 import { nativeAuthTarget, type AuthOutcome, type AuthScreen, type AuthTarget } from './auth-model';
 import { authStringsFor } from './auth-strings';
@@ -241,6 +241,7 @@ async function seedLocale(): Promise<void> {
 /** Follow the web app's language setting: re-read the cookie and, if it changed, redraw both native screens. */
 async function syncLocale(): Promise<void> {
   const next = await readLocale();
+  setAuthDialogLocale(next); // Google sign-in dialogs speak the same language
   if (next === locale) return;
   locale = next;
   pushState();
@@ -413,7 +414,7 @@ async function refreshHome(opts: { loading?: boolean; background?: boolean } = {
   if (gen !== homeGen) return; // a newer refresh superseded this one
   lastFetch = Date.now();
   sessionChecked = r.kind !== 'unauthorized';
-  if (r.kind === 'unauthorized') return showAuth(); // not signed in (or the session died): the sign-in screen takes over
+  if (r.kind === 'unauthorized') return sessionLost(); // not signed in (or the session died): the sign-in screen takes over
   if (r.kind === 'unavailable') {
     if (opts.background && homeCards) return; // a failed background refresh keeps what is on screen
     homeCards = null;
@@ -499,7 +500,7 @@ async function loadSettings(): Promise<void> {
   pushHome();
   const r = await loadProfile();
   if (gen !== settingsGen) return;
-  if (r.kind === 'unauthorized') return showAuth();
+  if (r.kind === 'unauthorized') return sessionLost();
   if (r.kind === 'ok') {
     settingsView = { status: 'ok', profile: r.profile };
     meName = r.profile.username; // the sidebar's profile block follows
@@ -512,6 +513,7 @@ async function loadSettings(): Promise<void> {
 
 /** Forget everything about the signed-in user (signed out, or the server ended the session). */
 function forgetUser(): void {
+  homeGen++; // an answer still on its way for the old user must not repaint the next one
   settingsGen++;
   settingsView = { status: 'loading', profile: null };
   homeCards = null;
@@ -529,6 +531,7 @@ function forgetUser(): void {
  * server ended the session, password changed, account deleted, a web page that asked for a sign-in).
  */
 function showAuth(t: Partial<AuthTarget> = {}): void {
+  cancelBrowserLogin(); // a Google sign-in still being polled belongs to the previous screen
   forgetUser();
   authEntry = t.screen ?? 'login';
   pendingRedirect = t.redirect ?? null;
@@ -541,8 +544,19 @@ function showAuth(t: Partial<AuthTarget> = {}): void {
 }
 const backToLogin = (): void => showAuth();
 
+/**
+ * An API call answered "no session". From Home that means the sign-in screen. From anywhere else the screen already
+ * shown is not ours to replace: the sign-in screen may be carrying the ?redirect= of a room link (wewatch://room/…
+ * opened the app signed-out), and a web page that needs a session sends itself to the native sign-in with its own redirect.
+ */
+function sessionLost(): void {
+  if (mode === 'home') showAuth();
+  else forgetUser();
+}
+
 /** Signed in (password, e-mail code or Google): the page that asked for the sign-in, else the native Home. */
 function afterSignIn(url?: string): Promise<void> {
+  cancelBrowserLogin(); // signed in (any way): nothing is left to poll Google for
   sessionChecked = true;
   const dest = url ?? new URL(pendingRedirect ?? '/home', APP_URL).toString();
   pendingRedirect = null;
@@ -926,7 +940,7 @@ function registerIpc(): void {
         return { ok: true } as const;
       }
       if (r.kind === 'unauthorized') {
-        showAuth(); // the session died: the sign-in screen takes over (same as for the room list)
+        sessionLost(); // the session died: the sign-in screen takes over (same as for the room list)
         return { ok: false, reason: 'unauthorized' } as const;
       }
       return { ok: false, reason: 'error' } as const;

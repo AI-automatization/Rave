@@ -1,10 +1,15 @@
-import { BrowserWindow, shell } from 'electron';
+import { app, BrowserWindow, screen, shell } from 'electron';
+import fs from 'node:fs';
 import path from 'node:path';
 import { startBrowserLogin, type Log } from './auth';
 import { APP_ORIGIN, devEnv, IN_APP_HOSTS, BACKGROUND } from './config';
 import { attachShell, getContentWebContents, openInApp, startApp } from './shell';
 import { shellWindowOptions } from './shell-model';
 import { isGoogleStartUrl, isSafeExternalUrl, keepInApp } from './urls';
+import { restoreBounds, type WindowBounds } from './window-state-model';
+
+// Plain http is only ever in-app when the app itself is served over http (development: WW_APP_URL=http://localhost…).
+const ALLOW_HTTP = APP_ORIGIN.startsWith('http:');
 
 let mainWin: BrowserWindow | null = null;
 
@@ -23,10 +28,34 @@ function openExternal(url: string): void {
   if (isSafeExternalUrl(url)) void shell.openExternal(url);
 }
 
+// The window opens where it was last closed (size and place). Automated runs neither read nor write it.
+const stateFile = (): string => path.join(app.getPath('userData'), 'window-state.json');
+
+function savedBounds(min: { width: number; height: number }): WindowBounds | null {
+  if (BACKGROUND) return null;
+  try {
+    const raw: unknown = JSON.parse(fs.readFileSync(stateFile(), 'utf8'));
+    return restoreBounds(raw, screen.getAllDisplays().map((d) => d.workArea), min);
+  } catch {
+    return null; // first run, or an unreadable file: the default size, centred
+  }
+}
+
+function saveBounds(win: BrowserWindow): void {
+  if (BACKGROUND || win.isDestroyed()) return;
+  try {
+    fs.writeFileSync(stateFile(), JSON.stringify(win.getNormalBounds())); // the un-maximised, un-fullscreen rectangle
+  } catch {
+    /* not being able to remember the place must never get in the way of closing */
+  }
+}
+
 export function createMainWindow(log: Log = () => {}): BrowserWindow {
   // The window's own page stays empty; the real pages live in two views (native shell + web content, see shell.ts).
+  const defaults = shellWindowOptions();
   const win = new BrowserWindow({
-    ...shellWindowOptions(),
+    ...defaults,
+    ...(savedBounds({ width: defaults.minWidth, height: defaults.minHeight }) ?? {}),
     webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false },
   });
   mainWin = win;
@@ -42,7 +71,7 @@ export function createMainWindow(log: Log = () => {}): BrowserWindow {
   const guardContent = (wc: Electron.WebContents): void => {
     wc.setWindowOpenHandler(({ url }) => {
       if (isGoogleStartUrl(url, APP_ORIGIN)) googleLogin(url);
-      else if (!keepInApp(url, IN_APP_HOSTS)) openExternal(url);
+      else if (!keepInApp(url, IN_APP_HOSTS, ALLOW_HTTP)) openExternal(url);
       return { action: 'deny' };
     });
     const leaveApp = (e: { preventDefault(): void }, url: string, isMainFrame = true): void => {
@@ -52,7 +81,7 @@ export function createMainWindow(log: Log = () => {}): BrowserWindow {
         googleLogin(url);
         return;
       }
-      if (!keepInApp(url, IN_APP_HOSTS)) {
+      if (!keepInApp(url, IN_APP_HOSTS, ALLOW_HTTP)) {
         e.preventDefault();
         openExternal(url);
       }
@@ -92,6 +121,7 @@ export function createMainWindow(log: Log = () => {}): BrowserWindow {
   shellView.webContents.once('did-finish-load', showWindow);
   setTimeout(showWindow, 3000);
 
+  win.on('close', () => saveBounds(win));
   win.on('closed', () => {
     if (mainWin === win) mainWin = null;
   });

@@ -17,17 +17,46 @@ const TIMEOUT_MS = 15_000;
 export const call = (url: string, init: { method?: string; headers?: Record<string, string>; body?: string | FormData } = {}): Promise<Response> =>
   session.defaultSession.fetch(url, { ...init, credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(TIMEOUT_MS) });
 
+export type SessionRefresh = 'ok' | 'dead' | 'transient';
+
+let refreshInFlight: Promise<SessionRefresh> | null = null;
+
+/**
+ * ONE refresh at a time for the whole app (Home, Sozlamalar, ...): refresh tokens rotate, so two parallel refreshes would
+ * make the second one fail with the already-used token and sign the user out. Callers that arrive while one is running
+ * wait for that same answer. Only 401/403 means the session is really dead; a 5xx / offline / timeout is 'transient'.
+ */
+export function refreshSession(): Promise<SessionRefresh> {
+  if (refreshInFlight) return refreshInFlight;
+  const p: Promise<SessionRefresh> = (async () => {
+    try {
+      const r = await call(refreshApiUrl(APP_URL), { method: 'POST' });
+      if (r.ok) return 'ok';
+      return r.status === 401 || r.status === 403 ? 'dead' : 'transient';
+    } catch {
+      return 'transient';
+    }
+  })();
+  refreshInFlight = p;
+  void p.finally(() => {
+    if (refreshInFlight === p) refreshInFlight = null;
+  });
+  return p;
+}
+
 /**
  * The access token lives only 15 minutes and the web app (which normally refreshes it) is not running while the
  * native Home is shown, so a 401 triggers one refresh (cookie-based, same endpoint the web app uses) and one retry.
  * The retry only happens after a 401, i.e. after the server refused the first request — safe for a POST too.
+ * Dead session → the original 401 is returned (caller shows sign-in). Transient refresh failure → throws, so the caller
+ * reports "unavailable" instead of signing the user out because of a server hiccup.
  */
 export async function withRefresh(run: () => Promise<Response>): Promise<Response> {
-  let res = await run();
-  if (res.status === 401) {
-    const refreshed = await call(refreshApiUrl(APP_URL), { method: 'POST' });
-    if (refreshed.ok) res = await run();
-  }
+  const res = await run();
+  if (res.status !== 401) return res;
+  const outcome = await refreshSession();
+  if (outcome === 'ok') return run();
+  if (outcome === 'transient') throw new Error('session_refresh_unavailable');
   return res;
 }
 

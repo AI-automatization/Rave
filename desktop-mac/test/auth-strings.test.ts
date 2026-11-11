@@ -5,17 +5,21 @@ import { authStringsFor, WEB_KEYS } from '../src/main/auth-strings';
 
 const uz = authStringsFor('uz');
 const ru = authStringsFor('ru');
+const en = authStringsFor('en');
 const root = path.resolve(import.meta.dirname, '..');
 
 describe('sign-in strings — uz and ru stay in step', () => {
   it('the same keys in both languages, none empty', () => {
     expect(Object.keys(uz).sort()).toEqual(Object.keys(ru).sort());
-    for (const t of [uz, ru]) for (const [k, v] of Object.entries(t)) expect(v.trim(), k).not.toBe('');
+    expect(Object.keys(en).sort()).toEqual(Object.keys(ru).sort());
+    for (const t of [uz, ru, en]) for (const [k, v] of Object.entries(t)) expect(v.trim(), k).not.toBe('');
   });
-  it('language tags; English (the web app\'s third language) shows Russian', () => {
+  it('language tags; English has its own words (no Russian on the English screen)', () => {
     expect(uz.lang).toBe('uz');
     expect(ru.lang).toBe('ru');
-    expect(authStringsFor('en')).toBe(ru);
+    expect(en.lang).toBe('en');
+    for (const k of ['welcomeBack', 'login', 'forgotHeading', 'help', 'resend'] as const) expect(en[k]).not.toBe(ru[k]);
+    for (const v of Object.values(en)) expect(v).not.toMatch(/[\u0400-\u04FF]/);
   });
   it('real translations: the sentences differ between the languages', () => {
     for (const k of ['welcomeBack', 'login', 'register', 'forgotHeading', 'resetHeading', 'emailVerifyTitle', 'help', 'backToSite', 'resend', 'orDivider'] as const) expect(uz[k]).not.toBe(ru[k]);
@@ -37,7 +41,7 @@ describe('the words are the web app\'s own (apps/app-web/messages, namespace "au
     const f = path.join(root, '..', 'apps', 'app-web', 'messages', `${l}.json`);
     return fs.existsSync(f) ? (JSON.parse(fs.readFileSync(f, 'utf8')) as { auth: Record<string, string> }).auth : null;
   };
-  it.each([['uz', uz], ['ru', ru]] as const)('%s: every web key is copied exactly', (l, t) => {
+  it.each([['uz', uz], ['ru', ru], ['en', en]] as const)('%s: every web key is copied exactly', (l, t) => {
     const w = web(l);
     if (!w) return; // the web app is not next to this folder (e.g. a desktop-only checkout)
     for (const k of WEB_KEYS) expect(t[k], k).toBe(w[k]);

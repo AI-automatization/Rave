@@ -5,7 +5,7 @@ import { BrowserWindow, WebContentsView, screen, session, type Rectangle, type W
 import { BACKGROUND, devEnv } from './config';
 import { shouldBlockAd, hostOf, isYouTubeHost } from './adblock';
 import { adEngineMatches } from './adblock-engine';
-import { checkVbUrl, chromeUserAgent, failPageUrl, sameSite } from './urls';
+import { checkVbUrl, chromeUserAgent, failPageUrl, isPrivateIp, sameSite } from './urls';
 import { focusMainWindow, getMainWindow, sendToMain } from './window';
 import { parseDockRect, toWindowRect, type Rect } from './vb-dock-model';
 import { FOCUS_VIDEO_SCRIPT, PLAYING_VIDEO_SCRIPT, UNFOCUS_SCRIPT, focusIframeScript, pickPlayerFrame, type FrameProbe } from './vb-focus-model';
@@ -20,6 +20,23 @@ const VB_PERMISSIONS: ReadonlySet<string> = new Set([
   'fullscreen', 'mediaKeySystem', 'storage-access', 'top-level-storage-access',
   'pointerLock', 'keyboardLock', 'clipboard-sanitized-write', 'speaker-selection',
 ]);
+
+// Development smokes serve their fake film site from 127.0.0.1; the packaged app never allows local addresses (devEnv is '' there).
+const ALLOW_PRIVATE = devEnv('WW_VB_ALLOW_PRIVATE') === '1';
+const vbUrlProblem = (raw: string): ReturnType<typeof checkVbUrl> => checkVbUrl(raw, ALLOW_PRIVATE);
+
+/** A public-looking hostname that DNS points at this machine / LAN (rebinding) — checked after resolving. */
+async function resolvesToPrivate(ses: Electron.Session, rawUrl: string): Promise<boolean> {
+  if (ALLOW_PRIVATE) return false;
+  try {
+    const host = new URL(rawUrl).hostname.replace(/^\[|\]$/g, '');
+    if (/^[\d.]+$/.test(host) || host.includes(':')) return false; // IP literal: already judged by checkVbUrl
+    const r = await ses.resolveHost(host);
+    return r.endpoints.some((e) => isPrivateIp(e.address.toLowerCase()));
+  } catch {
+    return false; // unresolvable: the load itself fails and shows the error page
+  }
+}
 
 export type VbResult = { ok: true } | { ok: false; reason: string };
 
@@ -245,12 +262,16 @@ export function protectVbSession(onBlocked: (url: string, reason: string) => voi
     if (details.resourceType !== 'mainFrame' && details.resourceType !== 'subFrame') return cb({});
     // Our own error page is a data: load we start ourselves; cancelling it would leave the view black.
     if (details.resourceType === 'mainFrame' && details.url.startsWith('data:')) return cb({});
-    const reason = checkVbUrl(details.url);
+    const reason = vbUrlProblem(details.url);
     if (reason) {
       onBlocked(details.url, reason);
       return cb({ cancel: true });
     }
-    cb({});
+    // Every hop (redirects included) is judged again after DNS, so a public name cannot lead into the LAN.
+    void resolvesToPrivate(ses, details.url).then((priv) => {
+      if (priv) onBlocked(details.url, 'private_address');
+      cb(priv ? { cancel: true } : {});
+    });
   });
 }
 
@@ -273,7 +294,7 @@ function wireVbContents(wc: WebContents): void {
   // Popups / target=_blank open in the same view — no stray windows. Only within the same site: free
   // movie sites fire window.open() to an ad domain on the first click (popunder).
   wc.setWindowOpenHandler(({ url }) => {
-    if (checkVbUrl(url) === null && sameSite(url, wc.getURL())) void wc.loadURL(url).catch(() => {});
+    if (vbUrlProblem(url) === null && sameSite(url, wc.getURL())) void wc.loadURL(url).catch(() => {});
     return { action: 'deny' };
   });
   // 'load' = a real page load, 'in-page' = SPA route change (YouTube/VK switch videos without reloading).
@@ -286,7 +307,7 @@ function wireVbContents(wc: WebContents): void {
 }
 
 export function openVb(url: string, docked = false): VbResult | Promise<VbResult> {
-  const reason = checkVbUrl(url);
+  const reason = vbUrlProblem(url);
   if (reason) return { ok: false, reason };
   if (docked) return openDocked(url);
   closeDock(); // one VB at a time: the separate window replaces a docked view

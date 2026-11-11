@@ -60,7 +60,7 @@ async function run(name) {
       WW_AUTH_URL: `http://127.0.0.1:${AUTH_PORT}/api/v1/auth`,
       WW_AUTH_NO_BROWSER: '1',
       WW_AUTH_POLL_MS: '300',
-      WW_SMOKE_OUT: out,
+      WW_VB_ALLOW_PRIVATE: '1', WW_SMOKE_OUT: out,
       WW_SMOKE_TTL: '12',
       WW_SMOKE_ACTION: 'google-login',
     },

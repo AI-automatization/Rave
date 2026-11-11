@@ -46,7 +46,7 @@ async function run(env, { ttl = 40, args = [] } = {}) {
   fs.writeFileSync(out, '');
   const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'ww-m4-ud-'));
   const child = spawn(electronBin, [root, `--user-data-dir=${userData}`, ...args], {
-    env: { ...process.env, WW_APP_URL: 'http://127.0.0.1:8125/', WW_START_WEB: '1', WW_SMOKE_OUT: out, WW_SMOKE_TTL: String(ttl), ...env },
+    env: { ...process.env, WW_APP_URL: 'http://127.0.0.1:8125/', WW_START_WEB: '1', WW_VB_ALLOW_PRIVATE: '1', WW_SMOKE_OUT: out, WW_SMOKE_TTL: String(ttl), ...env },
     stdio: 'ignore',
   });
   await new Promise((res) => { finished = res; child.on('exit', res); setTimeout(res, (ttl + 10) * 1000); });
