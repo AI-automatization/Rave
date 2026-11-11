@@ -1,5 +1,10 @@
 import { withSentryConfig } from '@sentry/nextjs';
 
+// Path prefixes owned by the application (everything else is landing / marketing / legal).
+// Keep in sync with PROTECTED_PATHS/AUTH_PATHS in src/proxy.ts and DISALLOW in src/app/robots.ts.
+const APP_PREFIXES =
+  'home|room|friends|messages|notifications|profile|settings|support|login|register|auth|guest|api';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
@@ -18,12 +23,10 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['framer-motion', 'lucide-react'],
   },
-  // Domain split: the application (dashboard) lives on app.wewatch.uz. Any app/auth
-  // path hit on the landing domain (wewatch.uz) is 301'd to the app domain so the two
-  // are cleanly separated for users, bookmarks and SEO. The landing keeps only marketing
-  // + guide pages. APP_DOMAIN is overridable per-env; defaults to production.
+  // One service: the landing (marketing, /uz /ru /en) and the application (/home, /room,
+  // /login …) are served from the same host, wewatch.uz. The former app.wewatch.uz host is
+  // gone, so there are no app-domain redirects any more.
   async redirects() {
-    const APP = process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'https://app.wewatch.uz';
     // Canonical host is the non-www apex. GSC crawled assets on www.wewatch.uz,
     // which means both hosts served content → duplicate-host risk. A single 301
     // from www.* to the apex collapses them regardless of DNS/hosting config.
@@ -77,24 +80,8 @@ const nextConfig = {
       })),
     ];
 
-    const appPaths = [
-      'home', 'room', 'friends', 'messages', 'profile',
-      'settings', 'notifications', 'support', 'login', 'register', 'auth',
-    ];
     return [
       wwwRedirect,
-      // App paths go to the app domain before anything else — /login is not a
-      // marketing page and must never be rewritten into /ru/login.
-      ...appPaths.map((p) => ({
-        source: `/${p}/:path*`,
-        destination: `${APP}/${p}/:path*`,
-        permanent: true,
-      })),
-      ...appPaths.map((p) => ({
-        source: `/${p}`,
-        destination: `${APP}/${p}`,
-        permanent: true,
-      })),
       ...englishGuideRedirects,
       ...russianPrefixRedirects,
     ];
@@ -133,7 +120,7 @@ const nextConfig = {
         ],
       },
       {
-        source: '/(.*)',
+        source: `/((?!(?:${APP_PREFIXES})(?:/|$)).*)`,
         headers: [
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -166,6 +153,52 @@ const nextConfig = {
               // mc.yandex.ru — without it session recording silently records nothing.
               "frame-src https://www.youtube.com https://youtube.com https://vk.com https://rutube.ru https://mc.yandex.ru",
               "media-src 'self' https: blob:",
+              "object-src 'none'",
+              "base-uri 'self'",
+            ].join('; '),
+          },
+        ],
+      },
+      {
+        // The application (formerly app.wewatch.uz): never indexed — robots.ts also
+        // disallows these prefixes, and this header covers a crawler that ignores it
+        // (Bing indexed /login once, T-Y201 audit, 2026-08-11). Its CSP is wider than
+        // the landing's: the room embeds third-party players and arbitrary iframes.
+        source: `/:appSeg(${APP_PREFIXES})/:appRest*`,
+        headers: [
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'X-XSS-Protection', value: '1; mode=block' },
+          {
+            // microphone=(self): the room's voice chat (T-S168) calls getUserMedia from this
+            // document; `microphone=()` makes the browser refuse before any prompt. Camera
+            // stays disabled — nothing in the app uses it.
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(self), geolocation=()',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://mc.yandex.ru https://www.youtube.com https://s.ytimg.com https://embed.twitch.tv https://player.vimeo.com https://unpkg.com https://cdn.trovo.live",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob: https:",
+              "font-src 'self' data: https://fonts.gstatic.com",
+              // Dev only: a plain-HTTP LAN dev server makes socket.io fall back to ws:, which
+              // the policy would otherwise drop silently. Production CSP is unchanged.
+              `connect-src 'self' https: wss:${process.env.NODE_ENV === 'development' ? ' http: ws:' : ''}`,
+              // `https:` for the generic iframe player (GenericIframePlayer.tsx): the room
+              // owner may paste ANY link and, when the server's embed-check says the site
+              // allows framing, it is shown in a sandboxed iframe — the host is unknowable
+              // in advance. The named hosts stay for documentation.
+              "frame-src https: https://www.youtube.com https://youtube.com https://vk.com https://rutube.ru https://embed.twitch.tv https://player.twitch.tv https://www.twitch.tv https://player.vimeo.com https://geo.dailymotion.com https://www.dailymotion.com https://www.tiktok.com https://framatube.org https://peertube.social https://player.trovo.live https://mc.yandex.ru",
+              `media-src 'self' https: blob:${process.env.NODE_ENV === 'development' ? ' http:' : ''}`,
               "object-src 'none'",
               "base-uri 'self'",
             ].join('; '),

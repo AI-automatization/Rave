@@ -1,4 +1,10 @@
 @import "tailwindcss";
+/* The application (src/app/(webapp)) shares this tree but has its own stylesheet
+   (app-globals.css). Keep its sources out of the landing's utility scan so the marketing
+   pages do not ship CSS for classes only the app uses. */
+@source not "./(webapp)";
+@source not "../components/{friends,home,messages,party,profile,rooms,ui}";
+@source not "../hooks";
 @plugin "tailwindcss-animate";
 
 @theme {

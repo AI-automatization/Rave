@@ -11,16 +11,16 @@ test.describe('Public Pages — ochiq sahifalar', () => {
     await expect(cta).toBeVisible({ timeout: 10000 });
   });
 
-  test('/login marketing saytidan app domeniga redirect qiladi', async ({ request }) => {
+  test('/login shu hostning ozida ochiladi (app domeni yoq) va indekslanmaydi', async ({ request }) => {
     const response = await request.get('/login', { maxRedirects: 0 });
-    expect(response.status()).toBe(308);
-    expect(response.headers().location).toBe('https://app.wewatch.uz/login');
+    expect(response.status()).toBe(200);
+    expect(response.headers()['x-robots-tag']).toContain('noindex');
   });
 
-  test('/register marketing saytidan app domeniga redirect qiladi', async ({ request }) => {
+  test('/register shu hostning ozida ochiladi (app domeni yoq) va indekslanmaydi', async ({ request }) => {
     const response = await request.get('/register', { maxRedirects: 0 });
-    expect(response.status()).toBe(308);
-    expect(response.headers().location).toBe('https://app.wewatch.uz/register');
+    expect(response.status()).toBe(200);
+    expect(response.headers()['x-robots-tag']).toContain('noindex');
   });
 
   test('/features sahifasi yuklanadi', async ({ page }) => {

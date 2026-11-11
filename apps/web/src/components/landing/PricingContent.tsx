@@ -172,8 +172,8 @@ export function PricingContent() {
                   {tl('soon')}
                 </span>
               ) : (
-                // Plain <a> + appUrl(), not next/link — p.href points at app.wewatch.uz
-                // (a separate deployment), see apps/web/src/lib/app-url.ts for why.
+                // Plain <a> + appUrl(), not next/link — p.href points at an app route
+                // (a different root layout), see apps/web/src/lib/app-url.ts for why.
                 <a
                   href={appUrl(p.href)}
                   className={`group flex items-center justify-center gap-2 h-12 rounded-2xl font-semibold transition-all duration-300 active:scale-[0.98] w-full ${
