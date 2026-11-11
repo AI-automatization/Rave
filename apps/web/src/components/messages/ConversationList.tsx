@@ -1,15 +1,19 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { MessageCircle } from 'lucide-react';
-import type { IUser } from '@/types';
-
-interface Conversation {
-  peerId: string;
-  peer: Pick<IUser, '_id' | 'username' | 'avatar' | 'isOnline'>;
-  lastMessage: { text: string; createdAt: string };
-  unreadCount: number;
-}
+import { MessageCircle, MoreVertical, Pin, PinOff, Bell, BellOff, Eye } from 'lucide-react';
+import type { Conversation } from '@/lib/api/user.api';
+import { trackClick } from '@/lib/analytics';
+import { memberColor, formatRelative } from '@/lib/dm/dm-format';
+import { useToggleMute, useTogglePinConversation } from '@/hooks/use-dm';
+import { toast } from '@/store/toast.store';
+import { useApiError } from '@/hooks/use-api-error';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
+import { ChatPreviewModal } from '@/components/messages/dm/ChatPreviewModal';
+import { AvatarImg } from '@/components/ui/AvatarImg';
 
 interface Props {
   conversations: Conversation[];
@@ -17,102 +21,167 @@ interface Props {
   onSelect: (peerId: string) => void;
 }
 
-const PALETTE = ['#7B72F8', '#F87171', '#34D399', '#FBBF24', '#60A5FA', '#F472B6', '#A78BFA'];
-
-function memberColor(id: string | undefined | null): string {
-  if (!id) return PALETTE[0];
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = id.charCodeAt(i) + ((h << 5) - h);
-  return PALETTE[Math.abs(h) % PALETTE.length];
-}
-
-function formatRelative(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const min = Math.floor(diff / 60_000);
-  if (min < 1) return '<1m';
-  if (min < 60) return `${min}m`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h`;
-  return `${Math.floor(hr / 24)}d`;
-}
-
 export function ConversationList({ conversations, selectedPeerId, onSelect }: Props) {
   const t = useTranslations('dm');
+  const parseError = useApiError();
+  const toggleMute = useToggleMute();
+  const togglePin = useTogglePinConversation();
+  const [previewPeerId, setPreviewPeerId] = useState<string | null>(null);
+
+  // Pinned conversations first (stable within each group), matching mobile's ordering.
+  const sorted = useMemo(
+    () => [...conversations].sort((a, b) => Number(b.isPinned) - Number(a.isPinned)),
+    [conversations],
+  );
+
+  const previewConversation = conversations.find((c) => c.peerId === previewPeerId) ?? null;
 
   if (conversations.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 py-16 px-6 text-center">
-        <MessageCircle size={48} className="text-white/10" />
-        <p className="text-sm font-semibold text-white/25">{t('empty')}</p>
+      <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+        <span className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--ww-line)] bg-[var(--ww-surface-1)]">
+          <MessageCircle size={20} aria-hidden="true" className="text-[var(--ww-text-4)]" />
+        </span>
+        <p className="text-[13px] text-[var(--ww-text-3)]">{t('empty')}</p>
       </div>
+    );
+  }
+
+  function handleMute(conv: Conversation) {
+    trackClick('dm:toggle_mute');
+    toggleMute.mutate(
+      { peerId: conv.peerId, muted: !conv.isMuted },
+      { onError: (err) => toast.error(parseError(err, t('mute'))) },
+    );
+  }
+
+  function handlePin(conv: Conversation) {
+    trackClick('dm:toggle_pin');
+    togglePin.mutate(
+      { peerId: conv.peerId, pinned: !conv.isPinned },
+      { onError: (err) => toast.error(parseError(err, t('pinLimitReached'))) },
     );
   }
 
   return (
     <div className="flex flex-col">
-      {conversations.map((conv, idx) => {
+      {sorted.map((conv, idx) => {
         const active = conv.peerId === selectedPeerId;
         const color = memberColor(conv.peerId);
-        const initials = (conv.peer.username ?? '?').slice(0, 2).toUpperCase();
+        const initials = (conv.peerUsername ?? '?').slice(0, 2).toUpperCase();
+        const unread = conv.unreadCount > 0;
 
         return (
-          <div key={conv.peerId}>
+          <div key={conv.peerId} className="group relative">
             <button
-              onClick={() => onSelect(conv.peerId)}
-              className={`flex items-center gap-3.5 px-4 py-3 w-full text-left transition-all cursor-pointer ${
-                active ? 'bg-violet-600/[0.15] border-l-2 border-l-violet-500' : 'border-l-2 border-l-transparent hover:bg-white/[0.04]'
+              type="button"
+              onClick={() => { trackClick('dm:select_conversation'); onSelect(conv.peerId); }}
+              onContextMenu={(e) => { e.preventDefault(); trackClick('dm:preview_open'); setPreviewPeerId(conv.peerId); }}
+              className={`flex w-full cursor-pointer items-center gap-3.5 border-l-2 py-3 pl-3.5 pr-10 text-left transition-colors ${
+                active
+                  ? 'border-l-[var(--ww-accent)] bg-[var(--ww-accent-soft)]'
+                  : unread
+                    ? 'border-l-[rgba(124,58,237,0.6)] hover:bg-[var(--ww-surface-1)]'
+                    : 'border-l-transparent hover:bg-[var(--ww-surface-1)]'
               }`}
             >
-              {/* Avatar */}
-              <div className="relative shrink-0">
-                <div
-                  className="w-[50px] h-[50px] rounded-full flex items-center justify-center text-base font-bold text-white overflow-hidden border-2"
-                  style={{ borderColor: color, backgroundColor: `${color}22` }}
-                >
-                  {conv.peer.avatar ? (
-                    <img src={conv.peer.avatar} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <span style={{ color }}>{initials}</span>
-                  )}
-                </div>
-                {conv.peer.isOnline && (
-                  <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-transparent" />
+              <span
+                className="flex h-[50px] w-[50px] shrink-0 items-center justify-center overflow-hidden rounded-full border-2 text-[15px] font-semibold"
+                style={{ borderColor: color, backgroundColor: `${color}22`, color }}
+              >
+                {conv.peerAvatar ? (
+                  <AvatarImg src={conv.peerAvatar} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  initials
                 )}
-              </div>
+              </span>
 
-              {/* Info */}
-              <div className="flex-1 min-w-0 flex flex-col gap-[3px]">
-                <div className="flex items-center justify-between gap-2">
-                  <span className={`text-[15px] truncate ${conv.unreadCount > 0 ? 'font-bold text-white' : 'font-semibold text-white/75'}`}>
-                    {conv.peer.username}
+              <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
+                <span className="flex items-center gap-1.5">
+                  {conv.isPinned && <Pin size={11} aria-hidden="true" className="shrink-0 text-[var(--ww-text-4)]" />}
+                  {conv.isMuted && <BellOff size={11} aria-hidden="true" className="shrink-0 text-[var(--ww-text-4)]" />}
+                  <span
+                    className={`truncate text-[14.5px] ${
+                      unread ? 'font-semibold text-[var(--ww-text)]' : 'font-medium text-[var(--ww-text-2)]'
+                    }`}
+                  >
+                    {conv.peerUsername}
                   </span>
-                  <span className="text-[11px] text-white/28 shrink-0">
-                    {conv.lastMessage?.createdAt ? formatRelative(conv.lastMessage.createdAt) : ''}
+                  <span className="ml-auto shrink-0 text-[11px] text-[var(--ww-text-4)]">
+                    {conv.lastMessageAt ? formatRelative(conv.lastMessageAt) : ''}
                   </span>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <p className={`text-[13px] truncate ${conv.unreadCount > 0 ? 'text-white/70 font-medium' : 'text-white/35'}`}>
-                    {conv.lastMessage?.text ?? ''}
-                  </p>
-                  {conv.unreadCount > 0 && (
-                    <span
-                      className="text-white text-[11px] font-bold min-w-[20px] h-5 rounded-full flex items-center justify-center px-1.5 shrink-0"
-                      style={{ backgroundColor: '#7B72F8' }}
-                    >
+                </span>
+                <span className="flex items-center justify-between gap-2">
+                  <span
+                    className={`truncate text-[12.5px] ${
+                      unread ? 'text-[var(--ww-text-2)]' : 'text-[var(--ww-text-4)]'
+                    }`}
+                  >
+                    {conv.lastMessage ?? ''}
+                  </span>
+                  {unread && (
+                    <span className="flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full bg-[var(--ww-accent)] px-1.5 text-[11px] font-semibold tabular-nums text-white">
                       {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
                     </span>
                   )}
-                </div>
-              </div>
+                </span>
+              </span>
             </button>
 
-            {/* Separator — indent to skip avatar */}
-            {idx < conversations.length - 1 && (
-              <div className="h-px bg-white/[0.04] ml-[78px]" />
+            {/* Hover/tap action menu — web replacement for long-press. md:opacity-0 keeps it
+                hidden until hover on desktop, but always visible below md (no hover on touch). */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); trackClick('dm:conv_menu_open'); }}
+                  className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-[var(--ww-text-3)] transition-colors hover:bg-[var(--ww-surface-2)] hover:text-[var(--ww-text)] md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
+                  aria-label={t('convMenu')}
+                >
+                  <MoreVertical size={16} aria-hidden="true" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="border-[var(--ww-line)] bg-[var(--ww-panel-solid)] text-[var(--ww-text-2)]"
+              >
+                <DropdownMenuItem
+                  className="cursor-pointer focus:bg-[var(--ww-surface-2)] focus:text-[var(--ww-text)]"
+                  onClick={() => setPreviewPeerId(conv.peerId)}
+                >
+                  <Eye size={15} aria-hidden="true" /> {t('preview')}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer focus:bg-[var(--ww-surface-2)] focus:text-[var(--ww-text)]"
+                  onClick={() => handlePin(conv)}
+                >
+                  {conv.isPinned ? <PinOff size={15} aria-hidden="true" /> : <Pin size={15} aria-hidden="true" />}
+                  {conv.isPinned ? t('unpin') : t('pin')}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer focus:bg-[var(--ww-surface-2)] focus:text-[var(--ww-text)]"
+                  onClick={() => handleMute(conv)}
+                >
+                  {conv.isMuted ? <Bell size={15} aria-hidden="true" /> : <BellOff size={15} aria-hidden="true" />}
+                  {conv.isMuted ? t('unmute') : t('mute')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Ajratgich — avatardan keyin boshlanadi */}
+            {idx < sorted.length - 1 && (
+              <div aria-hidden="true" className="ml-[78px] h-px bg-[var(--ww-line)]" />
             )}
           </div>
         );
       })}
+
+      <ChatPreviewModal
+        conversation={previewConversation}
+        open={!!previewPeerId}
+        onOpenChange={(open) => { if (!open) setPreviewPeerId(null); }}
+        onOpenFull={(peerId) => { setPreviewPeerId(null); onSelect(peerId); }}
+      />
     </div>
   );
 }

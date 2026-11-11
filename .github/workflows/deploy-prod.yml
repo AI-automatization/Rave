@@ -45,7 +45,6 @@ jobs:
             notification: ['services/notification/**', 'shared/**']
             admin: ['services/admin/**', 'shared/**']
             web: ['apps/web/**']
-            app-web: ['apps/app-web/**']
             admin-ui: ['apps/admin-ui/**']
 
   # #29 — typecheck must pass before any deploy
@@ -191,7 +190,6 @@ jobs:
             admin)        SERVICE_URL="${{ secrets.PROD_ADMIN_URL }}" ;;
             # Front-end services have no /health endpoint — probe an existing path
             web)          SERVICE_URL="${{ secrets.PROD_WEB_URL }}"; HEALTH_PATH="/" ;;
-            app-web)      SERVICE_URL="${{ secrets.PROD_APP_WEB_URL }}"; HEALTH_PATH="/login" ;;
             admin-ui)     SERVICE_URL="${{ secrets.PROD_ADMIN_UI_URL }}"; HEALTH_PATH="/" ;;
           esac
           if [ -n "$SERVICE_URL" ]; then

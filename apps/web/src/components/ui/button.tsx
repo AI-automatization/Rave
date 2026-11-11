@@ -5,12 +5,21 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-cyan-500 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+  // Fokus halqasi cyan edi — brend violet bo'lsa-da. Globals'dagi :focus-visible
+  // konturi bilan mos kelmasdi, natijada tab bilan yurganda ranglar sakrardi.
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ww-bg)] focus-visible:ring-[var(--ww-accent-hi)] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         default:
           "bg-cyan-500 text-slate-900 hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-500/50 active:scale-95",
+        // ── WW v2 (redesign) ── Ko'rinish globals.css'dagi .ww-btn-* da.
+        // Eski cyan variantlar hali ko'chirilmagan ekranlar uchun qoladi.
+        // disabled:opacity-100 — bazadagi opacity-50 ni bekor qiladi, chunki
+        // o'chirilgan ko'rinish .ww-btn-accent:disabled da to'liq berilgan
+        accent: "ww-btn-accent rounded-[var(--ww-r-md)] text-white disabled:opacity-100",
+        subtle:
+          "ww-btn-subtle rounded-[var(--ww-r-md)] text-[var(--ww-text)] disabled:opacity-40",
         primary:
           "bg-cyan-500 text-slate-900 hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-500/50 active:scale-95",
         secondary:
@@ -31,6 +40,8 @@ const buttonVariants = cva(
         sm: "h-7 px-3 text-xs [&_svg]:w-3 [&_svg]:h-3",
         xs: "h-6 px-2 text-xs [&_svg]:w-3 [&_svg]:h-3",
         lg: "h-11 px-6 text-base [&_svg]:w-5 [&_svg]:h-5",
+        // WW v2 — 48px: mobil tap-target minimumi (h-9/h-10 undan past edi)
+        xl: "h-12 px-5 text-[15px] [&_svg]:w-[18px] [&_svg]:h-[18px]",
         icon: "h-9 w-9 p-0",
         "icon-sm": "h-7 w-7 p-0 [&_svg]:w-4 [&_svg]:h-4",
         "icon-xs": "h-6 w-6 p-0 [&_svg]:w-3 [&_svg]:h-3",

@@ -13,8 +13,12 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const videoUrl = url.searchParams.get('url') ?? '';
 
+    // content-service reads `videoUrl`, not `url` — this proxy's own query param is named `url`
+    // (matches the caller in VideoPlayer.tsx), so the two must not be conflated. Confirmed via
+    // real-device test (2026-07-27): sending `url=` here made every request 400
+    // ("videoUrl is required"), since content-service's req.query.videoUrl was always undefined.
     const res = await fetch(
-      `${baseUrl()}/content/watch-progress?url=${encodeURIComponent(videoUrl)}`,
+      `${baseUrl()}/content/watch-progress?videoUrl=${encodeURIComponent(videoUrl)}`,
       { headers: { Authorization: `Bearer ${accessToken}` } },
     );
 

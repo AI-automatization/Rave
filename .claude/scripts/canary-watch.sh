@@ -25,7 +25,6 @@ SERVICES=(
   "notification|https://notification-production-9c30.up.railway.app/health|1"
   "admin-api|https://admin-production-8d2a.up.railway.app/health|1"
   "payment|https://pay.wewatch.uz/health|1"
-  "app-web|https://app.wewatch.uz/|0"
   "web|https://wewatch.uz/|0"
   "admin-ui|https://admin.wewatch.uz/|0"
 )

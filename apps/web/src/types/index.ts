@@ -11,6 +11,7 @@ export type {
   JwtPayload,
   IUserPublic,
   VideoPlatform,
+  VideoCandidate,
 } from '@shared/types';
 
 // Import for local use within this file
@@ -189,11 +190,19 @@ export interface IFriendship {
   updatedAt?: string;
 }
 
+/** Snapshot of a quoted room-chat message — room chat isn't persisted, so it travels with the reply. */
+export interface IChatReplyTo {
+  id: string;
+  text: string;
+  senderName: string;
+}
+
 export interface IChatMessage {
   id: string;
   user: Pick<IUser, '_id' | 'username' | 'avatar'>;
   text: string;
   timestamp: number;
+  replyTo?: IChatReplyTo;
 }
 
 /** IAchievement for the web — standalone */

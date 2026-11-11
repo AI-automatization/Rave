@@ -41,4 +41,7 @@ export const authApi = {
 
   googlePoll: (sessionId: string) =>
     apiClient<{ user: IUser }>(`/api/auth/google/poll?sessionId=${sessionId}`, { method: 'GET' }),
+
+  telegramInit: () =>
+    apiClient<{ url: string }>('/api/auth/telegram/init', { method: 'GET' }),
 };

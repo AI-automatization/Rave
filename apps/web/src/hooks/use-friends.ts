@@ -10,6 +10,9 @@ export function useFriends() {
       const res = await userApi.getFriends();
       return Array.isArray(res.data) ? res.data : [];
     },
+    // isOnline has no push/socket updates on web yet — poll so the sidebar widget's
+    // presence dots don't go stale for the length of a whole session.
+    refetchInterval: 20000,
   });
 }
 
@@ -20,6 +23,9 @@ export function useFriendRequests() {
       const res = await userApi.getFriendRequests();
       return Array.isArray(res.data) ? res.data : [];
     },
+    // Powers the sidebar's request-count badge — needs to go stale on its own since nothing
+    // pushes an update to it outside the friends page itself.
+    refetchInterval: 30000,
   });
 }
 
