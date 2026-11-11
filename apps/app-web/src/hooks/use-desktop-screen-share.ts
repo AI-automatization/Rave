@@ -68,6 +68,12 @@ const STUN_FALLBACK: RTCIceServer[] = [
 // modest: 4 viewers × 2.5 Mbit/s fits a normal home uplink.
 const MAX_VIDEO_BITRATE = 2_500_000;
 const MAX_FRAMERATE = 30;
+// The picture size is fixed on purpose. Left to itself, Chromium kept resizing the capture (226×128 … 2940×1652)
+// and the encoder shrank it further whenever it felt short of bandwidth, so viewers saw a soft, jumping picture.
+// 720p + 'maintain-resolution' measured a steady 1280×720 at 30 fps, also under a 1 Mbit/s cap. Both halves are
+// needed: 720p alone was squeezed down to 320×180, 'maintain-resolution' alone captured 2782×1564.
+const CAPTURE_WIDTH = 1280;
+const CAPTURE_HEIGHT = 720;
 
 type Sdp = { type: 'offer' | 'answer'; sdp: string };
 
@@ -78,7 +84,10 @@ type Sdp = { type: 'offer' | 'answer'; sdp: string };
  */
 async function captureVb(): Promise<MediaStream> {
   for (let attempt = 0; ; attempt++) {
-    const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: MAX_FRAMERATE }, audio: true });
+    const stream = await navigator.mediaDevices.getDisplayMedia({
+      video: { frameRate: MAX_FRAMERATE, width: { ideal: CAPTURE_WIDTH }, height: { ideal: CAPTURE_HEIGHT } },
+      audio: true,
+    });
     const video = stream.getVideoTracks()[0];
     if (!video || !video.muted || attempt >= 2) return stream;
     const started = await new Promise<boolean>((resolve) => {
@@ -148,6 +157,8 @@ export function useDesktopScreenShare(socket: Socket | null, roomJoined: boolean
       if (track.kind === 'video') {
         const params = sender.getParameters();
         params.encodings = [{ ...(params.encodings?.[0] ?? {}), maxBitrate: MAX_VIDEO_BITRATE, maxFramerate: MAX_FRAMERATE }];
+        // Short of bandwidth: keep the 720p picture sharp, lower the frame rate instead of the size.
+        params.degradationPreference = 'maintain-resolution';
         void sender.setParameters(params).catch(() => { /* browser keeps its own defaults */ });
       }
     });
