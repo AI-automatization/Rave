@@ -71,14 +71,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [mobile, web, app-web, admin-ui]
+        app: [mobile, web, admin-ui]
         include:
           - app: mobile
             workspace: wewatch-mobile
           - app: web
             workspace: web
-          - app: app-web
-            workspace: app-web
           - app: admin-ui
             workspace: '@cinesync/admin-ui'
     steps:

@@ -1,193 +1,208 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+/**
+ * Desktop yon paneli (`lg` dan boshlab).
+ *
+ * Ilgari barcha o'lchamlarda faqat pastdagi suzuvchi dok bor edi. Katta
+ * ekranda bu ikki muammo tug'dirardi: (1) navigatsiya nomlari ko'rinmasdi —
+ * faqat ikonkalar, ya'ni bo'lim nomini taxmin qilish kerak edi; (2) 1440px
+ * kenglikda kontent chetdan chetga cho'zilib, o'qish qulayligi yo'qolardi.
+ *
+ * Mobil/planshetda esa yon panel ekranning yarmini yeb qo'yadi — u yerda dok
+ * qoladi (`FloatingNav` endi `lg:hidden`). Ya'ni ikkalasi bir vaqtda
+ * ko'rinmaydi, har o'lchamda bitta navigatsiya.
+ */
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Home, Users, MessageCircle, User, Bell, Settings, Headphones, LogOut, ChevronRight } from 'lucide-react';
+import {
+  Home,
+  Users,
+  MessageCircle,
+  Bell,
+  User,
+  Settings,
+  Headphones,
+  LogOut,
+  Plus,
+} from 'lucide-react';
+import { WeWatchLogo } from '@/components/common/WeWatchLogo';
 import { useAuthStore } from '@/store/auth.store';
 import { useUnreadCount } from '@/hooks/use-unread-count';
+import { useFriendRequests } from '@/hooks/use-friends';
+import { useConversations } from '@/hooks/use-dm';
+import { avatarColor } from '@/lib/utils';
+import { trackClick } from '@/lib/analytics';
+import { AvatarImg } from '@/components/ui/AvatarImg';
 
-const PALETTE = ['#7C3AED', '#2563EB', '#059669', '#D97706', '#DC2626', '#DB2777', '#0891B2'];
-function avatarColor(id: string): string {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = id.charCodeAt(i) + ((h << 5) - h);
-  return PALETTE[Math.abs(h) % PALETTE.length];
-}
-
-const MAIN_ITEMS = [
-  { key: 'home', href: '/home', icon: Home },
-  { key: 'friends', href: '/friends', icon: Users },
-  { key: 'messages', href: '/messages', icon: MessageCircle },
-] as const;
-
-const MOBILE_ITEMS = [
-  { key: 'home', href: '/home', icon: Home },
-  { key: 'friends', href: '/friends', icon: Users },
-  { key: 'messages', href: '/messages', icon: MessageCircle },
-  { key: 'profile', href: '/profile', icon: User },
-] as const;
-
-const PROFILE_SUB_PATHS = ['/profile', '/notifications', '/support', '/settings'];
-
-export function AppSidebar() {
-  const t = useTranslations('nav');
-  const pathname = usePathname();
-  const { user, logout } = useAuthStore();
-  const { count: unreadCount } = useUnreadCount();
-
-  const isInProfileSection = PROFILE_SUB_PATHS.some((p) => pathname.startsWith(p));
-  const [profileOpen, setProfileOpen] = useState(isInProfileSection);
-
-  useEffect(() => {
-    if (isInProfileSection) setProfileOpen(true);
-  }, [isInProfileSection]);
-
-  const color = avatarColor(user?._id ?? user?.username ?? 'u');
-
+function Badge({ count }: { count: number }) {
+  if (count <= 0) return null;
   return (
-    <>
-      {/* Desktop sidebar */}
-      <aside className="hidden lg:flex flex-col w-56 border-r border-white/[0.07] shrink-0 glass-nav">
-        <nav className="flex-1 px-2 py-3 flex flex-col gap-0.5 overflow-y-auto">
-          <p className="text-[10px] font-semibold tracking-[0.12em] text-slate-700 uppercase px-2 mb-1.5">Main</p>
-
-          {MAIN_ITEMS.map(({ key, href, icon: Icon }) => {
-            const active = pathname.startsWith(href);
-            return (
-              <Link
-                key={key}
-                href={href}
-                className={`flex items-center gap-2.5 px-2 h-8 rounded-md text-[13px] font-medium transition-colors ${
-                  active
-                    ? 'bg-violet-600/[0.12] text-violet-300'
-                    : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.04]'
-                }`}
-              >
-                <Icon size={15} />
-                {t(key)}
-              </Link>
-            );
-          })}
-
-          <div className="my-2 h-px bg-white/[0.05]" />
-
-          <p className="text-[10px] font-semibold tracking-[0.12em] text-slate-700 uppercase px-2 mb-1.5">Account</p>
-
-          <button
-            onClick={() => setProfileOpen((v) => !v)}
-            className={`flex items-center gap-2.5 px-2 h-8 rounded-md text-[13px] font-medium transition-colors w-full text-left ${
-              isInProfileSection
-                ? 'bg-violet-600/[0.12] text-violet-300'
-                : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.04]'
-            }`}
-          >
-            <User size={15} />
-            <span className="flex-1">{t('profile')}</span>
-            <ChevronRight
-              size={12}
-              className={`text-slate-600 transition-transform duration-150 ${profileOpen ? 'rotate-90' : ''}`}
-            />
-          </button>
-
-          {profileOpen && (
-            <div className="flex flex-col gap-0.5 ml-4 pl-2 border-l border-violet-500/[0.15]">
-              <SubItem href="/profile" label={t('myProfile')} icon={<User size={13} />} pathname={pathname} />
-
-              <Link
-                href="/notifications"
-                className={`flex items-center gap-2 px-2 h-7 rounded-md text-[13px] transition-colors ${
-                  pathname.startsWith('/notifications')
-                    ? 'text-violet-300 bg-violet-600/[0.1]'
-                    : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.04]'
-                }`}
-              >
-                <Bell size={13} />
-                <span className="flex-1">{t('notifications')}</span>
-                {unreadCount > 0 && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
-                )}
-              </Link>
-
-              <SubItem href="/support" label={t('support')} icon={<Headphones size={13} />} pathname={pathname} />
-              <SubItem href="/settings" label={t('settings')} icon={<Settings size={13} />} pathname={pathname} />
-            </div>
-          )}
-        </nav>
-
-        {/* User footer */}
-        <div className="px-3 py-2.5 border-t border-white/[0.05] shrink-0">
-          <div className="flex items-center gap-2">
-            <div
-              className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white overflow-hidden shrink-0"
-              style={{ background: user?.avatar ? undefined : color }}
-            >
-              {user?.avatar
-                ? <img src={user.avatar} alt="" className="w-full h-full object-cover" />
-                : (user?.username?.[0]?.toUpperCase() ?? '?')}
-            </div>
-            <span className="flex-1 text-[13px] font-medium text-slate-300 truncate">{user?.username ?? '—'}</span>
-            <button
-              onClick={logout}
-              className="p-1 text-slate-600 hover:text-red-400 transition-colors rounded cursor-pointer"
-              title={t('logout')}
-            >
-              <LogOut size={13} />
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      {/* Mobile bottom nav */}
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-50 h-14 border-t border-white/[0.07] flex items-center justify-around px-2 glass-nav">
-        {MOBILE_ITEMS.map(({ key, href, icon: Icon }) => {
-          const active = key === 'profile' ? isInProfileSection : pathname.startsWith(href);
-          return (
-            <Link
-              key={key}
-              href={href}
-              className={`flex flex-col items-center gap-1 transition-colors min-w-[56px] py-1 ${
-                active ? 'text-violet-400' : 'text-zinc-600 hover:text-zinc-400'
-              }`}
-            >
-              <div className="relative">
-                <Icon size={19} />
-                {key === 'profile' && unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-red-500" />
-                )}
-              </div>
-              <span className="text-[10px] font-medium">{t(key)}</span>
-            </Link>
-          );
-        })}
-      </nav>
-    </>
+    <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--ww-live)] px-1 text-[10px] font-bold tabular-nums text-white">
+      {count > 99 ? '99+' : count}
+    </span>
   );
 }
 
-function SubItem({
+function NavItem({
   href,
   label,
-  icon,
-  pathname,
+  icon: Icon,
+  badge = 0,
 }: {
   href: string;
   label: string;
-  icon: React.ReactNode;
-  pathname: string;
+  icon: React.ElementType;
+  badge?: number;
 }) {
+  const pathname = usePathname();
   const active = pathname.startsWith(href);
+
   return (
     <Link
       href={href}
-      className={`flex items-center gap-2 px-2 h-7 rounded-md text-[13px] transition-colors ${
+      onClick={() => trackClick('sidebar:nav', { href })}
+      aria-current={active ? 'page' : undefined}
+      className={`group relative flex h-10 items-center gap-3 rounded-[var(--ww-r-md)] px-3 text-[13.5px] font-medium transition-colors ${
         active
-          ? 'text-violet-300 bg-violet-600/[0.1]'
-          : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.04]'
+          ? 'bg-[var(--ww-accent-soft)] text-white'
+          : 'text-[var(--ww-text-3)] hover:bg-[var(--ww-surface-2)] hover:text-[var(--ww-text)]'
       }`}
     >
-      {icon}
-      {label}
+      {/* Faol bo'limning chap chekkasidagi belgi — rang ko'rmaydiganlar uchun
+          ham holat faqat rangga tayanmasligi kerak */}
+      {active && (
+        <span
+          aria-hidden="true"
+          className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[var(--ww-accent-hi)]"
+        />
+      )}
+      <Icon
+        size={17}
+        aria-hidden="true"
+        className={active ? 'text-[var(--ww-accent-hi)]' : ''}
+      />
+      <span className="flex-1 truncate">{label}</span>
+      <Badge count={badge} />
     </Link>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="px-3 pb-1.5 pt-5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--ww-text-4)]">
+      {children}
+    </p>
+  );
+}
+
+interface Props {
+  /** Bosh sahifadagi "Yaratish" bilan bir xil dialogni ochadi */
+  onCreateRoom?: () => void;
+}
+
+export function AppSidebar({ onCreateRoom }: Props) {
+  const t = useTranslations('nav');
+  const tHome = useTranslations('home');
+  const { user, logout } = useAuthStore();
+  const { count: unreadNotifications } = useUnreadCount();
+  const { data: friendRequests } = useFriendRequests();
+  const { data: conversations } = useConversations();
+
+  const pendingRequests = friendRequests?.length ?? 0;
+  const unreadMessages = (conversations ?? []).reduce((s, c) => s + (c.unreadCount || 0), 0);
+  const color = avatarColor(user?._id ?? user?.username ?? 'u');
+
+  return (
+    <aside className="fixed inset-y-0 left-0 z-40 hidden w-[var(--ww-sidebar)] flex-col border-r border-[var(--ww-line)] bg-[var(--ww-bg)] lg:flex">
+      <div className="flex h-16 shrink-0 items-center px-5">
+        <WeWatchLogo iconSize={26} href="/home" className="transition-opacity hover:opacity-80" />
+      </div>
+
+      {/* Asosiy harakat navigatsiyadan yuqorida — mahsulotda eng ko'p
+          takrorlanadigan amal xona yaratish */}
+      {onCreateRoom && (
+        <div className="px-3 pb-1">
+          <button
+            type="button"
+            onClick={() => {
+              trackClick('sidebar:create_room');
+              onCreateRoom();
+            }}
+            className="ww-btn-accent flex h-10 w-full items-center justify-center gap-2 rounded-[var(--ww-r-md)] text-[13.5px] font-semibold text-white"
+          >
+            <Plus size={16} aria-hidden="true" />
+            {tHome('quickCreate')}
+          </button>
+        </div>
+      )}
+
+      <nav className="scrollbar-hide flex-1 overflow-y-auto px-3 pb-4">
+        <SectionLabel>{t('sectionMain')}</SectionLabel>
+        <div className="flex flex-col gap-0.5">
+          <NavItem href="/home" label={t('home')} icon={Home} />
+          <NavItem href="/friends" label={t('friends')} icon={Users} badge={pendingRequests} />
+          <NavItem
+            href="/messages"
+            label={t('messages')}
+            icon={MessageCircle}
+            badge={unreadMessages}
+          />
+          <NavItem
+            href="/notifications"
+            label={t('notifications')}
+            icon={Bell}
+            badge={unreadNotifications}
+          />
+        </div>
+
+        <SectionLabel>{t('sectionAccount')}</SectionLabel>
+        <div className="flex flex-col gap-0.5">
+          <NavItem href="/profile" label={t('myProfile')} icon={User} />
+          <NavItem href="/support" label={t('support')} icon={Headphones} />
+          <NavItem href="/settings" label={t('settings')} icon={Settings} />
+        </div>
+      </nav>
+
+      {/* Foydalanuvchi kartasi — pastda, chunki u navigatsiya emas, kontekst */}
+      <div className="shrink-0 border-t border-[var(--ww-line)] p-3">
+        <div className="flex items-center gap-2.5 rounded-[var(--ww-r-md)] px-2 py-2">
+          <Link
+            href="/profile"
+            className="flex min-w-0 flex-1 items-center gap-2.5"
+            aria-label={t('myProfile')}
+          >
+            <span
+              className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-[12px] font-bold text-white"
+              style={{ background: user?.avatar ? undefined : color }}
+            >
+              {user?.avatar ? (
+                <AvatarImg src={user.avatar} alt="" className="h-full w-full object-cover" />
+              ) : (
+                (user?.username?.[0]?.toUpperCase() ?? '?')
+              )}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[13px] font-medium text-[var(--ww-text)]">
+                {user?.username ?? '—'}
+              </span>
+            </span>
+          </Link>
+          <button
+            type="button"
+            onClick={() => {
+              trackClick('sidebar:logout');
+              logout();
+            }}
+            aria-label={t('logout')}
+            title={t('logout')}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[var(--ww-text-4)] transition-colors hover:bg-[var(--ww-danger-soft)] hover:text-[var(--ww-danger)]"
+          >
+            <LogOut size={16} aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+    </aside>
   );
 }

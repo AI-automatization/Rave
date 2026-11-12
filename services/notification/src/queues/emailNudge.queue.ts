@@ -12,7 +12,7 @@ export const EMAIL_NUDGE_DELAY_MS = 3 * 60 * 60 * 1000; // 3 hours
 // Delay for the Telegram follow-up after the push nudge, if still unbound.
 export const EMAIL_NUDGE_TG_FOLLOWUP_DELAY_MS = 6 * 60 * 60 * 1000; // 6 hours
 
-const BIND_EMAIL_URL = `${process.env.CLIENT_URL ?? 'https://app.wewatch.uz'}/bind-email`;
+const BIND_EMAIL_URL = `${process.env.CLIENT_URL ?? 'https://wewatch.uz'}/bind-email`;
 
 export interface EmailNudgeJobData {
   userId: string;

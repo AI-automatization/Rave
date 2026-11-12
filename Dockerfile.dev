@@ -18,7 +18,6 @@ COPY services/admin/package*.json ./services/admin/
 # Apps workspace stubs (npm workspaces resolution uchun — apps kodi kerak emas)
 COPY apps/package.json ./apps/
 COPY apps/web/package*.json ./apps/web/
-COPY apps/app-web/package*.json ./apps/app-web/
 COPY apps/admin-ui/package*.json ./apps/admin-ui/
 # Mobile: .dockerignore da excluded, stub yaratamiz (npm workspaces uchun)
 RUN mkdir -p ./apps/mobile && echo '{"name":"cinesync-mobile","version":"1.0.0","private":true}' > ./apps/mobile/package.json

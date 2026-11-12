@@ -39,11 +39,14 @@ const AI_AND_SEARCH_BOTS = [
   'CCBot',
 ];
 
-// App routes (/room, /login, /profile …) are 301-redirected to app.wewatch.uz by
-// next.config.mjs, so they are not listed here — this host serves marketing and
-// legal pages only. /api/ is the one path that answers on this domain and must
-// stay out of the index.
-const DISALLOW = ['/api/'];
+// The application (/home, /room, /login …) is served from this same host since the
+// app.wewatch.uz service was merged in. It is private/personalised, so it stays out of
+// the index (next.config.mjs also sends X-Robots-Tag: noindex for these prefixes).
+// Keep in sync with APP_PREFIXES in next.config.mjs.
+const DISALLOW = [
+  '/api/', '/home', '/room/', '/friends', '/messages', '/notifications',
+  '/profile', '/settings', '/support', '/login', '/register', '/auth/', '/guest',
+];
 
 // The same deployment answers on more than one host: the canonical apex plus whatever
 // technical domain the platform assigns (web-production-*.up.railway.app). Until now the

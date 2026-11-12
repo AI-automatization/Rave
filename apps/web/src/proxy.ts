@@ -54,8 +54,18 @@ export function proxy(req: NextRequest) {
   const routePath = stripLocale(pathname);
 
   if (PROTECTED_PATHS.some((p) => routePath.startsWith(p)) && !isAuthenticated) {
+    // Any room link → guest join with just a name, no registration. A link copied from
+    // the address bar (/room/<id>, no code) must not bounce a friend to /login
+    // (2026-10-25). Private rooms still need their code/password — the server checks
+    // that on join. The query string (?code=INVITECODE) is carried through; pathname
+    // alone would silently drop the invite code on the round-trip.
+    if (routePath.startsWith('/room/')) {
+      const guestUrl = new URL('/guest', req.url);
+      guestUrl.searchParams.set('redirect', pathname + req.nextUrl.search);
+      return NextResponse.redirect(guestUrl);
+    }
     const loginUrl = new URL(`${localePrefix}/login`, req.url);
-    loginUrl.searchParams.set('redirect', pathname);
+    loginUrl.searchParams.set('redirect', pathname + req.nextUrl.search);
     return NextResponse.redirect(loginUrl);
   }
 

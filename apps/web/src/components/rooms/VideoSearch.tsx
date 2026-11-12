@@ -5,6 +5,7 @@ import { Search, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { contentApi } from '@/lib/api/content.api';
 import type { IExternalVideo } from '@/types';
+import { trackClick } from '@/lib/analytics';
 
 interface Props {
   onSelect: (video: IExternalVideo) => void;
@@ -65,7 +66,7 @@ export function VideoSearch({ onSelect }: Props) {
             <button
               key={video._id}
               type="button"
-              onClick={() => { onSelect(video); setQuery(''); setResults([]); }}
+              onClick={() => { trackClick('video_search:select'); onSelect(video); setQuery(''); setResults([]); }}
               className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-white/[0.05] transition-colors text-left"
             >
               {video.thumbnail && (

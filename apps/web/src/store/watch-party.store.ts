@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import type { IWatchPartyRoom, IChatMessage } from '@/types';
 
-interface WatchPartyMember {
+export interface WatchPartyMember {
   _id: string;
   username: string;
   avatar?: string;
@@ -14,6 +14,11 @@ interface SyncState {
   isPlaying: boolean;
   currentTime: number;
   duration: number;
+  // Owner/server wall-clock (ms) at which currentTime was captured, already normalised to THIS
+  // client's local clock (see use-watch-party clock-offset sync). Lets the player compensate for
+  // network latency: elapsed = (Date.now() - serverTimestamp)/1000 is added on resume so a PLAY
+  // that took 200ms to arrive lands at the real owner position, not a stale snapshot.
+  serverTimestamp?: number;
 }
 
 interface Heartbeat {
@@ -29,15 +34,23 @@ interface WatchPartyState {
   syncState: SyncState;
   heartbeat: Heartbeat | null;
   isConnected: boolean;
+  // True only once ROOM_JOINED has actually come back from the server for the CURRENT room —
+  // isConnected flips true as soon as the socket transport connects, well before the JOIN_ROOM
+  // round-trip finishes (server sets authSocket.roomId only inside its own JOIN_ROOM handler).
+  // Anything that needs to emit a room-scoped event (e.g. CHANGE_MEDIA) must wait for this, or
+  // the server sees "socket has no roomId" and silently drops it — a real race, not hypothetical.
+  roomJoined: boolean;
 
   setRoom: (room: IWatchPartyRoom | null) => void;
   setMembers: (members: WatchPartyMember[]) => void;
   addMember: (member: WatchPartyMember) => void;
+  updateMember: (userId: string, patch: Partial<Omit<WatchPartyMember, '_id'>>) => void;
   removeMember: (userId: string) => void;
   addMessage: (message: IChatMessage) => void;
   setSyncState: (state: Partial<SyncState>) => void;
   setHeartbeat: (hb: Heartbeat) => void;
   setConnected: (connected: boolean) => void;
+  setRoomJoined: (joined: boolean) => void;
   reset: () => void;
 }
 
@@ -54,6 +67,7 @@ export const useWatchPartyStore = create<WatchPartyState>((set) => ({
   syncState: initialSyncState,
   heartbeat: null,
   isConnected: false,
+  roomJoined: false,
 
   setRoom: (room) => set({ room }),
   setMembers: (members) => set({ members: members ?? [] }),
@@ -63,6 +77,10 @@ export const useWatchPartyStore = create<WatchPartyState>((set) => ({
         ? s.members
         : [...s.members, member],
     })),
+  updateMember: (userId, patch) =>
+    set((s) => ({
+      members: s.members.map((m) => (m._id === userId ? { ...m, ...patch } : m)),
+    })),
   removeMember: (userId) =>
     set((s) => ({ members: s.members.filter((m) => m._id !== userId) })),
   addMessage: (message) =>
@@ -71,6 +89,7 @@ export const useWatchPartyStore = create<WatchPartyState>((set) => ({
     set((s) => ({ syncState: { ...s.syncState, ...state } })),
   setHeartbeat: (hb) => set({ heartbeat: hb }),
   setConnected: (connected) => set({ isConnected: connected }),
+  setRoomJoined: (joined) => set({ roomJoined: joined }),
   reset: () =>
     set({
       room: null,
@@ -79,5 +98,6 @@ export const useWatchPartyStore = create<WatchPartyState>((set) => ({
       syncState: initialSyncState,
       heartbeat: null,
       isConnected: false,
+      roomJoined: false,
     }),
 }));

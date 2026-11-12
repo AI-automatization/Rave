@@ -108,7 +108,7 @@ export class TelegramAuthService {
     // hands that URL straight to the app, which POSTs it to /auth/telegram/login
     // (loginWithTelegramData — already does the hash verification).
     if (param === 'login') {
-      const callbackUrl = `${process.env.CLIENT_URL ?? 'https://app.wewatch.uz'}/auth/telegram/callback`;
+      const callbackUrl = `${process.env.CLIENT_URL ?? 'https://wewatch.uz'}/auth/telegram/callback`;
       const botUsername = scopedEnv('AUTH', 'TELEGRAM_BOT_USERNAME') ?? '';
       await this.sendTelegramMessage(chatId, '🔐 Нажмите кнопку ниже, чтобы войти в WeWatch:', {
         reply_markup: {
