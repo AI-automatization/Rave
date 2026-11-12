@@ -16,7 +16,7 @@
 #   ./tg-notify.sh update  T-C012 "P0 | IKKALASI" "MVP E2E test"  "Saidazim+Emirhan"  "YouTube OK, Rutube FAIL"
 #   ./tg-notify.sh blocked T-S058 "P1 | BACKEND"  "Socket mesh"   Saidazim  "T-S052 dan avval bajarilishi kerak"
 
-BOT_TOKEN="8710780612:AAGSY_LmqNufNyTTDqnTXUmzzFoQZjcF9jE"
+BOT_TOKEN="${TG_NOTIFY_BOT_TOKEN:?set TG_NOTIFY_BOT_TOKEN (never commit the token)}"
 CHAT_SAIDAZIM="6299152655"
 CHAT_EMIRHAN="569913655"
 TG_API="https://api.telegram.org/bot${BOT_TOKEN}/sendMessage"

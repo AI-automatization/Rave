@@ -15,7 +15,7 @@ FORBIDDEN: services/ (read notify service only), apps/
 ```bash
 Bot: @notification_weWatch_bot
 Saidazim chat_id: 6299152655
-Token: хранится в .claude/scripts/tg-notify.sh (НЕ коммитить)
+Token: env `TG_NOTIFY_BOT_TOKEN` (в файл НЕ писать — старый токен утёк в main, его надо отозвать)
 
 # Отправить сообщение:
 .claude/scripts/tg-notify.sh <action> <task_id> <meta> <title> [executor] [details]
