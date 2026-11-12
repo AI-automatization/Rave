@@ -21,6 +21,9 @@ import { ensureSourceClusterCookie } from '@/lib/analytics/source-cluster-cookie
  * Only left-clicks are counted. Middle-click and ctrl-click open a background tab
  * and are rare enough on a CTA that catching them is not worth a second listener.
  */
+/** Marketing pages live under the locale prefixes; everything else on the host is the app. */
+const MARKETING_PATH = /^\/(uz|ru|en)(\/|$)/;
+
 export function Analytics() {
   const pathname = usePathname();
 
@@ -48,15 +51,25 @@ export function Analytics() {
       if (!(anchor instanceof HTMLAnchorElement)) return;
 
       // Only links that leave for the app are calls to action; internal
-      // navigation between marketing pages is not.
-      if (!anchor.href.startsWith(APP_ORIGIN)) return;
+      // navigation between marketing pages is not. The app now shares the
+      // marketing host (APP_ORIGIN empty = same origin), so "the app" means a
+      // same-origin path outside the locale trees /uz /ru /en (and outside "/").
+      let url: URL;
+      try {
+        url = new URL(anchor.href);
+      } catch {
+        return;
+      }
+      const appOrigin = APP_ORIGIN ? new URL(APP_ORIGIN, window.location.href).origin : window.location.origin;
+      if (url.origin !== appOrigin) return;
+      if (!APP_ORIGIN && (url.pathname === '/' || MARKETING_PATH.test(url.pathname))) return;
 
       // gtag.js's cross-domain linker decorates matching anchors' href with its own
       // `?_gl=...` tracking param asynchronously after mount — by the time a real
       // click fires, `anchor.href` can already carry it. destination is meant to be
       // the app-side route, not a snapshot of whatever the linker glued on, so query
-      // string and hash are stripped before recording it.
-      const destination = anchor.href.slice(APP_ORIGIN.length).split(/[?#]/)[0] || '/';
+      // string and hash are dropped (pathname only).
+      const destination = url.pathname || '/';
       const ctaId = anchor.dataset.cta ?? `${areaOf(anchor)}:${destination}`;
 
       trackCtaClick(pathname, ctaId, destination);
