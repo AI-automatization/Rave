@@ -25,6 +25,7 @@ import { useVoiceChat } from '@/hooks/use-voice-chat';
 import { useDesktopScreenShare } from '@/hooks/use-desktop-screen-share';
 import { DesktopScreenView } from '@/components/party/DesktopScreenView';
 import { DesktopVbDock } from '@/components/party/DesktopVbDock';
+import { DesktopGeoAlternatives } from '@/components/party/DesktopGeoAlternatives';
 import { useSocket } from '@/hooks/use-socket';
 import { roomsApi } from '@/lib/api/rooms.api';
 import { ApiError } from '@/lib/api-client';
@@ -531,6 +532,14 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
     desktopAutoUrlRef.current = url;
     void screenShare.start(url);
   }, [desktopOwner, room, screenShare]);
+  // Region-blocked film (desktop app): the owner picked the same film on another source. The current share is stopped
+  // first — the auto-open above skips while sharing — then the room switches like "Videoni almashtirish"; a film site
+  // reopens in the VB through that effect, a YouTube/Rutube/... link goes to the normal player.
+  const handleGeoPick = useCallback((url: string) => {
+    trackClick('room:geo_alt_pick');
+    screenShare.stop();
+    void resolveLinkPlatform(url, detectVideoPlatform(url)).then((r) => sendMediaChange(r.url, undefined, r.platform));
+  }, [screenShare, sendMediaChange]);
   // A server-side VB that started anyway (older server, a media change) is stopped; the desktop VB takes over.
   useEffect(() => {
     if (desktopOwner && vbActive) vbStop();
@@ -726,6 +735,16 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
               />
             )}
             </div>
+
+            {isOwner && screenShare.geoBlocked && (
+              <DesktopGeoAlternatives
+                title={screenShare.geoBlocked.title}
+                alternatives={screenShare.alternatives}
+                onPick={handleGeoPick}
+                onChangeVideo={openChangeVideo}
+                onDismiss={screenShare.dismissGeo}
+              />
+            )}
 
             {isOwner && (
               <div className="flex flex-wrap gap-2">

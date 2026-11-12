@@ -36,6 +36,8 @@ interface DesktopBridge {
     close(): Promise<{ ok: boolean }>;
     focus(): Promise<{ ok: boolean }>;
     onState(cb: (s: DesktopVbState) => void): () => void;
+    /** Region-blocked film: the same film found elsewhere, as answers arrive (Mac build ≥ 2026-11-12). */
+    onAlternatives?(cb: (u: DesktopAlternatives) => void): () => void;
   };
   /** The VB as a panel inside the app window — finding a room's video. Absent in older desktop builds. */
   picker?: {
@@ -51,8 +53,33 @@ interface DesktopBridge {
   };
 }
 
-/** nav: 'load' = full page load, 'in-page' = SPA route change (desktop ≥ the VB-picker build). */
-export interface DesktopVbState { open: boolean; url?: string; title?: string; crashed?: string; nav?: 'load' | 'in-page' }
+/** nav: 'load' = full page load, 'in-page' = SPA route change (desktop ≥ the VB-picker build).
+ *  blocked: 'geo' = the page says the film is not available in the owner's region (Mac build ≥ 2026-11-12). */
+export interface DesktopVbState { open: boolean; url?: string; title?: string; crashed?: string; nav?: 'load' | 'in-page'; blocked?: 'geo' }
+
+/** One place the region-blocked film was found (desktop-mac src/main/film-search.ts). */
+export interface DesktopAlternativeHit {
+  source: string;
+  title: string;
+  url: string;
+  thumbnail: string | null;
+  year: number | null;
+  kind: 'film' | 'series';
+  /** Needs a subscription (cinerama). */
+  paid: boolean;
+  durationSec: number | null;
+  /** 'match' = carries the blocked film's name; 'maybe' = a guess (cinerama answers in another language). */
+  confidence: 'match' | 'maybe';
+  lengthKnown: boolean;
+  /** Opened once from the owner's connection: 'yes' plays here, null = not checked (yet). */
+  available: 'yes' | 'blocked' | 'unknown' | null;
+}
+export interface DesktopAlternatives {
+  blockedUrl: string;
+  film: { title: string; kind: 'film' | 'series'; episode: number | null };
+  status: 'searching' | 'checking' | 'done';
+  hits: DesktopAlternativeHit[];
+}
 
 declare global {
   interface Window { wewatchDesktop?: DesktopBridge }
@@ -231,6 +258,25 @@ export function useDesktopScreenShare(socket: Socket | null, roomJoined: boolean
     return bridge.vb.onState((s) => { if (!s.open && localRef.current) stop(); });
   }, [bridge, canShare, stop]);
 
+  // Region block: the VB says "this film is not available in your region" — the owner is told, and the app looks for
+  // the same film elsewhere (the list arrives on onAlternatives). Cleared when the VB moves to another page or closes.
+  const [geoBlocked, setGeoBlocked] = useState<{ url: string; title: string } | null>(null);
+  const [alternatives, setAlternatives] = useState<DesktopAlternatives | null>(null);
+  useEffect(() => {
+    if (!bridge || !canShare) return;
+    const offState = bridge.vb.onState((s) => {
+      if (!s.open) { setGeoBlocked(null); setAlternatives(null); return; }
+      if (s.blocked === 'geo' && s.url) { setGeoBlocked({ url: s.url, title: s.title ?? '' }); return; }
+      if (s.nav === 'load') {
+        setGeoBlocked((g) => (g && g.url !== s.url ? null : g));
+        setAlternatives((a) => (a && a.blockedUrl !== s.url ? null : a));
+      }
+    });
+    const offAlt = bridge.vb.onAlternatives?.((u) => setAlternatives(u));
+    return () => { offState(); offAlt?.(); };
+  }, [bridge, canShare]);
+  const dismissGeo = useCallback(() => { setGeoBlocked(null); setAlternatives(null); }, []);
+
   // ─── Signalling ──────────────────────────────────────────────────────────
 
   const closeViewer = useCallback(() => {
@@ -337,5 +383,10 @@ export function useDesktopScreenShare(socket: Socket | null, roomJoined: boolean
       if (rect) dockReadyRef.current?.();
     },
     focusVb: () => { void bridge?.vb.focus(); },
+    /** Owner: the VB page is a region-block notice (null otherwise). */
+    geoBlocked,
+    /** Owner: where the blocked film was found elsewhere (streams in while searching). */
+    alternatives,
+    dismissGeo,
   };
 }
