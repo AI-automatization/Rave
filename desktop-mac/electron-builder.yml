@@ -13,6 +13,23 @@ files:
   - "!dist/main/smoke.js" # development smoke driver, never loaded by the packaged app (index.ts)
   - "!dist/main/smoke.js.map"
   - package.json
+# Runtime dependencies. beforeBuild returns false (monorepo: the builder would walk up to the repo root), so the builder
+# collects no node_modules and ignores node_modules patterns under `files`. They are copied next to app.asar instead:
+# Node resolves Resources/app.asar/dist/main/x.js → … → Resources/node_modules. Keep in step with
+# `npm ls --omit=dev --all`; scripts/after-pack.cjs fails the build when one does not resolve from the packaged app.
+extraResources:
+  - { from: node_modules/@ghostery/adblocker, to: node_modules/@ghostery/adblocker }
+  - { from: node_modules/@ghostery/adblocker-content, to: node_modules/@ghostery/adblocker-content }
+  - { from: node_modules/@ghostery/adblocker-extended-selectors, to: node_modules/@ghostery/adblocker-extended-selectors }
+  - { from: node_modules/@ghostery/url-parser, to: node_modules/@ghostery/url-parser }
+  - { from: node_modules/@remusao/guess-url-type, to: node_modules/@remusao/guess-url-type }
+  - { from: node_modules/@remusao/small, to: node_modules/@remusao/small }
+  - { from: node_modules/@remusao/smaz, to: node_modules/@remusao/smaz }
+  - { from: node_modules/@remusao/smaz-compress, to: node_modules/@remusao/smaz-compress }
+  - { from: node_modules/@remusao/smaz-decompress, to: node_modules/@remusao/smaz-decompress }
+  - { from: node_modules/@remusao/trie, to: node_modules/@remusao/trie }
+  - { from: node_modules/tldts-core, to: node_modules/tldts-core }
+  - { from: node_modules/tldts-experimental, to: node_modules/tldts-experimental }
 protocols:
   - name: WeWatch
     schemes: [wewatch]

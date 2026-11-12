@@ -15,4 +15,33 @@ module.exports = async (context) => {
   }
   buddy('Add :NSAppTransportSecurity dict');
   buddy('Add :NSAppTransportSecurity:NSAllowsArbitraryLoads bool false');
+  checkRuntimeDependencies(context);
 };
+
+// The 2026-11-12 DMG shipped without @ghostery/adblocker: the app showed "Cannot find module" on every start. Every
+// runtime dependency (the whole `npm ls --omit=dev` tree) must sit in Resources/node_modules (electron-builder.yml
+// extraResources), and each one in package.json must load from where the app's own code lives — with the packaged
+// Electron itself when it can run on this machine. Any miss fails the build instead of shipping a broken app.
+function checkRuntimeDependencies(context) {
+  const projectDir = context.packager.projectDir;
+  const app = path.join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`);
+  const resources = path.join(app, 'Contents', 'Resources');
+  const fs = require('node:fs');
+  const tree = execFileSync('npm', ['ls', '--omit=dev', '--all', '--parseable'], { cwd: projectDir, encoding: 'utf8' })
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.includes(`${path.sep}node_modules${path.sep}`))
+    .map((l) => l.slice(l.lastIndexOf(`node_modules${path.sep}`)));
+  const missing = [...new Set(tree)].filter((rel) => !fs.existsSync(path.join(resources, rel, 'package.json')));
+  if (missing.length) throw new Error(`afterPack: runtime dependencies missing from the app: ${missing.join(', ')}`);
+
+  const deps = Object.keys(require(path.join(projectDir, 'package.json')).dependencies ?? {});
+  const hostArch = process.arch === 'arm64' ? 'arm64' : 'x64';
+  const builtArch = context.arch === 3 ? 'arm64' : context.arch === 1 ? 'x64' : String(context.arch); // builder-util Arch enum
+  if (deps.length === 0 || builtArch !== hostArch) return; // another CPU: the file check above is what we can do
+  const bin = path.join(app, 'Contents', 'MacOS', context.packager.appInfo.productFilename);
+  const from = path.join(resources, 'app.asar', 'dist', 'main');
+  const probe = `for (const d of ${JSON.stringify(deps)}) require(require.resolve(d, { paths: [${JSON.stringify(from)}] })); console.log('ok');`;
+  const out = execFileSync(bin, ['-e', probe], { env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }, encoding: 'utf8' });
+  if (!out.includes('ok')) throw new Error(`afterPack: runtime dependencies did not load in the packaged app: ${out}`);
+}
