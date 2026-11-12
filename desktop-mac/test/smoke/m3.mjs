@@ -76,7 +76,7 @@ for (const minimized of [false, true]) {
   const s = await run(minimized);
   const bridge = get(s, 'bridge');
   check(bridge?.platform === 'macos' && bridge?.version === 1, 'bridge: platform macos, version 1');
-  check(JSON.stringify(bridge?.vbKeys) === JSON.stringify(['open', 'setVideoOnly', 'setBounds', 'close', 'focus', 'onState', 'onBlocked', 'metrics']), 'bridge: vb contract keys');
+  check(JSON.stringify(bridge?.vbKeys) === JSON.stringify(['open', 'setVideoOnly', 'setBounds', 'close', 'focus', 'onState', 'onBlocked', 'onAlternatives', 'metrics']), 'bridge: vb contract keys');
   check(get(s, 'open-file')?.reason === 'protocol_not_allowed', 'vb.open(file://) refused');
   check(get(s, 'open-js')?.reason === 'protocol_not_allowed', 'vb.open(javascript:) refused');
   check(get(s, 'open-garbage')?.reason === 'invalid_url', 'vb.open(garbage) refused');
@@ -97,7 +97,10 @@ for (const minimized of [false, true]) {
   check(after.length > 0 && after.split('').filter((c) => c === '1').length / after.length >= 0.95, `viewer audio does not drop out once started (${m?.pattern})`);
   check(m && m.e440dB > -60, `viewer hears the VB's 440 Hz tone (${m?.e440dB} dB)`);
   check(m && m.e880dB < m.e440dB - 25, `app's own 880 Hz tone did NOT leak into the share (${m?.e880dB} dB vs ${m?.e440dB} dB)`);
-  check(m && m.frames >= 120, `viewer video flowing (${m?.frames} frames in 8 s)`);
+  console.log(`      frames in 8 s: captured ${m?.rtc?.src} → sent ${m?.rtc?.sent} → decoded ${m?.rtc?.decoded} → painted ${m?.frames} | src ${m?.rtc?.srcRes} sent ${m?.rtc?.res} limit=${m?.rtc?.lim} target=${m?.rtc?.target} ${m?.rtc?.enc}`);
+  // Counted where the viewer DECODES them: a hidden smoke window may not paint (rVFC = 0 although 230 frames arrived,
+  // 2026-11-12), and painting is the OS compositor's business, not the share's.
+  check(m && m.rtc?.decoded >= 120, `viewer video flowing (${m?.rtc?.decoded} frames decoded in 8 s)`);
   check(m && m.luma > 15 && m.luma < 245, `viewer picture is not black/white (luma ${m?.luma})`);
   check(get(s, 'close')?.ok === true, 'vb.close ok');
   check(get(s, 'closed-event') === true, 'vb:state {open:false} delivered');

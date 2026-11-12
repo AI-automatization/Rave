@@ -26,7 +26,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   report('metrics', await bridge.vb.metrics());
 
   let stream;
-  try { stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: true }); }
+  // Same capture + sender settings as the room (apps/app-web/src/hooks/use-desktop-screen-share.ts). Without them the
+  // VB was captured at its Retina size (2940x1580) and the software VP8 encoder sent ~2 of 30 frames a second on a
+  // busy Mac — this check then failed at random ("viewer video flowing"), measured 2026-11-12.
+  try { stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: true }); }
   catch (e) { report('capture', { error: String(e) }); report('done', {}); return; }
   report('capture', { audio: stream.getAudioTracks().length, video: stream.getVideoTracks().length, label: stream.getAudioTracks()[0]?.label });
 
@@ -36,7 +39,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   pc2.onicecandidate = (e) => e.candidate && pc1.addIceCandidate(e.candidate);
   const remote = new MediaStream();
   const gotTracks = new Promise((res) => { let n = 0; pc2.ontrack = (e) => { remote.addTrack(e.track); if (++n === 2) res(); }; });
-  stream.getTracks().forEach((t) => pc1.addTrack(t, stream));
+  stream.getTracks().forEach((t) => {
+    const sender = pc1.addTrack(t, stream);
+    if (t.kind !== 'video') return;
+    t.contentHint = 'motion';
+    const p = sender.getParameters();
+    p.encodings = [{ ...(p.encodings?.[0] ?? {}), maxBitrate: 2_500_000, maxFramerate: 30 }];
+    p.degradationPreference = 'maintain-resolution';
+    sender.setParameters(p).catch(() => {});
+  });
   await pc1.setLocalDescription(await pc1.createOffer()); await pc2.setRemoteDescription(pc1.localDescription);
   await pc2.setLocalDescription(await pc2.createAnswer()); await pc1.setRemoteDescription(pc2.localDescription);
   await Promise.race([gotTracks, sleep(8000)]);
@@ -45,6 +56,14 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   // Measure what the VIEWER receives.
   const v = document.getElementById('v'); v.srcObject = remote; v.play().catch(() => {});
   let frames = 0; const cnt = () => { frames++; v.requestVideoFrameCallback(cnt); }; v.requestVideoFrameCallback(cnt);
+  // Where frames go missing, if they do: captured (media-source) → sent (outbound) → decoded (inbound) → painted (rVFC above).
+  const rtcCounts = async () => {
+    const r = { src: 0, sent: 0, decoded: 0 };
+    (await pc1.getStats()).forEach((s) => { if (s.type === 'media-source' && s.kind === 'video') r.src = s.frames ?? 0; if (s.type === 'outbound-rtp' && s.kind === 'video') { r.sent = s.framesSent ?? 0; r.lim = s.qualityLimitationReason; r.res = s.frameWidth + 'x' + s.frameHeight; r.enc = s.encoderImplementation; r.kbps = s.targetBitrate; } if (s.type === 'media-source' && s.kind === 'video') r.srcRes = s.width + 'x' + s.height; });
+    (await pc2.getStats()).forEach((s) => { if (s.type === 'inbound-rtp' && s.kind === 'video') r.decoded = s.framesDecoded ?? 0; });
+    return r;
+  };
+  const rtc0 = await rtcCounts();
   const au = new Audio(); au.srcObject = remote; au.muted = true; au.play().catch(() => {}); // keeps the remote audio flowing into Web Audio
   const ctx = new AudioContext(); const an = ctx.createAnalyser(); an.fftSize = 4096;
   ctx.createMediaStreamSource(remote).connect(an);
@@ -61,7 +80,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   }
   const g = document.getElementById('cv').getContext('2d'); let luma = -1;
   try { g.drawImage(v, 0, 0, 32, 18); const d = g.getImageData(0, 0, 32, 18).data; let t = 0; for (let i = 0; i < d.length; i += 4) t += (d[i] + d[i + 1] + d[i + 2]) / 3; luma = Math.round(t / (d.length / 4)); } catch {}
-  report('measure', { pattern, samples: n, live, maxRms: +maxRms.toFixed(4), e440dB: Math.round(e440), e880dB: Math.round(e880), frames, luma });
+  const rtc1 = await rtcCounts();
+  const rtc = { src: rtc1.src - rtc0.src, sent: rtc1.sent - rtc0.sent, decoded: rtc1.decoded - rtc0.decoded, lim: rtc1.lim, res: rtc1.res, srcRes: rtc1.srcRes, enc: rtc1.enc, target: rtc1.kbps };
+  report('measure', { pattern, samples: n, live, maxRms: +maxRms.toFixed(4), e440dB: Math.round(e440), e880dB: Math.round(e880), frames, luma, rtc });
 
   // Close the VB: state event + sharing must stop being possible.
   const closed = new Promise((res) => bridge.vb.onState((s) => s.open === false && res(true)));
