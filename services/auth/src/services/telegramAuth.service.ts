@@ -44,11 +44,21 @@ export class TelegramAuthService {
     auth_date: string;
     hash: string;
   }): Promise<{ accessToken: string; refreshToken: string; user: IUserDocument }> {
-    const botToken = scopedEnv('AUTH', 'TELEGRAM_BOT_TOKEN') ?? '';
+    const botToken = scopedEnv('AUTH', 'TELEGRAM_BOT_TOKEN');
+    // Fail closed: with an empty token the HMAC key is sha256('') — publicly known — so anyone
+    // could forge a valid hash and log in as any Telegram id.
+    if (!botToken) {
+      logger.error('TELEGRAM_BOT_TOKEN is not set — Telegram login rejected');
+      throw new UnauthorizedError('Telegram login is not configured');
+    }
 
-    // auth_date freshness check (5 daqiqadan eski bo'lsa reject)
-    const authAge = Math.floor(Date.now() / 1000) - parseInt(data.auth_date, 10);
-    if (authAge > 300) throw new UnauthorizedError('Telegram auth data expired');
+    // auth_date freshness: reject older than 5 min, from the future (60s clock skew) or non-numeric.
+    // The old check used parseInt — 'abc' gave NaN, and `NaN > 300` is false, so it passed.
+    const authDate = Number(data.auth_date);
+    const authAge = Math.floor(Date.now() / 1000) - authDate;
+    if (!Number.isInteger(authDate) || authAge > 300 || authAge < -60) {
+      throw new UnauthorizedError('Telegram auth data expired');
+    }
 
     // Hash verification (official Telegram Login algorithm)
     const { hash, ...fields } = data;
@@ -61,7 +71,11 @@ export class TelegramAuthService {
     const secretKey = crypto.createHash('sha256').update(botToken).digest();
     const expectedHash = crypto.createHmac('sha256', secretKey).update(checkString).digest('hex');
 
-    if (expectedHash !== hash) throw new UnauthorizedError('Invalid Telegram auth data');
+    // Constant-time compare (a plain !== leaks how many leading chars matched).
+    const given = typeof hash === 'string' && /^[0-9a-f]{64}$/.test(hash) ? Buffer.from(hash, 'hex') : null;
+    if (!given || !crypto.timingSafeEqual(Buffer.from(expectedHash, 'hex'), given)) {
+      throw new UnauthorizedError('Invalid Telegram auth data');
+    }
 
     const user = await this.findOrCreateTelegramUser({
       id: data.id,
