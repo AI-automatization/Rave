@@ -1,0 +1,48 @@
+{
+ "status": true,
+ "data": {
+  "total": 6,
+  "movies": [
+   {
+    "id": 49149,
+    "moduleId": 17,
+    "poster": "https://files.cinerama.uz/images/posters/2025/11/26/128720d0-a6e5-40a6-8774-ed4f45c8977a-c-350x500.jpg",
+    "title": "Война миров Z",
+    "titleEn": "World War Z",
+    "year": 2013,
+    "isSerial": false,
+    "isFree": false
+   },
+   {
+    "id": 28687,
+    "moduleId": 6,
+    "poster": "https://files.cinerama.uz/images/posters/2023/09/06/bc21bbb0-ad73-4c3a-a498-45daa9a607c0-c-350x500.jpg",
+    "title": "Yuraklar jangi (milliy serial)",
+    "titleEn": "Юраклар жанги (миллий сериал)",
+    "year": 2018,
+    "isSerial": true,
+    "isFree": false
+   },
+   {
+    "id": 15512,
+    "moduleId": 3,
+    "poster": "https://files.cinerama.uz/images/posters/2021/09/15/afce7e1a-d635-4938-a357-f1912f6e2749-c-350x500.jpg",
+    "title": "Человек-паук: Через вселенные",
+    "titleEn": "Spider-Man: Into the Spider-Verse",
+    "year": 2018,
+    "isSerial": false,
+    "isFree": false
+   },
+   {
+    "id": 7205,
+    "moduleId": 3,
+    "poster": "https://files.cinerama.uz/images/posters/2026/05/26/161fba33-c37e-4c60-b253-11aec0549894-c-350x500.jpg",
+    "title": "Хоббит: Битва пяти воинств (Расширенная версия)",
+    "titleEn": "The Hobbit: The Battle of the Five Armies (Extended Cut)",
+    "year": 2014,
+    "isSerial": false,
+    "isFree": false
+   }
+  ]
+ }
+}

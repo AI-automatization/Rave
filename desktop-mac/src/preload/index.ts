@@ -23,6 +23,8 @@ contextBridge.exposeInMainWorld('wewatchDesktop', {
     focus: () => ipcRenderer.invoke('vb:focus'),
     onState: listen('vb:state'),
     onBlocked: listen('vb:blocked'),
+    // Region-blocked film: the same film found elsewhere, streamed as answers arrive (src/main/film-search.ts).
+    onAlternatives: listen('vb:alternatives'),
     metrics: () => ipcRenderer.invoke('vb:metrics'),
   },
 });

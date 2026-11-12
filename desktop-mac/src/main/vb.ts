@@ -9,6 +9,9 @@ import { checkVbUrl, chromeUserAgent, failPageUrl, isPrivateIp, sameSite } from 
 import { focusMainWindow, getMainWindow, sendToMain } from './window';
 import { parseDockRect, toWindowRect, type Rect } from './vb-dock-model';
 import { FOCUS_VIDEO_SCRIPT, PLAYING_VIDEO_SCRIPT, UNFOCUS_SCRIPT, focusIframeScript, pickPlayerFrame, type FrameProbe } from './vb-focus-model';
+import { GEO_PROBE_SCRIPT, isGeoBlocked } from './geo-block-model';
+import { FILM_TITLE_SCRIPT } from './film-query-model';
+import { cancelFilmSearch, findFilmElsewhere } from './film-search';
 
 export const VB_PARTITION = 'persist:vb'; // own cookies/cache — never touches the app session
 
@@ -233,6 +236,7 @@ function closeDock(): boolean {
   const host = getMainWindow();
   if (host) host.contentView.removeChildView(v);
   v.webContents.close();
+  cancelFilmSearch();
   sendToMain('vb:state', { open: false });
   clearVbCache();
   return true;
@@ -298,12 +302,42 @@ function wireVbContents(wc: WebContents): void {
     return { action: 'deny' };
   });
   // 'load' = a real page load, 'in-page' = SPA route change (YouTube/VK switch videos without reloading).
-  wc.on('did-navigate', (_e, url) => send({ open: true, url, nav: 'load' }));
+  wc.on('did-navigate', (_e, url) => {
+    if (url !== geoUrl) cancelFilmSearch(); // the VB moved on: a search for the blocked film stops reporting
+    send({ open: true, url, nav: 'load' });
+  });
   wc.on('did-navigate-in-page', (_e, url, isMainFrame) => {
     if (isMainFrame) send({ open: true, url, nav: 'in-page' });
   });
   wc.on('page-title-updated', (_e, title) => send({ open: true, url: wc.getURL(), title }));
   wc.on('render-process-gone', (_e, d) => send({ open: true, crashed: d.reason }));
+  // Region block ("Bu film hududingizda mavjud emas"): the room tells the owner and looks for the film elsewhere.
+  // Checked when the page has loaded and once more a moment later (some sites draw the notice with script); told once per URL.
+  let geoUrl = '';
+  const probeGeo = (): void => {
+    if (wc.isDestroyed()) return;
+    const url = wc.getURL();
+    if (!/^https?:/i.test(url) || url === geoUrl) return;
+    void wc.mainFrame
+      .executeJavaScript(GEO_PROBE_SCRIPT, false)
+      .then((text: unknown) => {
+        if (wc.isDestroyed() || wc.getURL() !== url || url === geoUrl || !isGeoBlocked(String(text ?? ''))) return;
+        geoUrl = url;
+        send({ open: true, url, title: wc.getTitle(), blocked: 'geo' });
+        // …and look for the same film elsewhere at once (agreed: automatic; the owner picks).
+        void wc.mainFrame
+          .executeJavaScript(FILM_TITLE_SCRIPT, false)
+          .then((t: unknown) => { if (!wc.isDestroyed() && wc.getURL() === url) void findFilmElsewhere(String(t || wc.getTitle()), url); })
+          .catch(() => {});
+      })
+      .catch(() => { /* the page navigated away mid-check */ });
+  };
+  const probeGeoSoon = (): void => {
+    probeGeo();
+    setTimeout(probeGeo, 2500);
+  };
+  wc.on('did-finish-load', probeGeoSoon);
+  wc.on('did-navigate-in-page', (_e, _url, isMainFrame) => { if (isMainFrame) setTimeout(probeGeo, 1500); });
 }
 
 export function openVb(url: string, docked = false): VbResult | Promise<VbResult> {
@@ -337,6 +371,7 @@ export function openVb(url: string, docked = false): VbResult | Promise<VbResult
   wireVbContents(win.webContents);
   win.on('closed', () => {
     if (vbWin === win) vbWin = null;
+    cancelFilmSearch();
     sendToMain('vb:state', { open: false });
     clearVbCache();
     focusMainWindow();
