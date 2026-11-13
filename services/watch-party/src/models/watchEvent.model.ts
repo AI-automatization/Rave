@@ -11,6 +11,8 @@ export interface IWatchEvent {
   platform: string | null;
   count: number;
   lastWatchedAt: Date;
+  /** The user removed it from their Tarix. Kept (not deleted) so the weekly top still counts it; watching it again clears it. */
+  hiddenAt?: Date | null;
 }
 
 export type IWatchEventDocument = IWatchEvent & Document;
@@ -24,6 +26,7 @@ const watchEventSchema = new Schema<IWatchEventDocument>(
     platform:      { type: String, default: null },
     count:         { type: Number, default: 1 },
     lastWatchedAt: { type: Date, default: Date.now },
+    hiddenAt:      { type: Date, default: null },
   },
   { timestamps: false },
 );

@@ -45,7 +45,7 @@ export async function recordWatch(userIds: string[], item: WatchItem): Promise<v
       updateOne: {
         filter: { userId, sourceUrl: item.sourceUrl },
         update: {
-          $set: { title, thumbnail, platform: item.platform, lastWatchedAt: new Date() },
+          $set: { title, thumbnail, platform: item.platform, lastWatchedAt: new Date(), hiddenAt: null },
           $inc: { count: 1 },
         },
         upsert: true,
@@ -78,11 +78,20 @@ export async function recordMediaChange(roomId: string, sourceUrl: string, title
 }
 
 export async function getHistory(userId: string): Promise<(WatchItem & { lastWatchedAt: Date })[]> {
-  return WatchEvent.find({ userId })
+  return WatchEvent.find({ userId, hiddenAt: null }) // `null` also matches rows written before hiddenAt existed
     .sort({ lastWatchedAt: -1 })
     .limit(HISTORY_LIMIT)
     .select('sourceUrl title thumbnail platform lastWatchedAt -_id')
     .lean();
+}
+
+/**
+ * "Tarix"dan o'chirish: hides one link from this user's history. The row stays, so the weekly top keeps counting it, and
+ * watching the link again brings it back (recordWatch clears hiddenAt). Returns whether the user had that link.
+ */
+export async function hideHistoryItem(userId: string, sourceUrl: string): Promise<boolean> {
+  const r = await WatchEvent.updateOne({ userId, sourceUrl }, { $set: { hiddenAt: new Date() } });
+  return r.matchedCount > 0;
 }
 
 export async function getWeeklyTop(): Promise<TopItem[]> {

@@ -14,7 +14,7 @@ import { verifyToken, requireNotBlocked } from '@shared/middleware/auth.middlewa
 import { requireInternalSecret } from '@shared/utils/serviceClient';
 import { createRoomLimiter, joinRoomLimiter, vbMediaProxyLimiter, vbCaptureLimiter, embedCheckLimiter } from '../middleware/rateLimiter';
 import { validate, createRoomSchema, joinRoomSchema } from '../validators/watchParty.validator';
-import { getHistory, getWeeklyTop } from '../services/watchStats.service';
+import { getHistory, getWeeklyTop, hideHistoryItem } from '../services/watchStats.service';
 import { addAudioListener } from '../services/vbAudio.service';
 import { hasSession } from '../services/virtualBrowser.service';
 import { getAdBlockPref, setAdBlockPref } from '../services/vbAdBlock';
@@ -141,6 +141,21 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
     try {
       const userId = (req as unknown as { user: { userId: string } }).user.userId;
       res.json({ success: true, data: await getHistory(userId) });
+    } catch (err) { next(err); }
+  });
+
+  // DELETE /watch-party/history/me?sourceUrl=<link> — remove one link from this user's Tarix (watchStats.service.ts
+  // hideHistoryItem: hidden, not deleted). Only the caller's own rows can be touched (userId from the token).
+  router.delete('/history/me', verifyToken, notBlocked, async (req, res, next) => {
+    try {
+      const userId = (req as unknown as { user: { userId: string } }).user.userId;
+      const sourceUrl = req.query.sourceUrl;
+      if (typeof sourceUrl !== 'string' || sourceUrl.length > 2048 || !/^https?:\/\//i.test(sourceUrl)) {
+        res.status(400).json({ success: false, data: null, message: 'sourceUrl required', errors: null });
+        return;
+      }
+      const found = await hideHistoryItem(userId, sourceUrl);
+      res.status(found ? 200 : 404).json({ success: found, data: null, message: found ? 'Removed from history' : 'Not in history', errors: null });
     } catch (err) { next(err); }
   });
 
