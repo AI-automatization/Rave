@@ -65,7 +65,7 @@ test/        urls.test.ts (vitest)
 Veb-ilovaning "Google bilan kirish" tugmasi `<app>/api/auth/google/start` ga o'tadi; ilova buni ushlab, tizim brauzerida
 auth-servisning mavjud mobil oqimini (`POST /google/init` → `GET /google/mobile` → `GET /google/poll`) ishlatadi, tokenlarni
 veb bilan bir xil httpOnly cookie'larga (`access_token` 15 daq, `refresh_token` 30 kun) yozadi va `redirect` sahifasiga o'tadi.
-Serverda o'zgarish kerak emas. Auth manzili `src/main/config.ts` (`DEFAULT_AUTH_URL`, `api.wewatch.uz` ishlaganda almashtiriladi).
+Serverda o'zgarish kerak emas. Auth manzili `src/main/config.ts` (`DEFAULT_AUTH_URL` = core servisi `core-production-dbd0…/api/v1/auth`; `api.wewatch.uz` DNS'i core'ga ulanganda shunga almashtiriladi).
 `redirect` faqat `/` bilan boshlanadigan yo'l (`//evil.com` rad etiladi) — Polatning Windows kodidagi bo'shliq yopilgan.
 
 ## Xavfsizlik va tarmoq (M4)

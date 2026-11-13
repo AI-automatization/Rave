@@ -12,9 +12,10 @@ export const PROTOCOL = 'wewatch';
 
 // Auth service base for the Google sign-in poll flow (POST /google/init, GET /google/mobile, GET /google/poll).
 // The web app keeps this server-side only (AUTH_SERVICE_URL), so the desktop app needs its own copy.
-// It is a public hostname, not a secret. TODO: switch to api.wewatch.uz once it resolves (unreachable 2026-11-07);
-// the old domains are kept alive by the core merge (#268), so this one keeps working meanwhile.
-const DEFAULT_AUTH_URL = 'https://auth-production-47a8.up.railway.app/api/v1/auth';
+// It is a public hostname, not a secret. The core service (main: services/core, #268) serves auth under /api/v1/auth
+// (dispatch.ts) with the same Google routes; the old auth proxy (auth-production-47a8) is being shut down — Javod
+// #34953, 2026-11-12. Switch to api.wewatch.uz once its DNS points at core.
+const DEFAULT_AUTH_URL = 'https://core-production-dbd0.up.railway.app/api/v1/auth';
 export const AUTH_URL = (devEnv('WW_AUTH_URL') || DEFAULT_AUTH_URL).replace(/\/+$/, '');
 // DNS-over-HTTPS (dns.ts). The env overrides exist so the smoke test can prove the DoH path is really used.
 export const DOH_URL = devEnv('WW_DOH_URL') || 'https://cloudflare-dns.com/dns-query';
