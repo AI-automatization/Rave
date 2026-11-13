@@ -223,11 +223,19 @@ WeWatch — соцсеть для совместного просмотра фи
 | Cache | Redis 7 | 6380 |
 | Search | Elasticsearch | 9200 |
 
+**Зоны (команда из 3 человек, с 2026-11-13):**
 ```
-services/auth,user,content,watch-party,battle,notification,admin → Saidazim
-apps/mobile → Saidazim + Emirhan | apps/admin-ui → Saidazim
-shared/types,utils,constants → ОБЩЕЕ (lock protocol)
+services/* (core, media, auth, user, content, watch-party, notification, payment, admin),
+  Railway/Docker/toml, DNS/Cloudflare, безопасность, расходы   → Жаводбек (admin)
+  └─ единственный с admin на Rave → merge PR в main только через него
+apps/mobile (iOS+Android, WebView VB), Mac-сборка desktop, QA-приёмка перед мержем → Абдулазиз
+desktop/* (Electron-клиент), apps/app-web + apps/web (веб-клиент комнат, интеграция VB),
+  стык VB в watch-party; координация, PR/ревью, сводки, решения по VB-архитектуре → Полат (тимлид)
+shared/*, Socket.io-события, формат API-ответов → ОБЩЕЕ (lock protocol, ломает 3 платформы)
 ```
+> Старое распределение (Saidazim/Emirhan) мёртво — команда сменилась. Зоны и правило VB
+> зафиксированы решением тимлида (ADR 2026-11-13), чтобы не было разногласий, кто что трогает
+> и где крутится Virtual Browser.
 
 ---
 
@@ -310,7 +318,7 @@ Multi-Agent: `.claude/locks/shared-{zone}.lock` (TTL 30 мин).
 ## GIT ПРАВИЛА
 
 ```
-Branch: saidazim/feat-xxx | emirhan/feat-xxx — от dev, не от main
+Branch: polat/feat-xxx | atxamov/feat-xxx | javod/feat-xxx — от dev, не от main
 Commits: feat(auth): ... | fix(watch-party): ... | refactor(content): ...
 main → production. ПРЯМОЙ push в main запрещён ВСЕМ (2026-08-02, включая Saidazim/Emirhan) —
   только через PR, approve только от Emirhan или Saidazim (.github/CODEOWNERS,
@@ -383,6 +391,28 @@ Brute force: 5 попыток → 15min блок | Socket.io JWT verify
    front (web+app-web+admin-ui), MongoDB, Redis, wewatch-backup
 ✅ Еженедельный отчёт расходов по сервисам → группа WeWatch (рост >20% = разбор)
 ```
+
+---
+
+## ⛔ VB (Virtual Browser) — ТОЛЬКО ЛОКАЛЬНО (2026-11-13, решение тимлида)
+
+VB для выбора видео комнаты запускается **ТОЛЬКО на машине зрителя**: Electron (Chromium + webRequest)
+на Windows/macOS, системный WebView на мобилке. **Серверный VB (Chromium на Railway) ЗАПРЕЩЁН.**
+
+```
+❌ Запускать Chromium/VB на сервере (Railway) для резолва/стрима видео
+❌ Включать SERVER_VB=on или NEXT_PUBLIC_SERVER_VB=on в обычной работе
+✅ Источник → локальный VB у зрителя → фильм идёт в НАШ синхрон-плеер (не трансляция экрана)
+✅ Каждый зритель резолвит поток у себя; сервер хранит «паспорт» и только синхронизирует
+```
+
+**ПОЧЕМУ:** (1) платим за RAM контейнера 24/7 — серверный Chromium дорогой; (2) поток резолвится один
+раз на всех, а токены кино-плееров привязаны к IP/Referer зрителя → общий серверный резолв отдаёт
+другим 403. Локальный VB на машине каждого это снимает.
+
+**В КОДЕ:** рубильник `SERVER_VB` дефолт off (`services/watch-party/src/services/virtualBrowser.service.ts`)
++ веб `NEXT_PUBLIC_SERVER_VB`. `SERVER_VB=on` оставлен ТОЛЬКО как аварийный откат для PR #265 —
+не для работы; включается лишь решением тимлида. Отменяет ADR 2026-11-05 «серверный апгрейд с Referer».
 
 ## ⛔ ОПАСНЫЕ ЗОНЫ — АБСОЛЮТНЫЕ ЗАПРЕТЫ
 
