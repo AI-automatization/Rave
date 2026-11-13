@@ -7,7 +7,7 @@ import { REDIS_KEYS } from '@shared/constants';
 import { JwtPayload, VideoPlatform } from '@shared/types';
 import { recordWatchHistoryInternal, getUserPlan } from '@shared/utils/serviceClient';
 import { bufferTimeouts, resumeBufferedRoom } from './videoEvents.handler';
-import { stopSession, getSessionSnapshot, getSessionLastFrame, hasSession, markSessionCommitted } from '../services/virtualBrowser.service';
+import { stopSession, getSessionSnapshot, getSessionLastFrame, hasSession, markSessionCommitted, SERVER_VB_ENABLED } from '../services/virtualBrowser.service';
 import { startVBForRoom, upgradeEmbedToDirect, upgradeWebviewToDirect, pickerHintsFrom, vbWatchKey } from './vbSession.helper';
 import { enqueueVBRequest } from './vbQueue.helper';
 import { cancelVbDisconnectGrace } from './vbEvents.handler';
@@ -139,6 +139,9 @@ export function scheduleDisconnectLeave(
 }
 
 async function resumeVbIfNeeded(io: SocketServer, redis: Redis, roomId: string, ownerId: string): Promise<void> {
+  // Server VB off (virtualBrowser.service.ts SERVER_VB_ENABLED): nothing to resume, and trying would
+  // only toast "site didn't open" at everyone who rejoins an old watch-in-VB room.
+  if (!SERVER_VB_ENABLED) return;
   try {
     const url = await redis.get(vbWatchKey(roomId));
     if (!url || hasSession(roomId)) return;

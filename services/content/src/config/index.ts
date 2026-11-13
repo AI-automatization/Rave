@@ -21,7 +21,6 @@ export const config = {
   port: parseInt(process.env.PORT ?? '3003', 10),
   mongoUri: requireScoped('MONGO_URI'),
   redisUrl: requireScoped('REDIS_URL'),
-  elasticsearchUrl: scopedEnv('CONTENT', 'ELASTICSEARCH_URL') ?? 'http://elastic:changeme_dev@localhost:9200',
   jwtPublicKey: requireEnv('JWT_PUBLIC_KEY').replace(/\\n/g, '\n').trim(),
   corsOrigins: scopedEnv('CONTENT', 'CORS_ORIGINS') ?? 'http://localhost:3000,http://localhost:5173,http://localhost:8081',
   cloudinary: {

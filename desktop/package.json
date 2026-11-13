@@ -1,0 +1,41 @@
+{
+  "name": "wewatch-desktop",
+  "productName": "WeWatch",
+  "version": "0.1.1",
+  "private": true,
+  "description": "WeWatch for Windows — the web app plus a Virtual Browser that runs on the owner's own machine",
+  "main": "src/main.js",
+  "author": "WeWatch",
+  "scripts": {
+    "start": "electron .",
+    "dev": "cross-env WW_APP_URL=http://localhost:3000 electron .",
+    "dist": "electron-builder --win --x64",
+    "dist:dir": "electron-builder --win --x64 --dir"
+  },
+  "dependencies": {
+    "electron-updater": "6.8.11"
+  },
+  "devDependencies": {
+    "cross-env": "7.0.3",
+    "electron": "45.2.1",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "uz.wewatch.desktop",
+    "productName": "WeWatch",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["src/**/*", "package.json"],
+    "protocols": [{ "name": "WeWatch", "schemes": ["wewatch"] }],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "shortcutName": "WeWatch"
+    },
+    "publish": [{ "provider": "github", "owner": "AI-automatization", "repo": "Rave", "releaseType": "release" }]
+  }
+}

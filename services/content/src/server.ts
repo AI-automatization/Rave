@@ -6,7 +6,6 @@ initMetrics('content');
 import mongoose from 'mongoose';
 import { MONGO_OPTIONS } from '@shared/constants';
 import Redis from 'ioredis';
-import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
 import { createApp } from './app';
 import { config } from './config/index';
 import { logger } from '@shared/utils/logger';
@@ -31,12 +30,9 @@ const main = async (): Promise<void> => {
     logger.warn('Redis unavailable at startup — continuing without cache', { error: (err as Error).message });
   }
 
-  const elastic = new ElasticsearchClient({ node: config.elasticsearchUrl });
-  logger.info('Elasticsearch client initialized', { url: config.elasticsearchUrl });
-
   startUrlVisitCron();
 
-  const app = createApp(redis, elastic);
+  const app = createApp(redis);
 
   app.listen(config.port, () => {
     logger.info('Content service running', { port: config.port, env: config.nodeEnv });

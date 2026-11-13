@@ -9,7 +9,6 @@ import http from 'http';
 import express from 'express';
 import mongoose from 'mongoose';
 import Redis from 'ioredis';
-import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
 import { MONGO_OPTIONS } from '@shared/constants';
 import { logger } from '@shared/utils/logger';
 import { getServiceConnection } from '@shared/utils/serviceConnection';
@@ -88,9 +87,6 @@ const main = async (): Promise<void> => {
     logger.warn('Redis unavailable at startup — Socket.io adapter disabled', { error: (err as Error).message });
   }
 
-  const elastic = new ElasticsearchClient({ node: contentConfig.elasticsearchUrl });
-  logger.info('Elasticsearch client initialized', { service: 'content' });
-
   // ── Apps: each is the unchanged standalone app (own middleware, 404, error handler) ────
   const top = express();
   top.disable('x-powered-by');
@@ -100,22 +96,19 @@ const main = async (): Promise<void> => {
   // watch-party attaches socket.io (default /socket.io path) to OUR http server.
   const { app: watchPartyApp, io } = createWatchPartyApp(watchPartyRedis, { httpServer, backgroundJobs });
   const apps = {
-    content: createContentApp(contentRedis, elastic),
+    content: createContentApp(contentRedis),
     'watch-party': watchPartyApp,
   };
 
   // Aggregate health (replaces both services' /health; superset of both JSON shapes).
-  // Elasticsearch is advisory exactly as in content (not deployed in prod -> "down", still 200).
   top.get('/health', async (_req, res) => {
     const mongoOk = mongoose.connection.readyState === 1;
     const contentMongoOk = contentDb.readyState === 1;
     let redisOk = false;
-    let esOk = false;
     try {
       await Promise.all([contentRedis.ping(), watchPartyRedis.ping()]);
       redisOk = true;
     } catch { redisOk = false; }
-    try { await elastic.ping({}, { requestTimeout: 3000, maxRetries: 0 }); esOk = true; } catch { esOk = false; }
     const healthy = mongoOk && contentMongoOk && redisOk;
     res.status(healthy ? 200 : 503).json({
       status: healthy ? 'ok' : 'degraded',
@@ -124,7 +117,6 @@ const main = async (): Promise<void> => {
         mongo: mongoOk ? 'ok' : 'down',
         mongoContent: contentMongoOk ? 'ok' : 'down',
         redis: redisOk ? 'ok' : 'down',
-        elasticsearch: esOk ? 'ok' : 'down',
       },
     });
   });

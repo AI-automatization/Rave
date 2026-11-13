@@ -144,20 +144,33 @@ function FatalErrorRetryOverlay({ onRetry }: { onRetry: () => void }) {
 // yuklagani yo'q"). Owner gets a way out; viewers get told who can fix it.
 const UNRESOLVED_TIMEOUT_MS = 30_000;
 
-function UnresolvedVideoOverlay({ isOwner, onOpenVirtualBrowser, onPickDifferentVideo }: {
+function UnresolvedVideoOverlay({ isOwner, onOpenVirtualBrowser, onTryIframe, onPickDifferentVideo }: {
   isOwner: boolean;
   onOpenVirtualBrowser?: () => void;
+  onTryIframe?: () => void;
   onPickDifferentVideo?: () => void;
 }) {
   const t = useTranslations('party');
+  // No server VB (lib/server-vb.ts): the owner's ways out are the plain iframe or another video.
+  const ownerHint = onOpenVirtualBrowser ? t('playerUnresolvedOwnerHint') : t('playerUnresolvedOwnerHintNoVb');
   return (
     <div className="aspect-video bg-black rounded-xl overflow-hidden flex flex-col items-center justify-center gap-4 px-6 text-center" data-testid="video-unresolved">
       <p className="text-white text-sm sm:text-base font-semibold">{t('playerUnresolvedTitle')}</p>
       <p className="text-white/55 text-xs sm:text-sm max-w-md">
-        {isOwner ? t('playerUnresolvedOwnerHint') : t('playerUnresolvedViewerHint')}
+        {isOwner ? ownerHint : t('playerUnresolvedViewerHint')}
       </p>
       {isOwner && (
         <div className="flex flex-wrap items-center justify-center gap-2">
+          {onTryIframe && (
+            <button
+              type="button"
+              onClick={() => { trackClick('video:unresolved_try_iframe'); onTryIframe(); }}
+              className="h-9 rounded-lg px-4 text-[13px] font-medium text-white cursor-pointer"
+              style={{ background: 'linear-gradient(135deg,#7C3AED,#5B21B6)' }}
+            >
+              {t('playerUnresolvedTryIframe')}
+            </button>
+          )}
           {onOpenVirtualBrowser && (
             <button
               type="button"
@@ -206,6 +219,9 @@ interface Props {
   /** Owner-only: opens THIS url in the shared Virtual Browser — the 'webview' (generic iframe)
    * player's fallback for pages that allow framing but render blank. */
   onOpenUrlInVirtualBrowser?: (url: string) => void;
+  /** Owner-only: re-open the unresolved source page as a plain iframe ('webview') — the viewers'
+   * own browsers may reach a page the server couldn't (RoomContent's handleTryIframe). */
+  onTryIframe?: (url: string | null) => void;
   /** VB reported the source site unreachable — show the "didn't open" state immediately. */
   sourceUnreachable?: boolean;
   /** True while at least one voice-chat participant is speaking — ducks the video's volume down
@@ -1394,6 +1410,7 @@ export function VideoPlayer({
   onPickDifferentVideo,
   onOpenVirtualBrowser,
   onOpenUrlInVirtualBrowser,
+  onTryIframe,
   sourceUnreachable,
   duckAudio,
 }: Props) {
@@ -1969,7 +1986,14 @@ export function VideoPlayer({
       );
     }
     if (unresolved || sourceUnreachable) {
-      return <UnresolvedVideoOverlay isOwner={isOwner} onOpenVirtualBrowser={onOpenVirtualBrowser} onPickDifferentVideo={onPickDifferentVideo} />;
+      return (
+        <UnresolvedVideoOverlay
+          isOwner={isOwner}
+          onOpenVirtualBrowser={onOpenVirtualBrowser}
+          onTryIframe={onTryIframe ? () => onTryIframe(videoUrl) : undefined}
+          onPickDifferentVideo={onPickDifferentVideo}
+        />
+      );
     }
     return <VideoLoading />;
   }

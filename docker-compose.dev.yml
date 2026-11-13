@@ -17,7 +17,7 @@ x-shared-src:
 services:
 
   # ═══════════════════════════════════════════════════════════════
-  # INFRA — MongoDB · Redis · Elasticsearch
+  # INFRA — MongoDB · Redis
   # ═══════════════════════════════════════════════════════════════
 
   mongo:
@@ -45,24 +45,6 @@ services:
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required in .env.dev}
     volumes:
       - redis_data:/data
-    networks:
-      - cinesync_network
-
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
-    container_name: cinesync_elasticsearch
-    restart: unless-stopped
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=true
-      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-changeme_dev}
-      - xpack.security.http.ssl.enabled=false
-      - 'ES_JAVA_OPTS=-Xms512m -Xmx512m'
-    ports:
-      - '127.0.0.1:9200:9200'
-      - '127.0.0.1:9300:9300'
-    volumes:
-      - es_data:/usr/share/elasticsearch/data
     networks:
       - cinesync_network
 
@@ -121,11 +103,9 @@ services:
     environment:
       MONGO_URI: "mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongo:27017/cinesync_content?authSource=admin"
       REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379"
-      ELASTICSEARCH_URL: "http://elasticsearch:9200"
     depends_on:
       - mongo
       - redis
-      - elasticsearch
     volumes:
       - *shared1
       - *shared2
@@ -258,7 +238,6 @@ services:
 volumes:
   mongo_data:
   redis_data:
-  es_data:
   user_uploads:
   content_uploads:
   web_node_modules:
