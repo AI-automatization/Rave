@@ -16,7 +16,18 @@ module.exports = async (context) => {
   buddy('Add :NSAppTransportSecurity dict');
   buddy('Add :NSAppTransportSecurity:NSAllowsArbitraryLoads bool false');
   checkRuntimeDependencies(context);
+  checkBundledWeb(context);
 };
+
+// The bundled web app (scripts/build-web.sh → Resources/web, run by src/main/local-web.ts). Without it the packaged app
+// would map app.wewatch.uz to nothing; fail the build instead.
+function checkBundledWeb(context) {
+  const fs = require('node:fs');
+  const web = path.join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`, 'Contents', 'Resources', 'web');
+  const need = ['server.js', '.next/BUILD_ID', '.next/static', 'public', 'node_modules/next/package.json'];
+  const missing = need.filter((rel) => !fs.existsSync(path.join(web, rel)));
+  if (missing.length) throw new Error(`afterPack: bundled web app incomplete in ${web}: ${missing.join(', ')} (run npm run build:web)`);
+}
 
 // The 2026-11-12 DMG shipped without @ghostery/adblocker: the app showed "Cannot find module" on every start. Every
 // runtime dependency (the whole `npm ls --omit=dev` tree) must sit in Resources/node_modules (electron-builder.yml

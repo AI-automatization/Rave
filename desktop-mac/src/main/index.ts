@@ -11,6 +11,7 @@ import { installPermissionPolicy } from './permissions';
 import { chromeUserAgent } from './urls';
 import { clearVbCache, closeVb, protectVbSession } from './vb';
 import { initAdEngine } from './adblock-engine';
+import { prepareLocalWeb, startLocalWeb } from './local-web';
 import { createMainWindow, focusMainWindow, getMainWindow, observeContent, sendToMain } from './window';
 
 // Automated runs (smokes, agents) must never make a sound on the user's Mac: every page is muted (per page, so the
@@ -25,6 +26,7 @@ const smoke = (event: string, data: Record<string, unknown> = {}): void => {
 };
 
 addDnsSwitches(); // must run before the app is ready
+prepareLocalWeb(smoke); // the bundled web app (local-web.ts): resolver switch, also before ready
 
 /** Every main window (first launch, Dock click, a link arriving after the window was closed) owns the VB it opens. */
 function openMainWindow(): BrowserWindow {
@@ -152,6 +154,7 @@ if (!app.requestSingleInstanceLock()) {
     buildMenu();
     registerIpc();
     void (async () => {
+      await startLocalWeb(smoke).catch((e: unknown) => smoke('local-web-error', { error: String(e) })); // before any page loads
       if (SMOKE_OUT) await (await import('./smoke.js')).presetSmokeCookies(); // fake session cookies for smoke runs (dev only)
       smokeStarted(openMainWindow());
     })();

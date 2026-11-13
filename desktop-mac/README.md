@@ -43,8 +43,7 @@ test/        urls.test.ts (vitest)
   Renderer faqat "qator + o'rin" yuboradi; havola va so'rov tanasi asosiy jarayondagi o'z ro'yxatidan olinadi (`home:watch`). Qidiruv paytida qatorlar yashiriladi. "Davom ettirish" (Pro) yo'q.
 - **Til** (`src/main/i18n.ts`): veb-ilovaning `wewatch-locale` cookie'si (`uz|ru|en`, yo'q bo'lsa `ru` — veb bilan bir xil); o'zgarganda panel va Bosh sahifa darhol yangilanadi.
   Veb'da tarjimasi bor satrlar aynan o'sha (test `apps/app-web/messages` bilan solishtiradi).
-- **Obuna (Pro/tarif) Mac ilovada yo'q** (Abdulaziz va Bekzod aka qarori): `/api/payment/*` so'rovlari bekor qilinadi, `/pricing` ochilmaydi, Sozlamalardagi "TARIF" paneli
-  yashiriladi (`section.ww-panel:has(svg.lucide-crown)` — veb o'zgarsa buzilishi mumkin, `smoke:m5b` E senariysi qo'riqlaydi).
+- **Obuna (Pro/tarif) Mac ilovada BOR** (07.11 olib tashlangan, 09.11 `d54fd50d` da qaytarilgan): `/api/payment/*` va `/pricing` ochiq, Sozlamalardagi "TARIF" paneli ko'rinadi.
 - Veb-ilovaning o'z chap paneli content ichida yashiriladi (`--ww-sidebar: 0`, `aside.fixed`) — vaqtincha, hamma ekran native bo'lguncha.
 
 ## Xavfsizlik qarorlari (Polat kodidan farqi)
@@ -52,6 +51,12 @@ test/        urls.test.ts (vitest)
 - IPC faqat ilova origin'idan (`scheme+host+port`) qabul qilinadi.
 - `WW_*` muhit o'zgaruvchilari faqat dev (paketlangan ilova ularni e'tiborsiz qoldiradi).
 - Auth manzili bitta konstantada (`config.ts`), faqat dev'da `WW_AUTH_URL` bilan almashtiriladi; ilova URL'i hardcode emas (dev'da `WW_APP_URL`).
+
+## Ichki veb-ilova (13.11) — prod saytga bog'liq emas
+- Paketlangan ilova `app.wewatch.uz` ni internetdan YUKLAMAYDI: o'z ichida `apps/app-web` build'ini (`npm run build:web` → `web-dist` → `Resources/web`) Next.js standalone server sifatida ishga tushiradi (`src/main/local-web.ts`). Internetga faqat backend (core + media: API va socket) chiqadi. Sayt o'zgarsa Mac ilova o'zgarmaydi; ichki veb faqat yangi DMG bilan yangilanadi.
+- Manzil `https://app.wewatch.uz` bo'lib qoladi: Chromium'ga `--host-resolver-rules` bilan shu host lokal TLS portga yo'naltiriladi, sertifikat shu Mac'da yaratiladi (`userData/local-web`, DMG ichida yo'q) va faqat asosiy session'da shu host uchun ishonchli (`setCertificateVerifyProc`). Shuning uchun cookie, redirect, CORS va taklif havolalari saytdagidek ishlaydi.
+- Rad etilgan: `protocol.handle('https')` bilan ushlash — cookie ikki tomonga ham o'tmaydi, redirect bekor bo'ladi, CORS tekshirilmaydi (iframe'dagi begona sayt `/api/auth/token` ni o'qiy olardi); `127.0.0.1` manzili — backend CORS ro'yxati rad etadi. (Ikkalasi 13.11 da o'lchangan.)
+- Dev'da sinash: `WW_LOCAL_WEB_DIR=<web-dist> npm start`.
 
 ## Virtual Browser va ulashish (M3)
 - `window.wewatchDesktop.vb.open(url)` alohida oyna (`persist:vb` profili) ochadi; faqat `http(s)`; kamera/mik/lokatsiya yo'q;

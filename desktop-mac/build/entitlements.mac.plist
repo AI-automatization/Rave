@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Hardened runtime entitlements (electron-builder signs with the hardened runtime on). The first three are
+     electron-builder's own defaults (V8 JIT, native modules). audio-input: without it macOS refuses the microphone WITHOUT
+     asking — the app never appears in System Settings → Privacy → Microphone and voice chat fails (tccd log 2026-11-13:
+     "requires entitlement com.apple.security.device.audio-input but it is missing"). camera: the same rule for the camera. -->
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.cs.allow-jit</key><true/>
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key><true/>
+  <key>com.apple.security.cs.disable-library-validation</key><true/>
+  <key>com.apple.security.device.audio-input</key><true/>
+  <key>com.apple.security.device.camera</key><true/>
+</dict>
+</plist>

@@ -3,7 +3,7 @@
   "productName": "WeWatch",
   "version": "0.1.0",
   "private": true,
-  "description": "WeWatch for macOS — the web app plus a Virtual Browser that runs on the owner's own machine",
+  "description": "WeWatch for macOS \u2014 the web app plus a Virtual Browser that runs on the owner's own machine",
   "main": "dist/main/index.js",
   "author": "WeWatch",
   "scripts": {
@@ -17,7 +17,8 @@
     "smoke:m5b": "npm run build && node test/smoke/m5b.mjs",
     "start": "npm run build && electron .",
     "dev": "npm run build && WW_APP_URL=http://localhost:3000 electron .",
-    "dist": "npm run build && electron-builder --mac"
+    "dist": "npm run build && npm run build:web && electron-builder --mac",
+    "build:web": "bash scripts/build-web.sh"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

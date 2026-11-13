@@ -30,12 +30,22 @@ extraResources:
   - { from: node_modules/@remusao/trie, to: node_modules/@remusao/trie }
   - { from: node_modules/tldts-core, to: node_modules/tldts-core }
   - { from: node_modules/tldts-experimental, to: node_modules/tldts-experimental }
+  # The app's own build of the web app (scripts/build-web.sh → web-dist), run locally by src/main/local-web.ts.
+  # `**/*` with dot files: the build lives in web-dist/.next; after-pack.cjs fails the build if server.js, .next/BUILD_ID
+  # or .next/static is missing from the app.
+  - { from: web-dist, to: web, filter: ["**/*", "**/.next/**/*"] }
+  # A folder named node_modules inside `from` is skipped by the builder (measured 2026-11-13: web/node_modules was
+  # missing); given as its own `from`, like the entries above, it is copied.
+  - { from: web-dist/node_modules, to: web/node_modules }
 protocols:
   - name: WeWatch
     schemes: [wewatch]
 mac:
   category: public.app-category.entertainment
   identity: "-"
+  # The microphone/camera need these under the hardened runtime (see the file's header comment).
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
   target:
     - { target: dmg, arch: [arm64, x64] }
     - { target: zip, arch: [arm64, x64] }
