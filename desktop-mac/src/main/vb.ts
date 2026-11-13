@@ -7,7 +7,7 @@ import { shouldBlockAd, hostOf, isYouTubeHost } from './adblock';
 import { adEngineMatches } from './adblock-engine';
 import { checkVbUrl, chromeUserAgent, failPageUrl, isPrivateIp, sameSite } from './urls';
 import { focusMainWindow, getMainWindow, sendToMain } from './window';
-import { parseDockRect, toWindowRect, type Rect } from './vb-dock-model';
+import { fullscreenDockRect, parseDockRect, toWindowRect, type Rect } from './vb-dock-model';
 import { FOCUS_VIDEO_SCRIPT, PLAYING_VIDEO_SCRIPT, UNFOCUS_SCRIPT, focusIframeScript, pickPlayerFrame, type FrameProbe } from './vb-focus-model';
 import { GEO_PROBE_SCRIPT, isGeoBlocked } from './geo-block-model';
 import { FILM_TITLE_SCRIPT } from './film-query-model';
@@ -97,22 +97,37 @@ export const setVbDockOrigin = (f: () => Rectangle | null): void => { dockOrigin
 
 // The dock is NEVER hidden (setVisible(false) would stop the picture the room gets): while the room page does not show it,
 // it sits BEHIND everything, at the size of the content area. Shown = on top, exactly over the room's video box.
+// Opaque black layer under the docked VB while its player is full screen. Chromium draws the full-screen page at the
+// display's 16:9 size CENTRED inside the view (measured 2026-11-13: view 1470×956, page 1470×826) and the strips above and
+// below are not painted — the view's background colour does not cover them — so the app's toolbar and the room's chat
+// box showed through at the top and bottom. A plain View with a background colour did not paint either (Abdulaziz's
+// screenshot, same day); a web view showing a black page does: it fills the window behind the dock.
+let dockBackdrop: WebContentsView | null = null;
+function setBackdrop(host: BrowserWindow, on: boolean): void {
+  if (!on) {
+    if (dockBackdrop) host.contentView.removeChildView(dockBackdrop);
+    return;
+  }
+  if (!dockBackdrop || dockBackdrop.webContents.isDestroyed()) {
+    dockBackdrop = new WebContentsView({ webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, javascript: false } });
+    dockBackdrop.setBackgroundColor('#000000');
+    void dockBackdrop.webContents.loadURL('data:text/html,<html style="background:%23000"><body style="margin:0;background:%23000"></body></html>').catch(() => {});
+  }
+  const [w, h] = host.getContentSize();
+  dockBackdrop.setBounds({ x: 0, y: 0, width: w ?? 0, height: h ?? 0 });
+  host.contentView.addChildView(dockBackdrop); // on top of everything …
+}
+
 function applyDock(): void {
   const v = dockAlive();
   const host = getMainWindow();
   if (!v || !host) return;
   const o = dockOrigin();
+  setBackdrop(host, dockFullscreen);
   if (dockFullscreen) {
     const [w, h] = host.getContentSize();
-    if (w !== undefined && h !== undefined) {
-      // Chromium sizes a full-screen page to the whole DISPLAY. On a Mac with a notch the window's content area is shorter
-      // (the menu-bar strip is not part of it), so the page was shrunk to keep the display's proportions and left empty
-      // bands at the sides. A view as tall as the display, moved up by the missing strip, is the size Chromium expects:
-      // only the top strip (black bar above a 16:9 video) falls outside the window.
-      const extra = Math.max(0, screen.getDisplayMatching(host.getBounds()).size.height - h);
-      v.setBounds({ x: 0, y: -extra, width: w, height: h + extra });
-    }
-    host.contentView.addChildView(v); // above everything
+    if (w !== undefined && h !== undefined) v.setBounds(fullscreenDockRect(w, h)); // 16:9 on the bottom edge (vb-dock-model.ts)
+    host.contentView.addChildView(v); // above everything, the backdrop just below it
     return;
   }
   if (!dockRect || dockSuppressed || !o) {
@@ -234,7 +249,10 @@ function closeDock(): boolean {
   dockFullscreen = false;
   stopFocusTimer();
   const host = getMainWindow();
-  if (host) host.contentView.removeChildView(v);
+  if (host) {
+    setBackdrop(host, false);
+    host.contentView.removeChildView(v);
+  }
   v.webContents.close();
   cancelFilmSearch();
   sendToMain('vb:state', { open: false });

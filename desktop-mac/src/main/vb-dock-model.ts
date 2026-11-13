@@ -22,3 +22,18 @@ export function parseDockRect(raw: unknown): Rect | null {
 export function toWindowRect(r: Rect, origin: { x: number; y: number }): Rect {
   return { x: r.x + origin.x, y: r.y + origin.y, width: r.width, height: r.height };
 }
+
+/**
+ * Where the docked VB goes while its player is full screen. The VB is being captured for the room, and Chromium then
+ * keeps a full-screen page at 16:9 of the VIEW's width, centred in the view, whatever the view's height (measured
+ * 2026-11-13: views 1470×923, 1470×956 and 1470×826 all gave a 1470×826 page; 1200 wide gave 1200×675). So the view is
+ * made exactly 16:9 itself: as wide as the window and sitting on its bottom edge, the player's controls are at the
+ * bottom of the screen like a normal full screen (the black backdrop fills the band above). A window narrower than 16:9
+ * gets the full height, centred.
+ */
+export function fullscreenDockRect(w: number, h: number): Rect {
+  const pageH = Math.floor((w * 9) / 16); // floor: Chromium gave 826 for 1470 (826.875)
+  if (pageH <= h) return { x: 0, y: h - pageH, width: w, height: pageH };
+  const pageW = Math.floor((h * 16) / 9);
+  return { x: Math.round((w - pageW) / 2), y: 0, width: pageW, height: h };
+}
