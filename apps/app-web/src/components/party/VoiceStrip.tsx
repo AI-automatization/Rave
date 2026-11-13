@@ -102,7 +102,10 @@ export function VoiceStrip({
 
         <div className="flex-1" />
 
-        {named.length === 0 ? (
+        {/* Join only while NOT in the call. It used to depend on the other participants (named.length === 0): someone
+            alone in the voice chat was already joined but still saw "Kirish", and pressing it just re-joined — it looked
+            like the mic needed a second person (Mac app, 2026-11-13). */}
+        {!isJoined ? (
           <button
             type="button"
             onClick={onJoin}
@@ -141,7 +144,7 @@ export function VoiceStrip({
                 <PhoneOff size={13} />
               </button>
             )}
-            <button
+            {named.length > 0 && <button
               type="button"
               onClick={() => setManuallyCollapsed((v) => !v)}
               aria-label={isExpanded ? t('voiceCollapse') : t('voiceExpand')}
@@ -149,7 +152,7 @@ export function VoiceStrip({
               className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-[var(--ww-r-sm)] text-[var(--ww-text-4)] transition-colors hover:bg-[var(--ww-surface-2)] hover:text-[var(--ww-text)]"
             >
               <ChevronDown size={14} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-            </button>
+            </button>}
           </>
         )}
       </div>

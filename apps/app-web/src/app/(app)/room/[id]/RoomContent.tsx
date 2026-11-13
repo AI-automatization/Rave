@@ -516,19 +516,29 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   // normal referrer/session context), never re-triggering the sniffer.
   const originalSourceUrlRef = useRef<string | null>(null);
   useEffect(() => {
+    // The server keeps the shared page itself in `sourceUrl` — prefer it: on prod a film page's videoUrl is the
+    // server's resolved proxy URL (2026-11-13, uzmovi: a 3 MB "story" clip behind a 403 proxy), so the desktop VB
+    // opened google.com instead of the film page.
+    const src = room?.sourceUrl;
+    if (src && /^https?:\/\//i.test(src)) { originalSourceUrlRef.current = src; return; }
     const url = room?.videoUrl;
     if (url && unwrapVbProxyUrl(url) === url) originalSourceUrlRef.current = url;
-  }, [room?.videoUrl]);
+  }, [room?.videoUrl, room?.sourceUrl]);
 
   // Desktop app, owner: a site the room cannot embed (platform 'other', e.g. uzmovi) is opened in the owner's own VB
   // window and streamed to everyone — no server-side VB. Once per source URL; if it fails the owner still has the
   // "Brauzerni ochish" button.
   const desktopAutoUrlRef = useRef<string | null>(null);
+  // Not only platform 'other': on prod the server resolves a film page to a media file and reports platform null
+  // (uzmovi, 2026-11-13), so the VB never opened. Any shared page that is not an official player (YouTube, VK, …) goes
+  // to the VB.
   useEffect(() => {
-    if (!desktopOwner || !room || room.videoPlatform !== 'other') return;
+    if (!desktopOwner || !room) return;
     if (screenShare.isSharing || screenShare.starting) return;
-    const url = originalSourceUrlRef.current ?? (room.videoUrl ? unwrapVbProxyUrl(room.videoUrl) : null);
+    const url = originalSourceUrlRef.current ?? (room.sourceUrl || (room.videoUrl ? unwrapVbProxyUrl(room.videoUrl) : null));
     if (!url || desktopAutoUrlRef.current === url) return;
+    if (OFFICIAL_EMBED_HOST_RE.test(hostOf(url))) return;
+    if (/\.(mp4|m3u8|webm|mov|mkv|mpd)(\?|$)/i.test(url)) return; // a plain video file plays in the normal player
     desktopAutoUrlRef.current = url;
     void screenShare.start(url);
   }, [desktopOwner, room, screenShare]);
@@ -692,7 +702,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                 muted={screenShare.isSharing}
                 label={t(screenShare.isSharing ? 'desktopVbYouShare' : 'desktopVbWatching')}
               />
-            ) : desktopOwner && room?.videoPlatform === 'other' && screenShare.starting ? (
+            ) : desktopOwner && screenShare.starting ? (
               <div className="flex aspect-video w-full items-center justify-center gap-2 rounded-[var(--ww-r-lg)] bg-black/60 text-[13px] text-[var(--ww-text-2)]">
                 <Loader2 size={16} className="animate-spin" aria-hidden="true" />
                 {t('desktopVbOpening')}

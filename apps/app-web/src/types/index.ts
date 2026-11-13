@@ -100,6 +100,8 @@ export interface IWatchPartyRoom extends Omit<IWatchPartyRoomShared, 'createdAt'
   videoTitle: string | null;
   videoThumbnail: string | null;
   videoPlatform: string | null;
+  /** The page link people shared (watchPartyRoom.model.ts); videoUrl may be the server's own resolved proxy URL. */
+  sourceUrl?: string | null;
   createdAt: string;
   updatedAt?: string;
 }
