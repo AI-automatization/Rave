@@ -237,7 +237,14 @@ export const registerRoomEvents = (
       logger.info('Socket joined room', { userId, roomId: data.roomId });
     } catch (error) {
       socket.emit(SERVER_EVENTS.ERROR, { message: 'Failed to join room' });
-      logger.error('Socket join room error', { userId, error });
+      // Expected 4xx (room ended/deleted, not a member, banned) is a client state, not a server
+      // fault — prod 11-13 had 91/day of 404s drowning real errors (and filling Mongo error logs).
+      const status = (error as { statusCode?: number } | null)?.statusCode;
+      if (typeof status === 'number' && status >= 400 && status < 500) {
+        logger.warn('Socket join room rejected', { userId, roomId: data?.roomId, status });
+      } else {
+        logger.error('Socket join room error', { userId, roomId: data?.roomId, error });
+      }
     }
   });
 

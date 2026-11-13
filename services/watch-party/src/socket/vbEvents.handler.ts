@@ -156,6 +156,12 @@ export const registerVBEvents = (
         logger.info('VB queued — free pool full', { roomId, userId, position });
         return;
       }
+      if ((e as Error).message === 'virtual_browser_starting') {
+        // Repeat VB_START while the first one is still launching (double tap / reconnect) — the
+        // first launch will emit VB_STARTED; don't show an error or log it as a failure.
+        logger.warn('VB start ignored — already starting', { roomId, userId });
+        return;
+      }
       socket.emit(SERVER_EVENTS.VB_ERROR, { message: 'Не удалось открыть виртуальный браузер' });
       logger.error('VB start failed', { roomId, userId, error: (e as Error).message });
     }
