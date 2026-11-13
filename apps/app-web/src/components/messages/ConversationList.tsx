@@ -13,6 +13,7 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 import { ChatPreviewModal } from '@/components/messages/dm/ChatPreviewModal';
+import { AvatarImg } from '@/components/ui/AvatarImg';
 
 interface Props {
   conversations: Conversation[];
@@ -89,7 +90,7 @@ export function ConversationList({ conversations, selectedPeerId, onSelect }: Pr
                 style={{ borderColor: color, backgroundColor: `${color}22`, color }}
               >
                 {conv.peerAvatar ? (
-                  <img src={conv.peerAvatar} alt="" className="h-full w-full object-cover" />
+                  <AvatarImg src={conv.peerAvatar} alt="" className="h-full w-full object-cover" />
                 ) : (
                   initials
                 )}

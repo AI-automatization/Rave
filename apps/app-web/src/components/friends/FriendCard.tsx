@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import type { IUser } from '@/types';
 import { avatarColor } from '@/lib/utils';
 import { trackClick } from '@/lib/analytics';
+import { AvatarImg } from '@/components/ui/AvatarImg';
 
 interface Props {
   user: IUser;
@@ -26,7 +27,7 @@ export function FriendCard({ user, onMessage }: Props) {
           style={{ background: `${color}2E`, border: `1px solid ${color}59`, color }}
         >
           {user.avatar ? (
-            <img src={user.avatar} alt="" className="h-full w-full object-cover" />
+            <AvatarImg src={user.avatar} alt="" className="h-full w-full object-cover" />
           ) : (
             (user.username?.[0]?.toUpperCase() ?? '?')
           )}

@@ -9,6 +9,7 @@ import { useApiError } from '@/hooks/use-api-error';
 import { Input } from '@/components/ui/field';
 import { avatarColor } from '@/lib/utils';
 import { trackClick } from '@/lib/analytics';
+import { AvatarImg } from '@/components/ui/AvatarImg';
 
 export function FriendSearch() {
   const t = useTranslations('friends');
@@ -80,7 +81,7 @@ export function FriendSearch() {
                   style={{ background: `${color}2E`, border: `1px solid ${color}59`, color }}
                 >
                   {user.avatar ? (
-                    <img src={user.avatar} alt="" className="h-full w-full object-cover" />
+                    <AvatarImg src={user.avatar} alt="" className="h-full w-full object-cover" />
                   ) : (
                     (user.username?.[0]?.toUpperCase() ?? '?')
                   )}

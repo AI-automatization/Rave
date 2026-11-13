@@ -12,6 +12,7 @@ import { useFriendRequests } from '@/hooks/use-friends';
 import { useConversations } from '@/hooks/use-dm';
 import { trackClick } from '@/lib/analytics';
 import { FriendsPanel } from './OnlineFriendsWidget';
+import { AvatarImg } from '@/components/ui/AvatarImg';
 
 const PALETTE = ['#7C3AED', '#2563EB', '#059669', '#D97706', '#DC2626', '#DB2777', '#0891B2'];
 function avatarColor(id: string): string {
@@ -118,7 +119,7 @@ function AccountPopoverContent({ unreadNotifications, onNavigate }: { unreadNoti
           style={{ background: user?.avatar ? undefined : color }}
         >
           {user?.avatar
-            ? <img src={user.avatar} alt="" className="w-full h-full object-cover" />
+            ? <AvatarImg src={user.avatar} alt="" className="w-full h-full object-cover" />
             : (user?.username?.[0]?.toUpperCase() ?? '?')}
         </div>
         <p className="flex-1 text-[13px] font-medium text-slate-300 truncate">{user?.username ?? '—'}</p>

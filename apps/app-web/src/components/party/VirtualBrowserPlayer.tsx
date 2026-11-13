@@ -6,6 +6,7 @@ import { Globe, Keyboard, Loader2, Maximize, Minimize, MousePointer2, X } from '
 import type { VBFrameSource, VBInput, VBMediaState } from '@/hooks/use-virtual-browser';
 import { VirtualBrowserAudio } from './VirtualBrowserAudio';
 import { VirtualBrowserMediaControls } from './VirtualBrowserMediaControls';
+import { normalizeLinkInput } from '@/lib/link-routing';
 
 interface Props {
   isOwner: boolean;
@@ -61,6 +62,17 @@ const WHEEL_FLUSH_MS = 50;
 const WHEEL_MAX_DELTA = 1200;
 const WHEEL_LINE_PX = 16;
 const WHEEL_PAGE_PX = 600;
+// Cmd/Ctrl shortcuts forwarded to the VB page (as Control+key); every other one stays the
+// browser's own (reload, new tab, find...). Paste (V) has its own path.
+const VB_SHORTCUT_KEYS = new Set(['a', 'c', 'x', 'z', 'y']);
+// Non-character keys CDP knows by name — anything else (Meta, Alt, media keys, 'Unidentified')
+// would only make the server's keyboard.down throw.
+const VB_NAMED_KEYS = new Set([
+  'Enter', 'Backspace', 'Tab', 'Escape', 'Delete', 'Insert', 'Shift',
+  'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown',
+  'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
+]);
+const VB_PASTE_MAX_CHARS = 5000;
 
 // Kosmi-style shared virtual browser: a real headless Chromium page runs on the server, the
 // owner controls it with mouse/keyboard, and every room member just watches the same live JPEG
@@ -176,7 +188,9 @@ export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimension
     if (!isOwner) return;
     // Safari does not focus an <img> on click, so the keydown/keyup handlers below never fired
     // after the first interaction — typing into the remote page silently did nothing.
-    imgRef.current?.focus();
+    // Focus also pulls it out of the chat box, so keys don't land there too.
+    imgRef.current?.focus({ preventScroll: true });
+    setKbOwner(true);
     const pos = toViewportCoords(e);
     if (pos) sendInput({ type: 'mousedown', x: pos.x, y: pos.y });
   };
@@ -186,20 +200,99 @@ export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimension
     sendInput({ type: 'mouseup' });
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!isOwner) return;
-    e.preventDefault();
-    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
-      sendInput({ type: 'type', text: e.key });
-    } else {
-      sendInput({ type: 'keydown', key: e.key });
-    }
-  };
-
-  const handleKeyUp = (e: React.KeyboardEvent) => {
-    if (!isOwner) return;
-    if (e.key.length !== 1) sendInput({ type: 'keyup', key: e.key });
-  };
+  // Desktop keyboard. Keys used to be read from the <img>'s own onKeyDown, which only fires while
+  // the <img> holds focus — anything that took focus away (a re-render, the chat, a browser quirk)
+  // and typing silently went nowhere (reported 2026-11-08: Google's search box took no text).
+  // Now the stream "owns" the keyboard from a click on it until a click anywhere else, and keys
+  // are read on the window, so focus no longer matters.
+  const [kbFocus, setKbFocus] = useState(false);
+  const kbFocusRef = useRef(false);
+  const setKbOwner = useCallback((on: boolean) => {
+    kbFocusRef.current = on;
+    setKbFocus(on);
+  }, []);
+  useEffect(() => {
+    if (!isOwner || !hasFrame) return;
+    const held = new Set<string>();
+    const isEditable = (t: EventTarget | null) =>
+      t instanceof HTMLElement && (t.isContentEditable || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT');
+    // Typing in the chat (or any other field) is local — and means the stream lost the keyboard.
+    const ownsEvent = (e: Event) => {
+      if (!kbFocusRef.current) return false;
+      if (e.target === kbInputRef.current) return false; // phone keyboard input has its own handlers
+      if (isEditable(e.target)) { setKbOwner(false); return false; }
+      return true;
+    };
+    const releaseAll = () => {
+      held.forEach((key) => sendInput({ type: 'keyup', key }));
+      held.clear();
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!ownsEvent(e) || e.isComposing || e.keyCode === 229) return;
+      const key = e.key;
+      if (e.metaKey || e.ctrlKey) {
+        // Paste goes through the 'paste' event below (it carries the clipboard text).
+        if (key.toLowerCase() === 'v') return;
+        if (!VB_SHORTCUT_KEYS.has(key.toLowerCase())) return; // Cmd+R, Cmd+T... stay the browser's
+        e.preventDefault();
+        // The VB is Chromium on Linux: Cmd on a Mac means Control there.
+        const k = key.toLowerCase();
+        sendInput({ type: 'keydown', key: 'Control' });
+        sendInput({ type: 'keydown', key: k });
+        sendInput({ type: 'keyup', key: k });
+        sendInput({ type: 'keyup', key: 'Control' });
+        return;
+      }
+      if (key.length === 1) {
+        e.preventDefault();
+        // ASCII as real key presses (a site's own shortcuts, e.g. Space = pause, see them);
+        // anything else (Cyrillic, ў/ғ, emoji) as inserted text — CDP has no key code for it.
+        if (key.charCodeAt(0) < 128) {
+          sendInput({ type: 'keydown', key });
+          sendInput({ type: 'keyup', key });
+        } else {
+          sendInput({ type: 'type', text: key });
+        }
+        return;
+      }
+      if (!VB_NAMED_KEYS.has(key)) return;
+      e.preventDefault();
+      if (key === 'Shift') held.add(key);
+      sendInput({ type: 'keydown', key });
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (!kbFocusRef.current || e.key.length === 1 || !VB_NAMED_KEYS.has(e.key)) return;
+      held.delete(e.key);
+      sendInput({ type: 'keyup', key: e.key });
+    };
+    const onPaste = (e: ClipboardEvent) => {
+      if (!ownsEvent(e)) return;
+      const text = e.clipboardData?.getData('text/plain') ?? '';
+      if (!text) return;
+      e.preventDefault();
+      sendInput({ type: 'type', text: text.slice(0, VB_PASTE_MAX_CHARS) });
+    };
+    // A press anywhere outside the stream hands the keyboard back to the page.
+    const onPointerDown = (e: PointerEvent) => {
+      if (kbFocusRef.current && !containerRef.current?.contains(e.target as Node)) {
+        releaseAll();
+        setKbOwner(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown, true);
+    window.addEventListener('keyup', onKeyUp, true);
+    window.addEventListener('blur', releaseAll);
+    document.addEventListener('paste', onPaste, true);
+    document.addEventListener('pointerdown', onPointerDown, true);
+    return () => {
+      releaseAll();
+      window.removeEventListener('keydown', onKeyDown, true);
+      window.removeEventListener('keyup', onKeyUp, true);
+      window.removeEventListener('blur', releaseAll);
+      document.removeEventListener('paste', onPaste, true);
+      document.removeEventListener('pointerdown', onPointerDown, true);
+    };
+  }, [isOwner, hasFrame, sendInput, setKbOwner]);
 
   // Native (non-React) wheel listener with { passive: false } — React attaches its synthetic
   // onWheel as a PASSIVE listener by default (has been since React 17, for scroll-perf reasons),
@@ -437,6 +530,13 @@ export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimension
   // 2026-10-26: when the room watches the VB itself (VB_WATCH_IN_BROWSER, watch-party
   // virtualBrowser.service.ts) members do get frames — then they watch the live screen too
   // (view only: every input handler above is owner-gated).
+  const openTyped = () => {
+    const url = normalizeLinkInput(urlInput);
+    if (!url) return;
+    lastUrlRef.current = url;
+    start(url);
+  };
+
   if (!isOwner && !hasFrame) {
     return (
       <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-2 text-center px-6">
@@ -502,12 +602,12 @@ export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimension
             spellCheck={false}
             value={urlInput}
             onChange={(e) => setUrlInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && urlInput) { lastUrlRef.current = urlInput; start(urlInput); } }}
+            onKeyDown={(e) => { if (e.key === 'Enter') openTyped(); }}
             placeholder="https://..."
             className="flex-1 h-11 sm:h-10 px-3 bg-[#111118] border border-white/[0.08] rounded-lg text-base sm:text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/50"
           />
           <button
-            onClick={() => { if (urlInput) { lastUrlRef.current = urlInput; start(urlInput); } }}
+            onClick={openTyped}
             disabled={!urlInput}
             className="h-11 sm:h-10 px-4 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-30 text-white text-sm font-medium transition-colors cursor-pointer"
           >
@@ -538,7 +638,8 @@ export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimension
       style={boxStyle}
       onPointerMove={wakeControls}
       onPointerDown={wakeControls}
-      className={`bg-black overflow-hidden ${
+      // Thin ring while the stream owns the keyboard — tells the owner their typing goes there.
+      className={`bg-black overflow-hidden ${kbFocus && !isCoarse ? 'ring-2 ring-violet-500/60' : ''} ${
         fsMode === 'css'
           ? 'fixed inset-0 z-[70] h-[100dvh] w-screen'
           : fsMode === 'native'
@@ -651,8 +752,6 @@ export function VirtualBrowserPlayer({ isOwner, hasFrame, frameSource, dimension
             onMouseLeave={handleMouseLeave}
             onMouseDown={handleMouseDown}
             onMouseUp={handleMouseUp}
-            onKeyDown={handleKeyDown}
-            onKeyUp={handleKeyUp}
             onContextMenu={(e) => e.preventDefault()}
             // globals.css only applies touch-action to button/a/[role=button], so this <img> was
             // left with the browser default and every gesture went to page scroll/zoom first.

@@ -7,7 +7,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { chromium, Browser, BrowserContext, Page, CDPSession } from 'playwright-chromium';
+import { chromium, Browser, BrowserContext, Page, CDPSession, Frame } from 'playwright-chromium';
 import { VB_FULLSCREEN_SCRIPT } from './vbFullscreen.script';
 import { pushAudioChunk, stopAudio, useSystemAudio, VB_AUDIO_TAP_SCRIPT, MAX_AUDIO_CHUNK_BASE64_LEN } from './vbAudio.service';
 import { logger } from '@shared/utils/logger';
@@ -136,14 +136,12 @@ export type VBMovieAction = 'play' | 'pause' | 'seek';
 export async function getMovieState(roomId: string): Promise<VBMovieState | null> {
   const s = sessions.get(roomId);
   if (!s) return null;
-  for (const frame of s.page.frames()) {
-    try {
-      const st = await frame.evaluate(() => {
-        const fn = (globalThis as unknown as { __wewatchMovieState?: () => VBMovieState | null }).__wewatchMovieState;
-        return typeof fn === 'function' ? fn() : null;
-      });
-      if (st) return st;
-    } catch { /* frame navigating or detached */ }
+  for (const frame of movieFramesFirst(roomId, s)) {
+    const st = await withTimeout(frame.evaluate(() => {
+      const fn = (globalThis as unknown as { __wewatchMovieState?: () => VBMovieState | null }).__wewatchMovieState;
+      return typeof fn === 'function' ? fn() : null;
+    }), FRAME_EVAL_TIMEOUT_MS).catch(() => null); // frame navigating, detached or busy
+    if (st) { movieFrames.set(roomId, frame); return st; }
   }
   return null;
 }
@@ -152,16 +150,35 @@ export async function getMovieState(roomId: string): Promise<VBMovieState | null
 export async function controlMovie(roomId: string, action: VBMovieAction, time?: number): Promise<boolean> {
   const s = sessions.get(roomId);
   if (!s) return false;
-  for (const frame of s.page.frames()) {
-    try {
-      const done = await frame.evaluate(([a, t]) => {
-        const fn = (globalThis as unknown as { __wewatchMovieControl?: (a: string, t?: number) => boolean }).__wewatchMovieControl;
-        return typeof fn === 'function' ? fn(a as string, t as number | undefined) : false;
-      }, [action, time] as const);
-      if (done) return true;
-    } catch { /* frame navigating or detached */ }
+  for (const frame of movieFramesFirst(roomId, s)) {
+    const done = await withTimeout(frame.evaluate(([a, t]) => {
+      const fn = (globalThis as unknown as { __wewatchMovieControl?: (a: string, t?: number) => boolean }).__wewatchMovieControl;
+      return typeof fn === 'function' ? fn(a as string, t as number | undefined) : false;
+    }, [action, time] as const), FRAME_EVAL_TIMEOUT_MS).catch(() => false);
+    if (done) { movieFrames.set(roomId, frame); return true; }
   }
   return false;
+}
+
+// A page full of ad iframes made the once-a-second state poll walk every frame in turn, and one
+// busy or half-navigated frame could hold an evaluate for many seconds — WeWatch's control bar
+// then froze (its poller skips ticks while one is still running). Each evaluate is capped now,
+// and the frame that last held the movie is asked first.
+const FRAME_EVAL_TIMEOUT_MS = 1500;
+const movieFrames = new Map<string, Frame>();
+
+function movieFramesFirst(roomId: string, s: VBSession): Frame[] {
+  const frames = s.page.frames();
+  const last = movieFrames.get(roomId);
+  return last && frames.includes(last) ? [last, ...frames.filter((f) => f !== last)] : frames;
+}
+
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) => { timer = setTimeout(() => reject(new Error('timeout')), ms); }),
+  ]).finally(() => clearTimeout(timer));
 }
 
 /** The page the VB is on right now (the owner may have clicked far from the start URL). */
@@ -1318,6 +1335,8 @@ export async function stopSession(roomId: string): Promise<void> {
   if (!s) return;
   sessions.delete(roomId);
   inputQueues.delete(roomId);
+  pendingMoves.delete(roomId);
+  movieFrames.delete(roomId);
   pendingWheels.delete(roomId);
   try { await s.cdp.send('Page.stopScreencast'); } catch { /* already gone */ }
   try { await s.context.close(); } catch { /* already gone */ }
@@ -1381,31 +1400,57 @@ const inputQueues = new Map<string, Promise<void>>();
 const pendingWheels = new Map<string, { deltaX: number; deltaY: number }>();
 const WHEEL_MAX_DELTA = 2400;
 
-export async function sendInput(roomId: string, userId: string, input: VBInput): Promise<void> {
+// Same idea for pointer moves: the client sends one every 40ms, and while a video plays each CDP
+// move can take longer than that, so moves piled up and every click/key waited behind seconds of
+// stale ones — the "VB lags and freezes" report (2026-11-08). Only the newest waiting move is kept.
+const pendingMoves = new Map<string, { x: number; y: number }>();
+// One input may never hold the queue for longer than this — a page busy navigating or decoding
+// used to leave a CDP call hanging, and every later click and key waited behind it forever.
+const INPUT_DISPATCH_TIMEOUT_MS = 3000;
+
+function enqueue(roomId: string, run: () => Promise<void>): Promise<void> {
   const previous = inputQueues.get(roomId) ?? Promise.resolve();
+  const next = previous.then(() => withTimeout(run(), INPUT_DISPATCH_TIMEOUT_MS).catch((e) => {
+    logger.warn('VB input timed out', { roomId, error: (e as Error).message });
+  }));
+  // The real error is logged inside dispatchInput / above — this just keeps the chain alive.
+  inputQueues.set(roomId, next.catch(() => {}));
+  return next;
+}
+
+export async function sendInput(roomId: string, userId: string, input: VBInput): Promise<void> {
   if (input.type === 'wheel') {
     const waiting = pendingWheels.get(roomId);
     if (waiting) {
       waiting.deltaX += input.deltaX;
       waiting.deltaY += input.deltaY;
-      return previous;
+      return;
     }
     const wheel = { deltaX: input.deltaX, deltaY: input.deltaY };
     pendingWheels.set(roomId, wheel);
     const clamp = (v: number) => Math.max(-WHEEL_MAX_DELTA, Math.min(WHEEL_MAX_DELTA, v));
-    const nextWheel = previous.then(() => {
+    return enqueue(roomId, () => {
       if (pendingWheels.get(roomId) === wheel) pendingWheels.delete(roomId);
       return dispatchInput(roomId, userId, { type: 'wheel', deltaX: clamp(wheel.deltaX), deltaY: clamp(wheel.deltaY) });
     });
-    inputQueues.set(roomId, nextWheel.catch(() => {}));
-    return nextWheel;
+  }
+  if (input.type === 'mousemove') {
+    const waiting = pendingMoves.get(roomId);
+    if (waiting) {
+      waiting.x = input.x;
+      waiting.y = input.y;
+      return;
+    }
+    const move = { x: input.x, y: input.y };
+    pendingMoves.set(roomId, move);
+    return enqueue(roomId, () => {
+      if (pendingMoves.get(roomId) === move) pendingMoves.delete(roomId);
+      return dispatchInput(roomId, userId, { type: 'mousemove', x: move.x, y: move.y });
+    });
   }
   pendingWheels.delete(roomId);
-  const next = previous.then(() => dispatchInput(roomId, userId, input));
-  // Swallow here so one bad input doesn't wedge the queue for every input after it — the real
-  // error is still logged inside dispatchInput's own catch, this just keeps the chain alive.
-  inputQueues.set(roomId, next.catch(() => {}));
-  return next;
+  pendingMoves.delete(roomId);
+  return enqueue(roomId, () => dispatchInput(roomId, userId, input));
 }
 
 async function dispatchInput(roomId: string, userId: string, input: VBInput): Promise<void> {

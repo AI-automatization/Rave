@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const adminClient = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_ADMIN_URL ?? 'https://admin-production-8d2a.up.railway.app/api/v1',
+  baseURL: process.env.EXPO_PUBLIC_ADMIN_URL ?? 'https://core-production-dbd0.up.railway.app/api/v1',
   timeout: 8000,
 });
 

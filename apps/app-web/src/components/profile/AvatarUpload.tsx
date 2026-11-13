@@ -7,6 +7,7 @@ import { useUploadAvatar } from '@/hooks/use-profile';
 import { toast } from '@/store/toast.store';
 import { avatarColor } from '@/lib/utils';
 import { trackClick } from '@/lib/analytics';
+import { AvatarImg } from '@/components/ui/AvatarImg';
 
 interface Props {
   avatar?: string;
@@ -48,7 +49,7 @@ export function AvatarUpload({ avatar, username }: Props) {
         style={{ background: `${color}2E`, border: `1px solid ${color}59`, color }}
       >
         {avatar ? (
-          <img src={avatar} alt="" className="h-full w-full object-cover" />
+          <AvatarImg src={avatar} alt="" className="h-full w-full object-cover" />
         ) : (
           (username?.[0]?.toUpperCase() ?? '?')
         )}

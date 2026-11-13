@@ -38,7 +38,11 @@ export function VirtualBrowserAudio({ src, onDelay }: { src: string; onDelay?: (
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
-    el.play().then(() => setNeedsTap(false)).catch(() => setNeedsTap(true));
+    // Only an autoplay refusal needs the tap button. A silent page (nothing playing yet) sends no
+    // MP3 bytes, so play() just stays pending — that is not a refusal.
+    el.play().then(() => setNeedsTap(false)).catch((e: unknown) => {
+      if ((e as { name?: string })?.name === 'NotAllowedError') setNeedsTap(true);
+    });
     let smoothLagS: number | null = null;
     const lag = setInterval(() => {
       if (el.buffered.length === 0) { onDelayRef.current?.(0); return; }
@@ -76,7 +80,13 @@ export function VirtualBrowserAudio({ src, onDelay }: { src: string; onDelay?: (
     if (!el) return;
     setMuted(false);
     el.muted = false;
-    el.play().then(() => setNeedsTap(false)).catch(() => {});
+    // The click itself is the user gesture the browser wanted — the button's job is done now.
+    // Waiting for play() to resolve kept it pulsing forever on a page with no sound yet: the live
+    // MP3 sends nothing until the page plays something, so the promise never settled.
+    setNeedsTap(false);
+    el.play().catch((e: unknown) => {
+      if ((e as { name?: string })?.name === 'NotAllowedError') setNeedsTap(true);
+    });
   };
 
   return (

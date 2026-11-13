@@ -34,6 +34,7 @@ import { useFriendRequests } from '@/hooks/use-friends';
 import { useConversations } from '@/hooks/use-dm';
 import { avatarColor } from '@/lib/utils';
 import { trackClick } from '@/lib/analytics';
+import { AvatarImg } from '@/components/ui/AvatarImg';
 
 function Badge({ count }: { count: number }) {
   if (count <= 0) return null;
@@ -177,7 +178,7 @@ export function AppSidebar({ onCreateRoom }: Props) {
               style={{ background: user?.avatar ? undefined : color }}
             >
               {user?.avatar ? (
-                <img src={user.avatar} alt="" className="h-full w-full object-cover" />
+                <AvatarImg src={user.avatar} alt="" className="h-full w-full object-cover" />
               ) : (
                 (user?.username?.[0]?.toUpperCase() ?? '?')
               )}
