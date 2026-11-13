@@ -101,7 +101,11 @@ export const TEAM: TeamMember[] = [
       { title: 'Контент и кластеры', desc: 'Гайды на русском, узбекском и английском под реальные запросы.' },
       { title: 'GEO и AEO', desc: 'Видимость в ответах ИИ-ассистентов, а не только в поисковой выдаче.' },
     ],
-    sameAs: ['https://www.linkedin.com/in/abdulaziz-yakubov'],
+    sameAs: [
+      'https://www.linkedin.com/in/abdulazizyakubov',
+      'https://github.com/yabdulaziz2009-dev',
+      'https://abdulaziz-yakubov.vercel.app',
+    ],
     // No headshot on file yet — TeamAvatar renders gradient initials until one is added
     // at /public/team-photos/abdulaziz-yakubov.jpg.
   },
