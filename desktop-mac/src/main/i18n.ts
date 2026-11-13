@@ -59,6 +59,8 @@ export interface Strings {
     /** `{n}` is replaced by the number of people who watched it this week. */
     readonly weeklyViewers: string;
     readonly startError: string;
+    readonly forget: string;
+    readonly forgetError: string;
     readonly sortLabel: string;
     readonly sortViewers: string;
     readonly sortNewest: string;
@@ -111,6 +113,8 @@ const UZ: Strings = {
     railHistory: 'Ko‘rganlarim',
     weeklyViewers: '{n} kishi ko‘rdi',
     startError: 'Xona ochilmadi, qayta urinib ko‘ring',
+    forget: 'Tarixdan o‘chirish',
+    forgetError: 'O‘chirib bo‘lmadi, qayta urinib ko‘ring',
     sortLabel: 'Saralash:',
     sortViewers: "Ko'ruvchilar soni bo'yicha",
     sortNewest: 'Yangi xonalar',
@@ -162,6 +166,8 @@ const RU: Strings = {
     railHistory: 'История',
     weeklyViewers: 'Смотрели: {n}',
     startError: 'Не удалось открыть комнату, попробуйте ещё раз',
+    forget: 'Удалить из истории',
+    forgetError: 'Не удалось удалить, попробуйте ещё раз',
     sortLabel: 'Сортировка:',
     sortViewers: 'По числу зрителей',
     sortNewest: 'Новые комнаты',
@@ -213,6 +219,8 @@ const EN: Strings = {
     railHistory: 'Watched',
     weeklyViewers: '{n} watched',
     startError: 'Couldn’t open a room, try again',
+    forget: 'Remove from history',
+    forgetError: 'Couldn’t remove it, try again',
     sortLabel: 'Sort by:',
     sortViewers: 'By viewers',
     sortNewest: 'Newest rooms',

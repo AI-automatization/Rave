@@ -91,6 +91,9 @@ export function runSmokeAction(action: string, smoke: Smoke): void {
     // M5.2: the native Home — data, search, opening a room, coming back.
     void (async () => {
       await wait(2500);
+      await look('home-start'); // the app opens on Bosh sahifa (2026-11-13); the grid checks below are on Xonalar
+      await smokeEval('shell', "window.wewatchShell.navigate('rooms')");
+      await until('home', "document.querySelectorAll('.card').length >= 1");
       await look('home-initial');
       await shot();
       const search = (q: string): Promise<unknown> =>
@@ -187,6 +190,8 @@ export function runSmokeAction(action: string, smoke: Smoke): void {
     // The Stitch design: sidebar counters + profile, toolbar, sort, the other screens, collapsing, "Yangi xona".
     void (async () => {
       await wait(2500);
+      await look('design-start'); // the app opens on Bosh sahifa (2026-11-13); the design checks below are on Xonalar
+      await smokeEval('shell', "window.wewatchShell.navigate('rooms')");
       await until('shell', "document.getElementById('profile').hidden === false && !!document.querySelector('[data-id=rooms] .tail.count')");
       await until('home', "document.querySelectorAll('.card .subtitle').length >= 2");
       await look('design-initial');
@@ -199,9 +204,6 @@ export function runSmokeAction(action: string, smoke: Smoke): void {
       smoke('design-sort-hostile', { replies });
       await wait(300);
       await look('design-expanded');
-      await clickItem('live');
-      await until('home', "!!document.querySelector('.banner') && document.querySelectorAll('.card').length === 0");
-      await look('design-live');
       await clickItem('history');
       await until('home', "document.querySelectorAll('.grid .watch').length >= 1");
       await look('design-history');

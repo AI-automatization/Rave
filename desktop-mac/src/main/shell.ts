@@ -26,7 +26,7 @@ import { authStringsFor } from './auth-strings';
 import { changePassword, deleteAccount, loadProfile, logout, saveProfile, signOutAll, uploadAvatar, type Outcome } from './settings';
 import { avatarImageUrl, AVATAR_MAX_BYTES, type Profile } from './settings-model';
 import { settingsStringsFor } from './settings-strings';
-import { loadFriends, loadMeName, loadOwnerName, loadRails, loadRooms, startWatching } from './home-data';
+import { forgetHistoryItem, loadFriends, loadMeName, loadOwnerName, loadRails, loadRooms, startWatching } from './home-data';
 import { createRoom, joinRoom, openPlatformSite, readClipboardLink, searchVideos, videoMeta } from './room-create';
 import { outcomeText, type RoomOutcome } from './room-create-model';
 import { roomDialogStringsFor } from './room-create-strings';
@@ -76,7 +76,7 @@ let suppressAutoHome = false; // the web /home page we opened on purpose must no
 let homeState: HomeData = LOADING;
 let homeCards: readonly RoomCard[] | null = null;
 let homeQuery = '';
-let screen: Screen = 'rooms'; // which native screen is shown (the design's main window is "Xonalar")
+let screen: Screen = 'home'; // which native screen is shown; the app opens on Bosh sahifa (Abdulaziz, 2026-11-13)
 let homeSort: SortKey = 'viewers';
 let sidebarOpen = true; // always open while signed in (the Mac app has no sidebar toggle)
 let sessionChecked = false; // true once the server accepted the sign-in; until then (and on the sign-in screens) there is no sidebar
@@ -370,7 +370,7 @@ function onContentNavigated(url: string): void {
     suppressAutoHome = false;
     return;
   }
-  if (!suppressAutoHome) void showScreen('rooms');
+  if (!suppressAutoHome) void showScreen('home');
 }
 
 function setMode(next: Mode): void {
@@ -394,7 +394,7 @@ function openWeb(url: string): void {
 /** Single entry for "show this app URL" (used after Google login and for wewatch:// links). */
 export function openInApp(url: string): Promise<void> {
   if (isHomePath(url, APP_URL)) {
-    void showScreen('rooms'); // the post-login page: the app's main window
+    void showScreen('home'); // the post-login page: Bosh sahifa
   } else {
     suppressAutoHome = false;
     openWeb(url);
@@ -578,7 +578,7 @@ export function startApp(startWeb: boolean): void {
     openWeb(APP_URL);
     cameFromHome = false; // started on the web page: there is no Home to go back to
   } else {
-    void showScreen('rooms');
+    void showScreen('home');
   }
 }
 
@@ -641,7 +641,7 @@ const openNewRoom = (): Promise<void> => openWebDialog(NEW_ROOM_BUTTON);
 // ---------- IPC ----------
 
 const FORBIDDEN = { ok: false, reason: 'forbidden' } as const;
-const CHANNELS = ['auth:ready', 'auth:login', 'auth:register', 'auth:confirm', 'auth:forgot', 'auth:reset', 'auth:google', 'auth:cancelGoogle', 'auth:help', 'auth:about', 'help:ready', 'help:back', 'help:contact', 'shell:model', 'shell:navigate', 'shell:back', 'shell:forward', 'shell:search', 'shell:newRoom', 'shell:locale', 'home:newRoom', 'home:join', 'home:createRoom', 'home:joinRoom', 'home:searchVideos', 'home:videoMeta', 'home:readClipboard', 'home:openPlatform', 'settings:reload', 'settings:saveProfile', 'settings:pickAvatar', 'settings:language', 'settings:password', 'settings:signOutAll', 'settings:delete', 'settings:logout', 'home:ready', 'home:open', 'home:retry', 'home:watch', 'home:sort'];
+const CHANNELS = ['auth:ready', 'auth:login', 'auth:register', 'auth:confirm', 'auth:forgot', 'auth:reset', 'auth:google', 'auth:cancelGoogle', 'auth:help', 'auth:about', 'help:ready', 'help:back', 'help:contact', 'shell:model', 'shell:navigate', 'shell:back', 'shell:forward', 'shell:search', 'shell:newRoom', 'shell:locale', 'home:newRoom', 'home:join', 'home:createRoom', 'home:joinRoom', 'home:searchVideos', 'home:videoMeta', 'home:readClipboard', 'home:openPlatform', 'settings:reload', 'settings:saveProfile', 'settings:pickAvatar', 'settings:language', 'settings:password', 'settings:signOutAll', 'settings:delete', 'settings:logout', 'home:ready', 'home:open', 'home:retry', 'home:watch', 'home:sort', 'home:forget'];
 
 function registerIpc(): void {
   // The window can be recreated (dock click after closing): replace, never double-register.
@@ -924,6 +924,21 @@ function registerIpc(): void {
     openWeb(url);
     return { ok: true } as const;
   });
+  // "Tarixdan o'chirish": the renderer names a history card by position only; the link comes from our own list.
+  ipcMain.handle('home:forget', async (e, index: unknown) => {
+    if (!fromHome(e)) return FORBIDDEN;
+    const item = typeof index === 'number' && Number.isInteger(index) ? rails.history[index] : undefined;
+    if (!item) return { ok: false, reason: 'invalid_item' } as const;
+    const r = await forgetHistoryItem(item);
+    if (r === 'unauthorized') {
+      sessionLost();
+      return { ok: false, reason: 'unauthorized' } as const;
+    }
+    if (r !== 'ok') return { ok: false, reason: 'error' } as const;
+    rails = { ...rails, history: rails.history.filter((h) => h.sourceUrl !== item.sourceUrl) };
+    pushHome();
+    return { ok: true } as const;
+  });
   ipcMain.handle('home:watch', async (e, kind: unknown, index: unknown) => {
     if (!fromHome(e)) return FORBIDDEN;
     // The renderer names a card by rail and position; the video link and the request body come from our own list.
@@ -993,7 +1008,7 @@ export function attachShell(window: BrowserWindow, opts: ShellOptions): { shell:
   homeState = LOADING;
   homeCards = null;
   homeQuery = '';
-  screen = 'rooms';
+  screen = 'home';
   homeSort = 'viewers';
   sidebarOpen = true;
   sessionChecked = false;

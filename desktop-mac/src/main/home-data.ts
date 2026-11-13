@@ -6,8 +6,7 @@ import { session } from 'electron';
 import { APP_URL } from './config';
 import {
   conflictRoomId, createdRoomId, createRoomApiUrl, friendsApiUrl, meApiUrl, parseFriendsCount, parseOnlineFriends, parseRooms, parseUsername, parseWatchItems, railApiUrl,
-  refreshApiUrl, roomPlayUrl, roomsApiUrl, roomUrl, userApiUrl, watchPayload, type Rails, type RoomCard, type WatchItem,
-} from './rooms-model';
+  refreshApiUrl, roomPlayUrl, roomsApiUrl, roomUrl, userApiUrl, watchPayload, type Rails, type RoomCard, type WatchItem, historyForgetUrl } from './rooms-model';
 
 export type RoomsLoad = { kind: 'ok'; rooms: RoomCard[] } | { kind: 'unauthorized' } | { kind: 'unavailable' };
 export type StartResult = { kind: 'room'; url: string } | { kind: 'unauthorized' } | { kind: 'error' };
@@ -85,6 +84,17 @@ export async function loadRails(): Promise<Rails> {
   };
   const [trending, history] = await Promise.all([get('trending'), get('history')]);
   return { trending, history };
+}
+
+/** "Tarixdan o'chirish": the server hides that link from the user's history. 404 = already gone: same result for the user. */
+export async function forgetHistoryItem(item: WatchItem): Promise<'ok' | 'unauthorized' | 'error'> {
+  try {
+    const res = await withRefresh(() => call(historyForgetUrl(APP_URL, item.sourceUrl), { method: 'DELETE' }));
+    if (res.status === 401) return 'unauthorized';
+    return res.ok || res.status === 404 ? 'ok' : 'error';
+  } catch {
+    return 'error';
+  }
 }
 
 /**

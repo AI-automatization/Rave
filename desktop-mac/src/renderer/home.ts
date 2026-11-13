@@ -42,6 +42,8 @@ interface HomeStrings {
   railHistory: string;
   weeklyViewers: string;
   startError: string;
+  forget: string;
+  forgetError: string;
   sortLabel: string;
   sortViewers: string;
   sortNewest: string;
@@ -118,6 +120,7 @@ interface HomeBridge {
   open(id: string): Promise<unknown>;
   retry(): Promise<unknown>;
   watch(kind: string, index: number): Promise<{ ok: boolean; reason?: string }>;
+  forget(index: number): Promise<{ ok: boolean; reason?: string }>;
   sort(key: string): Promise<unknown>;
   newRoom(): Promise<unknown>;
   join(): Promise<unknown>;
@@ -338,7 +341,24 @@ function watchCard(c: WatchCardDto, kind: 'trending' | 'history', index: number,
   }
   b.appendChild(info);
   b.addEventListener('click', () => startWatching(kind, index, b, S));
-  return b;
+  if (kind !== 'history') return b;
+  // Tarix: a small "×" over the poster removes the link from the user's history (a sibling of the card button, not
+  // inside it: a button cannot contain a button). The main process redraws the list when the server agrees.
+  const wrap = el('div', 'watch-wrap');
+  const x = el('button', 'forget', '×');
+  x.type = 'button';
+  x.title = S.forget;
+  x.setAttribute('aria-label', S.forget);
+  x.addEventListener('click', () => {
+    if (x.disabled) return;
+    x.disabled = true;
+    void bridge.forget(index).then((r) => {
+      x.disabled = false;
+      if (!r.ok && r.reason !== 'unauthorized') toast(S.forgetError);
+    });
+  });
+  wrap.append(b, x);
+  return wrap;
 }
 
 function rail(title: string, cards: WatchCardDto[], kind: 'trending' | 'history', S: HomeStrings): HTMLElement {

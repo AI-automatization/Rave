@@ -274,6 +274,9 @@ export function watchPayload(item: WatchItem): WatchPayload {
 }
 
 export const railApiUrl = (appUrl: string, kind: 'trending' | 'history'): string => `${originOf(appUrl)}/api/rooms/${kind}`;
+/** DELETE: take one link out of the user's Tarix (BFF → watch-party DELETE /history/me; hidden, not deleted). */
+export const historyForgetUrl = (appUrl: string, sourceUrl: string): string =>
+  `${originOf(appUrl)}/api/rooms/history?sourceUrl=${encodeURIComponent(sourceUrl)}`;
 export const createRoomApiUrl = (appUrl: string): string => `${originOf(appUrl)}/api/rooms`;
 
 /** POST /api/rooms succeeded: the new room's id (only a safe id is accepted). */

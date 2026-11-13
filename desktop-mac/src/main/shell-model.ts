@@ -36,7 +36,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     items: [
       { id: 'home', label: 'Bosh sahifa', route: '/home', native: true, screen: 'home' },
       { id: 'rooms', label: 'Xonalar', route: null, native: true, screen: 'rooms' },
-      { id: 'live', label: 'Jonli efirlar', route: null, native: true, screen: 'live' },
+      // 'Jonli efirlar' (live) removed 2026-11-13 (Abdulaziz): it was only Xonalar filtered to the playing rooms.
     ],
   },
   {

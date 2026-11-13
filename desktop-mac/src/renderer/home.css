@@ -790,3 +790,40 @@ button {
 [hidden] {
   display: none !important;
 }
+
+/* Tarix: the card and its "×" (remove from history) sit side by side in a wrapper; the "×" floats over the poster. */
+.watch-wrap {
+  position: relative;
+  flex: none;
+}
+.grid .watch-wrap .watch {
+  width: 100%;
+}
+.watch-wrap .forget {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.62);
+  color: #fff;
+  font-size: 15px;
+  line-height: 24px;
+  text-align: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.watch-wrap:hover .forget,
+.watch-wrap .forget:focus-visible {
+  opacity: 1;
+}
+.watch-wrap .forget:hover {
+  background: rgba(220, 38, 38, 0.85);
+}
+.watch-wrap .forget:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

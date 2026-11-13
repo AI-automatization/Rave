@@ -21,7 +21,7 @@ describe('broken avatar pictures', () => {
 describe('NAV_SECTIONS (Stitch Variant 1)', () => {
   it('has the sections and items of the approved design, in order', () => {
     expect(NAV_SECTIONS.map((s) => [s.title, s.items.map((i) => i.label)])).toEqual([
-      ['ASOSIY', ['Bosh sahifa', 'Xonalar', 'Jonli efirlar']],
+      ['ASOSIY', ['Bosh sahifa', 'Xonalar']],
       ["DO'STLAR & HAMJAMIYAT", ["Do'stlar", 'Tarix']],
       ['KUTUBXONA', ['Sozlamalar']],
     ]);
@@ -29,13 +29,13 @@ describe('NAV_SECTIONS (Stitch Variant 1)', () => {
   it('maps only the items that have an existing web page; the others are the app\'s own screens', () => {
     const routes = Object.fromEntries(NAV_SECTIONS.flatMap((s) => s.items).map((i) => [i.id, i.route]));
     expect(routes).toEqual({
-      home: '/home', rooms: null, live: null, friends: '/friends', history: null, settings: '/settings',
+      home: '/home', rooms: null, friends: '/friends', history: null, settings: '/settings',
     });
   });
-  it('Bosh sahifa, Xonalar, Jonli efirlar, Tarix and Sozlamalar are the app\'s own screens; Do\'stlar still opens the web page', () => {
+  it('Bosh sahifa, Xonalar, Tarix and Sozlamalar are the app\'s own screens; Do\'stlar still opens the web page', () => {
     const native = NAV_SECTIONS.flatMap((s) => s.items).filter((i) => i.native === true).map((i) => [i.id, i.screen]);
-    expect(native).toEqual([['home', 'home'], ['rooms', 'rooms'], ['live', 'live'], ['history', 'history'], ['settings', 'settings']]);
-    for (const id of ['home', 'rooms', 'live', 'history', 'settings']) expect(isNativeItem(id), id).toBe(true);
+    expect(native).toEqual([['home', 'home'], ['rooms', 'rooms'], ['history', 'history'], ['settings', 'settings']]);
+    for (const id of ['home', 'rooms', 'history', 'settings']) expect(isNativeItem(id), id).toBe(true);
     for (const id of ['friends', 'favorites', 'evil', undefined, null, 7]) expect(isNativeItem(id), String(id)).toBe(false);
     expect(nativeScreen('rooms')).toBe('rooms');
     expect(nativeScreen('friends')).toBeNull();

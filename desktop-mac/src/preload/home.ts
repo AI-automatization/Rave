@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('wewatchHome', {
   open: (id: string) => ipcRenderer.invoke('home:open', id),
   retry: () => ipcRenderer.invoke('home:retry'),
   watch: (kind: string, index: number) => ipcRenderer.invoke('home:watch', kind, index),
+  forget: (index: number) => ipcRenderer.invoke('home:forget', index),
   sort: (key: string) => ipcRenderer.invoke('home:sort', key),
   newRoom: () => ipcRenderer.invoke('home:newRoom'),
   // Sozlamalar: the renderer says what the user did; the main process validates, asks the server and answers { ok } / { ok: false, kind }.

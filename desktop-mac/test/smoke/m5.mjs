@@ -42,7 +42,7 @@ const pathOf = (u) => { try { return new URL(u).pathname; } catch { return ''; }
 const init = get('shell-initial');
 check(!!init, 'shell rendered and could be inspected');
 const items = init?.shell.items ?? [];
-check(items.map((i) => i.label).join('|') === "Bosh sahifa|Xonalar|Jonli efirlar|Do'stlar|Tarix|Sozlamalar", 'sidebar items, in design order');
+check(items.map((i) => i.label).join('|') === "Bosh sahifa|Xonalar|Do'stlar|Tarix|Sozlamalar", 'sidebar items, in design order');
 check(init?.shell.titles.join('|') === "ASOSIY|DO'STLAR & HAMJAMIYAT|KUTUBXONA", 'section titles');
 check(items.every((i) => !i.disabled), 'every sidebar item opens something (no dead items)');
 check(items.find((i) => i.active)?.id === 'home', 'Bosh sahifa is active on /home');

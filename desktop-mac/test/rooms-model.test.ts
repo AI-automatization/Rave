@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildHomeData, greetingKind, parseOnlineFriends, NO_RAILS, friendsApiUrl, meApiUrl, parseFriendsCount, parseUsername, userApiUrl, conflictRoomId, createdRoomId, createRoomApiUrl, filterRooms, parseRooms, parseWatchItems, railApiUrl, roomPlayUrl, watchPayload, pickSpotlight, refreshApiUrl, roomsApiUrl, roomUrl, type RoomCard,
+  buildHomeData, greetingKind, parseOnlineFriends, NO_RAILS, friendsApiUrl, meApiUrl, parseFriendsCount, parseUsername, userApiUrl, conflictRoomId, createdRoomId, createRoomApiUrl, filterRooms, parseRooms, parseWatchItems, railApiUrl, historyForgetUrl, roomPlayUrl, watchPayload, pickSpotlight, refreshApiUrl, roomsApiUrl, roomUrl, type RoomCard,
 } from '../src/main/rooms-model';
 
 const APP = 'https://app.wewatch.uz';
@@ -220,6 +220,7 @@ describe('urls and replies of the "start watching" flow', () => {
   it('rail and create endpoints are on the app origin', () => {
     expect(railApiUrl(APP, 'trending')).toBe('https://app.wewatch.uz/api/rooms/trending');
     expect(railApiUrl('http://localhost:3000/home', 'history')).toBe('http://localhost:3000/api/rooms/history');
+    expect(historyForgetUrl(APP, 'https://uzmovi.net/a.html?x=1&y=2')).toBe('https://app.wewatch.uz/api/rooms/history?sourceUrl=https%3A%2F%2Fuzmovi.net%2Fa.html%3Fx%3D1%26y%3D2');
     expect(createRoomApiUrl(APP)).toBe('https://app.wewatch.uz/api/rooms');
   });
   it('the room created by the server: only a safe id is accepted', () => {
