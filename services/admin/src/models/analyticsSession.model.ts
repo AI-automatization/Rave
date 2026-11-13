@@ -47,7 +47,7 @@ const schema = new Schema<IAnalyticsSessionDocument>(
     deviceModel:        { type: String, default: '' },
     osVersion:          { type: String, default: '' },
     isNewUser:          { type: Boolean, default: false },
-    startTime:          { type: Date, required: true, index: true },
+    startTime:          { type: Date, required: true },
     endTime:            { type: Date },
     duration:           { type: Number },
     screens:            { type: [screenVisitSchema], default: [] },

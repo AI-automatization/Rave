@@ -34,6 +34,14 @@ export class VideoExtractController {
         res.status(400).json(apiResponse.error('url is required'));
         return;
       }
+      // Malformed / non-http(s) / private-host URL is a client error, not a 500 (prod 11-13:
+      // "Unhandled error Invalid URL" on POST /content/extract). Same SSRF guard extractVideo runs.
+      try {
+        validateUrl(url);
+      } catch (e) {
+        res.status(400).json(apiResponse.error(e instanceof Error ? e.message : 'Invalid URL'));
+        return;
+      }
 
       // Basic cookie sanitization (T-S045)
       const cookies = typeof body.cookies === 'string' && body.cookies.length <= 4096

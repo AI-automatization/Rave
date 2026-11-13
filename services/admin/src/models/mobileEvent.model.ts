@@ -29,7 +29,7 @@ const schema = new Schema<IMobileEventDocument>(
     stackTrace:  { type: Schema.Types.Mixed, default: {} },
     breadcrumbs: { type: [Schema.Types.Mixed], default: [] },
     context:     { type: Schema.Types.Mixed, default: {} },
-    timestamp:   { type: Date, default: Date.now, index: true },
+    timestamp:   { type: Date, default: Date.now },
   },
   {
     toJSON: { virtuals: true, transform: (_d, ret) => { Reflect.deleteProperty(ret, '__v'); return ret; } },

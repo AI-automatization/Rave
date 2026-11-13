@@ -17,7 +17,7 @@ const schema = new Schema<IAnalyticsEventDocument>(
     userId:    { type: String, index: true },
     event:     { type: String, required: true, index: true },
     screen:    { type: String },
-    ts:        { type: Date, required: true, index: true },
+    ts:        { type: Date, required: true },
     meta:      { type: Schema.Types.Mixed },
     platform:  { type: String, default: 'unknown' },
   },
