@@ -339,14 +339,46 @@ button, a, [role="button"] {
   background: var(--ww-bg);
 }
 
-/* Past bo'yli planshet/landshaft (1023×800, 844×390 …) da tasma + forma
-   birgalikda sig'maydi va sahifa 145px scroll qilardi. Bunday holatda
-   tasma olib tashlanadi — kirish formasi marketing bannerdan muhimroq.
-   Faqat `md…lg-1` oralig'iga taalluqli: `lg` da tartib yonma-yon. */
-@media (min-width: 768px) and (max-width: 1023.98px) and (max-height: 900px) {
-  .ww-auth-strip { display: none; }
-  .ww-auth-grid { grid-template-rows: 1fr; }
+/* — Google OAuth tugmasi — mobil ilovadagi SocialAuthButtons
+     bilan bir xil: 1.5px brend gradient chegara, ichi fon rangida.
+     Ikki fonli usul (padding-box + border-box) — qo'shimcha wrapper
+     elementsiz gradient chegara beradi va border-radius bilan buzilmaydi. — */
+.ww-oauth-btn {
+  --ww-oauth-edge: linear-gradient(135deg, #4285F4 0%, #EA4335 38%, #FBBC05 68%, #34A853 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  width: 100%;
+  height: 3rem;
+  padding: 0 1.25rem;
+  border: 1.5px solid transparent;
+  border-radius: var(--ww-r-md);
+  background:
+    linear-gradient(var(--ww-bg), var(--ww-bg)) padding-box,
+    var(--ww-oauth-edge) border-box;
+  color: var(--ww-text);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  transition:
+    background var(--ww-dur) var(--ww-ease),
+    transform var(--ww-dur) var(--ww-ease),
+    opacity var(--ww-dur) var(--ww-ease);
 }
+.ww-oauth-btn:hover:not(:disabled) {
+  background:
+    linear-gradient(var(--ww-surface-1), var(--ww-surface-1)) padding-box,
+    var(--ww-oauth-edge) border-box;
+}
+.ww-oauth-btn:active:not(:disabled) { transform: scale(0.985); }
+.ww-oauth-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.ww-oauth-btn:focus-visible {
+  outline: 2px solid var(--ww-accent-hi);
+  outline-offset: 2px;
+}
+
 
 /* — Panel: deyarli ko'rinmas chegara + yuqoridan tushayotgan yorug'lik.
      `.liquid-glass` dan farqi — blur 40px→24px va violet chegara olib
