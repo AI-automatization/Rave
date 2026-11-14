@@ -279,13 +279,16 @@ form {
 .btn.primary:not(:disabled):hover svg.arrow {
   transform: translateX(2px);
 }
+/* Same as the web .ww-oauth-btn / mobile SocialAuthButtons: 1.5px Google brand gradient edge, inside = page colour. */
 .btn.google {
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.06);
+  --google-edge: linear-gradient(135deg, #4285f4 0%, #ea4335 38%, #fbbc05 68%, #34a853 100%);
+  border: 1.5px solid transparent;
+  background: linear-gradient(var(--bg), var(--bg)) padding-box, var(--google-edge) border-box;
   color: var(--text);
+  font-weight: 600;
 }
 .btn.google:not(:disabled):hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: linear-gradient(var(--surface-1, #121022), var(--surface-1, #121022)) padding-box, var(--google-edge) border-box;
 }
 .btn.google svg {
   stroke: none;
