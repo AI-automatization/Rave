@@ -7,7 +7,8 @@
     "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/server.ts",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
-    "typecheck": "tsc --noEmit -p tsconfig.build.json"
+    "typecheck": "tsc --noEmit -p tsconfig.build.json",
+    "test:unit": "tsc --outDir .test-out --rootDir src --module commonjs --target es2020 --esModuleInterop --skipLibCheck --types node src/services/vbOrphan.test.ts && node --test .test-out/services/vbOrphan.test.js"
   },
   "dependencies": {
     "@cinesync/shared": "*",

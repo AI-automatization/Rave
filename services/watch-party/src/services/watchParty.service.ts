@@ -493,6 +493,16 @@ export class WatchPartyService {
     return ids;
   }
 
+  /** Of `roomIds`, those whose room is still live (not ended, not deleted). */
+  async filterLiveRoomIds(roomIds: string[]): Promise<Set<string>> {
+    if (roomIds.length === 0) return new Set();
+    const live = await WatchPartyRoom.find({
+      _id: { $in: roomIds },
+      status: { $in: ['waiting', 'playing', 'paused'] },
+    }).select('_id');
+    return new Set(live.map((r) => r._id.toString()));
+  }
+
   async purgeEndedRooms(olderThanMinutes = 60): Promise<void> {
     const cutoff = new Date(Date.now() - olderThanMinutes * 60 * 1000);
     const result = await WatchPartyRoom.deleteMany({ status: 'ended', updatedAt: { $lt: cutoff } });

@@ -16,7 +16,8 @@ import { registerReactionEvents } from './reactionEvents.handler';
 import { registerHandEvents } from './handEvents.handler';
 import { registerDMEvents } from './dmEvents.handler';
 import { registerVBEvents } from './vbEvents.handler';
-import { stopSession, stopAllSessions, hasSession } from '../services/virtualBrowser.service';
+import { stopSession, stopAllSessions, hasSession, listSessionRoomIds } from '../services/virtualBrowser.service';
+import { pickOrphanedSessions } from '../services/vbOrphan';
 import { fetchRoomSockets } from './roomSockets.helper';
 
 interface AuthenticatedSocket extends Socket {
@@ -77,6 +78,9 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
     if (ids.length > 0) logger.info('Startup: closed stale rooms', { count: ids.length });
   }).catch((err: Error) => logger.error('Startup room cleanup error', { error: err.message }));
 
+  // roomId -> when its VB session was first seen with no socket in the room (see vbOrphan.ts).
+  const vbEmptySince = new Map<string, number>();
+
   // Auto-close inactive rooms every minute, purge old ended rooms every hour
   const cleanupInterval = setInterval(async () => {
     if (!backgroundJobs) return;
@@ -89,6 +93,19 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
         io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'inactivity' });
       }
       await watchPartyService.purgeEndedRooms(60);
+
+      // Backstop: stop VB sessions whose room ended/was deleted or has been empty for 10 min.
+      const sessionRoomIds = listSessionRoomIds();
+      const liveRoomIds = await watchPartyService.filterLiveRoomIds(sessionRoomIds);
+      const orphans = pickOrphanedSessions({ sessionRoomIds, liveRoomIds, isOccupied, now: Date.now(), emptySince: vbEmptySince });
+      for (const roomId of orphans) {
+        logger.warn('Stopping orphaned VB session', { roomId, roomLive: liveRoomIds.has(roomId) });
+        await stopSession(roomId).catch((e) => logger.error('Orphan VB stop failed', { roomId, error: (e as Error).message }));
+        if (liveRoomIds.has(roomId)) {
+          await watchPartyService.closeRoomBySystem(roomId).catch((e) => logger.error('Orphan room close failed', { roomId, error: (e as Error).message }));
+          io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'inactivity' });
+        }
+      }
     } catch (err) {
       logger.error('Inactive room cleanup error', { error: (err as Error).message });
     }
