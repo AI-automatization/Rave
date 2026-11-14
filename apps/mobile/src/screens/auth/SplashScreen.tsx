@@ -9,6 +9,7 @@ import { AuthStackParamList } from '@app-types/index';
 import { useAuthStore } from '@store/auth.store';
 import { useT } from '@i18n/index';
 import { pendingRoomLink } from '@utils/pendingRoomLink';
+import { onboardingStorage } from '@utils/storage';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Splash'>;
 
@@ -35,13 +36,25 @@ export function SplashScreen() {
   useEffect(() => {
     if (!isHydrated) return;
     // hideAsync App.tsx da chaqiriladi — bu yerda faqat navigatsiya
-    const timer = setTimeout(() => {
+    // Read the flag in parallel with the splash animation — no extra delay
+    const seen = onboardingStorage.isSeen();
+    let cancelled = false;
+    const timer = setTimeout(async () => {
       if (isAuthenticated) return; // AppNavigator handles redirect
       // Opened via a room link while signed out → join as guest with just a name
-      navigation.replace(pendingRoomLink.get() ? 'GuestJoin' : 'LanguageSelect');
+      if (pendingRoomLink.get()) {
+        navigation.replace('GuestJoin');
+        return;
+      }
+      // Language + onboarding only on the first launch; afterwards straight to Login
+      const alreadySeen = await seen;
+      if (!cancelled) navigation.replace(alreadySeen ? 'Login' : 'LanguageSelect');
     }, 1800);
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [isHydrated, isAuthenticated, navigation]);
 
   const progressWidth = progressAnim.interpolate({
