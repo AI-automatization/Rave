@@ -1,4 +1,5 @@
-// WeWatch Mobile — Social auth buttons (Google wide top + Apple/Telegram row below)
+// WeWatch Mobile — Social auth buttons (Google wide top + Apple on iOS below).
+// Telegram (bot) login removed 2026-11-14 — Google + email only, same as the web.
 import React from 'react';
 import { View, ActivityIndicator, Platform, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,12 +28,10 @@ function GradientGoogleIcon({ size = 20 }: { size?: number }) {
 
 interface SocialAuthButtonsProps {
   googleLoading: boolean;
-  telegramLoading: boolean;
   appleLoading?: boolean;
   appleAvailable?: boolean;
   googleDisabled?: boolean;
   onGooglePress: () => void;
-  onTelegramPress: () => void;
   onApplePress?: () => void;
 }
 
@@ -78,7 +77,7 @@ function WideBtn({ gradient, icon, label, loading, disabled, onPress }: WideBtnP
   );
 }
 
-// ── Small icon button (Apple / Telegram) ─────────────────────────────────────
+// ── Small icon button (Apple) ─────────────────────────────────────
 interface IconBtnProps {
   gradient: readonly string[];
   icon: React.ReactNode;
@@ -119,12 +118,10 @@ function IconBtn({ gradient, icon, label, loading, disabled, onPress }: IconBtnP
 // ── Main export ───────────────────────────────────────────────────────────────
 export function SocialAuthButtons({
   googleLoading,
-  telegramLoading,
   appleLoading = false,
   appleAvailable = false,
   googleDisabled,
   onGooglePress,
-  onTelegramPress,
   onApplePress,
 }: SocialAuthButtonsProps) {
   const showApple = Platform.OS === 'ios' && appleAvailable && !!onApplePress;
@@ -142,9 +139,9 @@ export function SocialAuthButtons({
         onPress={onGooglePress}
       />
 
-      {/* Apple + Telegram — icon row below */}
-      <View style={{ flexDirection: 'row', gap: 12 }}>
-        {showApple && (
+      {/* Apple — iOS only */}
+      {showApple && (
+        <View style={{ flexDirection: 'row', gap: 12 }}>
           <IconBtn
             gradient={APPLE_GRADIENT}
             icon={<FontAwesome5 name="apple" size={22} color="#fff" />}
@@ -152,15 +149,8 @@ export function SocialAuthButtons({
             loading={appleLoading}
             onPress={onApplePress!}
           />
-        )}
-        <IconBtn
-          gradient={[...BRAND_COLORS.telegramGradient]}
-          icon={<FontAwesome5 name="telegram-plane" size={20} color={BRAND_COLORS.telegramBlue} />}
-          label="Telegram"
-          loading={telegramLoading}
-          onPress={onTelegramPress}
-        />
-      </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -192,7 +182,7 @@ const useStyles = createThemedStyles((colors) => ({
     letterSpacing: 0.2,
   },
 
-  // Icon button (Apple / Telegram)
+  // Icon button (Apple)
   iconWrap: {
     flex: 1,
     alignItems: 'center',

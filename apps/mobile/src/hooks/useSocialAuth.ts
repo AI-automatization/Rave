@@ -15,7 +15,14 @@ const GOOGLE_WEB_CLIENT_ID = '756077214118-top29idd8ialmj2njm9p6m0hk053fk50.apps
 const GOOGLE_IOS_CLIENT_ID = '756077214118-t309035asjucgjm96b365sp92n807ne1.apps.googleusercontent.com';
 const AUTH_BASE_URL = (process.env.EXPO_PUBLIC_AUTH_URL ?? '').replace('/api/v1', '');
 const POLL_INTERVAL_MS = 2000;
-const MAX_POLL_ATTEMPTS = 90;
+const MAX_POLL_ATTEMPTS = 90; // 3 min — enough to pick an account / type a password in the browser
+// iOS only: after the user closes the Safari sheet, keep polling a little longer in case the
+// callback landed right before the close (Android's openBrowserAsync resolves immediately, so
+// there the browser state tells us nothing and polling simply runs until result / timeout).
+const IOS_CLOSE_GRACE_MS = 6000;
+// Android native sign-in rejects with DEVELOPER_ERROR (CommonStatusCodes 10) when the signing
+// key's SHA-1 isn't registered on a Google Cloud Android OAuth client (EAS / Play signing keys).
+const GOOGLE_DEVELOPER_ERROR = '10';
 const TELEGRAM_LOGIN_TIMEOUT_MS = 3 * 60 * 1000; // give up if no callback arrives in 3 min
 
 // Lazy-require to avoid TurboModuleRegistry.getEnforcing crash in Expo Go. RNGoogleSignin is a
@@ -92,6 +99,7 @@ export function useSocialAuth(): UseSocialAuthResult {
   const promptGoogleNative = async () => {
     setGoogleLoading(true);
     setSocialError('');
+    let fallbackToWeb = false;
     try {
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       // Clear any cached Google session first so the account chooser is ALWAYS
@@ -103,6 +111,9 @@ export function useSocialAuth(): UseSocialAuthResult {
         // No active session to sign out of — safe to ignore.
       }
       const userInfo = await GoogleSignin.signIn();
+      // v13+: closing the account chooser resolves { type: 'cancelled' } instead of throwing —
+      // used to fall through to "No idToken" and show an error for a plain cancel.
+      if (userInfo.type === 'cancelled') return;
       const idToken = userInfo.data?.idToken;
       if (!idToken) throw new Error('No idToken');
       const result = await authApi.googleToken(idToken);
@@ -117,6 +128,13 @@ export function useSocialAuth(): UseSocialAuthResult {
       const e = err as { code?: string; response?: { status?: number; data?: { code?: string; message?: string } } };
       if (e.code === statusCodes.SIGN_IN_CANCELLED || e.code === statusCodes.IN_PROGRESS) {
         // user cancelled or already in progress — no error shown
+      } else if (
+        Platform.OS === 'android' &&
+        (e.code === GOOGLE_DEVELOPER_ERROR || e.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE)
+      ) {
+        // Native sign-in can't work on this build/device (unregistered SHA-1, no Play Services) —
+        // don't dead-end the user: continue with the browser flow, which needs neither.
+        fallbackToWeb = true;
       } else if (e.response?.status === 503 && e.response?.data?.code === 'MAINTENANCE_MODE') {
         // Surface the backend's maintenance message instead of a generic error.
         setSocialError(e.response.data.message ?? t('login', 'errorGoogle'));
@@ -126,6 +144,7 @@ export function useSocialAuth(): UseSocialAuthResult {
     } finally {
       setGoogleLoading(false);
     }
+    if (fallbackToWeb) await promptGoogleWebFallback();
   };
 
   const promptGoogleWebFallback = async () => {
@@ -169,13 +188,18 @@ export function useSocialAuth(): UseSocialAuthResult {
         }
       }, POLL_INTERVAL_MS);
 
-      await WebBrowser.openBrowserAsync(authUrl);
+      const browser = await WebBrowser.openBrowserAsync(authUrl);
 
-      await new Promise<void>((resolve) => setTimeout(resolve, 6000));
-      if (googleIntervalRef.current) {
-        clearInterval(googleIntervalRef.current);
-        googleIntervalRef.current = null;
-        setGoogleLoading(false);
+      // Android resolves { type: 'opened' } immediately — the old unconditional "stop polling
+      // 6s later" killed the flow before the user even picked an account, so Google login in the
+      // browser fallback could never finish there. Only iOS reports the sheet being closed.
+      if (browser.type === 'cancel') {
+        await new Promise<void>((resolve) => setTimeout(resolve, IOS_CLOSE_GRACE_MS));
+        if (googleIntervalRef.current) {
+          clearInterval(googleIntervalRef.current);
+          googleIntervalRef.current = null;
+          setGoogleLoading(false);
+        }
       }
     } catch {
       setGoogleLoading(false);
