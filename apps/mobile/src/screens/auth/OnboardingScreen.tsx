@@ -14,6 +14,7 @@ import { useOnboardingAnimations } from '@hooks/useOnboardingAnimations';
 import { SLIDES, Slide } from '@components/auth/onboardingSlides';
 import { OnboardingSlide } from '@components/auth/OnboardingSlide';
 import { OnboardingFooter } from '@components/auth/OnboardingFooter';
+import { onboardingStorage } from '@utils/storage';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Onboarding'>;
 
@@ -27,6 +28,12 @@ export function OnboardingScreen() {
     useOnboardingAnimations();
   const styles = useStyles();
 
+  // Finish and Skip both count as "seen" — next signed-out start goes straight to Login
+  const finish = useCallback(() => {
+    onboardingStorage.markSeen().catch(() => null);
+    navigation.replace('Login');
+  }, [navigation]);
+
   const goNext = useCallback(() => {
     if (currentIndex < SLIDES.length - 1) {
       const nextIdx = currentIndex + 1;
@@ -34,13 +41,9 @@ export function OnboardingScreen() {
       setCurrentIndex(nextIdx);
       animateIconPop();
     } else {
-      navigation.replace('Login');
+      finish();
     }
-  }, [currentIndex, animateIconPop, navigation]);
-
-  const handleSkip = useCallback(() => {
-    navigation.replace('Login');
-  }, [navigation]);
+  }, [currentIndex, animateIconPop, finish]);
 
   const handleScroll = useCallback(
     (e: { nativeEvent: { contentOffset: { x: number } } }) => {
@@ -95,7 +98,7 @@ export function OnboardingScreen() {
         currentIndex={currentIndex}
         accentColor={SLIDES[currentIndex].accentColor}
         onNext={goNext}
-        onSkip={handleSkip}
+        onSkip={finish}
       />
     </View>
   );

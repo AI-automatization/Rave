@@ -32,6 +32,28 @@ export const privacyPolicyStorage = {
   },
 };
 
+// Device-level flag: language select + onboarding slides are shown only on the FIRST launch.
+// Without it SplashScreen sent every signed-out start (after logout, token expiry, app restart)
+// through LanguageSelect → Onboarding again. Not per-user and not cleared on logout on purpose.
+// `cinesync_lang` is written only by LanguageSelectScreen, so its presence means the user already
+// went through the flow before this flag existed (app update) — don't show it to them again.
+const ONBOARDING_SEEN_KEY = 'wewatch_onboarding_seen_v1';
+const LEGACY_LANG_KEY = 'cinesync_lang';
+
+export const onboardingStorage = {
+  async isSeen(): Promise<boolean> {
+    try {
+      if ((await get(ONBOARDING_SEEN_KEY)) === '1') return true;
+      return (await get(LEGACY_LANG_KEY)) !== null;
+    } catch {
+      return false;
+    }
+  },
+  async markSeen(): Promise<void> {
+    await set(ONBOARDING_SEEN_KEY, '1');
+  },
+};
+
 // Per-user flag: was profile setup screen already shown?
 export const profileSetupStorage = {
   async isDone(userId: string): Promise<boolean> {
