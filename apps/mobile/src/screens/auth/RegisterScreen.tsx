@@ -218,12 +218,10 @@ export function RegisterScreen() {
 
             <SocialAuthButtons
               googleLoading={social.googleLoading}
-              telegramLoading={social.telegramLoading}
               appleLoading={social.appleLoading}
               appleAvailable={social.appleAvailable}
               googleDisabled={social.googleDisabled || !tosAccepted}
               onGooglePress={() => requireTos(social.promptGoogleAsync)}
-              onTelegramPress={() => requireTos(social.handleTelegramLogin)}
               onApplePress={() => requireTos(social.handleAppleLogin)}
             />
 

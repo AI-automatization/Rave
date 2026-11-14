@@ -55,7 +55,6 @@ export function LoginScreen() {
 
   const {
     googleLoading,
-    telegramLoading,
     appleLoading,
     appleAvailable,
     googleDisabled,
@@ -64,7 +63,6 @@ export function LoginScreen() {
     blockedUserId: socialBlockedUserId,
     clearSocialError,
     promptGoogleAsync,
-    handleTelegramLogin,
     handleAppleLogin,
   } = useSocialAuth();
 
@@ -210,12 +208,10 @@ export function LoginScreen() {
             {/* Social auth */}
             <SocialAuthButtons
               googleLoading={googleLoading}
-              telegramLoading={telegramLoading}
               appleLoading={appleLoading}
               appleAvailable={appleAvailable}
               googleDisabled={googleDisabled}
               onGooglePress={promptGoogleAsync}
-              onTelegramPress={handleTelegramLogin}
               onApplePress={handleAppleLogin}
             />
 
