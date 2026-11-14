@@ -1,0 +1,30 @@
+<!doctype html><meta charset="utf-8"><title>picker smoke</title>
+<body style="margin:0;background:#111;color:#ddd;font:13px system-ui">
+<div id="box" style="position:absolute;left:20px;top:60px;width:960px;height:540px;border:1px solid #444"></div>
+<script>
+// Fake web app for the picker smoke: drives window.wewatchDesktop.picker exactly like use-desktop-vb-picker.ts.
+const report = (step, data) => fetch('/report', { method: 'POST', body: JSON.stringify({ step, data }) }).catch(() => {});
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+(async () => {
+  const p = window.wewatchDesktop && window.wewatchDesktop.picker;
+  await report('bridge', { keys: p ? Object.keys(p) : null });
+  if (!p) { await report('done'); return; }
+  const states = [];
+  p.onState((s) => states.push({ open: s.open, nav: s.nav, url: (s.url || '').slice(0, 80) }));
+  await report('open-file', await p.open('file:///etc/hosts'));
+  await report('open-js', await p.open('javascript:alert(1)'));
+  const target = new URL(location.href).searchParams.get('site');
+  await report('open', await p.open(target));
+  const r = document.getElementById('box').getBoundingClientRect();
+  await report('bounds', await p.setBounds({ x: r.x, y: r.y, width: r.width, height: r.height }));
+  await wait(10000);
+  await report('play', await fetch('/play').then((x) => x.text()));
+  await wait(20000);
+  const t = await p.take();
+  await report('take', t);
+  await report('states', states.slice(0, 8));
+  await report('close', await p.close());
+  await wait(500);
+  await report('done');
+})();
+</script>

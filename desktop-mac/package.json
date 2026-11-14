@@ -18,7 +18,8 @@
     "start": "npm run build && electron .",
     "dev": "npm run build && WW_APP_URL=http://localhost:3000 electron .",
     "dist": "npm run build && npm run build:web && electron-builder --mac",
-    "build:web": "bash scripts/build-web.sh"
+    "build:web": "bash scripts/build-web.sh",
+    "smoke:picker": "npm run build && node test/smoke/picker.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

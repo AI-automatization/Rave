@@ -869,6 +869,12 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
           onOpenChange={setChangeVideoOpen}
           onSubmit={async (url, hints) => {
             const r = await resolveLinkPlatform(url, detectVideoPlatform(url));
+            // Desktop app: a running VB share would keep covering the room's player (DesktopScreenView wins) — stop
+            // it first, like handleGeoPick. A film the picker caught ("Videoni olish") plays in our synced player:
+            // the auto-open below must not start a screen share on that stream link (it may have no .mp4/.m3u8
+            // extension), so it is marked as already handled.
+            if (screenShare.isSharing || screenShare.starting) screenShare.stop();
+            if (hints?.stream) desktopAutoUrlRef.current = r.url;
             sendMediaChange(r.url, undefined, r.platform, hints);
           }}
         />

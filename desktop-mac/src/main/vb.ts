@@ -26,7 +26,7 @@ const VB_PERMISSIONS: ReadonlySet<string> = new Set([
 
 // Development smokes serve their fake film site from 127.0.0.1; the packaged app never allows local addresses (devEnv is '' there).
 const ALLOW_PRIVATE = devEnv('WW_VB_ALLOW_PRIVATE') === '1';
-const vbUrlProblem = (raw: string): ReturnType<typeof checkVbUrl> => checkVbUrl(raw, ALLOW_PRIVATE);
+export const vbUrlProblem = (raw: string): ReturnType<typeof checkVbUrl> => checkVbUrl(raw, ALLOW_PRIVATE);
 
 /** A public-looking hostname that DNS points at this machine / LAN (rebinding) — checked after resolving. */
 async function resolvesToPrivate(ses: Electron.Session, rawUrl: string): Promise<boolean> {
@@ -63,7 +63,7 @@ function whenLoaded(wc: WebContents, ms = 8000): Promise<void> {
   });
 }
 
-const VB_WEB_PREFS = {
+export const VB_WEB_PREFS = {
   partition: VB_PARTITION,
   sandbox: true,
   contextIsolation: true,

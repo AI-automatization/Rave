@@ -12,6 +12,7 @@ import { chromeUserAgent } from './urls';
 import { clearVbCache, closeVb, protectVbSession } from './vb';
 import { initAdEngine } from './adblock-engine';
 import { prepareLocalWeb, startLocalWeb } from './local-web';
+import { installPicker } from './picker';
 import { createMainWindow, focusMainWindow, getMainWindow, observeContent, sendToMain } from './window';
 
 // Automated runs (smokes, agents) must never make a sound on the user's Mac: every page is muted (per page, so the
@@ -148,6 +149,7 @@ if (!app.requestSingleInstanceLock()) {
       sendToMain('vb:blocked', { url, reason });
     });
     clearVbCache(); // in case the app was killed with the VB open
+    installPicker(); // "Videoni olish": notes the film streams the picker's page loads
     // Filter lists for the VB's ad blocker (downloaded once, cached). Smoke runs stay offline and deterministic.
     if (!SMOKE_OUT) void initAdEngine((m) => smoke('adblock', { m }));
 

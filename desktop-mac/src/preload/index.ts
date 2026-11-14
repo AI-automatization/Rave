@@ -27,4 +27,13 @@ contextBridge.exposeInMainWorld('wewatchDesktop', {
     onAlternatives: listen('vb:alternatives'),
     metrics: () => ipcRenderer.invoke('vb:metrics'),
   },
+  // The VB as a panel inside this window, for finding a room's video (not for streaming) — src/main/picker.ts.
+  picker: {
+    open: (url: string) => ipcRenderer.invoke('pick:open', url),
+    setBounds: (box: { x: number; y: number; width: number; height: number } | null) => ipcRenderer.invoke('pick:bounds', box),
+    nav: (action: 'back' | 'reload') => ipcRenderer.invoke('pick:nav', action),
+    take: () => ipcRenderer.invoke('pick:take'),
+    close: () => ipcRenderer.invoke('pick:close'),
+    onState: listen('pick:state'),
+  },
 });

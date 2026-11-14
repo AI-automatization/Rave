@@ -4,6 +4,8 @@ import { session } from 'electron';
 import { APP_URL, devEnv } from './config';
 import { authStringsFor, type AuthStringKey } from './auth-strings';
 import { inspectShell, smokeEval, smokeShots } from './shell';
+import { smokePickerContents } from './picker';
+import fs from 'node:fs';
 
 type Smoke = (event: string, data?: Record<string, unknown>) => void;
 
@@ -438,5 +440,19 @@ export function runSmokeAction(action: string, smoke: Smoke): void {
       await look('look-initial');
       await shot();
     })();
+  }
+  if (action === 'picker-play') {
+    // picker smoke: when the fake app asks (a line "play" in <out>.cmd), press play in every frame of the picker panel.
+    const cmd = devEnv('WW_SMOKE_OUT') + '.cmd';
+    const timer = setInterval(() => {
+      let text = '';
+      try { text = fs.readFileSync(cmd, 'utf8'); } catch { return; }
+      if (!text.includes('play')) return;
+      clearInterval(timer);
+      const wc = smokePickerContents();
+      if (!wc) return;
+      const js = "(() => { const v = document.querySelector('video'); if (v) { v.muted = true; v.play?.().catch(() => {}); return 'video'; } const b = document.querySelector('.vjs-big-play-button, .plyr__control--overlaid, [class*=play-button], [aria-label*=Play i]'); if (b) { b.click(); return 'button'; } return 'none'; })()";
+      for (const f of wc.mainFrame.framesInSubtree) void f.executeJavaScript(js, true).then((r: unknown) => smoke('picker-play', { r }), () => {});
+    }, 300);
   }
 }

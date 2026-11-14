@@ -33,6 +33,7 @@ import { roomDialogStringsFor } from './room-create-strings';
 import { DEFAULT_LOCALE, LOCALE_COOKIE, LOCALES, parseLocale, stringsFor, type Locale } from './i18n';
 import { buildHomeData, failed, LOADING, NO_RAILS, roomUrl, type HomeData, type HomeView, type Rails, type RoomCard, type SortKey } from './rooms-model';
 import { helpContactUrl, helpStringsFor } from './help-strings';
+import { closePicker, reapplyPicker, setPickOrigin, setPickerSuppressed } from './picker';
 import { raiseVbDock, reapplyVbDock, setVbDockOrigin, setVbDockSuppressed } from './vb';
 import { activeNavId, contentBounds, isAuthPath, isHomePath, nativeScreen, NAV_SECTIONS, navUrl, SIDEBAR_WIDTH, webEmbedCss, brokenAvatarScript, localeSyncScript, type NavItemId, type Screen } from './shell-model';
 
@@ -276,6 +277,7 @@ function layout(): void {
   if (authView && alive(authView)) authView.setBounds(b);
   if (helpView && alive(helpView)) helpView.setBounds(b); // same area as the sign-in screen it covers
   reapplyVbDock();
+  reapplyPicker();
 }
 
 // ---------- content (web) view: created on demand, destroyed when leaving it ----------
@@ -293,6 +295,9 @@ function ensureContent(): WebContents {
   layout();
   const wc = cv.webContents;
   // A player's "full screen" button: a view stays inside its own box unless the app makes it fill the window.
+  // A full load of the room page drops the web app's picker UI: the panel must not stay on top of the new page.
+  wc.on('did-navigate', () => closePicker());
+  wc.on('destroyed', () => closePicker());
   wc.on('enter-html-full-screen', () => { contentFullscreen = true; layout(); });
   wc.on('leave-html-full-screen', () => { contentFullscreen = false; layout(); });
   // The web app draws its own left sidebar; the native one replaces it (interim, until every screen is native).
@@ -376,6 +381,7 @@ function onContentNavigated(url: string): void {
 function setMode(next: Mode): void {
   mode = next;
   setVbDockSuppressed(next !== 'web');
+  setPickerSuppressed(next !== 'web');
   hideHelp(); // any change of what the window shows (sign-in, sign-out, a room link) closes the Help screen
   if (alive(homeView)) homeView?.setVisible(next === 'home');
   if (alive(authView)) authView?.setVisible(next === 'auth');
@@ -992,6 +998,7 @@ export interface ShellOptions {
 /** Builds the shell and Home views inside `window`. The content (web) view is created later, on demand. */
 export function attachShell(window: BrowserWindow, opts: ShellOptions): { shell: WebContentsView; home: WebContentsView } {
   setVbDockOrigin(() => (contentView && alive(contentView) ? contentView.getBounds() : null));
+  setPickOrigin(() => (contentView && alive(contentView) ? contentView.getBounds() : null));
   nativeTheme.themeSource = 'dark'; // the design is dark; a light vibrancy under a dark UI would look broken
   win = window;
   contentPrefs = opts.contentPrefs;
