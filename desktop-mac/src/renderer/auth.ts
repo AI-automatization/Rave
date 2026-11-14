@@ -318,24 +318,30 @@ async function run(req: () => Promise<Outcome>, onOk: () => void): Promise<void>
   render();
 }
 
-function loginScreen(card: HTMLElement): void {
-  card.appendChild(head(s('welcomeBack'), s('welcomeBackSub')));
-
-  const google = el('button', 'btn google');
-  google.type = 'button';
-  google.setAttribute('aria-label', s('continueWithGoogle'));
-  google.appendChild(shapes('0 0 24 24', GOOGLE, '17', '17'));
-  google.appendChild(el('span', undefined, s('google')));
-  google.disabled = st.busy;
-  google.addEventListener('click', () => void startGoogle());
-  card.appendChild(google);
-
+/**
+ * "yoki" + "Google orqali davom etish" — login va register ekranlarining pastida, web (app-web SocialAuth.tsx) va mobil
+ * (SocialAuthButtons) bilan bir xil tartibda: email forma → yoki → keng Google tugmasi (brend gradient chegara).
+ * Google bilan birinchi marta kirgan foydalanuvchiga akkaunt server tomonda yaratiladi, shuning uchun register'da ham bor.
+ */
+function googleBlock(card: HTMLElement): void {
   const div = el('div', 'divider');
   div.setAttribute('aria-hidden', 'true');
   div.appendChild(el('i'));
   div.appendChild(el('span', undefined, s('orDivider')));
   div.appendChild(el('i'));
   card.appendChild(div);
+
+  const google = el('button', 'btn google');
+  google.type = 'button';
+  google.appendChild(shapes('0 0 24 24', GOOGLE, '18', '18'));
+  google.appendChild(el('span', undefined, s('continueWithGoogle')));
+  google.disabled = st.busy;
+  google.addEventListener('click', () => void startGoogle());
+  card.appendChild(google);
+}
+
+function loginScreen(card: HTMLElement): void {
+  card.appendChild(head(s('welcomeBack'), s('welcomeBackSub')));
 
   const form = el('form');
   form.noValidate = true;
@@ -359,6 +365,7 @@ function loginScreen(card: HTMLElement): void {
   });
   sync();
   card.appendChild(form);
+  googleBlock(card);
 
   const sw = el('p', 'switch', `${s('noAccount')} `);
   sw.appendChild(link(s('registerLink'), () => go('register')));
@@ -421,6 +428,7 @@ function registerScreen(card: HTMLElement): void {
   });
   sync();
   card.appendChild(form);
+  googleBlock(card);
   const sw = el('p', 'switch', `${s('hasAccount')} `);
   sw.appendChild(link(s('loginLink'), () => go('login')));
   card.appendChild(sw);
